@@ -1,0 +1,25 @@
+{
+  "name": "@retaino/api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "wrangler deploy --dry-run",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "^4.10.0",
+    "@retaino/db": "workspace:*",
+    "@retaino/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260502.0",
+    "@retaino/eslint-config": "workspace:*",
+    "@retaino/typescript-config": "workspace:*",
+    "eslint": "^9.26.0",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.14.4"
+  }
+}
