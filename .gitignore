@@ -1,0 +1,12 @@
+node_modules
+.pnpm-store
+.turbo
+.next
+.out
+.vercel
+.env*
+!.env.example
+dist
+coverage
+.DS_Store
+.wrangler
