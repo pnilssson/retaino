@@ -1,12 +1,16 @@
 node_modules
 .pnpm-store
 .turbo
+.dev-logs
 .next
 .out
 .vercel
 .env*
 !.env.example
+.dev.vars
+!.dev.vars.example
 dist
 coverage
+*.tsbuildinfo
 .DS_Store
 .wrangler

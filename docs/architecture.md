@@ -15,6 +15,17 @@ requirements are defined.
 
 ## Architecture rules
 
+### Tenancy
+
+- Organizations are the tenant boundary, as defined in `docs/tenancy.md`.
+- Use Clerk Organizations for membership, invitations, active organization, and
+  base roles.
+- Product data belongs to organizations, not users.
+- Every tenant-owned table must include `organizationId`.
+- Every tenant-scoped query must require `organizationId`.
+- Background jobs must receive `organizationId` explicitly and must never
+  process tenant-owned resources by ID alone.
+
 ### API (`apps/api`)
 
 - `src/server.ts` composes routes and global error handling.
