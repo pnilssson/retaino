@@ -2,6 +2,7 @@
   "extends": "@retaino/typescript-config/nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "exactOptionalPropertyTypes": false,
     "paths": {
       "@/*": ["./src/*"]
     }

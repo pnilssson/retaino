@@ -1,0 +1,760 @@
+{
+    "id":  "6ea61563-ce1c-4d6f-8117-2e379a381759",
+    "prevId":  "3cc21a95-e099-4f57-93dc-3aa5b4e8b1d9",
+    "version":  "7",
+    "dialect":  "postgresql",
+    "tables":  {
+                   "public.legal_documents":  {
+                                                  "name":  "legal_documents",
+                                                  "schema":  "",
+                                                  "columns":  {
+                                                                  "id":  {
+                                                                             "name":  "id",
+                                                                             "type":  "uuid",
+                                                                             "primaryKey":  true,
+                                                                             "notNull":  true,
+                                                                             "default":  "gen_random_uuid()"
+                                                                         },
+                                                                  "document_type":  {
+                                                                                        "name":  "document_type",
+                                                                                        "type":  "text",
+                                                                                        "primaryKey":  false,
+                                                                                        "notNull":  true
+                                                                                    },
+                                                                  "slug":  {
+                                                                               "name":  "slug",
+                                                                               "type":  "text",
+                                                                               "primaryKey":  false,
+                                                                               "notNull":  true
+                                                                           },
+                                                                  "title":  {
+                                                                                "name":  "title",
+                                                                                "type":  "text",
+                                                                                "primaryKey":  false,
+                                                                                "notNull":  true
+                                                                            },
+                                                                  "public_visible":  {
+                                                                                         "name":  "public_visible",
+                                                                                         "type":  "boolean",
+                                                                                         "primaryKey":  false,
+                                                                                         "notNull":  true,
+                                                                                         "default":  true
+                                                                                     },
+                                                                  "acceptance_required":  {
+                                                                                              "name":  "acceptance_required",
+                                                                                              "type":  "boolean",
+                                                                                              "primaryKey":  false,
+                                                                                              "notNull":  true,
+                                                                                              "default":  false
+                                                                                          },
+                                                                  "sort_order":  {
+                                                                                     "name":  "sort_order",
+                                                                                     "type":  "integer",
+                                                                                     "primaryKey":  false,
+                                                                                     "notNull":  true,
+                                                                                     "default":  0
+                                                                                 },
+                                                                  "created_at":  {
+                                                                                     "name":  "created_at",
+                                                                                     "type":  "timestamp with time zone",
+                                                                                     "primaryKey":  false,
+                                                                                     "notNull":  true,
+                                                                                     "default":  "now()"
+                                                                                 },
+                                                                  "updated_at":  {
+                                                                                     "name":  "updated_at",
+                                                                                     "type":  "timestamp with time zone",
+                                                                                     "primaryKey":  false,
+                                                                                     "notNull":  true,
+                                                                                     "default":  "now()"
+                                                                                 }
+                                                              },
+                                                  "indexes":  {
+                                                                  "legal_documents_document_type_idx":  {
+                                                                                                            "name":  "legal_documents_document_type_idx",
+                                                                                                            "columns":  [
+                                                                                                                            {
+                                                                                                                                "expression":  "document_type",
+                                                                                                                                "isExpression":  false,
+                                                                                                                                "asc":  true,
+                                                                                                                                "nulls":  "last"
+                                                                                                                            }
+                                                                                                                        ],
+                                                                                                            "isUnique":  true,
+                                                                                                            "concurrently":  false,
+                                                                                                            "method":  "btree",
+                                                                                                            "with":  {
+
+                                                                                                                     }
+                                                                                                        },
+                                                                  "legal_documents_slug_idx":  {
+                                                                                                   "name":  "legal_documents_slug_idx",
+                                                                                                   "columns":  [
+                                                                                                                   {
+                                                                                                                       "expression":  "slug",
+                                                                                                                       "isExpression":  false,
+                                                                                                                       "asc":  true,
+                                                                                                                       "nulls":  "last"
+                                                                                                                   }
+                                                                                                               ],
+                                                                                                   "isUnique":  true,
+                                                                                                   "concurrently":  false,
+                                                                                                   "method":  "btree",
+                                                                                                   "with":  {
+
+                                                                                                            }
+                                                                                               }
+                                                              },
+                                                  "foreignKeys":  {
+
+                                                                  },
+                                                  "compositePrimaryKeys":  {
+
+                                                                           },
+                                                  "uniqueConstraints":  {
+
+                                                                        },
+                                                  "policies":  {
+
+                                                               },
+                                                  "checkConstraints":  {
+
+                                                                       },
+                                                  "isRLSEnabled":  false
+                                              },
+                   "public.legal_document_versions":  {
+                                                          "name":  "legal_document_versions",
+                                                          "schema":  "",
+                                                          "columns":  {
+                                                                          "id":  {
+                                                                                     "name":  "id",
+                                                                                     "type":  "uuid",
+                                                                                     "primaryKey":  true,
+                                                                                     "notNull":  true,
+                                                                                     "default":  "gen_random_uuid()"
+                                                                                 },
+                                                                          "legal_document_id":  {
+                                                                                                    "name":  "legal_document_id",
+                                                                                                    "type":  "uuid",
+                                                                                                    "primaryKey":  false,
+                                                                                                    "notNull":  true
+                                                                                                },
+                                                                          "document_type":  {
+                                                                                                "name":  "document_type",
+                                                                                                "type":  "text",
+                                                                                                "primaryKey":  false,
+                                                                                                "notNull":  true
+                                                                                            },
+                                                                          "document_version":  {
+                                                                                                   "name":  "document_version",
+                                                                                                   "type":  "text",
+                                                                                                   "primaryKey":  false,
+                                                                                                   "notNull":  true
+                                                                                               },
+                                                                          "title":  {
+                                                                                        "name":  "title",
+                                                                                        "type":  "text",
+                                                                                        "primaryKey":  false,
+                                                                                        "notNull":  true
+                                                                                    },
+                                                                          "body_mdx":  {
+                                                                                           "name":  "body_mdx",
+                                                                                           "type":  "text",
+                                                                                           "primaryKey":  false,
+                                                                                           "notNull":  true
+                                                                                       },
+                                                                          "content_hash":  {
+                                                                                               "name":  "content_hash",
+                                                                                               "type":  "text",
+                                                                                               "primaryKey":  false,
+                                                                                               "notNull":  true
+                                                                                           },
+                                                                          "status":  {
+                                                                                         "name":  "status",
+                                                                                         "type":  "text",
+                                                                                         "primaryKey":  false,
+                                                                                         "notNull":  true,
+                                                                                         "default":  "\u0027draft\u0027"
+                                                                                     },
+                                                                          "effective_date":  {
+                                                                                                 "name":  "effective_date",
+                                                                                                 "type":  "text",
+                                                                                                 "primaryKey":  false,
+                                                                                                 "notNull":  true
+                                                                                             },
+                                                                          "published_at":  {
+                                                                                               "name":  "published_at",
+                                                                                               "type":  "timestamp with time zone",
+                                                                                               "primaryKey":  false,
+                                                                                               "notNull":  false
+                                                                                           },
+                                                                          "created_at":  {
+                                                                                             "name":  "created_at",
+                                                                                             "type":  "timestamp with time zone",
+                                                                                             "primaryKey":  false,
+                                                                                             "notNull":  true,
+                                                                                             "default":  "now()"
+                                                                                         },
+                                                                          "updated_at":  {
+                                                                                             "name":  "updated_at",
+                                                                                             "type":  "timestamp with time zone",
+                                                                                             "primaryKey":  false,
+                                                                                             "notNull":  true,
+                                                                                             "default":  "now()"
+                                                                                         }
+                                                                      },
+                                                          "indexes":  {
+                                                                          "legal_document_versions_document_id_version_idx":  {
+                                                                                                                                  "name":  "legal_document_versions_document_id_version_idx",
+                                                                                                                                  "columns":  [
+                                                                                                                                                  {
+                                                                                                                                                      "expression":  "legal_document_id",
+                                                                                                                                                      "isExpression":  false,
+                                                                                                                                                      "asc":  true,
+                                                                                                                                                      "nulls":  "last"
+                                                                                                                                                  },
+                                                                                                                                                  {
+                                                                                                                                                      "expression":  "document_version",
+                                                                                                                                                      "isExpression":  false,
+                                                                                                                                                      "asc":  true,
+                                                                                                                                                      "nulls":  "last"
+                                                                                                                                                  }
+                                                                                                                                              ],
+                                                                                                                                  "isUnique":  true,
+                                                                                                                                  "concurrently":  false,
+                                                                                                                                  "method":  "btree",
+                                                                                                                                  "with":  {
+
+                                                                                                                                           }
+                                                                                                                              },
+                                                                          "legal_document_versions_type_version_idx":  {
+                                                                                                                           "name":  "legal_document_versions_type_version_idx",
+                                                                                                                           "columns":  [
+                                                                                                                                           {
+                                                                                                                                               "expression":  "document_type",
+                                                                                                                                               "isExpression":  false,
+                                                                                                                                               "asc":  true,
+                                                                                                                                               "nulls":  "last"
+                                                                                                                                           },
+                                                                                                                                           {
+                                                                                                                                               "expression":  "document_version",
+                                                                                                                                               "isExpression":  false,
+                                                                                                                                               "asc":  true,
+                                                                                                                                               "nulls":  "last"
+                                                                                                                                           }
+                                                                                                                                       ],
+                                                                                                                           "isUnique":  true,
+                                                                                                                           "concurrently":  false,
+                                                                                                                           "method":  "btree",
+                                                                                                                           "with":  {
+
+                                                                                                                                    }
+                                                                                                                       },
+                                                                          "legal_document_versions_type_status_idx":  {
+                                                                                                                          "name":  "legal_document_versions_type_status_idx",
+                                                                                                                          "columns":  [
+                                                                                                                                          {
+                                                                                                                                              "expression":  "document_type",
+                                                                                                                                              "isExpression":  false,
+                                                                                                                                              "asc":  true,
+                                                                                                                                              "nulls":  "last"
+                                                                                                                                          },
+                                                                                                                                          {
+                                                                                                                                              "expression":  "status",
+                                                                                                                                              "isExpression":  false,
+                                                                                                                                              "asc":  true,
+                                                                                                                                              "nulls":  "last"
+                                                                                                                                          }
+                                                                                                                                      ],
+                                                                                                                          "isUnique":  false,
+                                                                                                                          "concurrently":  false,
+                                                                                                                          "method":  "btree",
+                                                                                                                          "with":  {
+
+                                                                                                                                   }
+                                                                                                                      }
+                                                                      },
+                                                          "foreignKeys":  {
+                                                                              "legal_document_versions_legal_document_id_legal_documents_id_fk":  {
+                                                                                                                                                      "name":  "legal_document_versions_legal_document_id_legal_documents_id_fk",
+                                                                                                                                                      "tableFrom":  "legal_document_versions",
+                                                                                                                                                      "tableTo":  "legal_documents",
+                                                                                                                                                      "columnsFrom":  [
+                                                                                                                                                                          "legal_document_id"
+                                                                                                                                                                      ],
+                                                                                                                                                      "columnsTo":  [
+                                                                                                                                                                        "id"
+                                                                                                                                                                    ],
+                                                                                                                                                      "onDelete":  "cascade",
+                                                                                                                                                      "onUpdate":  "no action"
+                                                                                                                                                  }
+                                                                          },
+                                                          "compositePrimaryKeys":  {
+
+                                                                                   },
+                                                          "uniqueConstraints":  {
+
+                                                                                },
+                                                          "policies":  {
+
+                                                                       },
+                                                          "checkConstraints":  {
+
+                                                                               },
+                                                          "isRLSEnabled":  false
+                                                      },
+                   "public.organization_acceptances":  {
+                                                           "name":  "organization_acceptances",
+                                                           "schema":  "",
+                                                           "columns":  {
+                                                                           "id":  {
+                                                                                      "name":  "id",
+                                                                                      "type":  "uuid",
+                                                                                      "primaryKey":  true,
+                                                                                      "notNull":  true,
+                                                                                      "default":  "gen_random_uuid()"
+                                                                                  },
+                                                                           "organization_id":  {
+                                                                                                   "name":  "organization_id",
+                                                                                                   "type":  "uuid",
+                                                                                                   "primaryKey":  false,
+                                                                                                   "notNull":  true
+                                                                                               },
+                                                                           "user_id":  {
+                                                                                           "name":  "user_id",
+                                                                                           "type":  "uuid",
+                                                                                           "primaryKey":  false,
+                                                                                           "notNull":  true
+                                                                                       },
+                                                                           "legal_document_version_id":  {
+                                                                                                             "name":  "legal_document_version_id",
+                                                                                                             "type":  "uuid",
+                                                                                                             "primaryKey":  false,
+                                                                                                             "notNull":  true
+                                                                                                         },
+                                                                           "document_type":  {
+                                                                                                 "name":  "document_type",
+                                                                                                 "type":  "text",
+                                                                                                 "primaryKey":  false,
+                                                                                                 "notNull":  true
+                                                                                             },
+                                                                           "document_version":  {
+                                                                                                    "name":  "document_version",
+                                                                                                    "type":  "text",
+                                                                                                    "primaryKey":  false,
+                                                                                                    "notNull":  true
+                                                                                                },
+                                                                           "content_hash":  {
+                                                                                                "name":  "content_hash",
+                                                                                                "type":  "text",
+                                                                                                "primaryKey":  false,
+                                                                                                "notNull":  true
+                                                                                            },
+                                                                           "ip_address":  {
+                                                                                              "name":  "ip_address",
+                                                                                              "type":  "text",
+                                                                                              "primaryKey":  false,
+                                                                                              "notNull":  false
+                                                                                          },
+                                                                           "user_agent":  {
+                                                                                              "name":  "user_agent",
+                                                                                              "type":  "text",
+                                                                                              "primaryKey":  false,
+                                                                                              "notNull":  false
+                                                                                          },
+                                                                           "accepted_at":  {
+                                                                                               "name":  "accepted_at",
+                                                                                               "type":  "timestamp with time zone",
+                                                                                               "primaryKey":  false,
+                                                                                               "notNull":  true,
+                                                                                               "default":  "now()"
+                                                                                           }
+                                                                       },
+                                                           "indexes":  {
+                                                                           "organization_acceptances_org_document_version_idx":  {
+                                                                                                                                     "name":  "organization_acceptances_org_document_version_idx",
+                                                                                                                                     "columns":  [
+                                                                                                                                                     {
+                                                                                                                                                         "expression":  "organization_id",
+                                                                                                                                                         "isExpression":  false,
+                                                                                                                                                         "asc":  true,
+                                                                                                                                                         "nulls":  "last"
+                                                                                                                                                     },
+                                                                                                                                                     {
+                                                                                                                                                         "expression":  "legal_document_version_id",
+                                                                                                                                                         "isExpression":  false,
+                                                                                                                                                         "asc":  true,
+                                                                                                                                                         "nulls":  "last"
+                                                                                                                                                     }
+                                                                                                                                                 ],
+                                                                                                                                     "isUnique":  true,
+                                                                                                                                     "concurrently":  false,
+                                                                                                                                     "method":  "btree",
+                                                                                                                                     "with":  {
+
+                                                                                                                                              }
+                                                                                                                                 }
+                                                                       },
+                                                           "foreignKeys":  {
+                                                                               "organization_acceptances_organization_id_organizations_id_fk":  {
+                                                                                                                                                    "name":  "organization_acceptances_organization_id_organizations_id_fk",
+                                                                                                                                                    "tableFrom":  "organization_acceptances",
+                                                                                                                                                    "tableTo":  "organizations",
+                                                                                                                                                    "columnsFrom":  [
+                                                                                                                                                                        "organization_id"
+                                                                                                                                                                    ],
+                                                                                                                                                    "columnsTo":  [
+                                                                                                                                                                      "id"
+                                                                                                                                                                  ],
+                                                                                                                                                    "onDelete":  "cascade",
+                                                                                                                                                    "onUpdate":  "no action"
+                                                                                                                                                },
+                                                                               "organization_acceptances_user_id_users_id_fk":  {
+                                                                                                                                    "name":  "organization_acceptances_user_id_users_id_fk",
+                                                                                                                                    "tableFrom":  "organization_acceptances",
+                                                                                                                                    "tableTo":  "users",
+                                                                                                                                    "columnsFrom":  [
+                                                                                                                                                        "user_id"
+                                                                                                                                                    ],
+                                                                                                                                    "columnsTo":  [
+                                                                                                                                                      "id"
+                                                                                                                                                  ],
+                                                                                                                                    "onDelete":  "cascade",
+                                                                                                                                    "onUpdate":  "no action"
+                                                                                                                                },
+                                                                               "organization_acceptances_legal_document_version_id_legal_document_versions_id_fk":  {
+                                                                                                                                                                        "name":  "organization_acceptances_legal_document_version_id_legal_document_versions_id_fk",
+                                                                                                                                                                        "tableFrom":  "organization_acceptances",
+                                                                                                                                                                        "tableTo":  "legal_document_versions",
+                                                                                                                                                                        "columnsFrom":  [
+                                                                                                                                                                                            "legal_document_version_id"
+                                                                                                                                                                                        ],
+                                                                                                                                                                        "columnsTo":  [
+                                                                                                                                                                                          "id"
+                                                                                                                                                                                      ],
+                                                                                                                                                                        "onDelete":  "no action",
+                                                                                                                                                                        "onUpdate":  "no action"
+                                                                                                                                                                    }
+                                                                           },
+                                                           "compositePrimaryKeys":  {
+
+                                                                                    },
+                                                           "uniqueConstraints":  {
+
+                                                                                 },
+                                                           "policies":  {
+
+                                                                        },
+                                                           "checkConstraints":  {
+
+                                                                                },
+                                                           "isRLSEnabled":  false
+                                                       },
+                   "public.organization_profiles":  {
+                                                        "name":  "organization_profiles",
+                                                        "schema":  "",
+                                                        "columns":  {
+                                                                        "id":  {
+                                                                                   "name":  "id",
+                                                                                   "type":  "uuid",
+                                                                                   "primaryKey":  true,
+                                                                                   "notNull":  true,
+                                                                                   "default":  "gen_random_uuid()"
+                                                                               },
+                                                                        "organization_id":  {
+                                                                                                "name":  "organization_id",
+                                                                                                "type":  "uuid",
+                                                                                                "primaryKey":  false,
+                                                                                                "notNull":  true
+                                                                                            },
+                                                                        "legal_name":  {
+                                                                                           "name":  "legal_name",
+                                                                                           "type":  "text",
+                                                                                           "primaryKey":  false,
+                                                                                           "notNull":  true
+                                                                                       },
+                                                                        "registration_number":  {
+                                                                                                    "name":  "registration_number",
+                                                                                                    "type":  "text",
+                                                                                                    "primaryKey":  false,
+                                                                                                    "notNull":  true
+                                                                                                },
+                                                                        "billing_email":  {
+                                                                                              "name":  "billing_email",
+                                                                                              "type":  "text",
+                                                                                              "primaryKey":  false,
+                                                                                              "notNull":  true
+                                                                                          },
+                                                                        "responsible_name":  {
+                                                                                                 "name":  "responsible_name",
+                                                                                                 "type":  "text",
+                                                                                                 "primaryKey":  false,
+                                                                                                 "notNull":  true
+                                                                                             },
+                                                                        "responsible_email":  {
+                                                                                                  "name":  "responsible_email",
+                                                                                                  "type":  "text",
+                                                                                                  "primaryKey":  false,
+                                                                                                  "notNull":  true
+                                                                                              },
+                                                                        "responsible_phone":  {
+                                                                                                  "name":  "responsible_phone",
+                                                                                                  "type":  "text",
+                                                                                                  "primaryKey":  false,
+                                                                                                  "notNull":  false
+                                                                                              },
+                                                                        "created_at":  {
+                                                                                           "name":  "created_at",
+                                                                                           "type":  "timestamp with time zone",
+                                                                                           "primaryKey":  false,
+                                                                                           "notNull":  true,
+                                                                                           "default":  "now()"
+                                                                                       },
+                                                                        "updated_at":  {
+                                                                                           "name":  "updated_at",
+                                                                                           "type":  "timestamp with time zone",
+                                                                                           "primaryKey":  false,
+                                                                                           "notNull":  true,
+                                                                                           "default":  "now()"
+                                                                                       }
+                                                                    },
+                                                        "indexes":  {
+                                                                        "organization_profiles_organization_id_idx":  {
+                                                                                                                          "name":  "organization_profiles_organization_id_idx",
+                                                                                                                          "columns":  [
+                                                                                                                                          {
+                                                                                                                                              "expression":  "organization_id",
+                                                                                                                                              "isExpression":  false,
+                                                                                                                                              "asc":  true,
+                                                                                                                                              "nulls":  "last"
+                                                                                                                                          }
+                                                                                                                                      ],
+                                                                                                                          "isUnique":  true,
+                                                                                                                          "concurrently":  false,
+                                                                                                                          "method":  "btree",
+                                                                                                                          "with":  {
+
+                                                                                                                                   }
+                                                                                                                      }
+                                                                    },
+                                                        "foreignKeys":  {
+                                                                            "organization_profiles_organization_id_organizations_id_fk":  {
+                                                                                                                                              "name":  "organization_profiles_organization_id_organizations_id_fk",
+                                                                                                                                              "tableFrom":  "organization_profiles",
+                                                                                                                                              "tableTo":  "organizations",
+                                                                                                                                              "columnsFrom":  [
+                                                                                                                                                                  "organization_id"
+                                                                                                                                                              ],
+                                                                                                                                              "columnsTo":  [
+                                                                                                                                                                "id"
+                                                                                                                                                            ],
+                                                                                                                                              "onDelete":  "cascade",
+                                                                                                                                              "onUpdate":  "no action"
+                                                                                                                                          }
+                                                                        },
+                                                        "compositePrimaryKeys":  {
+
+                                                                                 },
+                                                        "uniqueConstraints":  {
+
+                                                                              },
+                                                        "policies":  {
+
+                                                                     },
+                                                        "checkConstraints":  {
+
+                                                                             },
+                                                        "isRLSEnabled":  false
+                                                    },
+                   "public.organizations":  {
+                                                "name":  "organizations",
+                                                "schema":  "",
+                                                "columns":  {
+                                                                "id":  {
+                                                                           "name":  "id",
+                                                                           "type":  "uuid",
+                                                                           "primaryKey":  true,
+                                                                           "notNull":  true,
+                                                                           "default":  "gen_random_uuid()"
+                                                                       },
+                                                                "clerk_organization_id":  {
+                                                                                              "name":  "clerk_organization_id",
+                                                                                              "type":  "text",
+                                                                                              "primaryKey":  false,
+                                                                                              "notNull":  true
+                                                                                          },
+                                                                "name":  {
+                                                                             "name":  "name",
+                                                                             "type":  "text",
+                                                                             "primaryKey":  false,
+                                                                             "notNull":  true
+                                                                         },
+                                                                "slug":  {
+                                                                             "name":  "slug",
+                                                                             "type":  "text",
+                                                                             "primaryKey":  false,
+                                                                             "notNull":  false
+                                                                         },
+                                                                "onboarding_status":  {
+                                                                                          "name":  "onboarding_status",
+                                                                                          "type":  "text",
+                                                                                          "primaryKey":  false,
+                                                                                          "notNull":  true,
+                                                                                          "default":  "\u0027profile_required\u0027"
+                                                                                      },
+                                                                "created_at":  {
+                                                                                   "name":  "created_at",
+                                                                                   "type":  "timestamp with time zone",
+                                                                                   "primaryKey":  false,
+                                                                                   "notNull":  true,
+                                                                                   "default":  "now()"
+                                                                               },
+                                                                "updated_at":  {
+                                                                                   "name":  "updated_at",
+                                                                                   "type":  "timestamp with time zone",
+                                                                                   "primaryKey":  false,
+                                                                                   "notNull":  true,
+                                                                                   "default":  "now()"
+                                                                               }
+                                                            },
+                                                "indexes":  {
+                                                                "organizations_clerk_organization_id_idx":  {
+                                                                                                                "name":  "organizations_clerk_organization_id_idx",
+                                                                                                                "columns":  [
+                                                                                                                                {
+                                                                                                                                    "expression":  "clerk_organization_id",
+                                                                                                                                    "isExpression":  false,
+                                                                                                                                    "asc":  true,
+                                                                                                                                    "nulls":  "last"
+                                                                                                                                }
+                                                                                                                            ],
+                                                                                                                "isUnique":  true,
+                                                                                                                "concurrently":  false,
+                                                                                                                "method":  "btree",
+                                                                                                                "with":  {
+
+                                                                                                                         }
+                                                                                                            }
+                                                            },
+                                                "foreignKeys":  {
+
+                                                                },
+                                                "compositePrimaryKeys":  {
+
+                                                                         },
+                                                "uniqueConstraints":  {
+
+                                                                      },
+                                                "policies":  {
+
+                                                             },
+                                                "checkConstraints":  {
+
+                                                                     },
+                                                "isRLSEnabled":  false
+                                            },
+                   "public.users":  {
+                                        "name":  "users",
+                                        "schema":  "",
+                                        "columns":  {
+                                                        "id":  {
+                                                                   "name":  "id",
+                                                                   "type":  "uuid",
+                                                                   "primaryKey":  true,
+                                                                   "notNull":  true,
+                                                                   "default":  "gen_random_uuid()"
+                                                               },
+                                                        "clerk_user_id":  {
+                                                                              "name":  "clerk_user_id",
+                                                                              "type":  "text",
+                                                                              "primaryKey":  false,
+                                                                              "notNull":  true
+                                                                          },
+                                                        "email":  {
+                                                                      "name":  "email",
+                                                                      "type":  "text",
+                                                                      "primaryKey":  false,
+                                                                      "notNull":  false
+                                                                  },
+                                                        "created_at":  {
+                                                                           "name":  "created_at",
+                                                                           "type":  "timestamp with time zone",
+                                                                           "primaryKey":  false,
+                                                                           "notNull":  true,
+                                                                           "default":  "now()"
+                                                                       },
+                                                        "updated_at":  {
+                                                                           "name":  "updated_at",
+                                                                           "type":  "timestamp with time zone",
+                                                                           "primaryKey":  false,
+                                                                           "notNull":  true,
+                                                                           "default":  "now()"
+                                                                       }
+                                                    },
+                                        "indexes":  {
+                                                        "users_clerk_user_id_idx":  {
+                                                                                        "name":  "users_clerk_user_id_idx",
+                                                                                        "columns":  [
+                                                                                                        {
+                                                                                                            "expression":  "clerk_user_id",
+                                                                                                            "isExpression":  false,
+                                                                                                            "asc":  true,
+                                                                                                            "nulls":  "last"
+                                                                                                        }
+                                                                                                    ],
+                                                                                        "isUnique":  true,
+                                                                                        "concurrently":  false,
+                                                                                        "method":  "btree",
+                                                                                        "with":  {
+
+                                                                                                 }
+                                                                                    }
+                                                    },
+                                        "foreignKeys":  {
+
+                                                        },
+                                        "compositePrimaryKeys":  {
+
+                                                                 },
+                                        "uniqueConstraints":  {
+
+                                                              },
+                                        "policies":  {
+
+                                                     },
+                                        "checkConstraints":  {
+
+                                                             },
+                                        "isRLSEnabled":  false
+                                    }
+               },
+    "enums":  {
+
+              },
+    "schemas":  {
+
+                },
+    "sequences":  {
+
+                  },
+    "roles":  {
+
+              },
+    "policies":  {
+
+                 },
+    "views":  {
+
+              },
+    "_meta":  {
+                  "columns":  {
+
+                              },
+                  "schemas":  {
+
+                              },
+                  "tables":  {
+
+                             }
+              }
+}

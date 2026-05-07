@@ -4,15 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
-    "build": "wrangler deploy --dry-run",
+    "build": "wrangler deploy --dry-run --outdir dist",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "deploy": "wrangler deploy"
   },
   "dependencies": {
+    "@clerk/backend": "^3.4.1",
     "hono": "^4.10.0",
     "@retaino/db": "workspace:*",
-    "@retaino/shared": "workspace:*"
+    "@retaino/shared": "workspace:*",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260502.0",
@@ -20,6 +23,7 @@
     "@retaino/typescript-config": "workspace:*",
     "eslint": "^9.26.0",
     "typescript": "^5.8.3",
+    "vitest": "^4.0.8",
     "wrangler": "^4.14.4"
   }
 }
