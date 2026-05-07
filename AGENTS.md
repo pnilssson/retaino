@@ -14,6 +14,7 @@ This repository is a monorepo scaffold for Retaino.
 - Never revert working code to avoid a build step. If native code needs rebuilding, say so. The user will rebuild.
 - Never leave unused code, files, imports, or dependencies behind. If something is no longer used, delete it immediately.
 - Dependencies used in code must be declared in the correct `package.json`. Do not rely on hoisting.
+- Prefer simple names when they stay clear. Avoid adding hyphens or compound names unless they improve clarity or match existing conventions.
 
 ## Guardrails
 

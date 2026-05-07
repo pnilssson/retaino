@@ -9,6 +9,7 @@ on:
       - ".github/workflows/deploy-api.yml"
       - "apps/api/**"
       - "packages/db/**"
+      - "packages/db/legal/**"
       - "packages/shared/**"
       - "packages/typescript-config/**"
       - "package.json"
@@ -46,6 +47,11 @@ jobs:
 
       - name: Run migrations
         run: pnpm --filter @retaino/db run db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Publish legal documents
+        run: pnpm --filter @retaino/db run legal:publish
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 

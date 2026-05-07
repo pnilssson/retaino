@@ -385,7 +385,7 @@ export function AuthForm() {
           className="text-foreground underline underline-offset-2"
           href={routes.terms}
         >
-          terms
+          terms and conditions
         </Link>{" "}
         and{" "}
         <Link

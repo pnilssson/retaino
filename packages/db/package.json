@@ -15,18 +15,21 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "legal:publish": "tsx src/scripts/publish-legal-documents.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
-    "drizzle-orm": "^0.44.0",
-    "@retaino/shared": "workspace:*"
+    "@retaino/shared": "workspace:*",
+    "drizzle-orm": "^0.44.0"
   },
   "devDependencies": {
     "@retaino/eslint-config": "workspace:*",
     "@retaino/typescript-config": "workspace:*",
+    "@types/node": "^22.15.17",
     "drizzle-kit": "^0.31.1",
     "eslint": "^9.26.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.3"
   }
 }

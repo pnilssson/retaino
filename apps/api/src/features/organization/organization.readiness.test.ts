@@ -6,7 +6,7 @@ const requiredLegalDocuments = [
     id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     documentType: 'terms',
     documentVersion: '2026-05-07',
-    title: 'Retaino Terms',
+    title: 'Retaino Terms and Conditions',
     effectiveDate: '2026-05-07',
     contentHash: 'a'.repeat(64),
   },

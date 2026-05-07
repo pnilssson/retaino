@@ -6,7 +6,7 @@ import { fetchLatestLegalDocument } from '@/features/legal/legal-documents';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Terms | Retaino',
+  title: 'Terms and Conditions | Retaino',
   robots: { index: false },
 };
 

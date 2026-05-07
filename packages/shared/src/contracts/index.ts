@@ -75,6 +75,18 @@ export function legalDocumentUrl(input: {
   return `/legal/${documentType}/${documentVersion}`;
 }
 
+export function appLegalDocumentUrl(input: {
+  documentType?: string;
+  documentVersion?: string;
+  type?: string;
+  version?: string;
+}) {
+  const documentType = input.documentType ?? input.type;
+  const documentVersion = input.documentVersion ?? input.version;
+
+  return `/app/legal/${documentType}/${documentVersion}`;
+}
+
 export const userSchema = z.object({
   id: idSchema,
   clerkUserId: nonEmptyStringSchema,

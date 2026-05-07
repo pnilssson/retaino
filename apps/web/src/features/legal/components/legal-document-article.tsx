@@ -12,6 +12,8 @@ import { routes } from '@/lib/routes';
 
 type LegalDocumentArticleProps = {
   document: LegalDocumentVersion;
+  backHref?: string;
+  backLabel?: string;
 };
 
 const mdxComponents = {
@@ -38,10 +40,12 @@ const mdxComponents = {
 };
 
 export async function LegalDocumentArticle({
+  backHref = routes.home,
+  backLabel = 'Back to home',
   document,
 }: LegalDocumentArticleProps) {
   const { content } = await compileMDX({
-    source: removeDocumentMetadata(document.bodyMdx),
+    source: document.bodyMdx,
     components: mdxComponents,
     options: {
       mdxOptions: {
@@ -56,9 +60,9 @@ export async function LegalDocumentArticle({
       <article className="mx-auto w-full max-w-3xl">
         <Link
           className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          href={routes.home}
+          href={backHref}
         >
-          Back to home
+          {backLabel}
         </Link>
         <div className="mt-8 border-b pb-6">
           <p className="text-sm font-medium text-muted-foreground">
@@ -77,12 +81,5 @@ export async function LegalDocumentArticle({
         </div>
       </article>
     </main>
-  );
-}
-
-function removeDocumentMetadata(source: string) {
-  return source.replace(
-    /^Version:\s*\S+\s*\r?\nEffective date:\s*\S+\s*\r?\n+/m,
-    '',
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
+import { useForm } from '@tanstack/react-form';
 import {
-  type FormEvent,
   type ReactNode,
   useMemo,
   useState
@@ -34,7 +34,6 @@ import { OrganizationRequired } from './organization-required';
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type ProfileDraft = Required<UpdateOrganizationProfileInput>;
-type FieldErrors = Partial<Record<keyof ProfileDraft | 'authorization', string>>;
 
 const emptyDraft: ProfileDraft = {
   legalName: '',
@@ -144,12 +143,10 @@ function OnboardingFlow({ session }: { session: OrganizationSession }) {
   const updateProfile = useUpdateOrganizationProfile();
   const createAcceptances = useCreateCurrentOrganizationAcceptances();
   const initialDraft = useMemo(() => profileToDraft(session), [session]);
-  const [draft, setDraft] = useState<ProfileDraft>(initialDraft);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [profileDraft, setProfileDraft] = useState<ProfileDraft>(initialDraft);
   const [activeStep, setActiveStep] = useState<OnboardingStepId | 'ready'>(
     resolveInitialStep(session),
   );
-  const [authorized, setAuthorized] = useState(false);
 
   const completedSteps = completedStepsFor(session, activeStep);
 
@@ -168,51 +165,25 @@ function OnboardingFlow({ session }: { session: OrganizationSession }) {
     <OnboardingFrame completedSteps={completedSteps} currentStep={activeStep}>
       {activeStep === 'company' ? (
         <CompanyStep
-          draft={draft}
-          errors={fieldErrors}
-          onChange={(field, value) => {
-            setDraft((current) => ({ ...current, [field]: value }));
-            setFieldErrors((current) => ({ ...current, [field]: undefined }));
-          }}
-          onSubmit={(event) => {
-            event.preventDefault();
-            const errors = validateCompany(draft);
-
-            if (hasFieldErrors(errors)) {
-              setFieldErrors(errors);
-              return;
-            }
-
-            setFieldErrors({});
+          defaultValues={profileDraft}
+          onComplete={(value) => {
+            setProfileDraft(value);
             setActiveStep('contact');
           }}
           organizationName={session.organization.name}
         />
       ) : activeStep === 'contact' ? (
         <ContactStep
-          draft={draft}
-          errors={fieldErrors}
+          defaultValues={profileDraft}
           isPending={updateProfile.isPending}
           mutationError={updateProfile.error?.message ?? null}
           onBack={() => setActiveStep('company')}
-          onChange={(field, value) => {
-            setDraft((current) => ({ ...current, [field]: value }));
-            setFieldErrors((current) => ({ ...current, [field]: undefined }));
-          }}
-          onSubmit={async (event) => {
-            event.preventDefault();
-            const errors = validateContact(draft);
-
-            if (hasFieldErrors(errors)) {
-              setFieldErrors(errors);
-              return;
-            }
-
-            setFieldErrors({});
+          onComplete={async (value) => {
             await updateProfile.mutateAsync({
-              ...draft,
-              responsiblePhone: draft.responsiblePhone.trim() || undefined
+              ...value,
+              responsiblePhone: value.responsiblePhone.trim() || undefined
             });
+            setProfileDraft(value);
             setActiveStep(
               session.readiness.complianceComplete ? 'ready' : 'agreements',
             );
@@ -220,35 +191,12 @@ function OnboardingFlow({ session }: { session: OrganizationSession }) {
         />
       ) : (
         <AgreementsStep
-          authorized={authorized}
           documents={session.requiredLegalDocuments}
-          error={
-            fieldErrors.authorization ??
-            createAcceptances.error?.message ??
-            null
-          }
           isPending={createAcceptances.isPending}
           missingAcceptanceTypes={session.readiness.missingAcceptanceTypes}
-          onAuthorizedChange={(checked) => {
-            setAuthorized(checked);
-            setFieldErrors((current) => ({
-              ...current,
-              authorization: undefined
-            }));
-          }}
+          mutationError={createAcceptances.error?.message ?? null}
           onBack={() => setActiveStep('contact')}
-          onSubmit={async (event) => {
-            event.preventDefault();
-
-            if (!authorized) {
-              setFieldErrors({
-                authorization:
-                  'Confirm that you are authorized to accept these documents.'
-              });
-              return;
-            }
-
-            setFieldErrors({});
+          onComplete={async () => {
             await createAcceptances.mutateAsync({
               documents: session.requiredLegalDocuments.map((document) => ({
                 documentType:
@@ -265,18 +213,19 @@ function OnboardingFlow({ session }: { session: OrganizationSession }) {
 }
 
 function CompanyStep({
-  draft,
-  errors,
-  onChange,
-  onSubmit,
+  defaultValues,
+  onComplete,
   organizationName
 }: {
-  draft: ProfileDraft;
-  errors: FieldErrors;
-  onChange: (field: keyof ProfileDraft, value: string) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  defaultValues: ProfileDraft;
+  onComplete: (value: ProfileDraft) => void;
   organizationName: string;
 }) {
+  const form = useForm({
+    defaultValues,
+    onSubmit: ({ value }) => onComplete(value),
+  });
+
   return (
     <section className="pt-4">
       <p className="text-sm text-muted-foreground">Company identity</p>
@@ -288,25 +237,73 @@ function CompanyStep({
         organization-level audit evidence.
       </p>
 
-      <form className="mt-8 grid gap-5" noValidate onSubmit={onSubmit}>
-        <TextInput
-          error={errors.legalName ?? null}
-          label="Legal company name"
+      <form
+        className="mt-8 grid gap-5"
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void form.handleSubmit();
+        }}
+      >
+        <form.Field
           name="legalName"
-          onChange={(value) => onChange('legalName', value)}
-          placeholder="Retaino AB"
-          value={draft.legalName}
-        />
-        <TextInput
-          error={errors.registrationNumber ?? null}
-          label="Registration number"
+          validators={{
+            onChange: ({ value }) => validateRequired(
+              value,
+              'Enter the legal company name.',
+            ),
+            onSubmit: ({ value }) => validateRequired(
+              value,
+              'Enter the legal company name.',
+            )
+          }}
+        >
+          {(field) => (
+            <TextInput
+              error={getFieldError(field.state.meta.errors)}
+              label="Legal company name"
+              name={field.name}
+              onBlur={field.handleBlur}
+              onChange={field.handleChange}
+              placeholder="Retaino AB"
+              value={field.state.value}
+            />
+          )}
+        </form.Field>
+        <form.Field
           name="registrationNumber"
-          onChange={(value) => onChange('registrationNumber', value)}
-          placeholder="559000-0000"
-          value={draft.registrationNumber}
-        />
+          validators={{
+            onChange: ({ value }) => validateRequired(
+              value,
+              'Enter the registration number.',
+            ),
+            onSubmit: ({ value }) => validateRequired(
+              value,
+              'Enter the registration number.',
+            )
+          }}
+        >
+          {(field) => (
+            <TextInput
+              error={getFieldError(field.state.meta.errors)}
+              label="Registration number"
+              name={field.name}
+              onBlur={field.handleBlur}
+              onChange={field.handleChange}
+              placeholder="559000-0000"
+              value={field.state.value}
+            />
+          )}
+        </form.Field>
         <div className="flex justify-end pt-2">
-          <Button type="submit">Continue</Button>
+          <form.Subscribe selector={(state) => [state.canSubmit]}>
+            {([canSubmit]) => (
+              <Button disabled={!canSubmit} type="submit">
+                Continue
+              </Button>
+            )}
+          </form.Subscribe>
         </div>
       </form>
     </section>
@@ -314,22 +311,25 @@ function CompanyStep({
 }
 
 function ContactStep({
-  draft,
-  errors,
+  defaultValues,
   isPending,
   mutationError,
   onBack,
-  onChange,
-  onSubmit
+  onComplete
 }: {
-  draft: ProfileDraft;
-  errors: FieldErrors;
+  defaultValues: ProfileDraft;
   isPending: boolean;
   mutationError: string | null;
   onBack: () => void;
-  onChange: (field: keyof ProfileDraft, value: string) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>;
+  onComplete: (value: ProfileDraft) => Promise<void>;
 }) {
+  const form = useForm({
+    defaultValues,
+    onSubmit: async ({ value }) => {
+      await onComplete(value);
+    },
+  });
+
   return (
     <section className="pt-4">
       <p className="text-sm text-muted-foreground">Responsible contact</p>
@@ -341,41 +341,93 @@ function ContactStep({
         if a campaign needs review.
       </p>
 
-      <form className="mt-8 grid gap-5" noValidate onSubmit={onSubmit}>
-        <TextInput
-          error={errors.billingEmail ?? null}
-          label="Billing email"
+      <form
+        className="mt-8 grid gap-5"
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void form.handleSubmit();
+        }}
+      >
+        <form.Field
           name="billingEmail"
-          onChange={(value) => onChange('billingEmail', value)}
-          placeholder="billing@example.com"
-          type="email"
-          value={draft.billingEmail}
-        />
-        <TextInput
-          error={errors.responsibleName ?? null}
-          label="Responsible contact"
+          validators={{
+            onChange: ({ value }) => validateEmail(value, 'billing email'),
+            onSubmit: ({ value }) => validateEmail(value, 'billing email')
+          }}
+        >
+          {(field) => (
+            <TextInput
+              error={getFieldError(field.state.meta.errors)}
+              label="Billing email"
+              name={field.name}
+              onBlur={field.handleBlur}
+              onChange={field.handleChange}
+              placeholder="billing@example.com"
+              type="email"
+              value={field.state.value}
+            />
+          )}
+        </form.Field>
+        <form.Field
           name="responsibleName"
-          onChange={(value) => onChange('responsibleName', value)}
-          placeholder="Ada Lovelace"
-          value={draft.responsibleName}
-        />
-        <TextInput
-          error={errors.responsibleEmail ?? null}
-          label="Responsible email"
+          validators={{
+            onChange: ({ value }) => validateRequired(
+              value,
+              'Enter the responsible contact.',
+            ),
+            onSubmit: ({ value }) => validateRequired(
+              value,
+              'Enter the responsible contact.',
+            )
+          }}
+        >
+          {(field) => (
+            <TextInput
+              error={getFieldError(field.state.meta.errors)}
+              label="Responsible contact"
+              name={field.name}
+              onBlur={field.handleBlur}
+              onChange={field.handleChange}
+              placeholder="Ada Lovelace"
+              value={field.state.value}
+            />
+          )}
+        </form.Field>
+        <form.Field
           name="responsibleEmail"
-          onChange={(value) => onChange('responsibleEmail', value)}
-          placeholder="ada@example.com"
-          type="email"
-          value={draft.responsibleEmail}
-        />
-        <TextInput
-          error={errors.responsiblePhone ?? null}
-          label="Responsible phone"
-          name="responsiblePhone"
-          onChange={(value) => onChange('responsiblePhone', value)}
-          placeholder="+46700000000"
-          value={draft.responsiblePhone}
-        />
+          validators={{
+            onChange: ({ value }) => validateEmail(value, 'responsible email'),
+            onSubmit: ({ value }) => validateEmail(value, 'responsible email')
+          }}
+        >
+          {(field) => (
+            <TextInput
+              error={getFieldError(field.state.meta.errors)}
+              label="Responsible email"
+              name={field.name}
+              onBlur={field.handleBlur}
+              onChange={field.handleChange}
+              placeholder="ada@example.com"
+              type="email"
+              value={field.state.value}
+            />
+          )}
+        </form.Field>
+        <form.Field name="responsiblePhone">
+          {(field) => (
+            <TextInput
+              error={getFieldError(field.state.meta.errors)}
+              label="Responsible phone"
+              name={field.name}
+              onBlur={field.handleBlur}
+              onChange={field.handleChange}
+              placeholder="+46700000000"
+              value={field.state.value}
+            />
+          )}
+        </form.Field>
 
         {mutationError ? (
           <InlineError message={mutationError} title="Profile could not be saved" />
@@ -385,9 +437,20 @@ function ContactStep({
           <Button onClick={onBack} type="button" variant="outline">
             Back
           </Button>
-          <Button disabled={isPending} type="submit">
-            {isPending ? 'Saving profile' : 'Save and continue'}
-          </Button>
+          <form.Subscribe
+            selector={(state) => [state.canSubmit, state.isSubmitting]}
+          >
+            {([canSubmit, isSubmitting]) => (
+              <Button
+                disabled={!canSubmit || isPending || isSubmitting}
+                type="submit"
+              >
+                {isPending || isSubmitting
+                  ? 'Saving profile'
+                  : 'Save and continue'}
+              </Button>
+            )}
+          </form.Subscribe>
         </div>
       </form>
     </section>
@@ -395,25 +458,29 @@ function ContactStep({
 }
 
 function AgreementsStep({
-  authorized,
   documents,
-  error,
   isPending,
   missingAcceptanceTypes,
-  onAuthorizedChange,
+  mutationError,
   onBack,
-  onSubmit
+  onComplete
 }: {
-  authorized: boolean;
   documents: OrganizationSession['requiredLegalDocuments'];
-  error: string | null;
   isPending: boolean;
   missingAcceptanceTypes: OrganizationSession['readiness']['missingAcceptanceTypes'];
-  onAuthorizedChange: (checked: boolean) => void;
+  mutationError: string | null;
   onBack: () => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>;
+  onComplete: () => Promise<void>;
 }) {
   const missing = new Set(missingAcceptanceTypes);
+  const form = useForm({
+    defaultValues: {
+      authorization: false
+    },
+    onSubmit: async () => {
+      await onComplete();
+    }
+  });
 
   return (
     <section className="pt-4">
@@ -426,7 +493,15 @@ function AgreementsStep({
         Retaino for compliant customer reactivation.
       </p>
 
-      <form className="mt-8 grid gap-6" onSubmit={onSubmit}>
+      <form
+        className="mt-8 grid gap-6"
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void form.handleSubmit();
+        }}
+      >
         <div className="divide-y border-y">
           {documents.map((document) => {
             const documentType =
@@ -474,38 +549,73 @@ function AgreementsStep({
           })}
         </div>
 
-        <div className="flex items-start gap-3">
-          <Checkbox
-            aria-describedby={error ? 'authorization-error' : undefined}
-            checked={authorized}
-            id="authorization"
-            onCheckedChange={(checked) =>
-              onAuthorizedChange(checked === true)
-            }
-          />
-          <div className="grid gap-1">
-            <Label htmlFor="authorization">
-              I am authorized to accept these documents for this organization.
-            </Label>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Acceptance is recorded per document version for the active
-              organization.
-            </p>
-            {error ? (
-              <p className="text-xs text-destructive" id="authorization-error">
-                {error}
-              </p>
-            ) : null}
-          </div>
-        </div>
+        <form.Field
+          name="authorization"
+          validators={{
+            onChange: ({ value }) => value
+              ? undefined
+              : 'Confirm that you are authorized to accept these documents.',
+            onSubmit: ({ value }) => value
+              ? undefined
+              : 'Confirm that you are authorized to accept these documents.'
+          }}
+        >
+          {(field) => {
+            const error =
+              mutationError ?? getFieldError(field.state.meta.errors);
+
+            return (
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  aria-describedby={error ? 'authorization-error' : undefined}
+                  checked={field.state.value}
+                  id={field.name}
+                  onBlur={field.handleBlur}
+                  onCheckedChange={(checked) =>
+                    field.handleChange(checked === true)
+                  }
+                />
+                <div className="grid gap-1">
+                  <Label htmlFor={field.name}>
+                    I am authorized to accept these documents for this
+                    organization.
+                  </Label>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    Acceptance is recorded per document version for the active
+                    organization.
+                  </p>
+                  {error ? (
+                    <p
+                      className="text-xs text-destructive"
+                      id="authorization-error"
+                    >
+                      {error}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            );
+          }}
+        </form.Field>
 
         <div className="flex flex-wrap justify-between gap-3 pt-2">
           <Button onClick={onBack} type="button" variant="outline">
             Back
           </Button>
-          <Button disabled={isPending} type="submit">
-            {isPending ? 'Recording acceptance' : 'Accept and finish setup'}
-          </Button>
+          <form.Subscribe
+            selector={(state) => [state.canSubmit, state.isSubmitting]}
+          >
+            {([canSubmit, isSubmitting]) => (
+              <Button
+                disabled={!canSubmit || isPending || isSubmitting}
+                type="submit"
+              >
+                {isPending || isSubmitting
+                  ? 'Recording acceptance'
+                  : 'Accept and finish setup'}
+              </Button>
+            )}
+          </form.Subscribe>
         </div>
       </form>
     </section>
@@ -554,6 +664,7 @@ function TextInput({
   error,
   label,
   name,
+  onBlur,
   onChange,
   placeholder,
   type = 'text',
@@ -562,6 +673,7 @@ function TextInput({
   error: string | null;
   label: string;
   name: keyof ProfileDraft;
+  onBlur: () => void;
   onChange: (value: string) => void;
   placeholder: string;
   type?: string;
@@ -576,6 +688,7 @@ function TextInput({
         autoComplete="off"
         id={name}
         name={name}
+        onBlur={onBlur}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         type={type}
@@ -588,6 +701,10 @@ function TextInput({
       ) : null}
     </div>
   );
+}
+
+function getFieldError(errors: unknown[]) {
+  return errors[0] ? String(errors[0]) : null;
 }
 
 function SetupError({
@@ -686,30 +803,6 @@ function completedStepsFor(
   return completed;
 }
 
-function validateCompany(draft: ProfileDraft): FieldErrors {
-  return {
-    legalName: draft.legalName.trim()
-      ? undefined
-      : 'Enter the legal company name.',
-    registrationNumber: draft.registrationNumber.trim()
-      ? undefined
-      : 'Enter the registration number.'
-  };
-}
-
-function validateContact(draft: ProfileDraft): FieldErrors {
-  return {
-    billingEmail: validateEmail(draft.billingEmail, 'billing email'),
-    responsibleName: draft.responsibleName.trim()
-      ? undefined
-      : 'Enter the responsible contact.',
-    responsibleEmail: validateEmail(
-      draft.responsibleEmail,
-      'responsible email',
-    )
-  };
-}
-
 function validateEmail(value: string, label: string) {
   const normalizedValue = value.trim();
 
@@ -724,6 +817,6 @@ function validateEmail(value: string, label: string) {
   return undefined;
 }
 
-function hasFieldErrors(errors: FieldErrors) {
-  return Object.values(errors).some(Boolean);
+function validateRequired(value: string, message: string) {
+  return value.trim() ? undefined : message;
 }

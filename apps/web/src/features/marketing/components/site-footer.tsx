@@ -33,7 +33,7 @@ export function SiteFooter() {
 
         <nav aria-label="Legal" className="flex flex-col gap-2 sm:items-end">
           <Link className={linkClasses} href={routes.terms}>
-            Terms
+            Terms and Conditions
           </Link>
           <Link className={linkClasses} href={routes.privacy}>
             Privacy Policy

@@ -3,7 +3,7 @@ import type { ComplianceDocumentType } from '@retaino/shared/contracts';
 export type { ComplianceDocumentType };
 
 export const complianceDocumentLabels: Record<ComplianceDocumentType, string> = {
-  terms: 'Terms',
+  terms: 'Terms and Conditions',
   dpa: 'Data Processing Agreement',
   subprocessors: 'Subprocessor Notice',
   transfer_terms: 'Transfer Terms',

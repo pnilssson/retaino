@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
@@ -40,7 +39,6 @@
     "@types/react-dom": "^19.2.2",
     "eslint": "^9.26.0",
     "tailwindcss": "^4.2.4",
-    "typescript": "^5.8.3",
-    "vitest": "^4.0.8"
+    "typescript": "^5.8.3"
   }
 }

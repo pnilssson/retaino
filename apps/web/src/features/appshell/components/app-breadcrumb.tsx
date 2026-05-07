@@ -15,13 +15,15 @@ const labels: Record<string, string> = {
   [routes.overview]: 'Overview',
   [routes.contacts]: 'Contacts',
   [routes.campaigns]: 'Campaigns',
-  [routes.settings]: 'Settings'
+  [routes.settings]: 'Organization'
 };
 
 export function AppBreadcrumb() {
   const pathname = usePathname();
   const session = useOrganizationSession();
-  const label = labels[pathname] ?? 'App';
+  const label = pathname.startsWith('/app/legal/')
+    ? 'Legal'
+    : labels[pathname] ?? 'App';
   const organizationName = session.data?.organization.name ?? 'Workspace';
 
   return (

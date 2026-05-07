@@ -2,11 +2,11 @@
 
 import { useClerk } from '@clerk/nextjs';
 import {
+  Building2,
   Cookie,
   LayoutDashboard,
   LogOut,
   Megaphone,
-  Settings,
   Shield,
   UserCircle,
   UsersRound
@@ -57,10 +57,13 @@ const navigationItems = [
     href: routes.campaigns,
     icon: Megaphone
   },
+];
+
+const managementItems = [
   {
-    title: 'Settings',
+    title: 'Organization',
     href: routes.settings,
-    icon: Settings
+    icon: Building2
   }
 ];
 
@@ -90,6 +93,27 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.href}
+                    tooltip={item.title}
+                  >
+                    <Link href={item.href}>
+                      <item.icon aria-hidden="true" strokeWidth={1.5} />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Manage</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {managementItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
@@ -139,7 +163,7 @@ export function AppSidebar() {
                     <DropdownMenuItem asChild>
                       <Link href={routes.terms}>
                         <Shield aria-hidden="true" strokeWidth={1.5} />
-                        Terms
+                        Terms and Conditions
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>

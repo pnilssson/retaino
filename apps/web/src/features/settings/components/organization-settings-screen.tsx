@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle } from 'lucide-react';
-import { legalDocumentUrl } from '@retaino/shared/contracts';
+import { appLegalDocumentUrl } from '@retaino/shared/contracts';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -96,7 +96,7 @@ export function OrganizationSettingsScreen() {
                   </div>
                   <Button asChild type="button" variant="outline">
                     <Link
-                      href={legalDocumentUrl({
+                      href={appLegalDocumentUrl({
                         documentType: document.documentType,
                         documentVersion: document.documentVersion
                       })}

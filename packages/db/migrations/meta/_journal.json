@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1778006966176,
-      "tag": "0000_flawless_klaw",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1778172074823,
-      "tag": "0001_zippy_dragon_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1778175596310,
-      "tag": "0002_legal_documents_database_backed",
+      "when": 1778190312708,
+      "tag": "0000_fast_ted_forrester",
       "breakpoints": true
     }
   ]
