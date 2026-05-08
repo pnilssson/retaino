@@ -35,7 +35,7 @@ The dashboard should answer one question:
 
 1. Organization setup, compliance acceptance, and team access.
 2. Contact import with validation, dedupe, and suppression checks.
-3. Audience readiness and lapsed customer segmentation.
+3. Contact status and lapsed customer segmentation.
 4. Campaign drafts, SMS preview, segment counting, and test sends.
 5. Short links and campaign send execution.
 6. Booking CSV upload and reconciliation.
@@ -86,8 +86,8 @@ Defer:
 2. Retaino ensures the user has an active organization.
 3. User enters legal company identity, billing details, and responsible contact.
 4. User accepts required compliance documents.
-5. User confirms campaigns only contact eligible recipients for the customer's
-   own services.
+5. User confirms campaigns only contact valid customer contacts for the
+   customer's own services.
 6. Retaino enables default STOP text and suppression handling.
 
 ### Audience Import
