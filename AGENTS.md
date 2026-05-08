@@ -19,6 +19,8 @@ This repository is a monorepo scaffold for Retaino.
 ## Guardrails
 
 - Never use em dashes. Commas or rewrite.
+- Never design cards inside cards. Use sections, bands, lists, tables, or split
+  layouts instead of nesting framed surfaces.
 
 ### Technical
 
@@ -29,6 +31,9 @@ This repository is a monorepo scaffold for Retaino.
 - Payments use Polar.
 - Background jobs use Inngest.
 - Long-running operations must run in background jobs, not inside HTTP requests.
+- Use TanStack Form for application forms. Do not hand-roll form state,
+  validation, touched state, or submit handling with local React state unless
+  the user explicitly asks for a one-off exception.
 - No duplicate functions, constants, or types. Shared logic belongs in `packages/shared`.
 
 ## Commits

@@ -2,5 +2,9 @@
   "name": "@retaino/typescript-config",
   "version": "0.0.0",
   "private": true,
-  "files": ["*.json"]
+  "files": ["*.json"],
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260508.1",
+    "hono": "^4.12.18"
+  }
 }

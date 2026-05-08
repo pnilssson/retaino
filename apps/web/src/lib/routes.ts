@@ -12,5 +12,5 @@ export const routes = {
   contacts: '/app/contacts',
   campaigns: '/app/campaigns',
   reports: '/app/reports',
-  settings: '/app/settings'
+  settings: '/app/organization/settings'
 } as const;

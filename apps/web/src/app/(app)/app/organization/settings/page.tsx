@@ -1,5 +1,5 @@
 import { OrganizationSettingsScreen } from '@/features/settings/components/organization-settings-screen';
 
-export default function SettingsPage() {
+export default function OrganizationSettingsPage() {
   return <OrganizationSettingsScreen />;
 }

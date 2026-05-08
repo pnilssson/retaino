@@ -43,7 +43,7 @@ export function OrganizationSwitcher() {
       pageSize: 20,
     },
   });
-  const { setOpenMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   const session = useOrganizationSession({
     enabled: Boolean(orgId),
   });
@@ -88,25 +88,40 @@ export function OrganizationSwitcher() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
-              className="h-11"
+              className="h-12 px-2"
               tooltip="Switch organization"
             >
-              <Building2 aria-hidden="true" strokeWidth={1.5} />
-              <span>{activeOrganizationName}</span>
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-sidebar-accent text-sidebar-accent-foreground">
+                <Building2
+                  aria-hidden="true"
+                  className="size-4"
+                  strokeWidth={1.5}
+                />
+              </span>
+              <span className="grid flex-1 text-left text-sm leading-tight">
+                <span className="text-xs text-sidebar-foreground/60">
+                  Organization
+                </span>
+                <span className="truncate font-medium">
+                  {activeOrganizationName}
+                </span>
+              </span>
               <ChevronsUpDown
                 aria-hidden="true"
-                className="ml-auto"
+                className="ml-auto size-4"
                 strokeWidth={1.5}
               />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="start"
-            className="w-(--radix-dropdown-menu-trigger-width)"
-            side="bottom"
+            className="min-w-64 rounded-lg"
+            side={isMobile ? 'bottom' : 'right'}
             sideOffset={4}
           >
-            <DropdownMenuLabel>Organizations</DropdownMenuLabel>
+            <DropdownMenuLabel className="px-2 py-1.5 text-xs text-muted-foreground">
+              Organizations
+            </DropdownMenuLabel>
             {memberships.map((membership) => {
               const organization = membership.organization;
               const isActive = organization.id === orgId;
@@ -114,33 +129,61 @@ export function OrganizationSwitcher() {
 
               return (
                 <DropdownMenuItem
+                  className="gap-2 p-2"
                   disabled={isPending}
                   key={organization.id}
                   onSelect={() => void switchOrganization(organization.id)}
                 >
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background text-xs font-medium">
+                    {initialsFor(organization.name)}
+                  </span>
+                  <span className="grid min-w-0 flex-1">
+                    <span className="truncate font-medium">
+                      {organization.name}
+                    </span>
+                    {isActive ? (
+                      <span className="text-xs text-muted-foreground">
+                        Active organization
+                      </span>
+                    ) : null}
+                  </span>
                   {isPending ? (
-                    <Loader2 aria-hidden="true" className="animate-spin" />
+                    <Loader2
+                      aria-hidden="true"
+                      className="ml-auto size-4 animate-spin"
+                    />
                   ) : isActive ? (
-                    <Check aria-hidden="true" />
-                  ) : (
-                    <Building2 aria-hidden="true" />
-                  )}
-                  {organization.name}
+                    <Check aria-hidden="true" className="ml-auto size-4" />
+                  ) : null}
                 </DropdownMenuItem>
               );
             })}
+            {memberships.length === 0 ? (
+              <DropdownMenuItem className="gap-2 p-2" disabled>
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background">
+                  <Building2 aria-hidden="true" className="size-4" />
+                </span>
+                <span className="text-muted-foreground">
+                  No organizations found
+                </span>
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem className="gap-2 p-2" asChild>
               <Link href={routes.organizationNew}>
-                <Plus aria-hidden="true" />
-                Create organization
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background">
+                  <Plus aria-hidden="true" className="size-4" />
+                </span>
+                <span className="font-medium">Create organization</span>
               </Link>
             </DropdownMenuItem>
             {canFinishSetup ? (
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem className="gap-2 p-2" asChild>
                 <Link href={routes.organizationSetup}>
-                  <Settings2 aria-hidden="true" />
-                  Finish setup
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background">
+                    <Settings2 aria-hidden="true" className="size-4" />
+                  </span>
+                  <span className="font-medium">Finish setup</span>
                 </Link>
               </DropdownMenuItem>
             ) : null}
@@ -149,6 +192,13 @@ export function OrganizationSwitcher() {
       </SidebarMenuItem>
     </SidebarMenu>
   );
+}
+
+function initialsFor(value: string) {
+  const [first = '', second = ''] = value.trim().split(/\s+/);
+  const initials = `${first[0] ?? ''}${second[0] ?? ''}`.toUpperCase();
+
+  return initials || 'OR';
 }
 
 function waitForClerkSessionPropagation() {

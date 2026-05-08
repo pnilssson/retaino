@@ -6,17 +6,17 @@ import {
   listOrganizationAcceptedDocuments,
   upsertOrganizationProfile,
 } from '@retaino/db';
-import { canManageOrganizationSetup } from '@retaino/shared/contracts';
+import {
+  canManageOrganizationSetup,
+  createCurrentOrganizationAcceptancesSchema,
+  createOrganizationAcceptanceSchema,
+  updateOrganizationProfileSchema,
+} from '@retaino/shared/contracts';
 import { Hono } from 'hono';
 import { apiError } from '../../lib/errors';
 import { parseJsonBody } from '../../lib/route-helpers';
 import type { AppEnv } from '../../types';
 import { getOrganizationReadiness } from './organization.readiness';
-import {
-  createOrganizationAcceptanceSchema,
-  createCurrentOrganizationAcceptancesSchema,
-  updateOrganizationProfileSchema,
-} from './organization.schemas';
 
 export const organizationRoutes = new Hono<AppEnv>()
   .get('/me', async (c) => {

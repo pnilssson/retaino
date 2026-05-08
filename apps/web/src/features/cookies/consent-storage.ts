@@ -1,5 +1,5 @@
 export const COOKIE_CONSENT_STORAGE_KEY = 'retaino-cookie-consent';
-export const COOKIE_CONSENT_VERSION = '1';
+const COOKIE_CONSENT_VERSION = '1';
 
 export type CookieConsent = {
   analytics: boolean;

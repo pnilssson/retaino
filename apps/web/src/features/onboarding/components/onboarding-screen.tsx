@@ -9,7 +9,8 @@ import {
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import {
   canManageOrganizationSetup,
-  legalDocumentUrl
+  legalDocumentUrl,
+  type OrganizationSession
 } from '@retaino/shared/contracts';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -18,7 +19,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiClientError } from '@/lib/api-client';
+import { getFieldError } from '@/lib/form-errors';
 import { routes } from '@/lib/routes';
+import {
+  organizationProfileFormValuesFromSession,
+  organizationProfileFormValuesToUpdateInput,
+  type OrganizationProfileFormValues as ProfileDraft,
+  validateEmail,
+  validateRequired
+} from '@/features/organization-profile/organization-profile-form';
 import { useActiveOrganizationBootstrap } from '../hooks/use-active-organization-bootstrap';
 import { useCreateCurrentOrganizationAcceptances } from '../hooks/use-create-current-organization-acceptances';
 import { useOrganizationSession } from '../hooks/use-organization-session';
@@ -27,22 +36,8 @@ import {
   complianceDocumentDescriptions,
   complianceDocumentLabels
 } from '../onboarding.constants';
-import type { OrganizationSession, UpdateOrganizationProfileInput } from '../types';
 import { OnboardingFrame, type OnboardingStepId } from './onboarding-frame';
 import { OrganizationRequired } from './organization-required';
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-type ProfileDraft = Required<UpdateOrganizationProfileInput>;
-
-const emptyDraft: ProfileDraft = {
-  legalName: '',
-  registrationNumber: '',
-  billingEmail: '',
-  responsibleName: '',
-  responsibleEmail: '',
-  responsiblePhone: ''
-};
 
 export function OnboardingScreen() {
   const organizationBootstrap = useActiveOrganizationBootstrap();
@@ -142,7 +137,10 @@ export function OnboardingScreen() {
 function OnboardingFlow({ session }: { session: OrganizationSession }) {
   const updateProfile = useUpdateOrganizationProfile();
   const createAcceptances = useCreateCurrentOrganizationAcceptances();
-  const initialDraft = useMemo(() => profileToDraft(session), [session]);
+  const initialDraft = useMemo(
+    () => organizationProfileFormValuesFromSession(session),
+    [session]
+  );
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>(initialDraft);
   const [activeStep, setActiveStep] = useState<OnboardingStepId | 'ready'>(
     resolveInitialStep(session),
@@ -179,10 +177,9 @@ function OnboardingFlow({ session }: { session: OrganizationSession }) {
           mutationError={updateProfile.error?.message ?? null}
           onBack={() => setActiveStep('company')}
           onComplete={async (value) => {
-            await updateProfile.mutateAsync({
-              ...value,
-              responsiblePhone: value.responsiblePhone.trim() || undefined
-            });
+            await updateProfile.mutateAsync(
+              organizationProfileFormValuesToUpdateInput(value)
+            );
             setProfileDraft(value);
             setActiveStep(
               session.readiness.complianceComplete ? 'ready' : 'agreements',
@@ -703,10 +700,6 @@ function TextInput({
   );
 }
 
-function getFieldError(errors: unknown[]) {
-  return errors[0] ? String(errors[0]) : null;
-}
-
 function SetupError({
   action,
   message,
@@ -738,21 +731,6 @@ function InlineError({ message, title }: { message: string; title: string }) {
       <AlertDescription>{message}</AlertDescription>
     </Alert>
   );
-}
-
-function profileToDraft(session: OrganizationSession): ProfileDraft {
-  if (!session.profile) {
-    return emptyDraft;
-  }
-
-  return {
-    legalName: session.profile.legalName,
-    registrationNumber: session.profile.registrationNumber,
-    billingEmail: session.profile.billingEmail,
-    responsibleName: session.profile.responsibleName,
-    responsibleEmail: session.profile.responsibleEmail,
-    responsiblePhone: session.profile.responsiblePhone ?? ''
-  };
 }
 
 function resolveInitialStep(
@@ -803,20 +781,3 @@ function completedStepsFor(
   return completed;
 }
 
-function validateEmail(value: string, label: string) {
-  const normalizedValue = value.trim();
-
-  if (!normalizedValue) {
-    return `Enter the ${label}.`;
-  }
-
-  if (!EMAIL_PATTERN.test(normalizedValue)) {
-    return 'Enter a valid email address.';
-  }
-
-  return undefined;
-}
-
-function validateRequired(value: string, message: string) {
-  return value.trim() ? undefined : message;
-}

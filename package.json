@@ -8,9 +8,9 @@
     "lint": "turbo lint",
     "test": "turbo test",
     "typecheck": "turbo typecheck",
-    "clean": "turbo clean && rm -rf node_modules"
+    "clean": "node -e \"const fs=require('node:fs'); for (const path of ['node_modules','.turbo']) fs.rmSync(path,{recursive:true,force:true})\""
   },
   "devDependencies": {
-    "turbo": "^2.5.3"
+    "turbo": "^2.9.10"
   }
 }

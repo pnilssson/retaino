@@ -15,7 +15,7 @@ const labels: Record<string, string> = {
   [routes.overview]: 'Overview',
   [routes.contacts]: 'Contacts',
   [routes.campaigns]: 'Campaigns',
-  [routes.settings]: 'Organization'
+  [routes.settings]: 'Organization settings'
 };
 
 export function AppBreadcrumb() {

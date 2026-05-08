@@ -1,8 +1,9 @@
 "use client";
 
-import { useClerk } from '@clerk/nextjs';
+import { useClerk, useUser } from '@clerk/nextjs';
 import {
   Building2,
+  ChevronsUpDown,
   Cookie,
   LayoutDashboard,
   LogOut,
@@ -19,9 +20,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import {
@@ -35,7 +33,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail
+  SidebarRail,
+  useSidebar
 } from '@/components/ui/sidebar';
 import { useCookieConsent } from '@/features/cookies/cookie-consent-provider';
 import { routes } from '@/lib/routes';
@@ -61,7 +60,7 @@ const navigationItems = [
 
 const managementItems = [
   {
-    title: 'Organization',
+    title: 'Settings',
     href: routes.settings,
     icon: Building2
   }
@@ -69,21 +68,17 @@ const managementItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { isMobile } = useSidebar();
   const { openUserProfile, signOut } = useClerk();
+  const { user } = useUser();
   const { openPreferences } = useCookieConsent();
+  const userEmail = user?.primaryEmailAddress?.emailAddress ?? null;
+  const userName = user?.fullName ?? userEmail ?? 'Account';
+  const userInitials = initialsFor(user?.fullName ?? userEmail);
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild size="lg" tooltip="Retaino">
-              <Link href={routes.overview}>
-                <span className="text-base tracking-tight">retaino.</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
         <OrganizationSwitcher />
       </SidebarHeader>
 
@@ -137,53 +132,58 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton tooltip="Account">
-                  <UserCircle aria-hidden="true" strokeWidth={1.5} />
-                  <span>Account</span>
+                <SidebarMenuButton className="h-12 px-2" tooltip={userName}>
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-xs font-medium text-sidebar-primary-foreground">
+                    {userInitials}
+                  </span>
+                  <span className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">{userName}</span>
+                  </span>
+                  <ChevronsUpDown
+                    aria-hidden="true"
+                    className="ml-auto size-4"
+                    strokeWidth={1.5}
+                  />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                align="start"
+                align={isMobile ? 'start' : 'end'}
                 className="w-(--radix-dropdown-menu-trigger-width)"
-                side="top"
+                side={isMobile ? 'top' : 'right'}
                 sideOffset={4}
               >
-                <DropdownMenuLabel>Account</DropdownMenuLabel>
+                <DropdownMenuLabel className="p-0 font-normal">
+                  <div className="grid gap-1 px-1 py-1.5 text-left text-sm">
+                    <span className="truncate font-medium">{userName}</span>
+                  </div>
+                </DropdownMenuLabel>
                 <DropdownMenuItem onSelect={() => openUserProfile()}>
                   <UserCircle aria-hidden="true" strokeWidth={1.5} />
                   Profile
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
+                <DropdownMenuItem asChild>
+                  <Link href={routes.terms}>
                     <Shield aria-hidden="true" strokeWidth={1.5} />
-                    Legal and privacy
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuItem asChild>
-                      <Link href={routes.terms}>
-                        <Shield aria-hidden="true" strokeWidth={1.5} />
-                        Terms and Conditions
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href={routes.privacy}>
-                        <Shield aria-hidden="true" strokeWidth={1.5} />
-                        Privacy Policy
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href={routes.cookies}>
-                        <Cookie aria-hidden="true" strokeWidth={1.5} />
-                        Cookie Policy
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={openPreferences}>
-                      <Cookie aria-hidden="true" strokeWidth={1.5} />
-                      Cookie preferences
-                    </DropdownMenuItem>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
+                    Terms and Conditions
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={routes.privacy}>
+                    <Shield aria-hidden="true" strokeWidth={1.5} />
+                    Privacy Policy
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={routes.cookies}>
+                    <Cookie aria-hidden="true" strokeWidth={1.5} />
+                    Cookie Policy
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={openPreferences}>
+                  <Cookie aria-hidden="true" strokeWidth={1.5} />
+                  Cookie preferences
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onSelect={() => void signOut({ redirectUrl: routes.home })}
@@ -200,4 +200,15 @@ export function AppSidebar() {
       <SidebarRail />
     </Sidebar>
   );
+}
+
+function initialsFor(value: string | null | undefined) {
+  if (!value) {
+    return 'AC';
+  }
+
+  const [first = '', second = ''] = value.trim().split(/\s+/);
+  const initials = `${first[0] ?? ''}${second[0] ?? ''}`.toUpperCase();
+
+  return initials || 'AC';
 }

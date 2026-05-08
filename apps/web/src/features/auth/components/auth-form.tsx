@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { useEmailCodeAuth } from "@/features/auth/hooks/use-email-code-auth";
+import { getFieldError } from "@/lib/form-errors";
 import { routes } from "@/lib/routes";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 
@@ -27,10 +28,6 @@ type EmailFormValues = {
 type CodeFormValues = {
   code: string;
 };
-
-function getFieldError(errors: unknown[]) {
-  return errors[0] ? String(errors[0]) : null;
-}
 
 export function AuthForm() {
   const auth = useEmailCodeAuth();

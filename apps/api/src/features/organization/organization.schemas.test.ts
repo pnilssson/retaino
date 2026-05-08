@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createOrganizationAcceptanceSchema,
   updateOrganizationProfileSchema,
-} from './organization.schemas';
+} from '@retaino/shared/contracts';
 
 describe('updateOrganizationProfileSchema', () => {
   it('accepts the required company and responsible contact fields', () => {

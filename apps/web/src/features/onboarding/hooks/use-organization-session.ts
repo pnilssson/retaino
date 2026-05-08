@@ -1,9 +1,9 @@
 "use client";
 
 import { useQuery } from '@tanstack/react-query';
+import type { OrganizationSession } from '@retaino/shared/contracts';
 import { ApiClientError } from '@/lib/api-client';
 import { useApi } from './use-api';
-import type { OrganizationSession } from '../types';
 
 export const organizationSessionQueryKey = ['organization-session'] as const;
 
