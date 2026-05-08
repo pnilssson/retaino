@@ -4,7 +4,7 @@ Read the relevant docs before starting work.
 
 ## Project
 
-This repository is a monorepo scaffold for Retaino.
+This repository is the Retaino monorepo.
 
 - Architecture and project conventions: `docs/architecture.md`
 

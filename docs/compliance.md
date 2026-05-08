@@ -1,7 +1,9 @@
 # Compliance
 
 Retaino handles marketing recipients, campaign events, booking exports, and
-revenue attribution. Treat all imported and generated artifacts as sensitive.
+revenue attribution. Treat imported and generated artifacts as sensitive.
+
+This is product and engineering guidance, not legal advice.
 
 ## Roles
 
@@ -9,21 +11,21 @@ The customer is the controller for their customer list and campaign purpose.
 Retaino is the processor for imported contacts, campaign sends, tracking events,
 and reconciliation data.
 
-Organizations are the tenant boundary. User access, invitations, active
-organization behavior, and role scope are defined in `docs/tenancy.md`.
+Organizations are the tenant boundary. Access rules are defined in
+`docs/architecture.md`.
 
-## Required onboarding accepts
+## Required Documents
 
-The onboarding flow must require:
+Onboarding must require acceptance of:
 
-- terms or MSA acceptance
-- DPA acceptance
-- subprocessor list acceptance
-- transfer appendix acceptance when a vendor involves data outside the EU/EEA
-- campaign attestation that the customer has the right to contact the list
-- sending policy acceptance
+- terms or MSA
+- DPA
+- subprocessor list
+- transfer terms when a vendor involves data outside the EU/EEA
+- sending policy
+- campaign attestation
 
-The campaign attestation must state that:
+The campaign attestation must confirm that:
 
 - recipients are the customer's own customers or valid marketing contacts
 - the customer has a lawful basis to send marketing SMS
@@ -31,27 +33,35 @@ The campaign attestation must state that:
   existing-customer exemption
 - recipients have not opted out
 - every message includes a clear opt-out path
+- imported files do not include health notes, journal notes, or other sensitive
+  unsupported fields
 
-Store who accepted each item, when they accepted it, the organization, IP or
-session metadata where appropriate, and the accepted document version.
+## Acceptance Records
 
-## Versioned documents
+Document acceptances are audit records and should be append-only.
 
-Keep versioned records for:
+Store:
 
-- terms or MSA
-- DPA
-- subprocessor list
-- transfer appendix
-- sending policy
-- campaign attestation text
+- organization ID
+- user ID
+- document type
+- document version
+- content hash
+- accepted time
+- IP address and user agent when available
 
 If a document changes materially, require affected organizations to accept the
 new version before sending another campaign.
 
-## Opt-out and suppression
+Do not add a normal user-facing revoke action. If an acceptance was made by
+mistake, model that later as an internal disputed or superseded state while
+keeping the original acceptance record.
 
-Every SMS campaign must include opt-out instructions. STOP handling must:
+## Opt-Out and Suppression
+
+Every SMS campaign must include opt-out instructions.
+
+STOP handling must:
 
 - detect STOP-style replies where provider support exists
 - add the recipient to an organization-level suppression list
@@ -59,12 +69,12 @@ Every SMS campaign must include opt-out instructions. STOP handling must:
 - log the opt-out event
 - show suppression counts during audience review
 
-Suppression checks must run before campaign approval and immediately before
-send execution.
+Suppression checks must run before campaign approval and immediately before send
+execution.
 
-## Data minimization
+## Data Minimization
 
-For MVP, store only the fields needed for import, sending, tracking, and
+For MVP, store only fields needed for import, sending, tracking, and
 reconciliation:
 
 - name
@@ -83,7 +93,7 @@ Do not import health notes, journal notes, treatment notes, free-text medical
 fields, or other sensitive special-category data. If a CSV contains unsupported
 sensitive columns, ignore them and warn the user.
 
-## Logging
+## Logging and Audit
 
 Log enough to prove what happened:
 
@@ -105,11 +115,14 @@ Log enough to prove what happened:
 
 Logs must be tenant-scoped and queryable for support and compliance review.
 
+Audit logs must record organization ID, actor user ID, event type, resource type,
+resource ID, timestamp, and relevant metadata.
+
 ## Retention
 
 MVP should support a default retention policy and make it explicit in terms:
 
-- raw uploaded files: delete after processing unless needed for a visible import
+- raw uploaded files: delete after processing unless needed for visible import
   history
 - normalized contacts: keep while the organization account is active or until
   deletion is requested
@@ -119,46 +132,26 @@ MVP should support a default retention policy and make it explicit in terms:
 
 Retention jobs must run outside HTTP requests.
 
-## Security requirements
+## Security Requirements
 
 Minimum implementation requirements:
 
-- Clerk authentication for app users
-- Clerk Organizations for memberships, invitations, active organization, and
-  base roles
-- organization-level authorization on every API request, using the active
-  organization from auth context
-- `organizationId` on all database tables that store customer, campaign,
-  tracking, or booking data
+- authenticated app users
+- organization-level authorization on every API request
+- `organizationId` on every tenant-owned database table
 - server-side validation through shared schemas
 - no cross-tenant matching, exports, or dashboard aggregation
 - signed or unguessable short-link codes
 - rate limiting on redirects and upload endpoints
 - audit trail for destructive actions and manual attribution changes
 
-## Commercial guardrails
+## Commercial Guardrails
 
-Use pricing that supports recurring operations and support:
+Pricing must support recurring operations and support:
 
-- small fixed monthly platform fee
+- fixed monthly platform fee
 - per-segment SMS usage
 - optional paid attribution or booking integration add-on
 
-Avoid one-time-only pricing. Low-volume customers still create support,
-storage, compliance, and link infrastructure costs.
-
-## MVP success metrics
-
-Track these internal KPIs:
-
-- activation to first campaign
-- percentage of campaigns with tracked links
-- average SMS segments per recipient
-- delivery rate
-- click-through rate
-- opt-out rate
-- percentage of campaigns with booking upload
-- match rate by attribution class
-- attributed revenue
-- revenue by confidence level
-- gross margin after SMS cost
+Avoid one-time-only pricing. Low-volume customers still create support, storage,
+compliance, and link infrastructure costs.
