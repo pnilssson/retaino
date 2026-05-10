@@ -58,7 +58,7 @@ export function OrganizationSwitcher() {
     'Select organization';
   const canFinishSetup =
     session.isSuccess &&
-    !session.data.readiness.ready &&
+    !session.data.readiness.setupComplete &&
     canManageOrganizationSetup(session.data.organization.role);
 
   async function switchOrganization(organizationId: string) {

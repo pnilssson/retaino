@@ -15,6 +15,7 @@ export const organizationProfiles = pgTable(
     responsibleName: text('responsible_name').notNull(),
     responsibleEmail: text('responsible_email').notNull(),
     responsiblePhone: text('responsible_phone'),
+    countryCode: text('country_code').notNull().default('SE'),
     createdAt,
     updatedAt,
   },

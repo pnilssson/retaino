@@ -6,7 +6,11 @@ type AppBindings = {
   APP_ALLOWED_ORIGINS?: string;
   CLERK_PUBLISHABLE_KEY: string;
   CLERK_SECRET_KEY: string;
+  CONTACT_IMPORTS_BUCKET: R2Bucket;
   DATABASE_URL: string;
+  INNGEST_DEV?: string;
+  INNGEST_EVENT_KEY?: string;
+  INNGEST_SIGNING_KEY?: string;
 };
 
 type AppVariables = {

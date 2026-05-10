@@ -16,6 +16,7 @@ type AcceptedComplianceDocument = {
 
 export function getOrganizationReadiness(input: {
   hasProfile: boolean;
+  onboardingStatus: string;
   requiredLegalDocuments: readonly RequiredLegalDocumentForReadiness[];
   acceptedDocuments: readonly AcceptedComplianceDocument[];
 }): OrganizationReadiness {
@@ -41,11 +42,15 @@ export function getOrganizationReadiness(input: {
     },
   );
   const complianceComplete = missingAcceptanceTypes.length === 0;
+  const setupComplete = input.onboardingStatus === 'complete';
+  const legalUpdatesRequired = setupComplete && !complianceComplete;
 
   return {
     profileComplete: input.hasProfile,
     complianceComplete,
-    ready: input.hasProfile && complianceComplete,
+    setupComplete,
+    legalUpdatesRequired,
+    ready: setupComplete && complianceComplete,
     missingAcceptanceTypes,
   };
 }

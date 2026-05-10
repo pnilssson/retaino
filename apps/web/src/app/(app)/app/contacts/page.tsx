@@ -1,10 +1,5 @@
-import { PlaceholderPage } from '@/features/appshell/components/placeholder-page';
+import { ContactsScreen } from '@/features/contacts/components/contacts-screen';
 
 export default function ContactsPage() {
-  return (
-    <PlaceholderPage
-      description="Customer imports, validation, dedupe, and suppression checks come next."
-      title="Contacts"
-    />
-  );
+  return <ContactsScreen />;
 }

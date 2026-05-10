@@ -3,6 +3,10 @@ main = "src/server.ts"
 compatibility_date = "2026-05-05"
 compatibility_flags = ["nodejs_compat"]
 
+[[r2_buckets]]
+binding = "CONTACT_IMPORTS_BUCKET"
+bucket_name = "retaino-contact-imports"
+
 [observability]
 enabled = true
 head_sampling_rate = 1

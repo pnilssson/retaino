@@ -14,6 +14,7 @@ describe('updateOrganizationProfileSchema', () => {
         responsibleName: 'Ada Lovelace',
         responsibleEmail: 'ada@retaino.test',
         responsiblePhone: '+46700000000',
+        countryCode: 'SE',
       }).success,
     ).toBe(true);
   });
@@ -26,6 +27,7 @@ describe('updateOrganizationProfileSchema', () => {
         billingEmail: 'billing@retaino.test',
         responsibleName: 'Ada Lovelace',
         responsibleEmail: 'not-an-email',
+        countryCode: 'SE',
       }).success,
     ).toBe(false);
   });

@@ -14,6 +14,7 @@
     "@retaino/shared": "workspace:*",
     "@tanstack/react-form": "^1.29.3",
     "@tanstack/react-query": "^5.100.9",
+    "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "input-otp": "^1.4.2",

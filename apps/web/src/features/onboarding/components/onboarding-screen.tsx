@@ -16,7 +16,9 @@ import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { CountryCombobox } from '@/components/country-combobox';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/phone-input';
 import { Label } from '@/components/ui/label';
 import { ApiClientError } from '@/lib/api-client';
 import { getFieldError } from '@/lib/form-errors';
@@ -25,7 +27,9 @@ import {
   organizationProfileFormValuesFromSession,
   organizationProfileFormValuesToUpdateInput,
   type OrganizationProfileFormValues as ProfileDraft,
+  validateCountryCode,
   validateEmail,
+  validatePhone,
   validateRequired
 } from '@/features/organization-profile/organization-profile-form';
 import { useActiveOrganizationBootstrap } from '../hooks/use-active-organization-bootstrap';
@@ -412,14 +416,46 @@ function ContactStep({
             />
           )}
         </form.Field>
-        <form.Field name="responsiblePhone">
+        <form.Field
+          name="countryCode"
+          validators={{
+            onChange: ({ value }) => validateCountryCode(value),
+            onSubmit: ({ value }) => validateCountryCode(value)
+          }}
+        >
           {(field) => (
-            <TextInput
+            <CountryInput
+              error={getFieldError(field.state.meta.errors)}
+              label="Default phone country"
+              name={field.name}
+              onBlur={field.handleBlur}
+              onChange={(value) =>
+                field.handleChange(value as typeof field.state.value)
+              }
+              value={field.state.value}
+            />
+          )}
+        </form.Field>
+        <form.Field
+          name="responsiblePhone"
+          validators={{
+            onChange: ({ value }) =>
+              validatePhone(value, form.getFieldValue('countryCode')),
+            onSubmit: ({ value }) =>
+              validatePhone(value, form.getFieldValue('countryCode'))
+          }}
+        >
+          {(field) => (
+            <PhoneField
+              countryCode={form.getFieldValue('countryCode')}
               error={getFieldError(field.state.meta.errors)}
               label="Responsible phone"
               name={field.name}
               onBlur={field.handleBlur}
               onChange={field.handleChange}
+              onCountryChange={(value) =>
+                form.setFieldValue('countryCode', value)
+              }
               placeholder="+46700000000"
               value={field.state.value}
             />
@@ -514,13 +550,20 @@ function AgreementsStep({
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    {isAccepted ? (
-                      <CheckCircle2
-                        aria-hidden="true"
-                        className="size-4 text-foreground"
-                        strokeWidth={1.5}
-                      />
-                    ) : null}
+                    <CheckCircle2
+                      aria-hidden="true"
+                      className={
+                        isAccepted
+                          ? 'size-4 text-emerald-600 dark:text-emerald-400'
+                          : 'size-4 text-muted-foreground'
+                      }
+                      strokeWidth={1.5}
+                    />
+                    <span className="sr-only">
+                      {isAccepted
+                        ? 'Accepted document'
+                        : 'Document acceptance required'}
+                    </span>
                     <p className="text-sm font-medium">{title}</p>
                   </div>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
@@ -689,6 +732,85 @@ function TextInput({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         type={type}
+        value={value}
+      />
+      {error ? (
+        <p className="text-xs text-destructive" id={`${name}-error`}>
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function CountryInput({
+  error,
+  label,
+  name,
+  onBlur,
+  onChange,
+  value
+}: {
+  error: string | null;
+  label: string;
+  name: keyof ProfileDraft;
+  onBlur: () => void;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={name}>{label}</Label>
+      <CountryCombobox
+        aria-invalid={Boolean(error)}
+        id={name}
+        name={name}
+        onBlur={onBlur}
+        onChange={onChange}
+        value={value}
+      />
+      {error ? (
+        <p className="text-xs text-destructive" id={`${name}-error`}>
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function PhoneField({
+  countryCode,
+  error,
+  label,
+  name,
+  onBlur,
+  onChange,
+  onCountryChange,
+  placeholder,
+  value
+}: {
+  countryCode: string;
+  error: string | null;
+  label: string;
+  name: keyof ProfileDraft;
+  onBlur: () => void;
+  onChange: (value: string) => void;
+  onCountryChange: (value: string) => void;
+  placeholder: string;
+  value: string;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={name}>{label}</Label>
+      <PhoneInput
+        aria-invalid={Boolean(error)}
+        countryCode={countryCode}
+        id={name}
+        name={name}
+        onBlur={onBlur}
+        onChange={onChange}
+        onCountryChange={onCountryChange}
+        placeholder={placeholder}
         value={value}
       />
       {error ? (

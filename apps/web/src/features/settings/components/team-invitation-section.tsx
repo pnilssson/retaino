@@ -20,10 +20,10 @@ type TeamInvitationSectionProps = {
 
 export function TeamInvitationSection({ session }: TeamInvitationSectionProps) {
   const { openOrganizationProfile } = useClerk();
-  const canManageTeam = session.readiness.ready;
+  const canManageTeam = session.readiness.setupComplete;
 
   return (
-    <Item asChild className="grid items-stretch gap-5 px-5 py-5" variant="muted">
+    <Item asChild className="grid items-stretch gap-5 border-border bg-card px-5 py-5">
       <section id="team-access">
         <ItemHeader className="items-start">
           <ItemContent className="gap-2">
@@ -71,7 +71,7 @@ export function TeamInvitationSection({ session }: TeamInvitationSectionProps) {
               <ItemDescription>
                 {canManageTeam
                   ? 'Open organization management to update members, invitations, roles, and profile details.'
-                  : 'Complete profile and compliance setup before managing team access.'}
+                  : 'Complete organization setup before managing team access.'}
               </ItemDescription>
             </ItemContent>
           </div>

@@ -10,6 +10,10 @@ export const routes = {
   organizationNew: '/organization/new',
   organizationSetup: '/organization/setup',
   contacts: '/app/contacts',
+  contact: (id: string) => `/app/contacts/${id}`,
+  contactsImport: '/app/contacts/import',
+  contactImports: '/app/contacts/imports',
+  contactImport: (id: string) => `/app/contacts/imports/${id}`,
   campaigns: '/app/campaigns',
   reports: '/app/reports',
   settings: '/app/organization/settings'

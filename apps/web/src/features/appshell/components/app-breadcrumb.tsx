@@ -14,6 +14,8 @@ import { routes } from '@/lib/routes';
 const labels: Record<string, string> = {
   [routes.overview]: 'Overview',
   [routes.contacts]: 'Contacts',
+  [routes.contactsImport]: 'Import contacts',
+  [routes.contactImports]: 'Imports',
   [routes.campaigns]: 'Campaigns',
   [routes.settings]: 'Organization settings'
 };
@@ -21,9 +23,7 @@ const labels: Record<string, string> = {
 export function AppBreadcrumb() {
   const pathname = usePathname();
   const session = useOrganizationSession();
-  const label = pathname.startsWith('/app/legal/')
-    ? 'Legal'
-    : labels[pathname] ?? 'App';
+  const label = breadcrumbLabelFor(pathname);
   const organizationName = session.data?.organization.name ?? 'Workspace';
 
   return (
@@ -41,4 +41,28 @@ export function AppBreadcrumb() {
       </BreadcrumbList>
     </Breadcrumb>
   );
+}
+
+function breadcrumbLabelFor(pathname: string) {
+  if (pathname.startsWith('/app/legal/')) {
+    return 'Legal';
+  }
+
+  if (pathname === routes.contactImports) {
+    return 'Imports';
+  }
+
+  if (pathname === routes.contactsImport) {
+    return 'Import contacts';
+  }
+
+  if (pathname.startsWith(`${routes.contactImports}/`)) {
+    return 'Import contacts';
+  }
+
+  if (pathname.startsWith(`${routes.contacts}/`)) {
+    return 'Contact';
+  }
+
+  return labels[pathname] ?? 'App';
 }

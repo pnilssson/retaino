@@ -33,6 +33,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
   useSidebar
 } from '@/components/ui/sidebar';
@@ -49,7 +52,17 @@ const navigationItems = [
   {
     title: 'Contacts',
     href: routes.contacts,
-    icon: UsersRound
+    icon: UsersRound,
+    children: [
+      {
+        title: 'All contacts',
+        href: routes.contacts,
+      },
+      {
+        title: 'Imports',
+        href: routes.contactImports,
+      },
+    ],
   },
   {
     title: 'Campaigns',
@@ -91,7 +104,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname === item.href}
+                    isActive={isNavigationItemActive(pathname, item.href)}
                     tooltip={item.title}
                   >
                     <Link href={item.href}>
@@ -99,6 +112,23 @@ export function AppSidebar() {
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
+                  {item.children ? (
+                    <SidebarMenuSub>
+                      {item.children.map((child) => (
+                        <SidebarMenuSubItem key={child.href}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={isNavigationSubItemActive(
+                              pathname,
+                              child.href,
+                            )}
+                          >
+                            <Link href={child.href}>{child.title}</Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  ) : null}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -211,4 +241,30 @@ function initialsFor(value: string | null | undefined) {
   const initials = `${first[0] ?? ''}${second[0] ?? ''}`.toUpperCase();
 
   return initials || 'AC';
+}
+
+function isNavigationItemActive(pathname: string, href: string) {
+  if (href === routes.contacts) {
+    return pathname === routes.contacts || pathname.startsWith(`${routes.contacts}/`);
+  }
+
+  return pathname === href;
+}
+
+function isNavigationSubItemActive(pathname: string, href: string) {
+  if (href === routes.contactImports) {
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  if (href === routes.contacts) {
+    return (
+      pathname === href ||
+      (pathname.startsWith(`${href}/`) &&
+        pathname !== routes.contactsImport &&
+        pathname !== routes.contactImports &&
+        !pathname.startsWith(`${routes.contactImports}/`))
+    );
+  }
+
+  return pathname === href;
 }

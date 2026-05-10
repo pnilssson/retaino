@@ -25,6 +25,17 @@ Minimum MVP entities:
 
 All tenant-owned entities must follow the rules in `docs/architecture.md`.
 
+## Provider Events
+
+Twilio is the MVP SMS provider. Store Twilio message and callback data only
+through normalized Retaino message events. Reports should use Retaino event
+states such as queued, sent, delivered, failed, reply, and opt-out instead of
+reading Twilio payload fields directly.
+
+Keep the provider message ID on the message or event record for support and
+dedupe. Inbound replies from Twilio must be evaluated for STOP-style opt-outs
+and written to suppressions before future campaign sends.
+
 ## Short Links
 
 Every SMS contains a unique short link for one campaign recipient.

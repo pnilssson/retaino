@@ -25,6 +25,7 @@ describe('getOrganizationReadiness', () => {
     expect(
       getOrganizationReadiness({
         hasProfile: true,
+        onboardingStatus: 'complete',
         requiredLegalDocuments,
         acceptedDocuments: requiredLegalDocuments.map((document) => ({
           documentType: document.documentType,
@@ -34,6 +35,8 @@ describe('getOrganizationReadiness', () => {
     ).toEqual({
       profileComplete: true,
       complianceComplete: true,
+      setupComplete: true,
+      legalUpdatesRequired: false,
       ready: true,
       missingAcceptanceTypes: [],
     });
@@ -43,6 +46,7 @@ describe('getOrganizationReadiness', () => {
     expect(
       getOrganizationReadiness({
         hasProfile: true,
+        onboardingStatus: 'profile_required',
         requiredLegalDocuments,
         acceptedDocuments: [
           { documentType: 'terms', documentVersion: '2026-05-07' },
@@ -51,6 +55,8 @@ describe('getOrganizationReadiness', () => {
     ).toEqual({
       profileComplete: true,
       complianceComplete: false,
+      setupComplete: false,
+      legalUpdatesRequired: false,
       ready: false,
       missingAcceptanceTypes: ['dpa'],
     });
@@ -60,6 +66,7 @@ describe('getOrganizationReadiness', () => {
     expect(
       getOrganizationReadiness({
         hasProfile: false,
+        onboardingStatus: 'profile_required',
         requiredLegalDocuments,
         acceptedDocuments: requiredLegalDocuments.map((document) => ({
           documentType: document.documentType,
@@ -69,14 +76,17 @@ describe('getOrganizationReadiness', () => {
     ).toMatchObject({
       profileComplete: false,
       complianceComplete: true,
+      setupComplete: false,
+      legalUpdatesRequired: false,
       ready: false,
     });
   });
 
-  it('requires the current version of each compliance document', () => {
+  it('requires the current version of each compliance document after setup', () => {
     expect(
       getOrganizationReadiness({
         hasProfile: true,
+        onboardingStatus: 'complete',
         requiredLegalDocuments,
         acceptedDocuments: [
           { documentType: 'terms', documentVersion: '2026-01-01' },
@@ -85,6 +95,8 @@ describe('getOrganizationReadiness', () => {
       }),
     ).toMatchObject({
       complianceComplete: false,
+      setupComplete: true,
+      legalUpdatesRequired: true,
       ready: false,
       missingAcceptanceTypes: ['terms'],
     });

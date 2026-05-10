@@ -2,6 +2,10 @@ import type {
   OrganizationSession,
   UpdateOrganizationProfileInput
 } from '@retaino/shared/contracts';
+import {
+  isSupportedCountryCode,
+  normalizePhoneNumber,
+} from '@retaino/shared/contracts';
 
 export type OrganizationProfileFormValues =
   Required<UpdateOrganizationProfileInput>;
@@ -14,7 +18,8 @@ export const emptyOrganizationProfileFormValues: OrganizationProfileFormValues =
   billingEmail: '',
   responsibleName: '',
   responsibleEmail: '',
-  responsiblePhone: ''
+  responsiblePhone: '',
+  countryCode: 'SE'
 };
 
 export function organizationProfileFormValuesFromSession(
@@ -30,7 +35,8 @@ export function organizationProfileFormValuesFromSession(
     billingEmail: session.profile.billingEmail,
     responsibleName: session.profile.responsibleName,
     responsibleEmail: session.profile.responsibleEmail,
-    responsiblePhone: session.profile.responsiblePhone ?? ''
+    responsiblePhone: session.profile.responsiblePhone ?? '',
+    countryCode: session.profile.countryCode
   };
 }
 
@@ -59,4 +65,20 @@ export function validateEmail(value: string, label: string) {
 
 export function validateRequired(value: string, message: string) {
   return value.trim() ? undefined : message;
+}
+
+export function validateCountryCode(value: string) {
+  return isSupportedCountryCode(value.trim().toUpperCase())
+    ? undefined
+    : 'Choose a supported country.';
+}
+
+export function validatePhone(value: string, countryCode: string) {
+  if (!value.trim()) {
+    return undefined;
+  }
+
+  return normalizePhoneNumber(value, countryCode).ok
+    ? undefined
+    : 'Enter a valid phone number.';
 }

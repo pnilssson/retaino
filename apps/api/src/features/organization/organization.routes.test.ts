@@ -6,6 +6,7 @@ import {
   getOrganizationProfileByOrganizationId,
   getPublishedLegalDocumentVersion,
   listOrganizationAcceptedDocuments,
+  markOrganizationOnboardingComplete,
   upsertOrganizationProfile,
 } from '@retaino/db';
 import type { LegalDocumentVersion } from '@retaino/shared/contracts';
@@ -18,6 +19,7 @@ vi.mock('@retaino/db', () => ({
   getOrganizationProfileByOrganizationId: vi.fn(),
   getPublishedLegalDocumentVersion: vi.fn(),
   listOrganizationAcceptedDocuments: vi.fn(),
+  markOrganizationOnboardingComplete: vi.fn(),
   upsertOrganizationProfile: vi.fn(),
 }));
 
@@ -46,6 +48,7 @@ const profile = {
   responsibleName: 'Ada Lovelace',
   responsibleEmail: 'ada@retaino.test',
   responsiblePhone: '+46700000000',
+  countryCode: 'SE',
   createdAt: '2026-05-05T00:00:00.000Z',
   updatedAt: '2026-05-05T00:00:00.000Z',
 };
@@ -113,6 +116,7 @@ describe('organizationRoutes', () => {
     vi.mocked(getCurrentRequiredLegalDocumentVersions).mockReset();
     vi.mocked(getPublishedLegalDocumentVersion).mockReset();
     vi.mocked(listOrganizationAcceptedDocuments).mockReset();
+    vi.mocked(markOrganizationOnboardingComplete).mockReset();
     vi.mocked(upsertOrganizationProfile).mockReset();
     vi.mocked(createOrganizationAcceptance).mockReset();
   });
@@ -150,6 +154,8 @@ describe('organizationRoutes', () => {
       readiness: {
         profileComplete: false,
         complianceComplete: false,
+        setupComplete: false,
+        legalUpdatesRequired: false,
         ready: false,
         missingAcceptanceTypes: ['dpa'],
       },
@@ -169,6 +175,7 @@ describe('organizationRoutes', () => {
         responsibleName: 'Ada Lovelace',
         responsibleEmail: 'ada@retaino.test',
         responsiblePhone: '+46700000000',
+        countryCode: 'SE',
       }),
     });
 
@@ -181,6 +188,7 @@ describe('organizationRoutes', () => {
       responsibleName: 'Ada Lovelace',
       responsibleEmail: 'ada@retaino.test',
       responsiblePhone: '+46700000000',
+      countryCode: 'SE',
     });
   });
 
@@ -199,6 +207,7 @@ describe('organizationRoutes', () => {
         billingEmail: 'billing@retaino.test',
         responsibleName: 'Ada Lovelace',
         responsibleEmail: 'ada@retaino.test',
+        countryCode: 'SE',
       }),
     });
 
@@ -304,6 +313,15 @@ describe('organizationRoutes', () => {
       },
     ]);
     vi.mocked(createOrganizationAcceptance).mockResolvedValue(null);
+    vi.mocked(markOrganizationOnboardingComplete).mockResolvedValue({
+      id: organization.id,
+      clerkOrganizationId: organization.clerkOrganizationId,
+      name: organization.name,
+      slug: organization.slug,
+      onboardingStatus: 'complete',
+      createdAt: new Date('2026-05-05T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-05T00:00:00.000Z'),
+    });
 
     const response = await testApp().request(
       '/v1/organization/acceptances/current',
@@ -336,10 +354,16 @@ describe('organizationRoutes', () => {
         userAgent: 'vitest',
       },
     );
+    expect(markOrganizationOnboardingComplete).toHaveBeenCalledWith(
+      expect.anything(),
+      organization.id,
+    );
     await expect(response.json()).resolves.toMatchObject({
       readiness: {
         profileComplete: true,
         complianceComplete: true,
+        setupComplete: true,
+        legalUpdatesRequired: false,
         ready: true,
         missingAcceptanceTypes: [],
       },

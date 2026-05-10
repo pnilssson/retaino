@@ -1,4 +1,5 @@
 export * from './common';
+export * from './contacts';
 export * from './legal-documents';
 export * from './legal-document-versions';
 export * from './organization-acceptances';

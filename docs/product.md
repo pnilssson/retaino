@@ -62,6 +62,13 @@ Required:
 - booking CSV upload and reconciliation
 - strict tenant scoping for every imported, generated, and matched record
 
+Provider decision:
+
+- Twilio is the MVP SMS provider.
+- Use numeric sending for launch so recipients can reply STOP.
+- Keep provider-specific behavior behind an internal adapter so Retaino can add
+  another SMS provider later without changing campaign workflows or reports.
+
 Nice to have:
 
 - UTM parameters for booking links and GA4-friendly exports

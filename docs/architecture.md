@@ -92,6 +92,34 @@ Tenant-sensitive jobs include CSV parsing, dedupe, suppression filtering,
 campaign sending, provider event handling, booking reconciliation, report
 aggregation, and retention cleanup.
 
+## SMS Provider
+
+Twilio is the MVP SMS provider.
+
+Use Twilio for campaign sends, test sends, delivery status callbacks, inbound
+reply callbacks, and STOP-style opt-out handling. Start with a numeric sender
+or Messaging Service configuration that supports inbound replies, because
+Retaino must be able to capture STOP replies and add organization-level
+suppressions.
+
+Keep SMS code behind a provider adapter in `apps/api/src/lib/` or a focused
+campaign messaging module. Product features must depend on Retaino message
+contracts, not Twilio SDK types or webhook payloads directly. This keeps
+campaign sending, suppression handling, cost reporting, and provider event
+storage portable if a second provider is added later.
+
+The adapter should normalize:
+
+- outbound message IDs
+- queued, sent, delivered, undelivered, failed, and reply events
+- provider error codes and failure reasons
+- inbound STOP-style replies
+- SMS segment counts and estimated provider cost
+
+Twilio credentials, webhook signing secrets, Messaging Service IDs, sender
+numbers, and region settings belong in environment configuration. Do not store
+provider secrets in tenant-owned product tables.
+
 ## API Structure
 
 - `src/server.ts` composes routes and global error handling.

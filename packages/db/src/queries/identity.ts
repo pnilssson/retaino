@@ -50,6 +50,7 @@ function toOrganizationProfile(
     responsibleName: row.responsibleName,
     responsibleEmail: row.responsibleEmail,
     responsiblePhone: row.responsiblePhone,
+    countryCode: row.countryCode,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -164,6 +165,7 @@ export async function upsertOrganizationProfile(
     responsibleName: string;
     responsibleEmail: string;
     responsiblePhone?: string | undefined;
+    countryCode: string;
   },
 ) {
   const [profile] = await db
@@ -181,12 +183,29 @@ export async function upsertOrganizationProfile(
         responsibleName: input.responsibleName,
         responsibleEmail: input.responsibleEmail,
         responsiblePhone: input.responsiblePhone ?? null,
+        countryCode: input.countryCode,
         updatedAt: new Date(),
       },
     })
     .returning();
 
   return profile ? toOrganizationProfile(profile) : null;
+}
+
+export async function markOrganizationOnboardingComplete(
+  db: DbClient,
+  organizationId: string,
+) {
+  const [organization] = await db
+    .update(organizations)
+    .set({
+      onboardingStatus: 'complete',
+      updatedAt: new Date(),
+    })
+    .where(eq(organizations.id, organizationId))
+    .returning();
+
+  return organization ?? null;
 }
 
 export async function createOrganizationAcceptance(

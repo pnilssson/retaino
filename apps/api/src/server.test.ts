@@ -12,6 +12,14 @@ describe('api server', () => {
     expect(response.status).toBe(200);
   });
 
+  it('serves Inngest from the versioned API outside Clerk auth', async () => {
+    const response = await app.request('/v1/inngest', { method: 'PUT' });
+    const body = await response.text();
+
+    expect(response.status).not.toBe(401);
+    expect(body).not.toContain('Authentication is required.');
+  });
+
   it('returns a structured JSON error for unknown routes', async () => {
     const response = await app.request('/missing');
 

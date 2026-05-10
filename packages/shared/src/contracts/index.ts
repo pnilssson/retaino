@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { idSchema, nonEmptyStringSchema, timestampSchema } from '../schemas';
+import { countryCodeSchema, normalizePhoneNumber } from './contacts';
+export * from './contacts';
 
 export const LEGAL_DOCUMENT_TYPES = [
   'terms',
@@ -113,6 +115,7 @@ export const organizationProfileSchema = z.object({
   responsibleName: nonEmptyStringSchema,
   responsibleEmail: z.email(),
   responsiblePhone: nonEmptyStringSchema.nullable(),
+  countryCode: countryCodeSchema,
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
 });
@@ -135,14 +138,34 @@ export type OrganizationContext = z.infer<typeof organizationContextSchema>;
 export type OrganizationProfile = z.infer<typeof organizationProfileSchema>;
 export type OrganizationAcceptance = z.infer<typeof organizationAcceptanceSchema>;
 
-export const updateOrganizationProfileSchema = z.object({
-  legalName: z.string().trim().min(1),
-  registrationNumber: z.string().trim().min(1),
-  billingEmail: z.email(),
-  responsibleName: z.string().trim().min(1),
-  responsibleEmail: z.email(),
-  responsiblePhone: z.string().trim().min(1).optional(),
-});
+export const updateOrganizationProfileSchema = z
+  .object({
+    legalName: z.string().trim().min(1),
+    registrationNumber: z.string().trim().min(1),
+    billingEmail: z.email(),
+    responsibleName: z.string().trim().min(1),
+    responsibleEmail: z.email(),
+    responsiblePhone: z.string().trim().min(1).optional(),
+    countryCode: countryCodeSchema,
+  })
+  .superRefine((value, context) => {
+    if (!value.responsiblePhone) {
+      return;
+    }
+
+    const normalized = normalizePhoneNumber(
+      value.responsiblePhone,
+      value.countryCode,
+    );
+
+    if (!normalized.ok) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Enter a valid responsible phone number.',
+        path: ['responsiblePhone'],
+      });
+    }
+  });
 
 export const createOrganizationAcceptanceSchema = z.object({
   documentType: z.enum(REQUIRED_LEGAL_DOCUMENT_TYPES),
@@ -158,6 +181,8 @@ export const createCurrentOrganizationAcceptancesSchema = z.object({
 export type OrganizationReadiness = {
   profileComplete: boolean;
   complianceComplete: boolean;
+  setupComplete: boolean;
+  legalUpdatesRequired: boolean;
   ready: boolean;
   missingAcceptanceTypes: ComplianceDocumentType[];
 };

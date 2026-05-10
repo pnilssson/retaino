@@ -14,7 +14,9 @@
     "@clerk/backend": "^3.4.6",
     "@retaino/db": "workspace:*",
     "@retaino/shared": "workspace:*",
+    "csv-parse": "^6.2.1",
     "hono": "^4.12.18",
+    "inngest": "^4.3.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {

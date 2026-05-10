@@ -3,7 +3,11 @@
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { canManageOrganizationSetup } from '@retaino/shared/contracts';
+import { AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { ApiClientError } from '@/lib/api-client';
 import { routes } from '@/lib/routes';
 import { useActiveOrganizationBootstrap } from '../hooks/use-active-organization-bootstrap';
@@ -21,7 +25,9 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
     session.error instanceof ApiClientError &&
     session.error.code === 'active_organization_required';
   const hasIncompleteOnboarding =
-    session.isSuccess && session.data.readiness.ready === false;
+    session.isSuccess && session.data.readiness.setupComplete === false;
+  const hasLegalUpdatesRequired =
+    session.isSuccess && session.data.readiness.legalUpdatesRequired;
   const canManageSetup =
     session.isSuccess &&
     canManageOrganizationSetup(session.data.organization.role);
@@ -126,5 +132,35 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
     );
   }
 
-  return children;
+  return (
+    <>
+      {hasLegalUpdatesRequired ? (
+        <LegalUpdatesBanner canManageSetup={canManageSetup} />
+      ) : null}
+      {children}
+    </>
+  );
+}
+
+function LegalUpdatesBanner({ canManageSetup }: { canManageSetup: boolean }) {
+  return (
+    <section className="border-b bg-amber-50/70 px-5 py-3 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100 sm:px-8 lg:px-10">
+      <Alert className="mx-auto max-w-6xl border-amber-200 bg-transparent text-current dark:border-amber-900/70">
+        <AlertTriangle aria-hidden="true" className="text-amber-600" />
+        <AlertTitle>Legal documents need review</AlertTitle>
+        <AlertDescription className="flex flex-col gap-3 text-amber-900 dark:text-amber-100 sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            {canManageSetup
+              ? 'Updated legal documents require acceptance before campaigns can continue.'
+              : 'Updated legal documents require acceptance by an organization admin before campaigns can continue.'}
+          </span>
+          <Button asChild size="sm" variant="outline">
+            <Link href={`${routes.settings}#compliance-documents`}>
+              {canManageSetup ? 'Review updates' : 'View documents'}
+            </Link>
+          </Button>
+        </AlertDescription>
+      </Alert>
+    </section>
+  );
 }

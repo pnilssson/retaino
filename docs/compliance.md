@@ -25,6 +25,11 @@ Onboarding must require acceptance of:
 - sending policy
 - campaign attestation
 
+Twilio is the MVP SMS provider and should be listed in the subprocessor or
+vendor disclosures before live campaign sending is enabled. If Twilio settings
+use processing or routing outside the EU/EEA, the transfer terms must cover
+that processing before affected organizations can send campaigns.
+
 The campaign attestation must confirm that:
 
 - recipients are the customer's own customers or valid marketing contacts
@@ -68,6 +73,11 @@ STOP handling must:
 - prevent future sends to suppressed phone numbers
 - log the opt-out event
 - show suppression counts during audience review
+
+For the Twilio MVP integration, configure sending so inbound replies can reach
+Retaino webhooks. A numeric sender or equivalent Messaging Service setup is
+preferred for launch because alphanumeric sender IDs are one-way and cannot
+receive STOP replies.
 
 Suppression checks must run before campaign approval and immediately before send
 execution.

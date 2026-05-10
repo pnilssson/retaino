@@ -4,12 +4,14 @@ import {
   getOrganizationProfileByOrganizationId,
   getPublishedLegalDocumentVersion,
   listOrganizationAcceptedDocuments,
+  markOrganizationOnboardingComplete,
   upsertOrganizationProfile,
 } from '@retaino/db';
 import {
   canManageOrganizationSetup,
   createCurrentOrganizationAcceptancesSchema,
   createOrganizationAcceptanceSchema,
+  normalizePhoneNumber,
   updateOrganizationProfileSchema,
 } from '@retaino/shared/contracts';
 import { Hono } from 'hono';
@@ -38,6 +40,7 @@ export const organizationRoutes = new Hono<AppEnv>()
       requiredLegalDocuments,
       readiness: getOrganizationReadiness({
         hasProfile: profile !== null,
+        onboardingStatus: organization.onboardingStatus,
         requiredLegalDocuments,
         acceptedDocuments,
       }),
@@ -66,9 +69,13 @@ export const organizationRoutes = new Hono<AppEnv>()
       return parsed.response;
     }
 
+    const phone = parsed.data.responsiblePhone
+      ? normalizePhoneNumber(parsed.data.responsiblePhone, parsed.data.countryCode)
+      : null;
     const profile = await upsertOrganizationProfile(c.get('db'), {
       organizationId: organization.id,
       ...parsed.data,
+      responsiblePhone: phone?.ok ? phone.normalizedPhone : undefined,
     });
 
     return c.json({ profile });
@@ -198,6 +205,10 @@ export const organizationRoutes = new Hono<AppEnv>()
       });
     }
 
+    const completedOrganization = await markOrganizationOnboardingComplete(
+      db,
+      organization.id,
+    );
     const acceptedDocuments = await listOrganizationAcceptedDocuments(
       db,
       organization.id,
@@ -212,6 +223,8 @@ export const organizationRoutes = new Hono<AppEnv>()
         acceptedDocuments,
         readiness: getOrganizationReadiness({
           hasProfile: profile !== null,
+          onboardingStatus:
+            completedOrganization?.onboardingStatus ?? 'complete',
           requiredLegalDocuments: currentRequiredDocuments,
           acceptedDocuments,
         }),
