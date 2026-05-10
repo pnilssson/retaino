@@ -1,9 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { LegalDocumentArticle } from '@/features/legal/components/legal-document-article';
-import { fetchLegalDocumentVersion } from '@/features/legal/legal-documents';
-
-export const dynamic = 'force-dynamic';
+import { fetchLegalDocumentVersion } from '@/features/legal/legal';
 
 type LegalDocumentPageProps = {
   params: Promise<{

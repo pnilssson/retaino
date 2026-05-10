@@ -9,13 +9,26 @@ import { apiError } from '../lib/errors';
 import { parseConfiguredOrigins } from '../lib/origins';
 import type { AppEnv } from '../types';
 
-function primaryEmailAddress(emailAddresses: unknown) {
+function primaryEmailAddress(
+  emailAddresses: unknown,
+  primaryEmailAddressId: unknown,
+) {
   if (!Array.isArray(emailAddresses)) {
     return null;
   }
 
-  const firstEmail = emailAddresses[0] as { emailAddress?: unknown } | undefined;
-  return typeof firstEmail?.emailAddress === 'string' ? firstEmail.emailAddress : null;
+  const addresses = emailAddresses as Array<{
+    id?: unknown;
+    emailAddress?: unknown;
+  }>;
+  const primaryEmail =
+    typeof primaryEmailAddressId === 'string'
+      ? addresses.find((email) => email.id === primaryEmailAddressId)
+      : undefined;
+  const fallbackEmail = addresses[0];
+  const emailAddress = primaryEmail?.emailAddress ?? fallbackEmail?.emailAddress;
+
+  return typeof emailAddress === 'string' ? emailAddress : null;
 }
 
 export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
@@ -50,7 +63,10 @@ export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
   const role = 'orgRole' in auth && typeof auth.orgRole === 'string' ? auth.orgRole : 'org:member';
   const db = c.get('db');
   const clerkUser = await clerk.users.getUser(auth.userId);
-  const email = primaryEmailAddress(clerkUser.emailAddresses);
+  const email = primaryEmailAddress(
+    clerkUser.emailAddresses,
+    clerkUser.primaryEmailAddressId,
+  );
   const user = await upsertUserByClerkId(db, {
     clerkUserId: auth.userId,
     email,

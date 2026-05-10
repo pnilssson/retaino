@@ -1,69 +1,66 @@
 "use client";
 
 import { useOrganizationList, useUser } from '@clerk/nextjs';
+import { useForm } from '@tanstack/react-form';
 import { AlertCircle, Loader2, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { type FormEvent, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getFieldError } from '@/lib/form-errors';
 import { routes } from '@/lib/routes';
 import { defaultOrganizationName } from '../lib/default-organization-name';
 import { OnboardingFrame } from './onboarding-frame';
 
 export function OrganizationNewScreen() {
   const router = useRouter();
-  const { user } = useUser();
+  const { isLoaded: isUserLoaded, user } = useUser();
   const { createOrganization, isLoaded, setActive } = useOrganizationList();
   const defaultName = useMemo(
     () =>
       defaultOrganizationName(
         user?.fullName,
         user?.primaryEmailAddress?.emailAddress,
-      ),
+    ),
     [user?.fullName, user?.primaryEmailAddress?.emailAddress],
   );
-  const [organizationName, setOrganizationName] = useState(defaultName);
-  const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleCreateOrganization(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const form = useForm({
+    defaultValues: {
+      organizationName: defaultName,
+    },
+    onSubmit: async ({ value }) => {
+      const name = value.organizationName.trim();
 
-    const name = organizationName.trim();
+      if (!createOrganization || !setActive) {
+        setError(
+          'Organization creation is still loading. Try again in a moment.',
+        );
+        return;
+      }
 
-    if (!name) {
-      setError('Enter an organization name.');
-      return;
-    }
+      setError(null);
 
-    if (!createOrganization || !setActive) {
-      setError('Organization creation is still loading. Try again in a moment.');
-      return;
-    }
+      try {
+        const organization = await createOrganization({ name });
+        await setActive({ organization: organization.id });
+        await waitForClerkSessionPropagation();
+        router.replace(routes.organizationSetup);
+        router.refresh();
+      } catch (cause) {
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : 'The organization could not be created.',
+        );
+      }
+    },
+  });
 
-    setError(null);
-    setIsPending(true);
-
-    try {
-      const organization = await createOrganization({ name });
-      await setActive({ organization: organization.id });
-      await waitForClerkSessionPropagation();
-      router.replace(routes.organizationSetup);
-      router.refresh();
-    } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : 'The organization could not be created.',
-      );
-    } finally {
-      setIsPending(false);
-    }
-  }
-
-  if (!isLoaded) {
+  if (!isLoaded || !isUserLoaded) {
     return (
       <OnboardingFrame completedSteps={[]} currentStep="organization">
         <section className="pt-10">
@@ -95,26 +92,76 @@ export function OrganizationNewScreen() {
           </Alert>
         ) : null}
 
-        <form className="mt-8 grid gap-4" onSubmit={handleCreateOrganization}>
-          <div className="grid gap-2">
-            <Label htmlFor="organization-name">Organization name</Label>
-            <Input
-              autoComplete="organization"
-              disabled={isPending}
-              id="organization-name"
-              onChange={(event) => setOrganizationName(event.target.value)}
-              placeholder={defaultName}
-              value={organizationName}
-            />
-          </div>
-          <Button className="w-fit" disabled={isPending} type="submit">
-            {isPending ? (
-              <Loader2 aria-hidden="true" className="animate-spin" />
-            ) : (
-              <Plus aria-hidden="true" />
+        <form
+          className="mt-8 grid gap-4"
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void form.handleSubmit();
+          }}
+        >
+          <form.Field
+            name="organizationName"
+            validators={{
+              onChange: ({ value }) =>
+                value.trim() ? undefined : 'Enter an organization name.',
+              onSubmit: ({ value }) =>
+                value.trim() ? undefined : 'Enter an organization name.',
+            }}
+          >
+            {(field) => {
+              const fieldError = getFieldError(field.state.meta.errors);
+
+              return (
+                <div className="grid gap-2">
+                  <Label htmlFor={field.name}>Organization name</Label>
+                  <Input
+                    aria-describedby={
+                      fieldError ? `${field.name}-error` : undefined
+                    }
+                    aria-invalid={Boolean(fieldError)}
+                    autoComplete="organization"
+                    disabled={form.state.isSubmitting}
+                    id={field.name}
+                    name={field.name}
+                    onBlur={field.handleBlur}
+                    onChange={(event) =>
+                      field.handleChange(event.target.value)
+                    }
+                    placeholder={defaultName}
+                    value={field.state.value}
+                  />
+                  {fieldError ? (
+                    <p
+                      className="text-xs text-destructive"
+                      id={`${field.name}-error`}
+                    >
+                      {fieldError}
+                    </p>
+                  ) : null}
+                </div>
+              );
+            }}
+          </form.Field>
+          <form.Subscribe
+            selector={(state) => [state.canSubmit, state.isSubmitting]}
+          >
+            {([canSubmit, isSubmitting]) => (
+              <Button
+                className="w-fit"
+                disabled={!canSubmit || isSubmitting}
+                type="submit"
+              >
+                {isSubmitting ? (
+                  <Loader2 aria-hidden="true" className="animate-spin" />
+                ) : (
+                  <Plus aria-hidden="true" />
+                )}
+                Create organization
+              </Button>
             )}
-            Create organization
-          </Button>
+          </form.Subscribe>
           <p className="text-sm leading-6 text-muted-foreground">
             If you were invited to an existing organization, use the invitation
             link from your email instead.

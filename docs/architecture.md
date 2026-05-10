@@ -9,6 +9,7 @@ rules.
 - `docs/product.md`: product scope, target users, and build order.
 - `docs/compliance.md`: compliance, data minimization, retention, and audit
   rules.
+- `docs/caching.md`: cache layers, tenant-scoped keys, and invalidation rules.
 - `docs/tracking.md`: short links, booking reconciliation, attribution, and
   reporting.
 
