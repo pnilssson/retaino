@@ -4,9 +4,9 @@ Retaino v1 uses per-recipient short links plus CSV booking reconciliation. This
 gives reliable click tracking and honest booking attribution without depending
 on booking-system webhooks.
 
-## Core Entities
+## Domain Entities
 
-Minimum MVP entities:
+V1 tracking and attribution depend on these tenant-owned entities:
 
 | Entity | Purpose |
 | --- | --- |

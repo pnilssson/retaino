@@ -287,7 +287,7 @@ function complianceDocumentStatus({
       badgeVariant: 'outline',
       description: `Version ${currentVersion} accepted.`,
       iconClassName:
-        'mt-0.5 size-8 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300',
+        'mt-0.5 size-8 rounded-md bg-muted text-emerald-700 dark:text-emerald-300',
       kind: 'current',
       label: 'Current',
     } as const;

@@ -93,6 +93,11 @@ Tenant-sensitive jobs include CSV parsing, dedupe, suppression filtering,
 campaign sending, provider event handling, booking reconciliation, report
 aggregation, and retention cleanup.
 
+CSV source files and other job inputs that cannot fit safely in a job payload
+must be stored in private object storage under an organization-scoped key. The
+job payload should carry only the organization, actor, and source resource
+identifiers needed to re-read the stored input.
+
 ## SMS Provider
 
 Twilio is the MVP SMS provider.
@@ -161,7 +166,8 @@ used by both web and API, it belongs in `packages/shared`.
 
 ## URLs
 
-The app currently uses `/app/...` routes scoped by the active organization.
+Authenticated app routes use `/app/...` and are scoped by the active
+organization.
 Public tracking links should stay short and recipient-focused, for example
 `/r/:code`.
 

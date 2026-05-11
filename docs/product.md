@@ -31,7 +31,10 @@ The dashboard should answer one question:
 
 > How many bookings and how much revenue came from this campaign?
 
-## Build Order
+## Delivery Order
+
+Build product areas in dependency order so later work has the required tenant,
+compliance, and data foundations:
 
 1. Organization setup, compliance acceptance, and team access.
 2. Contact import with validation, dedupe, and suppression checks.
@@ -40,9 +43,6 @@ The dashboard should answer one question:
 5. Short links and campaign send execution.
 6. Booking CSV upload and reconciliation.
 7. Campaign reporting with attribution confidence.
-
-Organization setup is already the foundation. The next product area should be
-contacts import because campaigns and reporting depend on customer data.
 
 ## MVP Scope
 
