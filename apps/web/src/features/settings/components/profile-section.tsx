@@ -53,7 +53,7 @@ export function ProfileSection({
   }
 
   return (
-    <Item asChild className="grid items-stretch gap-5 px-5 py-5" variant="muted">
+    <Item asChild className="grid items-stretch gap-5 border-border bg-card px-5 py-5">
       <section id="organization-profile">
         <ItemHeader className="items-start">
           <ItemContent className="gap-2">
