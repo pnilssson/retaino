@@ -7,9 +7,8 @@ import {
   organizationProfileFormValuesToUpdateInput,
   type OrganizationProfileFormValues as ProfileDraft,
 } from '@/features/organization-profile/organization-profile-form';
-import { useCreateCurrentOrganizationAcceptances } from '../hooks/use-create-current-organization-acceptances';
+import { useCreateCurrentOrganizationLegalAcceptance } from '../hooks/use-create-current-organization-legal-acceptance';
 import { useUpdateOrganizationProfile } from '../hooks/use-update-organization-profile';
-import { complianceDocumentLabels } from '../onboarding.constants';
 import { AgreementsStep } from './agreements-step';
 import { CompanyStep } from './company-step';
 import { ContactStep } from './contact-step';
@@ -18,7 +17,7 @@ import { ReadyStep } from './setup-states';
 
 export function OnboardingFlow({ session }: { session: OrganizationSession }) {
   const updateProfile = useUpdateOrganizationProfile();
-  const createAcceptances = useCreateCurrentOrganizationAcceptances();
+  const createLegalAcceptance = useCreateCurrentOrganizationLegalAcceptance();
   const initialDraft = useMemo(
     () => organizationProfileFormValuesFromSession(session),
     [session],
@@ -63,26 +62,17 @@ export function OnboardingFlow({ session }: { session: OrganizationSession }) {
               organizationProfileFormValuesToUpdateInput(value),
             );
             setProfileDraft(value);
-            setActiveStep(
-              session.readiness.complianceComplete ? 'ready' : 'agreements',
-            );
+            setActiveStep(session.readiness.legalCurrent ? 'ready' : 'agreements');
           }}
         />
       ) : (
         <AgreementsStep
-          documents={session.requiredLegalDocuments}
-          isPending={createAcceptances.isPending}
-          missingAcceptanceTypes={session.readiness.missingAcceptanceTypes}
-          mutationError={createAcceptances.error?.message ?? null}
+          isPending={createLegalAcceptance.isPending}
+          legalBundle={session.legalBundle}
+          mutationError={createLegalAcceptance.error?.message ?? null}
           onBack={() => setActiveStep('contact')}
           onComplete={async () => {
-            await createAcceptances.mutateAsync({
-              documents: session.requiredLegalDocuments.map((document) => ({
-                documentType:
-                  document.documentType as keyof typeof complianceDocumentLabels,
-                documentVersion: document.documentVersion,
-              })),
-            });
+            await createLegalAcceptance.mutateAsync();
             setActiveStep('ready');
           }}
         />
@@ -95,7 +85,8 @@ export function onboardingFlowKey(session: OrganizationSession) {
   return [
     session.profile?.updatedAt ?? 'no-profile',
     session.readiness.ready ? 'ready' : 'open',
-    session.readiness.missingAcceptanceTypes.join(','),
+    session.legalAcceptance?.acceptedAt ?? 'no-legal',
+    session.legalBundle.version,
   ].join(':');
 }
 
@@ -132,7 +123,7 @@ function completedStepsFor(
     completed.push('contact');
   }
 
-  if (session.readiness.complianceComplete || activeStep === 'ready') {
+  if (session.readiness.legalCurrent || activeStep === 'ready') {
     completed.push('agreements');
   }
 

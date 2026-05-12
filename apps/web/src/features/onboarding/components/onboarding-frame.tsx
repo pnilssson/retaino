@@ -11,7 +11,7 @@ const steps: { id: OnboardingStepId; title: string }[] = [
   { id: 'organization', title: 'Organization' },
   { id: 'company', title: 'Company' },
   { id: 'contact', title: 'Contact' },
-  { id: 'agreements', title: 'Agreements' }
+  { id: 'agreements', title: 'Legal' }
 ];
 
 type OnboardingFrameProps = {

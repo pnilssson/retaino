@@ -28,6 +28,8 @@ This repository is the Retaino monorepo.
 - API uses Hono on Cloudflare Workers.
 - Auth uses Clerk.
 - Database uses Neon Postgres with Drizzle.
+- Never manually edit migration SQL or migration metadata. Update the Drizzle
+  schema, then generate migrations with the project migration command.
 - Payments use Polar.
 - Background jobs use Inngest.
 - Long-running operations must run in background jobs, not inside HTTP requests.

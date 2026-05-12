@@ -2,22 +2,21 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
-  CreateCurrentOrganizationAcceptancesInput,
-  CreateCurrentOrganizationAcceptancesResponse,
+  CreateCurrentOrganizationLegalAcceptanceResponse,
   OrganizationSession,
 } from '@retaino/shared/contracts';
 import { useApi } from './use-api';
 import { organizationSessionQueryKey } from './use-organization-session';
 
-export function useCreateCurrentOrganizationAcceptances() {
+export function useCreateCurrentOrganizationLegalAcceptance() {
   const api = useApi();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: CreateCurrentOrganizationAcceptancesInput) =>
-      api.post<CreateCurrentOrganizationAcceptancesResponse>(
-        '/v1/organization/acceptances/current',
-        input
+    mutationFn: () =>
+      api.post<CreateCurrentOrganizationLegalAcceptanceResponse>(
+        '/v1/organization/legal',
+        {},
       ),
     onSuccess: async (data) => {
       queryClient.setQueryData<OrganizationSession>(
@@ -26,14 +25,14 @@ export function useCreateCurrentOrganizationAcceptances() {
           current
             ? {
                 ...current,
-                acceptedDocuments: data.acceptedDocuments,
-                readiness: data.readiness
+                legalAcceptance: data.legalAcceptance,
+                readiness: data.readiness,
               }
-            : current
+            : current,
       );
       await queryClient.invalidateQueries({
-        queryKey: organizationSessionQueryKey
+        queryKey: organizationSessionQueryKey,
       });
-    }
+    },
   });
 }

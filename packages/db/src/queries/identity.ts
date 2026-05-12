@@ -1,14 +1,15 @@
 import { and, eq } from 'drizzle-orm';
 import type {
-  LegalDocumentVersion,
-  OrganizationAcceptance,
+  LegalBundle,
+  LegalBundleDocumentSnapshot,
   OrganizationContext,
+  OrganizationLegalAcceptance,
   OrganizationProfile,
   User,
 } from '@retaino/shared/contracts';
 import type { DbClient } from '../client';
 import {
-  organizationAcceptances,
+  organizationLegalAcceptances,
   organizationProfiles,
   organizations,
   users,
@@ -56,20 +57,25 @@ function toOrganizationProfile(
   };
 }
 
-function toOrganizationAcceptance(
-  row: typeof organizationAcceptances.$inferSelect,
-): OrganizationAcceptance {
+function toDocumentSnapshots(value: unknown): LegalBundleDocumentSnapshot[] {
+  return Array.isArray(value) ? (value as LegalBundleDocumentSnapshot[]) : [];
+}
+
+function toOrganizationLegalAcceptance(
+  row: typeof organizationLegalAcceptances.$inferSelect,
+  acceptedByEmail: string | null,
+): OrganizationLegalAcceptance {
   return {
     id: row.id,
     organizationId: row.organizationId,
     userId: row.userId,
-    legalDocumentVersionId: row.legalDocumentVersionId,
-    documentType: row.documentType,
-    documentVersion: row.documentVersion,
-    contentHash: row.contentHash,
+    bundleVersion: row.bundleVersion,
+    bundleHash: row.bundleHash,
+    documentsSnapshot: toDocumentSnapshots(row.documentsSnapshot),
     ipAddress: row.ipAddress,
     userAgent: row.userAgent,
     acceptedAt: row.acceptedAt.toISOString(),
+    acceptedByEmail,
   };
 }
 
@@ -208,70 +214,95 @@ export async function markOrganizationOnboardingComplete(
   return organization ?? null;
 }
 
-export async function createOrganizationAcceptance(
+export async function createOrganizationLegalAcceptance(
   db: DbClient,
   input: {
     organizationId: string;
     userId: string;
-    legalDocumentVersion: LegalDocumentVersion;
+    legalBundle: LegalBundle;
     ipAddress: string | null;
     userAgent: string | null;
   },
 ) {
   const [acceptance] = await db
-    .insert(organizationAcceptances)
+    .insert(organizationLegalAcceptances)
     .values({
       organizationId: input.organizationId,
       userId: input.userId,
-      legalDocumentVersionId: input.legalDocumentVersion.id,
-      documentType: input.legalDocumentVersion.documentType,
-      documentVersion: input.legalDocumentVersion.documentVersion,
-      contentHash: input.legalDocumentVersion.contentHash,
+      bundleVersion: input.legalBundle.version,
+      bundleHash: input.legalBundle.hash,
+      documentsSnapshot: input.legalBundle.documents,
       ipAddress: input.ipAddress,
       userAgent: input.userAgent,
     })
     .onConflictDoNothing({
       target: [
-        organizationAcceptances.organizationId,
-        organizationAcceptances.legalDocumentVersionId,
+        organizationLegalAcceptances.organizationId,
+        organizationLegalAcceptances.bundleVersion,
       ],
     })
     .returning();
 
   if (acceptance) {
-    return toOrganizationAcceptance(acceptance);
+    const [actor] = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, acceptance.userId))
+      .limit(1);
+
+    return toOrganizationLegalAcceptance(acceptance, actor?.email ?? null);
   }
 
   const [existingAcceptance] = await db
     .select()
-    .from(organizationAcceptances)
+    .from(organizationLegalAcceptances)
     .where(
       and(
-        eq(organizationAcceptances.organizationId, input.organizationId),
+        eq(organizationLegalAcceptances.organizationId, input.organizationId),
         eq(
-          organizationAcceptances.legalDocumentVersionId,
-          input.legalDocumentVersion.id,
+          organizationLegalAcceptances.bundleVersion,
+          input.legalBundle.version,
         ),
       ),
     )
     .limit(1);
 
-  return existingAcceptance ? toOrganizationAcceptance(existingAcceptance) : null;
+  if (!existingAcceptance) {
+    return null;
+  }
+
+  const [actor] = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.id, existingAcceptance.userId))
+    .limit(1);
+
+  return toOrganizationLegalAcceptance(existingAcceptance, actor?.email ?? null);
 }
 
-export async function listOrganizationAcceptedDocuments(
+export async function getCurrentOrganizationLegalAcceptance(
   db: DbClient,
-  organizationId: string,
+  input: {
+    organizationId: string;
+    bundleVersion: string;
+  },
 ) {
-  const rows = await db
+  const [row] = await db
     .select({
-      legalDocumentVersionId: organizationAcceptances.legalDocumentVersionId,
-      documentType: organizationAcceptances.documentType,
-      documentVersion: organizationAcceptances.documentVersion,
-      contentHash: organizationAcceptances.contentHash,
+      acceptance: organizationLegalAcceptances,
+      acceptedByEmail: users.email,
     })
-    .from(organizationAcceptances)
-    .where(eq(organizationAcceptances.organizationId, organizationId));
+    .from(organizationLegalAcceptances)
+    .innerJoin(users, eq(users.id, organizationLegalAcceptances.userId))
+    .where(
+      and(
+        eq(organizationLegalAcceptances.organizationId, input.organizationId),
+        eq(organizationLegalAcceptances.bundleVersion, input.bundleVersion),
+      ),
+    )
+    .limit(1);
 
-  return rows;
+  return row
+    ? toOrganizationLegalAcceptance(row.acceptance, row.acceptedByEmail)
+    : null;
 }

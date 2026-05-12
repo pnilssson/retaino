@@ -204,6 +204,7 @@ describe('contact contracts', () => {
           email: 'Email',
         },
         phoneCountryCode: 'SE',
+        permissionAttestation: true,
       }).success,
     ).toBe(true);
 
@@ -217,6 +218,23 @@ describe('contact contracts', () => {
         phoneCountryCode: 'SE',
       }).success,
     ).toBe(false);
+  });
+
+  it('requires import permission attestation before processing contacts', () => {
+    expect(
+      contactImportProcessSchema.safeParse({
+        mapping: { phone: 'Phone' },
+        phoneCountryCode: 'SE',
+      }).success,
+    ).toBe(false);
+
+    expect(
+      contactImportProcessSchema.safeParse({
+        mapping: { phone: 'Phone' },
+        phoneCountryCode: 'SE',
+        permissionAttestation: true,
+      }).success,
+    ).toBe(true);
   });
 
   it('validates server-backed contact filters', () => {

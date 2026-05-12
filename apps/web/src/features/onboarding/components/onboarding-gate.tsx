@@ -147,16 +147,16 @@ function LegalUpdatesBanner({ canManageSetup }: { canManageSetup: boolean }) {
     <section className="border-b bg-amber-50/70 px-5 py-3 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100 sm:px-8 lg:px-10">
       <Alert className="mx-auto max-w-6xl border-amber-200 bg-transparent text-current dark:border-amber-900/70">
         <AlertTriangle aria-hidden="true" className="text-amber-600" />
-        <AlertTitle>Legal documents need review</AlertTitle>
+        <AlertTitle>Legal agreement needs review</AlertTitle>
         <AlertDescription className="flex flex-col gap-3 text-amber-900 dark:text-amber-100 sm:flex-row sm:items-center sm:justify-between">
           <span>
             {canManageSetup
-              ? 'Updated legal documents require acceptance before campaigns can continue.'
-              : 'Updated legal documents require acceptance by an organization admin before campaigns can continue.'}
+              ? 'Updated terms must be accepted before imports or campaigns can continue.'
+              : 'Updated terms require acceptance by an organization admin before imports or campaigns can continue.'}
           </span>
           <Button asChild size="sm" variant="outline">
-            <Link href={`${routes.settings}#compliance-documents`}>
-              {canManageSetup ? 'Review updates' : 'View documents'}
+            <Link href={`${routes.settings}#legal-agreement`}>
+              {canManageSetup ? 'Review updates' : 'View legal'}
             </Link>
           </Button>
         </AlertDescription>

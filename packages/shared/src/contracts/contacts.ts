@@ -152,6 +152,8 @@ export const contactImportSummarySchema = z.object({
   duplicateCount: z.number().int().nonnegative(),
   suppressedCount: z.number().int().nonnegative(),
   errorSummary: z.array(nonEmptyStringSchema),
+  permissionAttestedAt: timestampSchema.nullable(),
+  permissionAttestedByUserId: idSchema.nullable(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
   completedAt: timestampSchema.nullable(),
@@ -210,6 +212,9 @@ export const contactImportRowsQuerySchema = z.object({
 export const contactImportProcessSchema = z.object({
   mapping: csvMappingSchema,
   phoneCountryCode: countryCodeSchema,
+  permissionAttestation: z.literal(true, {
+    error: 'Confirm these contacts can lawfully receive marketing SMS.',
+  }),
 });
 
 export const updateContactSchema = z

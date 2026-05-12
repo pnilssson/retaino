@@ -34,10 +34,11 @@ The dashboard should answer one question:
 ## Delivery Order
 
 Build product areas in dependency order so later work has the required tenant,
-compliance, and data foundations:
+legal, and data foundations:
 
-1. Organization setup, compliance acceptance, and team access.
-2. Contact import with validation, dedupe, and suppression checks.
+1. Organization setup, legal bundle acceptance, and team access.
+2. Contact import with permission attestation, validation, dedupe, and
+   suppression checks.
 3. Contact status and lapsed customer segmentation.
 4. Campaign drafts, SMS preview, segment counting, and test sends.
 5. Short links and campaign send execution.
@@ -49,9 +50,10 @@ compliance, and data foundations:
 Required:
 
 - organization-scoped product data and access control
-- self-serve onboarding with legal company profile and compliance acceptance
+- self-serve onboarding with legal company profile and one legal bundle
+  acceptance
 - CSV customer import with field mapping, validation, dedupe, and suppression
-  checks
+  checks, gated by contact permission attestation
 - lapsed customer segmentation rules, such as no booking in X days
 - SMS editor with GSM-7 and Unicode segment counter plus cost preview
 - per-recipient short links for click tracking
@@ -92,20 +94,21 @@ Defer:
 1. User signs up or accepts an organization invitation.
 2. Retaino ensures the user has an active organization.
 3. User enters legal company identity, billing details, and responsible contact.
-4. User accepts required compliance documents.
-5. User confirms campaigns only contact valid customer contacts for the
-   customer's own services.
-6. Retaino enables default STOP text and suppression handling.
+4. User accepts one organization legal agreement covering the Terms, Data
+   Processing Agreement, Sending Policy, and related policies.
+5. Retaino enables forced STOP text and suppression handling.
 
 ### Audience Import
 
 1. User uploads a CSV customer list.
 2. Retaino maps fields such as name, phone, email, last booking date, service,
    and marketing status when available.
-3. Retaino validates phone numbers and emails.
-4. Retaino deduplicates records inside the organization.
-5. Retaino removes suppressed contacts.
-6. Retaino stores normalized contact fields and hashes for matching.
+3. User confirms these contacts can lawfully receive marketing SMS from the
+   organization.
+4. Retaino validates phone numbers and emails.
+5. Retaino deduplicates records inside the organization.
+6. Retaino removes suppressed contacts.
+7. Retaino stores normalized contact fields and hashes for matching.
 
 ### Campaign Creation
 

@@ -1,56 +1,28 @@
 import type {
-  LegalDocumentVersionSummary,
+  LegalBundle,
+  OrganizationLegalAcceptance,
   OrganizationReadiness,
 } from '@retaino/shared/contracts';
-import { requiredLegalDocumentTypeSchema } from '@retaino/shared/contracts';
-
-export type RequiredLegalDocumentForReadiness = Pick<
-  LegalDocumentVersionSummary,
-  'documentType' | 'documentVersion'
->;
-
-type AcceptedComplianceDocument = {
-  documentType: string;
-  documentVersion: string;
-};
 
 export function getOrganizationReadiness(input: {
   hasProfile: boolean;
   onboardingStatus: string;
-  requiredLegalDocuments: readonly RequiredLegalDocumentForReadiness[];
-  acceptedDocuments: readonly AcceptedComplianceDocument[];
+  legalBundle: Pick<LegalBundle, 'version' | 'hash'>;
+  legalAcceptance: Pick<
+    OrganizationLegalAcceptance,
+    'bundleVersion' | 'bundleHash'
+  > | null;
 }): OrganizationReadiness {
-  const accepted = new Set(
-    input.acceptedDocuments.map(
-      (document) => `${document.documentType}:${document.documentVersion}`,
-    ),
-  );
-  const missingAcceptanceTypes = input.requiredLegalDocuments.flatMap(
-    (document) => {
-      const documentType = requiredLegalDocumentTypeSchema.safeParse(
-        document.documentType,
-      );
-
-      if (
-        !documentType.success ||
-        accepted.has(`${document.documentType}:${document.documentVersion}`)
-      ) {
-        return [];
-      }
-
-      return [documentType.data];
-    },
-  );
-  const complianceComplete = missingAcceptanceTypes.length === 0;
+  const legalCurrent =
+    input.legalAcceptance?.bundleVersion === input.legalBundle.version;
   const setupComplete = input.onboardingStatus === 'complete';
-  const legalUpdatesRequired = setupComplete && !complianceComplete;
+  const legalUpdatesRequired = setupComplete && !legalCurrent;
 
   return {
     profileComplete: input.hasProfile,
-    complianceComplete,
+    legalCurrent,
     setupComplete,
     legalUpdatesRequired,
-    ready: setupComplete && complianceComplete,
-    missingAcceptanceTypes,
+    ready: input.hasProfile && setupComplete,
   };
 }

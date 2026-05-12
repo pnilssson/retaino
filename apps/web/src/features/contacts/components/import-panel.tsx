@@ -26,6 +26,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { CountryCombobox } from '@/components/country-combobox';
 import { Input } from '@/components/ui/input';
 import {
@@ -66,6 +67,13 @@ type ContactImportDetailResponse = {
   import: ContactImportDetail;
 };
 
+type ContactImportProcessFormValues = Omit<
+  ContactImportProcessInput,
+  'permissionAttestation'
+> & {
+  permissionAttestation: boolean;
+};
+
 export function ContactImportUploadScreen() {
   const session = useOrganizationSession();
   const router = useRouter();
@@ -99,7 +107,7 @@ export function ContactImportUploadScreen() {
     return null;
   }
 
-  if (!session.data.readiness.ready) {
+  if (!session.data.readiness.ready || session.data.readiness.legalUpdatesRequired) {
     return <BlockedContacts session={session.data} />;
   }
 
@@ -269,6 +277,7 @@ export function ContactImportDetailScreen({ importId }: { importId: string }) {
               });
               await queryClient.invalidateQueries({ queryKey: ['contacts'] });
             }}
+            processingBlocked={session.data.readiness.legalUpdatesRequired}
           />
         ) : latestImport ? (
           <ImportStatusPanel
@@ -410,9 +419,11 @@ function UploadForm({
 function MappingPanel({
   importDetail,
   onProcessed,
+  processingBlocked,
 }: {
   importDetail: ContactImportDetail;
   onProcessed: () => void | Promise<void>;
+  processingBlocked: boolean;
 }) {
   const processImport = useProcessContactImport(importDetail.id, onProcessed);
   const headers = importDetail.preview?.headers ?? [];
@@ -422,8 +433,19 @@ function MappingPanel({
     defaultValues: {
       mapping: autoMapHeaders(headers),
       phoneCountryCode: importDetail.phoneCountryCode,
-    } satisfies ContactImportProcessInput,
-    onSubmit: async ({ value }) => processImport.mutateAsync(value),
+      permissionAttestation: false as boolean,
+    } satisfies ContactImportProcessFormValues,
+    onSubmit: async ({ value }) => {
+      if (processingBlocked || !value.permissionAttestation) {
+        return;
+      }
+
+      await processImport.mutateAsync({
+        mapping: value.mapping,
+        phoneCountryCode: value.phoneCountryCode,
+        permissionAttestation: true,
+      });
+    },
   });
 
   return (
@@ -543,17 +565,70 @@ function MappingPanel({
               </form.Subscribe>
             </>
           ) : (
-            <form.Subscribe selector={(state) => state.values}>
-              {({ mapping }) => (
-                <ReviewStep
-                  isSubmitting={processImport.isPending}
-                  mapping={mapping}
-                  onBack={() => setStep('map')}
-                  processError={processImport.error}
-                  sampleRows={sampleRows}
-                />
-              )}
-            </form.Subscribe>
+            <>
+              <form.Field
+                name="permissionAttestation"
+                validators={{
+                  onChange: ({ value }) =>
+                    value
+                      ? undefined
+                      : 'Confirm these contacts can lawfully receive marketing SMS.',
+                  onSubmit: ({ value }) =>
+                    value
+                      ? undefined
+                      : 'Confirm these contacts can lawfully receive marketing SMS.',
+                }}
+              >
+                {(field) => (
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      aria-describedby={
+                        field.state.meta.errors.length > 0
+                          ? 'permission-attestation-error'
+                          : undefined
+                      }
+                      checked={field.state.value}
+                      id={field.name}
+                      onBlur={field.handleBlur}
+                      onCheckedChange={(checked) =>
+                        field.handleChange(checked === true)
+                      }
+                    />
+                    <div className="grid gap-1">
+                      <Label htmlFor={field.name}>
+                        I confirm these contacts can lawfully receive marketing
+                        SMS from this organization.
+                      </Label>
+                      <p className="text-sm leading-6 text-muted-foreground">
+                        This is separate from opt-out handling. Retaino adds
+                        opt-out text to every SMS.
+                      </p>
+                      {field.state.meta.errors.length > 0 ? (
+                        <p
+                          className="text-xs text-destructive"
+                          id="permission-attestation-error"
+                        >
+                          {String(field.state.meta.errors[0])}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+              </form.Field>
+              <form.Subscribe selector={(state) => state.values}>
+                {({ mapping, permissionAttestation }) => (
+                  <ReviewStep
+                    isSubmitting={processImport.isPending}
+                    mapping={mapping}
+                    onBack={() => setStep('map')}
+                    permissionAttestation={permissionAttestation}
+                    processError={processImport.error}
+                    processingBlocked={processingBlocked}
+                    sampleRows={sampleRows}
+                  />
+                )}
+              </form.Subscribe>
+            </>
           )}
         </form>
       </section>
@@ -565,13 +640,17 @@ function ReviewStep({
   isSubmitting,
   mapping,
   onBack,
+  permissionAttestation,
   processError,
+  processingBlocked,
   sampleRows,
 }: {
   isSubmitting: boolean;
   mapping: CsvMapping;
   onBack: () => void;
+  permissionAttestation: boolean;
   processError: Error | null;
+  processingBlocked: boolean;
   sampleRows: Record<string, string>[];
 }) {
   const mappedFields = mappedFieldEntries(mapping);
@@ -586,6 +665,26 @@ function ReviewStep({
           <AlertDescription>{processError.message}</AlertDescription>
         </Alert>
       ) : null}
+      {processingBlocked ? (
+        <Alert>
+          <AlertCircle aria-hidden="true" />
+          <AlertTitle>Legal update required before processing</AlertTitle>
+          <AlertDescription className="grid gap-3">
+            <span>
+              This uploaded file is still available to review. An admin must
+              accept the current legal agreement before Retaino can process new
+              contacts.
+            </span>
+            <span>
+              <Button asChild size="sm" variant="outline">
+                <Link href={`${routes.settings}#legal-agreement`}>
+                  Review legal agreement
+                </Link>
+              </Button>
+            </span>
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <div className="flex flex-wrap justify-end gap-2">
         <Button
           disabled={isSubmitting}
@@ -595,7 +694,15 @@ function ReviewStep({
         >
           Back to mapping
         </Button>
-        <Button disabled={isSubmitting || !mappingReady(mapping)} type="submit">
+        <Button
+          disabled={
+            isSubmitting ||
+            processingBlocked ||
+            !mappingReady(mapping) ||
+            !permissionAttestation
+          }
+          type="submit"
+        >
           {isSubmitting ? (
             <Loader2 aria-hidden="true" className="animate-spin" />
           ) : (

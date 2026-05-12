@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  REQUIRED_COMPLIANCE_DOCUMENT_TYPES,
+  LEGAL_BUNDLE_VERSION,
+  REQUIRED_LEGAL_BUNDLE_DOCUMENT_TYPES,
   LEGAL_DOCUMENT_TYPES,
 } from '@retaino/shared/contracts';
 
@@ -16,13 +17,13 @@ describe('legal document contracts', () => {
       'sending_policy',
       'campaign_attestation',
     ]);
-    expect(REQUIRED_COMPLIANCE_DOCUMENT_TYPES).toEqual([
+    expect(LEGAL_BUNDLE_VERSION).toBe('2026-05-09');
+    expect(REQUIRED_LEGAL_BUNDLE_DOCUMENT_TYPES).toEqual([
       'terms',
       'dpa',
       'subprocessors',
       'transfer_terms',
       'sending_policy',
-      'campaign_attestation',
     ]);
   });
 });

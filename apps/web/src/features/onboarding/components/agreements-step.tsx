@@ -5,33 +5,26 @@ import {
   legalDocumentUrl,
   type OrganizationSession,
 } from '@retaino/shared/contracts';
-import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { getFieldError } from '@/lib/form-errors';
-import {
-  complianceDocumentDescriptions,
-  complianceDocumentLabels,
-} from '../onboarding.constants';
+import { legalBundleDocumentLabels } from '../onboarding.constants';
 
 export function AgreementsStep({
-  documents,
+  legalBundle,
   isPending,
-  missingAcceptanceTypes,
   mutationError,
   onBack,
   onComplete,
 }: {
-  documents: OrganizationSession['requiredLegalDocuments'];
+  legalBundle: OrganizationSession['legalBundle'];
   isPending: boolean;
-  missingAcceptanceTypes: OrganizationSession['readiness']['missingAcceptanceTypes'];
   mutationError: string | null;
   onBack: () => void;
   onComplete: () => Promise<void>;
 }) {
-  const missing = new Set(missingAcceptanceTypes);
   const form = useForm({
     defaultValues: {
       authorization: false,
@@ -43,13 +36,13 @@ export function AgreementsStep({
 
   return (
     <section className="pt-4">
-      <p className="text-sm text-muted-foreground">Agreements</p>
+      <p className="text-sm text-muted-foreground">Legal</p>
       <h1 className="mt-2 text-2xl leading-tight tracking-tight sm:text-3xl">
-        Accept the documents required to run campaigns.
+        Accept Retaino legal terms.
       </h1>
       <p className="mt-3 text-sm leading-6 text-muted-foreground">
-        These records confirm the organization can import contacts and use
-        Retaino for compliant customer reactivation.
+        One agreement covers the terms, data processing terms, sending policy,
+        and related policies for this organization.
       </p>
 
       <form
@@ -61,52 +54,38 @@ export function AgreementsStep({
           void form.handleSubmit();
         }}
       >
-        <div className="divide-y border-y">
-          {documents.map((document) => {
-            const documentType =
-              document.documentType as keyof typeof complianceDocumentLabels;
-            const isAccepted = !missing.has(documentType);
-            const title =
-              complianceDocumentLabels[documentType] ?? document.title;
+        <p className="text-sm leading-6 text-muted-foreground">
+          By continuing, you agree to the{' '}
+          {legalBundle.documents.map((document, index) => {
+            const label =
+              legalBundleDocumentLabels[
+                document.documentType as keyof typeof legalBundleDocumentLabels
+              ] ?? document.title;
+            const separator =
+              index === legalBundle.documents.length - 1
+                ? ''
+                : index === legalBundle.documents.length - 2
+                  ? ', and '
+                  : ', ';
 
             return (
-              <div
-                className="grid gap-3 py-4 sm:grid-cols-[1fr_auto] sm:items-center"
-                key={document.id}
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    {isAccepted ? (
-                      <CheckCircle2
-                        aria-hidden="true"
-                        className="size-4 text-foreground"
-                        strokeWidth={1.5}
-                      />
-                    ) : null}
-                    <p className="text-sm font-medium">{title}</p>
-                  </div>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    {complianceDocumentDescriptions[documentType]}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Version {document.documentVersion}
-                  </p>
-                </div>
-                <Button asChild type="button" variant="outline">
-                  <Link
-                    href={legalDocumentUrl({
-                      documentType: document.documentType,
-                      documentVersion: document.documentVersion,
-                    })}
-                    target="_blank"
-                  >
-                    Read
-                  </Link>
-                </Button>
-              </div>
+              <span key={document.id}>
+                <Link
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                  href={legalDocumentUrl({
+                    documentType: document.documentType,
+                    documentVersion: document.documentVersion,
+                  })}
+                  target="_blank"
+                >
+                  {label}
+                </Link>
+                {separator}
+              </span>
             );
           })}
-        </div>
+          .
+        </p>
 
         <form.Field
           name="authorization"
@@ -138,12 +117,12 @@ export function AgreementsStep({
                 />
                 <div className="grid gap-1">
                   <Label htmlFor={field.name}>
-                    I am authorized to accept these documents for this
+                    I am authorized to agree to Retaino Terms, Data Processing
+                    Terms, Sending Policy, and related policies for this
                     organization.
                   </Label>
                   <p className="text-sm leading-6 text-muted-foreground">
-                    Acceptance is recorded per document version for the active
-                    organization.
+                    Acceptance is recorded once for the current legal bundle.
                   </p>
                   {error ? (
                     <p

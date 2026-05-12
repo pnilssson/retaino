@@ -91,6 +91,13 @@ export const contactImports = pgTable(
     duplicateCount: integer('duplicate_count').notNull().default(0),
     suppressedCount: integer('suppressed_count').notNull().default(0),
     errorSummary: jsonb('error_summary').notNull().default([]),
+    permissionAttestedAt: timestamp('permission_attested_at', {
+      withTimezone: true,
+    }),
+    permissionAttestedByUserId: uuid('permission_attested_by_user_id').references(
+      () => users.id,
+      { onDelete: 'set null' },
+    ),
     startedAt: timestamp('started_at', { withTimezone: true }),
     completedAt: timestamp('completed_at', { withTimezone: true }),
     failedAt: timestamp('failed_at', { withTimezone: true }),

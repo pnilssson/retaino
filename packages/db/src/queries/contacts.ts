@@ -165,6 +165,8 @@ export function contactImportToSummary(
     errorSummary: Array.isArray(row.errorSummary)
       ? row.errorSummary.map(String)
       : [],
+    permissionAttestedAt: row.permissionAttestedAt?.toISOString() ?? null,
+    permissionAttestedByUserId: row.permissionAttestedByUserId,
     completedAt: row.completedAt?.toISOString() ?? null,
     failedAt: row.failedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
@@ -334,6 +336,7 @@ export async function markContactImportProcessing(
     contactImportId: string;
     mapping: CsvMapping;
     phoneCountryCode: string;
+    permissionAttestedByUserId: string;
   },
 ): Promise<MarkContactImportProcessingResult> {
   assertOrganizationId(input.organizationId);
@@ -344,6 +347,8 @@ export async function markContactImportProcessing(
       mapping: input.mapping,
       phoneCountryCode: input.phoneCountryCode,
       status: 'processing',
+      permissionAttestedAt: new Date(),
+      permissionAttestedByUserId: input.permissionAttestedByUserId,
       startedAt: new Date(),
       updatedAt: new Date(),
     })

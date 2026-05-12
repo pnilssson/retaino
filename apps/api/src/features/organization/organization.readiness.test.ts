@@ -1,24 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { getOrganizationReadiness } from './organization.readiness';
 
-const requiredLegalDocuments = [
-  {
-    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-    documentType: 'terms',
-    documentVersion: '2026-05-07',
-    title: 'Retaino Terms and Conditions',
-    effectiveDate: '2026-05-07',
-    contentHash: 'a'.repeat(64),
-  },
-  {
-    id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-    documentType: 'dpa',
-    documentVersion: '2026-05-07',
-    title: 'Retaino Data Processing Agreement',
-    effectiveDate: '2026-05-07',
-    contentHash: 'b'.repeat(64),
-  },
-] as const;
+const legalBundle = {
+  version: '2026-05-09',
+  hash: 'f'.repeat(64),
+};
 
 describe('getOrganizationReadiness', () => {
   it('marks an organization ready when profile and required acceptances are complete', () => {
@@ -26,39 +12,35 @@ describe('getOrganizationReadiness', () => {
       getOrganizationReadiness({
         hasProfile: true,
         onboardingStatus: 'complete',
-        requiredLegalDocuments,
-        acceptedDocuments: requiredLegalDocuments.map((document) => ({
-          documentType: document.documentType,
-          documentVersion: document.documentVersion,
-        })),
+        legalBundle,
+        legalAcceptance: {
+          bundleVersion: '2026-05-09',
+          bundleHash: legalBundle.hash,
+        },
       }),
     ).toEqual({
       profileComplete: true,
-      complianceComplete: true,
+      legalCurrent: true,
       setupComplete: true,
       legalUpdatesRequired: false,
       ready: true,
-      missingAcceptanceTypes: [],
     });
   });
 
-  it('reports missing compliance documents before enabling product workflows', () => {
+  it('reports missing legal acceptance before enabling product workflows', () => {
     expect(
       getOrganizationReadiness({
         hasProfile: true,
         onboardingStatus: 'profile_required',
-        requiredLegalDocuments,
-        acceptedDocuments: [
-          { documentType: 'terms', documentVersion: '2026-05-07' },
-        ],
+        legalBundle,
+        legalAcceptance: null,
       }),
     ).toEqual({
       profileComplete: true,
-      complianceComplete: false,
+      legalCurrent: false,
       setupComplete: false,
       legalUpdatesRequired: false,
       ready: false,
-      missingAcceptanceTypes: ['dpa'],
     });
   });
 
@@ -67,38 +49,55 @@ describe('getOrganizationReadiness', () => {
       getOrganizationReadiness({
         hasProfile: false,
         onboardingStatus: 'profile_required',
-        requiredLegalDocuments,
-        acceptedDocuments: requiredLegalDocuments.map((document) => ({
-          documentType: document.documentType,
-          documentVersion: document.documentVersion,
-        })),
+        legalBundle,
+        legalAcceptance: {
+          bundleVersion: '2026-05-09',
+          bundleHash: legalBundle.hash,
+        },
       }),
     ).toMatchObject({
       profileComplete: false,
-      complianceComplete: true,
+      legalCurrent: true,
       setupComplete: false,
       legalUpdatesRequired: false,
       ready: false,
     });
   });
 
-  it('requires the current version of each compliance document after setup', () => {
+  it('requires the current legal bundle after setup', () => {
     expect(
       getOrganizationReadiness({
         hasProfile: true,
         onboardingStatus: 'complete',
-        requiredLegalDocuments,
-        acceptedDocuments: [
-          { documentType: 'terms', documentVersion: '2026-01-01' },
-          { documentType: 'dpa', documentVersion: '2026-05-07' },
-        ],
+        legalBundle,
+        legalAcceptance: {
+          bundleVersion: '2026-01-01',
+          bundleHash: legalBundle.hash,
+        },
       }),
     ).toMatchObject({
-      complianceComplete: false,
+      legalCurrent: false,
       setupComplete: true,
       legalUpdatesRequired: true,
-      ready: false,
-      missingAcceptanceTypes: ['terms'],
+      ready: true,
+    });
+  });
+
+  it('does not require acceptance again when only the bundle hash changes', () => {
+    expect(
+      getOrganizationReadiness({
+        hasProfile: true,
+        onboardingStatus: 'complete',
+        legalBundle,
+        legalAcceptance: {
+          bundleVersion: legalBundle.version,
+          bundleHash: '0'.repeat(64),
+        },
+      }),
+    ).toMatchObject({
+      legalCurrent: true,
+      legalUpdatesRequired: false,
+      ready: true,
     });
   });
 });

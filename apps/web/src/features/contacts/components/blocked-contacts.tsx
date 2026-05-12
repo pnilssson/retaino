@@ -17,23 +17,23 @@ export function BlockedContacts({ session }: { session: OrganizationSession }) {
     ? 'Legal updates required before importing contacts'
     : 'Finish setup before importing contacts';
   const description = legalUpdatesRequired
-    ? 'Updated legal documents must be accepted before contact data can be imported.'
-    : 'Company profile and compliance acceptance are required before contact data can be imported.';
+    ? 'Updated legal terms must be accepted before contact data can be imported.'
+    : 'Company profile and legal agreement acceptance are required before contact data can be imported.';
   const alertTitle = legalUpdatesRequired
     ? 'Contact imports are paused'
     : 'Contacts are blocked';
   const alertDescription = legalUpdatesRequired
     ? canManageSetup
-      ? 'Review and accept the updated legal documents in organization settings to resume CSV uploads and imports.'
-      : 'An organization admin needs to accept the updated legal documents before CSV uploads and imports can continue.'
+      ? 'Review and accept the updated legal terms in organization settings to resume CSV uploads and imports.'
+      : 'An organization admin needs to accept the updated legal terms before CSV uploads and imports can continue.'
     : 'Complete organization setup to unlock CSV uploads, validation, dedupe, suppression checks, and contact status.';
   const actionHref = legalUpdatesRequired
-    ? `${routes.settings}#compliance-documents`
+    ? `${routes.settings}#legal-agreement`
     : routes.organizationSetup;
   const actionLabel = legalUpdatesRequired
     ? canManageSetup
       ? 'Review legal updates'
-      : 'View documents'
+      : 'View legal'
     : 'Finish setup';
 
   return (

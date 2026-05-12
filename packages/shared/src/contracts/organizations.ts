@@ -2,9 +2,9 @@ import { z } from 'zod';
 
 import { idSchema, nonEmptyStringSchema, timestampSchema } from '../schemas';
 import {
-  REQUIRED_LEGAL_DOCUMENT_TYPES,
-  type ComplianceDocumentType,
-  type LegalDocumentVersionSummary,
+  legalBundleDocumentSnapshotSchema,
+  legalBundleSchema,
+  type LegalBundle,
 } from './legal';
 import { countryCodeSchema, normalizePhoneNumber } from './contacts';
 import type { User } from './users';
@@ -32,23 +32,23 @@ export const organizationProfileSchema = z.object({
   updatedAt: timestampSchema,
 });
 
-export const organizationAcceptanceSchema = z.object({
+export const organizationLegalAcceptanceSchema = z.object({
   id: idSchema,
   organizationId: idSchema,
   userId: idSchema,
-  legalDocumentVersionId: idSchema,
-  documentType: nonEmptyStringSchema,
-  documentVersion: nonEmptyStringSchema,
-  contentHash: z.string().regex(/^[a-f0-9]{64}$/),
+  bundleVersion: nonEmptyStringSchema,
+  bundleHash: z.string().regex(/^[a-f0-9]{64}$/),
+  documentsSnapshot: z.array(legalBundleDocumentSnapshotSchema),
   ipAddress: nonEmptyStringSchema.nullable(),
   userAgent: nonEmptyStringSchema.nullable(),
   acceptedAt: timestampSchema,
+  acceptedByEmail: z.email().nullable(),
 });
 
 export type OrganizationContext = z.infer<typeof organizationContextSchema>;
 export type OrganizationProfile = z.infer<typeof organizationProfileSchema>;
-export type OrganizationAcceptance = z.infer<
-  typeof organizationAcceptanceSchema
+export type OrganizationLegalAcceptance = z.infer<
+  typeof organizationLegalAcceptanceSchema
 >;
 
 export const updateOrganizationProfileSchema = z
@@ -80,52 +80,38 @@ export const updateOrganizationProfileSchema = z
     }
   });
 
-export const createOrganizationAcceptanceSchema = z.object({
-  documentType: z.enum(REQUIRED_LEGAL_DOCUMENT_TYPES),
-  documentVersion: z.string().trim().min(1),
-});
-
-export const createCurrentOrganizationAcceptancesSchema = z.object({
-  documents: z
-    .array(createOrganizationAcceptanceSchema)
-    .min(1, 'At least one legal document is required.'),
-});
+export const createCurrentOrganizationLegalAcceptanceSchema = z
+  .object({})
+  .strict();
 
 export type OrganizationReadiness = {
   profileComplete: boolean;
-  complianceComplete: boolean;
+  legalCurrent: boolean;
   setupComplete: boolean;
   legalUpdatesRequired: boolean;
   ready: boolean;
-  missingAcceptanceTypes: ComplianceDocumentType[];
 };
 
 export type OrganizationSession = {
   user: User;
   organization: OrganizationContext;
   profile: OrganizationProfile | null;
-  acceptedDocuments: Pick<
-    OrganizationAcceptance,
-    'documentType' | 'documentVersion' | 'legalDocumentVersionId' | 'contentHash'
-  >[];
-  requiredLegalDocuments: LegalDocumentVersionSummary[];
+  legalBundle: LegalBundle;
+  legalAcceptance: OrganizationLegalAcceptance | null;
   readiness: OrganizationReadiness;
 };
 
 export type UpdateOrganizationProfileInput = z.infer<
   typeof updateOrganizationProfileSchema
 >;
-export type CreateOrganizationAcceptanceInput = z.infer<
-  typeof createOrganizationAcceptanceSchema
->;
 export type UpdateOrganizationProfileResponse = {
   profile: OrganizationProfile | null;
 };
-export type CreateCurrentOrganizationAcceptancesInput = z.infer<
-  typeof createCurrentOrganizationAcceptancesSchema
+export type CreateCurrentOrganizationLegalAcceptanceInput = z.infer<
+  typeof createCurrentOrganizationLegalAcceptanceSchema
 >;
-export type CreateCurrentOrganizationAcceptancesResponse = {
-  acceptedDocuments: OrganizationSession['acceptedDocuments'];
+export type CreateCurrentOrganizationLegalAcceptanceResponse = {
+  legalAcceptance: OrganizationLegalAcceptance;
   readiness: OrganizationReadiness;
 };
 

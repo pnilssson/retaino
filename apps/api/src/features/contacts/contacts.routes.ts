@@ -3,7 +3,8 @@ import {
   createContactImport,
   deleteContact,
   deleteContactSuppression,
-  getCurrentRequiredLegalDocumentVersions,
+  getCurrentLegalBundle,
+  getCurrentOrganizationLegalAcceptance,
   getContactById,
   getContactImportById,
   getOrganizationCountryCode,
@@ -11,7 +12,6 @@ import {
   listContactImportRows,
   listContactImports,
   listContacts,
-  listOrganizationAcceptedDocuments,
   markContactImportProcessing,
   updateContact,
 } from '@retaino/db';
@@ -327,6 +327,7 @@ export const contactsRoutes = new Hono<AppEnv>()
       contactImportId: c.req.param('id'),
       mapping: parsed.data.mapping,
       phoneCountryCode: parsed.data.phoneCountryCode,
+      permissionAttestedByUserId: c.get('user').id,
     });
 
     if (transition.status === 'not_found') {
@@ -419,28 +420,21 @@ async function validateImportGate(c: Context<AppEnv>) {
     };
   }
 
-  const acceptedDocuments = await listOrganizationAcceptedDocuments(
-    db,
-    organization.id,
-  );
-  const currentRequiredDocuments =
-    await getCurrentRequiredLegalDocumentVersions(db);
-  const acceptedVersions = new Set(
-    acceptedDocuments.map(
-      (document) => `${document.documentType}:${document.documentVersion}`,
-    ),
-  );
-  const complianceComplete = currentRequiredDocuments.every((document) =>
-    acceptedVersions.has(`${document.documentType}:${document.documentVersion}`),
-  );
+  const legalBundle = await getCurrentLegalBundle(db);
+  const legalAcceptance = await getCurrentOrganizationLegalAcceptance(db, {
+    organizationId: organization.id,
+    bundleVersion: legalBundle.version,
+  });
+  const legalCurrent =
+    legalAcceptance?.bundleVersion === legalBundle.version;
 
-  if (!complianceComplete) {
+  if (!legalCurrent) {
     return {
       ok: false as const,
       response: c.json(
         apiError(
           'forbidden',
-          'Compliance setup must be complete before importing contacts.',
+          'Legal agreement must be current before importing contacts.',
         ),
         403,
       ),

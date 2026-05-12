@@ -98,7 +98,7 @@ export const legalDocuments = [
     path: 'campaign_attestation/2026-05-09.mdx',
     effectiveDate: '2026-05-09',
     publicVisible: true,
-    acceptanceRequired: true,
+    acceptanceRequired: false,
     sortOrder: 80,
   },
 ] as const satisfies LegalDocumentManifestEntry[];

@@ -1,24 +1,22 @@
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  createOrganizationAcceptance,
-  getCurrentRequiredLegalDocumentVersions,
+  createOrganizationLegalAcceptance,
+  getCurrentLegalBundle,
+  getCurrentOrganizationLegalAcceptance,
   getOrganizationProfileByOrganizationId,
-  getPublishedLegalDocumentVersion,
-  listOrganizationAcceptedDocuments,
   markOrganizationOnboardingComplete,
   upsertOrganizationProfile,
 } from '@retaino/db';
-import type { LegalDocumentVersion } from '@retaino/shared/contracts';
+import type { LegalBundle, OrganizationLegalAcceptance } from '@retaino/shared/contracts';
 import { organizationRoutes } from './organization.routes';
 import type { AppEnv } from '../../types';
 
 vi.mock('@retaino/db', () => ({
-  createOrganizationAcceptance: vi.fn(),
-  getCurrentRequiredLegalDocumentVersions: vi.fn(),
+  createOrganizationLegalAcceptance: vi.fn(),
+  getCurrentLegalBundle: vi.fn(),
+  getCurrentOrganizationLegalAcceptance: vi.fn(),
   getOrganizationProfileByOrganizationId: vi.fn(),
-  getPublishedLegalDocumentVersion: vi.fn(),
-  listOrganizationAcceptedDocuments: vi.fn(),
   markOrganizationOnboardingComplete: vi.fn(),
   upsertOrganizationProfile: vi.fn(),
 }));
@@ -39,6 +37,7 @@ const organization = {
   onboardingStatus: 'profile_required',
   role: 'org:admin',
 };
+
 const profile = {
   id: '33333333-3333-4333-8333-333333333333',
   organizationId: organization.id,
@@ -53,47 +52,39 @@ const profile = {
   updatedAt: '2026-05-05T00:00:00.000Z',
 };
 
-const requiredLegalDocuments: LegalDocumentVersion[] = [
-  {
-    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-    legalDocumentId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-    documentType: 'terms',
-    slug: 'terms',
-    title: 'Retaino Terms and Conditions',
-    documentVersion: '2026-05-07',
-    effectiveDate: '2026-05-07',
-    bodyMdx: '# Retaino Terms and Conditions',
-    contentHash: 'a'.repeat(64),
-    publicVisible: true,
-    acceptanceRequired: true,
-    sortOrder: 10,
-    publishedAt: '2026-05-07T00:00:00.000Z',
-    createdAt: '2026-05-07T00:00:00.000Z',
-    updatedAt: '2026-05-07T00:00:00.000Z',
-  },
-  {
-    id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
-    legalDocumentId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-    documentType: 'dpa',
-    slug: 'dpa',
-    title: 'Retaino Data Processing Agreement',
-    documentVersion: '2026-05-07',
-    effectiveDate: '2026-05-07',
-    bodyMdx: '# Retaino Data Processing Agreement',
-    contentHash: 'b'.repeat(64),
-    publicVisible: true,
-    acceptanceRequired: true,
-    sortOrder: 20,
-    publishedAt: '2026-05-07T00:00:00.000Z',
-    createdAt: '2026-05-07T00:00:00.000Z',
-    updatedAt: '2026-05-07T00:00:00.000Z',
-  },
-];
-const [termsDocument] = requiredLegalDocuments as [
-  LegalDocumentVersion,
-  ...LegalDocumentVersion[],
-];
-const dpaDocument = requiredLegalDocuments[1] as LegalDocumentVersion;
+const legalBundle: LegalBundle = {
+  version: '2026-05-09',
+  hash: 'f'.repeat(64),
+  documents: [
+    {
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      legalDocumentId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      documentType: 'terms',
+      slug: 'terms',
+      title: 'Retaino Terms and Conditions',
+      documentVersion: '2026-05-09',
+      effectiveDate: '2026-05-09',
+      contentHash: 'a'.repeat(64),
+      publicVisible: true,
+      acceptanceRequired: true,
+      sortOrder: 10,
+      publishedAt: '2026-05-09T00:00:00.000Z',
+    },
+  ],
+};
+
+const legalAcceptance: OrganizationLegalAcceptance = {
+  id: '44444444-4444-4444-8444-444444444444',
+  organizationId: organization.id,
+  userId: user.id,
+  bundleVersion: legalBundle.version,
+  bundleHash: legalBundle.hash,
+  documentsSnapshot: legalBundle.documents,
+  ipAddress: '203.0.113.1',
+  userAgent: 'vitest',
+  acceptedAt: '2026-05-05T00:00:00.000Z',
+  acceptedByEmail: user.email,
+};
 
 function testApp(input: { organization?: typeof organization } = {}) {
   const app = new Hono<AppEnv>();
@@ -113,27 +104,17 @@ function testApp(input: { organization?: typeof organization } = {}) {
 describe('organizationRoutes', () => {
   beforeEach(() => {
     vi.mocked(getOrganizationProfileByOrganizationId).mockReset();
-    vi.mocked(getCurrentRequiredLegalDocumentVersions).mockReset();
-    vi.mocked(getPublishedLegalDocumentVersion).mockReset();
-    vi.mocked(listOrganizationAcceptedDocuments).mockReset();
+    vi.mocked(getCurrentLegalBundle).mockReset();
+    vi.mocked(getCurrentOrganizationLegalAcceptance).mockReset();
     vi.mocked(markOrganizationOnboardingComplete).mockReset();
     vi.mocked(upsertOrganizationProfile).mockReset();
-    vi.mocked(createOrganizationAcceptance).mockReset();
+    vi.mocked(createOrganizationLegalAcceptance).mockReset();
+    vi.mocked(getCurrentLegalBundle).mockResolvedValue(legalBundle);
+    vi.mocked(getCurrentOrganizationLegalAcceptance).mockResolvedValue(null);
   });
 
-  it('returns the authenticated user, organization, and readiness state', async () => {
+  it('returns the authenticated user, organization, legal bundle, and readiness state', async () => {
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(null);
-    vi.mocked(getCurrentRequiredLegalDocumentVersions).mockResolvedValue(
-      requiredLegalDocuments,
-    );
-    vi.mocked(listOrganizationAcceptedDocuments).mockResolvedValue([
-      {
-        documentType: 'terms',
-        documentVersion: '2026-05-07',
-        legalDocumentVersionId: termsDocument.id,
-        contentHash: termsDocument.contentHash,
-      },
-    ]);
 
     const response = await testApp().request('/v1/me');
 
@@ -142,22 +123,14 @@ describe('organizationRoutes', () => {
       user,
       organization,
       profile: null,
-      acceptedDocuments: [
-        {
-          documentType: 'terms',
-          documentVersion: '2026-05-07',
-          legalDocumentVersionId: termsDocument.id,
-          contentHash: termsDocument.contentHash,
-        },
-      ],
-      requiredLegalDocuments,
+      legalBundle,
+      legalAcceptance: null,
       readiness: {
         profileComplete: false,
-        complianceComplete: false,
+        legalCurrent: false,
         setupComplete: false,
         legalUpdatesRequired: false,
         ready: false,
-        missingAcceptanceTypes: ['dpa'],
       },
     });
   });
@@ -215,104 +188,11 @@ describe('organizationRoutes', () => {
     expect(upsertOrganizationProfile).not.toHaveBeenCalled();
   });
 
-  it('records compliance acceptance metadata from the request', async () => {
-    vi.mocked(getCurrentRequiredLegalDocumentVersions).mockResolvedValue(
-      requiredLegalDocuments,
-    );
-    vi.mocked(getPublishedLegalDocumentVersion).mockResolvedValue(
-      termsDocument,
-    );
-    vi.mocked(createOrganizationAcceptance).mockResolvedValue({
-      id: '44444444-4444-4444-8444-444444444444',
-      organizationId: organization.id,
-      userId: user.id,
-      legalDocumentVersionId: termsDocument.id,
-      documentType: 'terms',
-      documentVersion: '2026-05-07',
-      contentHash: termsDocument.contentHash,
-      ipAddress: '203.0.113.1',
-      userAgent: 'vitest',
-      acceptedAt: '2026-05-05T00:00:00.000Z',
-    });
-
-    const response = await testApp().request('/v1/organization/acceptances', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'cf-connecting-ip': '203.0.113.1',
-        'user-agent': 'vitest',
-      },
-      body: JSON.stringify({
-        documentType: 'terms',
-        documentVersion: '2026-05-07',
-      }),
-    });
-
-    expect(response.status).toBe(201);
-    expect(createOrganizationAcceptance).toHaveBeenCalledWith(expect.anything(), {
-      organizationId: organization.id,
-      userId: user.id,
-      legalDocumentVersion: termsDocument,
-      ipAddress: '203.0.113.1',
-      userAgent: 'vitest',
-    });
-  });
-
-  it('rejects compliance acceptance from normal members', async () => {
-    const response = await testApp({
-      organization: {
-        ...organization,
-        role: 'org:member',
-      },
-    }).request('/v1/organization/acceptances/current', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        documents: requiredLegalDocuments.map((document) => ({
-          documentType: document.documentType,
-          documentVersion: document.documentVersion,
-        })),
-      }),
-    });
-
-    expect(response.status).toBe(403);
-    expect(createOrganizationAcceptance).not.toHaveBeenCalled();
-  });
-
-  it('rejects acceptance for public documents that are not required', async () => {
-    const response = await testApp().request('/v1/organization/acceptances', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        documentType: 'privacy',
-        documentVersion: '2026-05-07',
-      }),
-    });
-
-    expect(response.status).toBe(400);
-    expect(createOrganizationAcceptance).not.toHaveBeenCalled();
-  });
-
-  it('records all current required acceptances in one request', async () => {
-    vi.mocked(getCurrentRequiredLegalDocumentVersions).mockResolvedValue(
-      requiredLegalDocuments,
-    );
+  it('records current legal bundle acceptance metadata from the request', async () => {
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(profile);
-    vi.mocked(listOrganizationAcceptedDocuments).mockResolvedValue([
-      {
-        documentType: 'terms',
-        documentVersion: '2026-05-07',
-        legalDocumentVersionId: termsDocument.id,
-        contentHash: termsDocument.contentHash,
-      },
-      {
-        documentType: 'dpa',
-        documentVersion: '2026-05-07',
-        legalDocumentVersionId: dpaDocument.id,
-        contentHash: dpaDocument.contentHash,
-      },
-    ]);
-    vi.mocked(createOrganizationAcceptance).mockResolvedValue(null);
+    vi.mocked(createOrganizationLegalAcceptance).mockResolvedValue(
+      legalAcceptance,
+    );
     vi.mocked(markOrganizationOnboardingComplete).mockResolvedValue({
       id: organization.id,
       clerkOrganizationId: organization.clerkOrganizationId,
@@ -323,33 +203,23 @@ describe('organizationRoutes', () => {
       updatedAt: new Date('2026-05-05T00:00:00.000Z'),
     });
 
-    const response = await testApp().request(
-      '/v1/organization/acceptances/current',
-      {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'cf-connecting-ip': '203.0.113.1',
-          'user-agent': 'vitest',
-        },
-        body: JSON.stringify({
-          documents: requiredLegalDocuments.map((document) => ({
-            documentType: document.documentType,
-            documentVersion: document.documentVersion,
-          })),
-        }),
+    const response = await testApp().request('/v1/organization/legal', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'cf-connecting-ip': '203.0.113.1',
+        'user-agent': 'vitest',
       },
-    );
+      body: JSON.stringify({}),
+    });
 
     expect(response.status).toBe(201);
-    expect(createOrganizationAcceptance).toHaveBeenCalledTimes(2);
-    expect(createOrganizationAcceptance).toHaveBeenNthCalledWith(
-      1,
+    expect(createOrganizationLegalAcceptance).toHaveBeenCalledWith(
       expect.anything(),
       {
         organizationId: organization.id,
         userId: user.id,
-        legalDocumentVersion: termsDocument,
+        legalBundle,
         ipAddress: '203.0.113.1',
         userAgent: 'vitest',
       },
@@ -359,62 +229,73 @@ describe('organizationRoutes', () => {
       organization.id,
     );
     await expect(response.json()).resolves.toMatchObject({
+      legalAcceptance,
       readiness: {
         profileComplete: true,
-        complianceComplete: true,
+        legalCurrent: true,
         setupComplete: true,
         legalUpdatesRequired: false,
         ready: true,
-        missingAcceptanceTypes: [],
       },
     });
   });
 
-  it('rejects bulk acceptance when any current required document is missing', async () => {
-    vi.mocked(getCurrentRequiredLegalDocumentVersions).mockResolvedValue(
-      requiredLegalDocuments,
-    );
+  it('does not complete onboarding from legal acceptance when the profile is missing', async () => {
+    vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(null);
 
-    const response = await testApp().request(
-      '/v1/organization/acceptances/current',
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          documents: [
-            {
-              documentType: 'terms',
-              documentVersion: '2026-05-07',
-            },
-          ],
-        }),
-      },
-    );
+    const response = await testApp().request('/v1/organization/legal', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({}),
+    });
 
-    expect(response.status).toBe(400);
-    expect(createOrganizationAcceptance).not.toHaveBeenCalled();
+    expect(response.status).toBe(403);
+    expect(createOrganizationLegalAcceptance).not.toHaveBeenCalled();
+    expect(markOrganizationOnboardingComplete).not.toHaveBeenCalled();
   });
 
-  it('rejects bulk acceptance for stale document versions', async () => {
-    vi.mocked(getCurrentRequiredLegalDocumentVersions).mockResolvedValue(
-      requiredLegalDocuments,
+  it('does not let the client spoof legal document versions', async () => {
+    vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(profile);
+    vi.mocked(createOrganizationLegalAcceptance).mockResolvedValue(
+      legalAcceptance,
     );
+    vi.mocked(markOrganizationOnboardingComplete).mockResolvedValue({
+      id: organization.id,
+      clerkOrganizationId: organization.clerkOrganizationId,
+      name: organization.name,
+      slug: organization.slug,
+      onboardingStatus: 'complete',
+      createdAt: new Date('2026-05-05T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-05T00:00:00.000Z'),
+    });
 
-    const response = await testApp().request(
-      '/v1/organization/acceptances/current',
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          documents: [
-            { documentType: 'terms', documentVersion: '2026-01-01' },
-            { documentType: 'dpa', documentVersion: '2026-05-07' },
-          ],
-        }),
+    const response = await testApp().request('/v1/organization/legal', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
       },
-    );
+      body: JSON.stringify({
+        documents: [{ documentType: 'terms', documentVersion: '2020-01-01' }],
+      }),
+    });
 
     expect(response.status).toBe(400);
-    expect(createOrganizationAcceptance).not.toHaveBeenCalled();
+    expect(createOrganizationLegalAcceptance).not.toHaveBeenCalled();
+  });
+
+  it('rejects legal bundle acceptance from normal members', async () => {
+    const response = await testApp({
+      organization: {
+        ...organization,
+        role: 'org:member',
+      },
+    }).request('/v1/organization/legal', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+
+    expect(response.status).toBe(403);
+    expect(createOrganizationLegalAcceptance).not.toHaveBeenCalled();
   });
 });

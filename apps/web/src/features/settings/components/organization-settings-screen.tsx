@@ -91,7 +91,7 @@ function SettingsContent({
         <AppPageHeader
           actions={headerActions}
           badge={<Badge variant={status.badgeVariant}>{status.label}</Badge>}
-          description="Manage organization identity, compliance records, and team access from one place."
+          description="Manage organization identity, legal agreement status, and team access from one place."
           eyebrow="Organization settings"
           title={session.organization.name}
         />
@@ -107,17 +107,17 @@ function SettingsContent({
 }
 
 function organizationSettingsStatus(session: OrganizationSession) {
-  if (session.readiness.ready) {
-    return {
-      badgeVariant: 'default',
-      label: 'Ready',
-    } as const;
-  }
-
   if (session.readiness.legalUpdatesRequired) {
     return {
       badgeVariant: 'outline',
       label: 'Legal updates required',
+    } as const;
+  }
+
+  if (session.readiness.ready) {
+    return {
+      badgeVariant: 'default',
+      label: 'Ready',
     } as const;
   }
 

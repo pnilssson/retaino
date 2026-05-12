@@ -5,7 +5,8 @@ import {
   createContactSuppression,
   deleteContact,
   deleteContactSuppression,
-  getCurrentRequiredLegalDocumentVersions,
+  getCurrentLegalBundle,
+  getCurrentOrganizationLegalAcceptance,
   getContactById,
   getContactImportById,
   getOrganizationCountryCode,
@@ -13,14 +14,15 @@ import {
   listContactImportRows,
   listContactImports,
   listContacts,
-  listOrganizationAcceptedDocuments,
   markContactImportProcessing,
   updateContact,
 } from '@retaino/db';
 import type {
   ContactDetail,
   ContactImportDetail,
+  LegalBundle,
   LegalDocumentVersion,
+  OrganizationLegalAcceptance,
 } from '@retaino/shared/contracts';
 import { contactsRoutes } from './contacts.routes';
 import { enqueueContactImportProcessing } from './contacts.jobs';
@@ -31,7 +33,8 @@ vi.mock('@retaino/db', () => ({
   createContactImport: vi.fn(),
   deleteContact: vi.fn(),
   deleteContactSuppression: vi.fn(),
-  getCurrentRequiredLegalDocumentVersions: vi.fn(),
+  getCurrentLegalBundle: vi.fn(),
+  getCurrentOrganizationLegalAcceptance: vi.fn(),
   getContactById: vi.fn(),
   getContactImportById: vi.fn(),
   getOrganizationCountryCode: vi.fn(),
@@ -39,7 +42,6 @@ vi.mock('@retaino/db', () => ({
   listContactImportRows: vi.fn(),
   listContactImports: vi.fn(),
   listContacts: vi.fn(),
-  listOrganizationAcceptedDocuments: vi.fn(),
   markContactImportProcessing: vi.fn(),
   updateContact: vi.fn(),
 }));
@@ -79,7 +81,7 @@ const profile = {
   updatedAt: '2026-05-05T00:00:00.000Z',
 };
 
-const requiredLegalDocuments: LegalDocumentVersion[] = [
+const legalDocumentVersions: LegalDocumentVersion[] = [
   {
     id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
     legalDocumentId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1',
@@ -184,6 +186,40 @@ const requiredLegalDocuments: LegalDocumentVersion[] = [
   },
 ];
 
+const legalBundle: LegalBundle = {
+  version: '2026-05-09',
+  hash: 'f'.repeat(64),
+  documents: legalDocumentVersions
+    .filter((document) => document.documentType !== 'campaign_attestation')
+    .map((document) => ({
+      id: document.id,
+      legalDocumentId: document.legalDocumentId,
+      documentType: document.documentType,
+      slug: document.slug,
+      title: document.title,
+      documentVersion: document.documentVersion,
+      effectiveDate: document.effectiveDate,
+      contentHash: document.contentHash,
+      publicVisible: document.publicVisible,
+      acceptanceRequired: document.acceptanceRequired,
+      sortOrder: document.sortOrder,
+      publishedAt: document.publishedAt,
+    })),
+};
+
+const legalAcceptance: OrganizationLegalAcceptance = {
+  id: '99999999-9999-4999-8999-999999999999',
+  organizationId: organization.id,
+  userId: user.id,
+  bundleVersion: legalBundle.version,
+  bundleHash: legalBundle.hash,
+  documentsSnapshot: legalBundle.documents,
+  ipAddress: '203.0.113.1',
+  userAgent: 'vitest',
+  acceptedAt: '2026-05-08T00:00:00.000Z',
+  acceptedByEmail: user.email,
+};
+
 const importDetail: ContactImportDetail = {
   id: '44444444-4444-4444-8444-444444444444',
   organizationId: organization.id,
@@ -209,6 +245,8 @@ const importDetail: ContactImportDetail = {
   duplicateCount: 0,
   suppressedCount: 0,
   errorSummary: [],
+  permissionAttestedAt: null,
+  permissionAttestedByUserId: null,
   completedAt: null,
   failedAt: null,
   createdAt: '2026-05-08T00:00:00.000Z',
@@ -271,7 +309,8 @@ describe('contactsRoutes', () => {
     vi.mocked(createContactImport).mockReset();
     vi.mocked(deleteContact).mockReset();
     vi.mocked(deleteContactSuppression).mockReset();
-    vi.mocked(getCurrentRequiredLegalDocumentVersions).mockReset();
+    vi.mocked(getCurrentLegalBundle).mockReset();
+    vi.mocked(getCurrentOrganizationLegalAcceptance).mockReset();
     vi.mocked(getContactById).mockReset();
     vi.mocked(getContactImportById).mockReset();
     vi.mocked(getOrganizationCountryCode).mockReset();
@@ -279,52 +318,14 @@ describe('contactsRoutes', () => {
     vi.mocked(listContactImportRows).mockReset();
     vi.mocked(listContactImports).mockReset();
     vi.mocked(listContacts).mockReset();
-    vi.mocked(listOrganizationAcceptedDocuments).mockReset();
     vi.mocked(markContactImportProcessing).mockReset();
     vi.mocked(updateContact).mockReset();
     vi.mocked(enqueueContactImportProcessing).mockReset();
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(profile);
-    vi.mocked(getCurrentRequiredLegalDocumentVersions).mockResolvedValue(
-      requiredLegalDocuments,
+    vi.mocked(getCurrentLegalBundle).mockResolvedValue(legalBundle);
+    vi.mocked(getCurrentOrganizationLegalAcceptance).mockResolvedValue(
+      legalAcceptance,
     );
-    vi.mocked(listOrganizationAcceptedDocuments).mockResolvedValue([
-      {
-        documentType: 'terms',
-        documentVersion: '2026-05-08',
-        legalDocumentVersionId: '55555555-5555-4555-8555-555555555555',
-        contentHash: 'a'.repeat(64),
-      },
-      {
-        documentType: 'dpa',
-        documentVersion: '2026-05-08',
-        legalDocumentVersionId: '66666666-6666-4666-8666-666666666666',
-        contentHash: 'b'.repeat(64),
-      },
-      {
-        documentType: 'subprocessors',
-        documentVersion: '2026-05-08',
-        legalDocumentVersionId: '77777777-7777-4777-8777-777777777777',
-        contentHash: 'c'.repeat(64),
-      },
-      {
-        documentType: 'transfer_terms',
-        documentVersion: '2026-05-08',
-        legalDocumentVersionId: '88888888-8888-4888-8888-888888888888',
-        contentHash: 'd'.repeat(64),
-      },
-      {
-        documentType: 'sending_policy',
-        documentVersion: '2026-05-08',
-        legalDocumentVersionId: '99999999-9999-4999-8999-999999999999',
-        contentHash: 'e'.repeat(64),
-      },
-      {
-        documentType: 'campaign_attestation',
-        documentVersion: '2026-05-08',
-        legalDocumentVersionId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        contentHash: 'f'.repeat(64),
-      },
-    ]);
   });
 
   it('uploads a CSV, stores it in R2, and returns preview rows only', async () => {
@@ -488,21 +489,11 @@ describe('contactsRoutes', () => {
     expect(createContactImport).not.toHaveBeenCalled();
   });
 
-  it('rejects upload when a required document has an older accepted version', async () => {
-    vi.mocked(listOrganizationAcceptedDocuments).mockResolvedValue([
-      {
-        documentType: 'terms',
-        documentVersion: '2026-01-01',
-        legalDocumentVersionId: '55555555-5555-4555-8555-555555555555',
-        contentHash: 'a'.repeat(64),
-      },
-      ...requiredLegalDocuments.slice(1).map((document, index) => ({
-        documentType: document.documentType,
-        documentVersion: document.documentVersion,
-        legalDocumentVersionId: `${index + 1}`.repeat(36).slice(0, 36),
-        contentHash: String(index + 1).repeat(64),
-      })),
-    ]);
+  it('rejects upload when legal bundle version acceptance is outdated', async () => {
+    vi.mocked(getCurrentOrganizationLegalAcceptance).mockResolvedValue({
+      ...legalAcceptance,
+      bundleVersion: '2026-01-01',
+    });
     const body = new FormData();
     body.set('file', new File(['Name\nAda\n'], 'contacts.csv'));
 
@@ -514,6 +505,26 @@ describe('contactsRoutes', () => {
 
     expect(response.status).toBe(403);
     expect(createContactImport).not.toHaveBeenCalled();
+  });
+
+  it('allows upload when the accepted bundle version is current with an older hash', async () => {
+    vi.mocked(getOrganizationCountryCode).mockResolvedValue('SE');
+    vi.mocked(createContactImport).mockResolvedValue(importDetail);
+    vi.mocked(getCurrentOrganizationLegalAcceptance).mockResolvedValue({
+      ...legalAcceptance,
+      bundleHash: '0'.repeat(64),
+    });
+    const body = new FormData();
+    body.set('file', new File(['Name\nAda\n'], 'contacts.csv'));
+
+    const response = await testApp().request(
+      '/v1/contact-imports',
+      { method: 'POST', body },
+      env(),
+    );
+
+    expect(response.status).toBe(201);
+    expect(createContactImport).toHaveBeenCalled();
   });
 
   it('rejects upload for organization members', async () => {
@@ -548,6 +559,7 @@ describe('contactsRoutes', () => {
         body: JSON.stringify({
           mapping: { name: 'Name', phone: 'Phone' },
           phoneCountryCode: 'SE',
+          permissionAttestation: true,
         }),
       },
       env(),
@@ -561,6 +573,7 @@ describe('contactsRoutes', () => {
         contactImportId: importDetail.id,
         mapping: { name: 'Name', phone: 'Phone' },
         phoneCountryCode: 'SE',
+        permissionAttestedByUserId: user.id,
       },
     );
     expect(enqueueContactImportProcessing).toHaveBeenCalledWith(expect.anything(), {
@@ -568,6 +581,25 @@ describe('contactsRoutes', () => {
       contactImportId: importDetail.id,
       userId: user.id,
     });
+  });
+
+  it('rejects processing without contact permission attestation', async () => {
+    const response = await testApp().request(
+      `/v1/contact-imports/${importDetail.id}/process`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mapping: { name: 'Name', phone: 'Phone' },
+          phoneCountryCode: 'SE',
+        }),
+      },
+      env(),
+    );
+
+    expect(response.status).toBe(400);
+    expect(markContactImportProcessing).not.toHaveBeenCalled();
+    expect(enqueueContactImportProcessing).not.toHaveBeenCalled();
   });
 
   it('rejects processing when an import has already started', async () => {
@@ -584,6 +616,7 @@ describe('contactsRoutes', () => {
         body: JSON.stringify({
           mapping: { name: 'Name', phone: 'Phone' },
           phoneCountryCode: 'SE',
+          permissionAttestation: true,
         }),
       },
       env(),
@@ -606,6 +639,7 @@ describe('contactsRoutes', () => {
         body: JSON.stringify({
           mapping: { name: 'Name', phone: 'Phone' },
           phoneCountryCode: 'SE',
+          permissionAttestation: true,
         }),
       },
       env(),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  createOrganizationAcceptanceSchema,
+  createCurrentOrganizationLegalAcceptanceSchema,
   updateOrganizationProfileSchema,
 } from '@retaino/shared/contracts';
 
@@ -33,30 +33,22 @@ describe('updateOrganizationProfileSchema', () => {
   });
 });
 
-describe('createOrganizationAcceptanceSchema', () => {
-  it('requires a supported document type and version', () => {
+describe('createCurrentOrganizationLegalAcceptanceSchema', () => {
+  it('accepts an empty legal bundle acceptance body', () => {
     expect(
-      createOrganizationAcceptanceSchema.safeParse({
-        documentType: 'sending_policy',
-        documentVersion: '2026-05-07',
-      }).success,
+      createCurrentOrganizationLegalAcceptanceSchema.safeParse({}).success,
     ).toBe(true);
   });
 
-  it('rejects unsupported document types', () => {
+  it('rejects client supplied document versions', () => {
     expect(
-      createOrganizationAcceptanceSchema.safeParse({
-        documentType: 'custom_contract',
-        documentVersion: '2026-05-05',
-      }).success,
-    ).toBe(false);
-  });
-
-  it('rejects public documents that are not organization signed', () => {
-    expect(
-      createOrganizationAcceptanceSchema.safeParse({
-        documentType: 'privacy',
-        documentVersion: '2026-05-07',
+      createCurrentOrganizationLegalAcceptanceSchema.safeParse({
+        documents: [
+          {
+            documentType: 'terms',
+            documentVersion: '2026-05-09',
+          },
+        ],
       }).success,
     ).toBe(false);
   });

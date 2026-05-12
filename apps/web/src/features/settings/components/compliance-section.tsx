@@ -3,13 +3,7 @@ import {
   type OrganizationSession,
 } from '@retaino/shared/contracts';
 import { useForm } from '@tanstack/react-form';
-import {
-  AlertCircle,
-  CheckCircle2,
-  FileWarning,
-  Loader2,
-  ShieldCheck,
-} from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -25,8 +19,8 @@ import {
   ItemTitle,
 } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
-import { useCreateCurrentOrganizationAcceptances } from '@/features/onboarding/hooks/use-create-current-organization-acceptances';
-import { complianceDocumentLabels } from '@/features/onboarding/onboarding.constants';
+import { useCreateCurrentOrganizationLegalAcceptance } from '@/features/onboarding/hooks/use-create-current-organization-legal-acceptance';
+import { legalBundleDocumentLabels } from '@/features/onboarding/onboarding.constants';
 import { getFieldError } from '@/lib/form-errors';
 
 export function ComplianceSection({
@@ -36,142 +30,102 @@ export function ComplianceSection({
   canManageSetup: boolean;
   session: OrganizationSession;
 }) {
-  const createAcceptances = useCreateCurrentOrganizationAcceptances();
+  const createLegalAcceptance = useCreateCurrentOrganizationLegalAcceptance();
   const form = useForm({
     defaultValues: {
       authorization: false,
     },
     onSubmit: async () => {
-      await createAcceptances.mutateAsync({
-        documents: session.requiredLegalDocuments.map((document) => ({
-          documentType:
-            document.documentType as keyof typeof complianceDocumentLabels,
-          documentVersion: document.documentVersion,
-        })),
-      });
+      await createLegalAcceptance.mutateAsync();
       form.reset();
     },
   });
-  const acceptedByType = new Map(
-    session.acceptedDocuments.map((document) => [
-      document.documentType,
-      document,
-    ]),
-  );
-  const currentAccepted = new Set(
-    session.acceptedDocuments.map(
-      (document) => `${document.documentType}:${document.documentVersion}`,
-    ),
-  );
+  const status = legalAgreementStatus(session);
 
   return (
-    <Item asChild className="grid items-stretch gap-5 border-border bg-card px-5 py-5">
-      <section id="compliance-documents">
+    <Item
+      asChild
+      className="grid items-stretch gap-5 border-border bg-card px-5 py-5"
+    >
+      <section id="legal-agreement">
         <ItemHeader className="items-start">
+          <ItemMedia className={status.iconClassName} variant="icon">
+            {status.kind === 'current' ? (
+              <CheckCircle2
+                aria-hidden="true"
+                className="size-4"
+                strokeWidth={1.5}
+              />
+            ) : (
+              <ShieldCheck
+                aria-hidden="true"
+                className="size-4"
+                strokeWidth={1.5}
+              />
+            )}
+          </ItemMedia>
           <ItemContent className="gap-2">
             <ItemTitle className="flex-wrap text-base">
-              Compliance documents
-              {session.readiness.legalUpdatesRequired ? (
-                <Badge
-                  className="border-amber-300 text-amber-700 dark:border-amber-800 dark:text-amber-300"
-                  variant="outline"
-                >
-                  Legal updates required
-                </Badge>
-              ) : !session.readiness.complianceComplete ? (
-                <Badge variant="outline">Setup incomplete</Badge>
-              ) : null}
+              Legal agreement
+              <Badge className={status.badgeClassName} variant="outline">
+                {status.label}
+              </Badge>
             </ItemTitle>
             <ItemDescription className="max-w-2xl">
-              Current required document versions and acceptance records for
-              this organization.
+              {status.description}
             </ItemDescription>
           </ItemContent>
+          <ItemActions>
+            <Button asChild size="sm" type="button" variant="outline">
+              <Link href={firstLegalDocumentUrl(session)}>
+                View legal documents
+              </Link>
+            </Button>
+          </ItemActions>
         </ItemHeader>
 
-        <div className="divide-y">
-          {session.requiredLegalDocuments.map((document) => {
-            const isCurrentAccepted = currentAccepted.has(
-              `${document.documentType}:${document.documentVersion}`,
-            );
-            const acceptedDocument = acceptedByType.get(document.documentType);
+        <dl className="grid gap-4 border-y py-4 text-sm sm:grid-cols-3">
+          <div>
+            <dt className="text-muted-foreground">Bundle version</dt>
+            <dd className="mt-1 font-medium">{session.legalBundle.version}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Accepted by</dt>
+            <dd className="mt-1 font-medium">
+              {session.legalAcceptance?.acceptedByEmail ?? 'Not accepted'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Accepted at</dt>
+            <dd className="mt-1 font-medium">
+              {session.legalAcceptance
+                ? formatDateTime(session.legalAcceptance.acceptedAt)
+                : 'Not accepted'}
+            </dd>
+          </div>
+        </dl>
+
+        <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+          {session.legalBundle.documents.map((document) => {
             const label =
-              complianceDocumentLabels[
-                document.documentType as keyof typeof complianceDocumentLabels
+              legalBundleDocumentLabels[
+                document.documentType as keyof typeof legalBundleDocumentLabels
               ] ?? document.title;
-            const status = complianceDocumentStatus({
-              acceptedVersion: acceptedDocument?.documentVersion ?? null,
-              currentVersion: document.documentVersion,
-              isCurrentAccepted,
-            });
 
             return (
-              <div
-                className="grid grid-cols-[1fr_auto] items-center gap-3 py-4"
+              <Link
+                className="font-medium text-foreground underline-offset-4 hover:underline"
+                href={appLegalDocumentUrl({
+                  documentType: document.documentType,
+                  documentVersion: document.documentVersion,
+                })}
                 key={document.id}
               >
-                <div className="flex min-w-0 items-start gap-3">
-                  <ItemMedia className={status.iconClassName} variant="icon">
-                    {status.kind === 'current' ? (
-                      <CheckCircle2
-                        aria-hidden="true"
-                        className="size-4"
-                        strokeWidth={1.5}
-                      />
-                    ) : status.kind === 'older' ? (
-                      <FileWarning
-                        aria-hidden="true"
-                        className="size-4"
-                        strokeWidth={1.5}
-                      />
-                    ) : (
-                      <ShieldCheck
-                        aria-hidden="true"
-                        className="size-4"
-                        strokeWidth={1.5}
-                      />
-                    )}
-                  </ItemMedia>
-                  <ItemContent>
-                    <ItemTitle className="flex-wrap">
-                      {label}
-                      <Badge
-                        className={status.badgeClassName}
-                        variant={status.badgeVariant}
-                      >
-                        {status.label}
-                      </Badge>
-                    </ItemTitle>
-                    <ItemDescription>{status.description}</ItemDescription>
-                  </ItemContent>
-                </div>
-                <ItemActions>
-                  <Button asChild size="sm" type="button" variant="outline">
-                    <Link
-                      href={appLegalDocumentUrl({
-                        documentType: document.documentType,
-                        documentVersion: document.documentVersion,
-                      })}
-                    >
-                      Review
-                    </Link>
-                  </Button>
-                </ItemActions>
-              </div>
+                {label}
+              </Link>
             );
           })}
         </div>
-
-        {session.requiredLegalDocuments.length === 0 ? (
-          <Alert>
-            <AlertCircle aria-hidden="true" />
-            <AlertTitle>No required documents found</AlertTitle>
-            <AlertDescription>
-              Required compliance documents will appear here after they are
-              published.
-            </AlertDescription>
-          </Alert>
-        ) : null}
 
         {session.readiness.legalUpdatesRequired && canManageSetup ? (
           <form
@@ -189,16 +143,16 @@ export function ComplianceSection({
                 onChange: ({ value }) =>
                   value
                     ? undefined
-                    : 'Confirm that you are authorized to accept these updated documents.',
+                    : 'Confirm that you are authorized to accept the updated legal terms.',
                 onSubmit: ({ value }) =>
                   value
                     ? undefined
-                    : 'Confirm that you are authorized to accept these updated documents.',
+                    : 'Confirm that you are authorized to accept the updated legal terms.',
               }}
             >
               {(field) => {
                 const error =
-                  createAcceptances.error?.message ??
+                  createLegalAcceptance.error?.message ??
                   getFieldError(field.state.meta.errors);
 
                 return (
@@ -216,12 +170,13 @@ export function ComplianceSection({
                     />
                     <div className="grid gap-1">
                       <Label htmlFor="legal-updates-authorization">
-                        I am authorized to accept these updated documents for
+                        I am authorized to accept the updated legal terms for
                         this organization.
                       </Label>
                       <p className="text-sm leading-6 text-muted-foreground">
-                        Acceptance is recorded for the current document
-                        versions.
+                        Imports are blocked until the current bundle is
+                        accepted. Campaign sends will use the same gate when
+                        campaigns launch.
                       </p>
                       {error ? (
                         <p
@@ -243,14 +198,16 @@ export function ComplianceSection({
                 {([canSubmit, isSubmitting]) => (
                   <Button
                     disabled={
-                      !canSubmit || isSubmitting || createAcceptances.isPending
+                      !canSubmit ||
+                      isSubmitting ||
+                      createLegalAcceptance.isPending
                     }
                     type="submit"
                   >
-                    {isSubmitting || createAcceptances.isPending ? (
+                    {isSubmitting || createLegalAcceptance.isPending ? (
                       <Loader2 aria-hidden="true" className="animate-spin" />
                     ) : null}
-                    Accept updated documents
+                    Accept updated terms
                   </Button>
                 )}
               </form.Subscribe>
@@ -261,8 +218,8 @@ export function ComplianceSection({
             <AlertCircle aria-hidden="true" />
             <AlertTitle>Admin acceptance required</AlertTitle>
             <AlertDescription>
-              An organization admin needs to accept the updated legal documents
-              before campaigns and imports can continue.
+              An organization admin needs to accept the updated legal terms
+              before imports and campaigns can continue.
             </AlertDescription>
           </Alert>
         ) : null}
@@ -271,21 +228,12 @@ export function ComplianceSection({
   );
 }
 
-function complianceDocumentStatus({
-  acceptedVersion,
-  currentVersion,
-  isCurrentAccepted,
-}: {
-  acceptedVersion: string | null;
-  currentVersion: string;
-  isCurrentAccepted: boolean;
-}) {
-  if (isCurrentAccepted) {
+function legalAgreementStatus(session: OrganizationSession) {
+  if (session.readiness.legalCurrent) {
     return {
       badgeClassName:
         'border-emerald-300 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300',
-      badgeVariant: 'outline',
-      description: `Version ${currentVersion} accepted.`,
+      description: 'Current legal bundle accepted for this organization.',
       iconClassName:
         'mt-0.5 size-8 rounded-md bg-muted text-emerald-700 dark:text-emerald-300',
       kind: 'current',
@@ -293,25 +241,42 @@ function complianceDocumentStatus({
     } as const;
   }
 
-  if (acceptedVersion) {
+  if (session.readiness.legalUpdatesRequired) {
     return {
       badgeClassName:
         'border-amber-300 text-amber-700 dark:border-amber-800 dark:text-amber-300',
-      badgeVariant: 'outline',
-      description: `Accepted version ${acceptedVersion}. Latest version ${currentVersion} requires acceptance.`,
+      description:
+        'Updated legal terms must be accepted before imports or campaigns can continue.',
       iconClassName:
         'mt-0.5 size-8 rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300',
-      kind: 'older',
+      kind: 'update',
       label: 'Update required',
     } as const;
   }
 
   return {
     badgeClassName: '',
-    badgeVariant: 'outline',
-    description: `Version ${currentVersion} requires acceptance.`,
+    description: 'Legal terms must be accepted to finish organization setup.',
     iconClassName: 'mt-0.5 size-8 rounded-md bg-muted text-muted-foreground',
     kind: 'missing',
-    label: 'Required',
+    label: 'Setup incomplete',
   } as const;
+}
+
+function firstLegalDocumentUrl(session: OrganizationSession) {
+  const [document] = session.legalBundle.documents;
+
+  return document
+    ? appLegalDocumentUrl({
+        documentType: document.documentType,
+        documentVersion: document.documentVersion,
+      })
+    : '/app/legal';
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
 }
