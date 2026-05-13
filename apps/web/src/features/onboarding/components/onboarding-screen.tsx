@@ -1,6 +1,7 @@
 "use client";
 
 import { canManageOrganizationSetup } from '@retaino/shared/contracts';
+import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ApiClientError } from '@/lib/api-client';
 import { useActiveOrganizationBootstrap } from '../hooks/use-active-organization-bootstrap';
@@ -72,6 +73,7 @@ export function OnboardingScreen() {
               type="button"
               variant="outline"
             >
+              <RefreshCw aria-hidden="true" data-icon="inline-start" />
               Retry setup
             </Button>
           }

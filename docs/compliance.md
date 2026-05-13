@@ -125,7 +125,6 @@ reconciliation:
 - phone hash
 - email hash
 - last booking date when provided
-- service name when provided
 - campaign membership
 - delivery, click, opt-out, and reconciliation events
 
@@ -162,8 +161,8 @@ resource ID, timestamp, and relevant metadata.
 
 MVP should support a default retention policy and make it explicit in terms:
 
-- raw uploaded files: delete after processing unless needed for visible import
-  history
+- raw uploaded files: delete after processing; use lifecycle cleanup for stale
+  uploads
 - normalized contacts: keep while the organization account is active or until
   deletion is requested
 - campaign events: keep for reporting and audit during the customer lifecycle

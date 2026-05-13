@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, FileUp, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -15,10 +15,16 @@ export function ReadyStep({ organizationName }: { organizationName: string }) {
     >
       <div className="flex flex-wrap gap-3">
         <Button asChild>
-          <Link href={routes.contacts}>Import contacts</Link>
+          <Link href={routes.contacts}>
+            <FileUp aria-hidden="true" data-icon="inline-start" />
+            Import contacts
+          </Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href={routes.overview}>Go to workspace</Link>
+          <Link href={routes.overview}>
+            <LayoutDashboard aria-hidden="true" data-icon="inline-start" />
+            Go to workspace
+          </Link>
         </Button>
       </div>
     </OnboardingItem>

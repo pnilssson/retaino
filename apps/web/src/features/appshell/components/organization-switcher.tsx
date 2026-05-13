@@ -1,7 +1,5 @@
 "use client";
 
-import { useAuth, useOrganizationList } from '@clerk/nextjs';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   Building2,
   Check,
@@ -11,9 +9,6 @@ import {
   Settings2
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,61 +21,20 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar
 } from '@/components/ui/sidebar';
+import { useOrganizationSwitcher } from '@/features/appshell/hooks/use-organization-switcher';
 import { routes } from '@/lib/routes';
-import {
-  organizationSessionQueryKey,
-  useOrganizationSession
-} from '@/features/onboarding/hooks/use-organization-session';
 
 export function OrganizationSwitcher() {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const { orgId } = useAuth({ treatPendingAsSignedOut: false });
-  const { setActive, userMemberships } = useOrganizationList({
-    userMemberships: {
-      pageSize: 20,
-    },
-  });
-  const { isMobile, setOpenMobile } = useSidebar();
-  const session = useOrganizationSession({
-    enabled: Boolean(orgId),
-  });
-  const [pendingOrganizationId, setPendingOrganizationId] = useState<string | null>(
-    null,
-  );
-  const memberships = userMemberships.data ?? [];
-  const activeOrganizationName =
-    session.data?.organization.name ??
-    memberships.find((membership) => membership.organization.id === orgId)
-      ?.organization.name ??
-    'Select organization';
-  const canFinishSetup =
-    session.isSuccess &&
-    !session.data.readiness.setupComplete &&
-    canManageOrganizationSetup(session.data.organization.role);
-
-  async function switchOrganization(organizationId: string) {
-    if (!setActive || organizationId === orgId) {
-      return;
-    }
-
-    setPendingOrganizationId(organizationId);
-
-    try {
-      await setActive({ organization: organizationId });
-      await waitForClerkSessionPropagation();
-      await queryClient.invalidateQueries({
-        queryKey: organizationSessionQueryKey,
-      });
-      setOpenMobile(false);
-      router.replace(routes.overview);
-      router.refresh();
-    } finally {
-      setPendingOrganizationId(null);
-    }
-  }
+  const {
+    activeOrganizationName,
+    canFinishSetup,
+    currentOrganizationId,
+    isMobile,
+    memberships,
+    pendingOrganizationId,
+    switchOrganization,
+  } = useOrganizationSwitcher();
 
   return (
     <SidebarMenu>
@@ -124,7 +78,7 @@ export function OrganizationSwitcher() {
             </DropdownMenuLabel>
             {memberships.map((membership) => {
               const organization = membership.organization;
-              const isActive = organization.id === orgId;
+              const isActive = organization.id === currentOrganizationId;
               const isPending = pendingOrganizationId === organization.id;
 
               return (
@@ -199,10 +153,4 @@ function initialsFor(value: string) {
   const initials = `${first[0] ?? ''}${second[0] ?? ''}`.toUpperCase();
 
   return initials || 'OR';
-}
-
-function waitForClerkSessionPropagation() {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, 500);
-  });
 }

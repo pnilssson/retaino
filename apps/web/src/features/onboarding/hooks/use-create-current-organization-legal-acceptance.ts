@@ -5,7 +5,7 @@ import type {
   CreateCurrentOrganizationLegalAcceptanceResponse,
   OrganizationSession,
 } from '@retaino/shared/contracts';
-import { useApi } from './use-api';
+import { useApi } from '@/hooks/use-api';
 import { organizationSessionQueryKey } from './use-organization-session';
 
 export function useCreateCurrentOrganizationLegalAcceptance() {

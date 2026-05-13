@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from '@tanstack/react-form';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   type OrganizationProfileFormValues as ProfileDraft,
@@ -86,6 +87,7 @@ export function CompanyStep({
             {([canSubmit]) => (
               <Button disabled={!canSubmit} type="submit">
                 Continue
+                <ArrowRight aria-hidden="true" data-icon="inline-end" />
               </Button>
             )}
           </form.Subscribe>

@@ -41,8 +41,8 @@ export default async function AppLegalDocumentPage({
 
   return (
     <LegalDocumentArticle
-      backHref={routes.settings}
-      backLabel="Back to organization"
+      backHref={routes.legal}
+      backLabel="Back to legal"
       document={document}
     />
   );

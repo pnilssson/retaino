@@ -8,10 +8,16 @@ type ApiClientOptions = {
   getToken: TokenProvider;
 };
 
-type RequestOptions = {
+export type RequestOptions = {
   body?: unknown;
   headers?: HeadersInit;
   method?: string;
+  signal?: AbortSignal;
+};
+
+export type UploadOptions = {
+  body: FormData;
+  headers?: HeadersInit;
   signal?: AbortSignal;
 };
 
@@ -40,7 +46,7 @@ export function createApiClient(options: ApiClientOptions) {
   );
   const fetcher = options.fetch ?? fetch;
 
-  async function request<TResponse>(
+  async function requestWithAuth<TResponse>(
     path: string,
     requestOptions: RequestOptions = {}
   ): Promise<TResponse> {
@@ -66,40 +72,53 @@ export function createApiClient(options: ApiClientOptions) {
 
     init.headers = Object.fromEntries(headers.entries());
 
-    let response: Response;
+    return send<TResponse>(fetcher, baseUrl, path, init);
+  }
 
-    try {
-      response = await fetcher(joinUrl(baseUrl, path), init);
-    } catch (error) {
-      throw new ApiClientError({
-        code: 'network_error',
-        message:
-          error instanceof Error
-            ? error.message
-            : 'The API request could not be completed.',
-        status: 0
-      });
+  async function upload<TResponse>(
+    path: string,
+    uploadOptions: UploadOptions
+  ): Promise<TResponse> {
+    const token = await options.getToken();
+    const headers = new Headers(uploadOptions.headers);
+
+    if (token) {
+      headers.set('authorization', `Bearer ${token}`);
     }
 
-    if (!response.ok) {
-      throw await parseApiError(response);
-    }
-
-    return parseJsonResponse<TResponse>(response);
+    return send<TResponse>(fetcher, baseUrl, path, {
+      body: uploadOptions.body,
+      headers: Object.fromEntries(headers.entries()),
+      method: 'POST',
+      signal: uploadOptions.signal
+    });
   }
 
   return {
     get: <TResponse>(
       path: string,
       options?: Omit<RequestOptions, 'body' | 'method'>
-    ) => request<TResponse>(path, { ...options, method: 'GET' }),
+    ) => requestWithAuth<TResponse>(path, { ...options, method: 'GET' }),
     post: <TResponse>(
       path: string,
       body?: unknown,
       options?: Omit<RequestOptions, 'body' | 'method'>
-    ) => request<TResponse>(path, { ...options, body, method: 'POST' }),
-    request
+    ) => requestWithAuth<TResponse>(path, { ...options, body, method: 'POST' }),
+    request: requestWithAuth,
+    upload
   };
+}
+
+export async function fetchPublicApi<TResponse>(
+  path: string,
+  options: RequestInit = {}
+): Promise<TResponse> {
+  return send<TResponse>(
+    fetch,
+    normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL),
+    path,
+    options,
+  );
 }
 
 function normalizeBaseUrl(baseUrl: string | undefined) {
@@ -114,7 +133,35 @@ function joinUrl(baseUrl: string, path: string) {
   return `${baseUrl}/${path.replace(/^\/+/, '')}`;
 }
 
-async function parseApiError(response: Response) {
+async function send<TResponse>(
+  fetcher: typeof fetch,
+  baseUrl: string,
+  path: string,
+  init: RequestInit,
+) {
+  let response: Response;
+
+  try {
+    response = await fetcher(joinUrl(baseUrl, path), init);
+  } catch (error) {
+    throw new ApiClientError({
+      code: 'network_error',
+      message:
+        error instanceof Error
+          ? error.message
+          : 'The API request could not be completed.',
+      status: 0
+    });
+  }
+
+  if (!response.ok) {
+    throw await parseApiError(response);
+  }
+
+  return parseJsonResponse<TResponse>(response);
+}
+
+export async function parseApiError(response: Response) {
   const payload = await readJson(response);
 
   if (isApiError(payload)) {

@@ -2,15 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   CONTACT_IMPORT_TARGET_FIELDS,
   autoMapContactImportHeaders,
+  bulkContactIdsSchema,
+  bulkSuppressContactsSchema,
   contactMethodDedupeKeys,
   contactDetailSchema,
-  contactImportMappedHeaders,
   contactImportMappingReady,
   contactImportMappedFieldEntries,
   contactListQuerySchema,
-  contactImportProcessSchema,
-  contactImportPreviewFromRows,
-  contactImportRowForHeaders,
+  contactImportStartSchema,
   contactSchema,
   countryCodeSchema,
   createContactSuppressionSchema,
@@ -21,6 +20,7 @@ import {
   isSupportedCountryCode,
   normalizeEmail,
   normalizePhoneNumber,
+  prepareContactMethodIdentity,
   prepareContactMethods,
   updateContactSchema,
   updateOrganizationProfileSchema,
@@ -96,7 +96,7 @@ describe('phone and email helpers', () => {
   });
 
   it('prepares contact method facts for storage and matching', async () => {
-    const methods = await prepareContactMethods({
+    const methods = await prepareContactMethodIdentity({
       phone: '070 123 45 67',
       email: ' Ada@Example.COM ',
       phoneCountryCode: 'SE',
@@ -110,10 +110,26 @@ describe('phone and email helpers', () => {
     });
     expect(methods.phoneHash).toHaveLength(64);
     expect(methods.emailHash).toHaveLength(64);
-    expect(contactMethodDedupeKeys(methods)).toEqual([
+    expect(methods.dedupeKeys).toEqual([
       `phone:${methods.phoneHash}`,
       `email:${methods.emailHash}`,
     ]);
+    expect(contactMethodDedupeKeys(methods)).toEqual(methods.dedupeKeys);
+  });
+
+  it('keeps prepareContactMethods compatible without exposing dedupe keys', async () => {
+    const methods = await prepareContactMethods({
+      phone: '070 123 45 67',
+      email: 'ada@example.com',
+      phoneCountryCode: 'SE',
+    });
+
+    expect(methods).toMatchObject({
+      normalizedPhone: '+46701234567',
+      normalizedEmail: 'ada@example.com',
+      errors: [],
+    });
+    expect('dedupeKeys' in methods).toBe(false);
   });
 
   it('reports missing or invalid contact methods with stable errors', async () => {
@@ -156,11 +172,7 @@ describe('contact contracts', () => {
         normalizedEmail: 'ada@example.com',
         lastBookingAt: null,
         lastContactedAt: null,
-        lastService: 'Cut',
         consentStatus: 'granted',
-        source: 'booking_export',
-        createdFromImportId: null,
-        lastImportId: null,
         contactStatus: 'ready',
         contactIssues: [],
         createdAt: '2026-05-08T00:00:00.000Z',
@@ -181,11 +193,7 @@ describe('contact contracts', () => {
         normalizedEmail: 'ada@example.com',
         lastBookingAt: null,
         lastContactedAt: null,
-        lastService: 'Cut',
         consentStatus: 'granted',
-        source: 'booking_export',
-        createdFromImportId: null,
-        lastImportId: null,
         contactStatus: 'blocked',
         contactIssues: ['suppressed_phone'],
         suppressions: [
@@ -211,8 +219,6 @@ describe('contact contracts', () => {
         phone: '0701234567',
         email: 'ada@example.com',
         lastBookingAt: '2026-05-08T00:00:00.000Z',
-        lastService: 'Cut',
-        source: 'manual',
       }),
     ).toMatchObject({
       name: 'Ada Lovelace',
@@ -251,10 +257,14 @@ describe('contact contracts', () => {
   });
 
   it('validates CSV mapping payloads', () => {
-    expect(CONTACT_IMPORT_TARGET_FIELDS).toContain('phone');
-    expect(CONTACT_IMPORT_TARGET_FIELDS).not.toContain('consentStatus');
+    expect(CONTACT_IMPORT_TARGET_FIELDS).toEqual([
+      'name',
+      'phone',
+      'email',
+      'lastBookingAt',
+    ]);
     expect(
-      contactImportProcessSchema.safeParse({
+      contactImportStartSchema.safeParse({
         mapping: {
           name: 'Name',
           phone: 'Phone',
@@ -266,7 +276,7 @@ describe('contact contracts', () => {
     ).toBe(true);
 
     expect(
-      contactImportProcessSchema.safeParse({
+      contactImportStartSchema.safeParse({
         mapping: {
           name: 'Name',
           phone: 'Phone',
@@ -276,7 +286,7 @@ describe('contact contracts', () => {
       }).success,
     ).toBe(false);
     expect(
-      contactImportProcessSchema.safeParse({
+      contactImportStartSchema.safeParse({
         mapping: {
           phone: 'Phone',
           consentStatus: 'Marketing consent',
@@ -285,51 +295,54 @@ describe('contact contracts', () => {
         permissionAttestation: true,
       }).success,
     ).toBe(false);
+    expect(
+      contactImportStartSchema.safeParse({
+        mapping: {
+          phone: 'Phone',
+          lastService: 'Service',
+        },
+        phoneCountryCode: 'SE',
+        permissionAttestation: true,
+      }).success,
+    ).toBe(false);
   });
 
-  it('builds contact import previews from CSV rows', () => {
+  it('validates bulk contact id payloads', () => {
+    const ids = Array.from(
+      { length: 100 },
+      (_, index) => `11111111-1111-4111-8111-${String(index).padStart(12, '0')}`,
+    );
+
+    expect(bulkContactIdsSchema.safeParse({ contactIds: [ids[0]] }).success).toBe(
+      true,
+    );
+    expect(bulkContactIdsSchema.safeParse({ contactIds: ids }).success).toBe(
+      true,
+    );
+    expect(bulkContactIdsSchema.safeParse({ contactIds: [] }).success).toBe(
+      false,
+    );
     expect(
-      contactImportPreviewFromRows({
-        headers: ['Name', 'Phone', 'Notes'],
-        rows: [['Ada Lovelace', '0701234567', 'example note']],
-      }),
-    ).toEqual({
-      headers: ['Name', 'Phone', 'Notes'],
-      sampleRows: [
-        {
-          Name: 'Ada Lovelace',
-          Phone: '0701234567',
-          Notes: 'example note',
-        },
-      ],
-      warnings: [],
-    });
+      bulkContactIdsSchema.safeParse({ contactIds: ['not-a-uuid'] }).success,
+    ).toBe(false);
+    expect(
+      bulkContactIdsSchema.safeParse({ contactIds: [...ids, ids[0]] }).success,
+    ).toBe(false);
   });
 
-  it('keeps only mapped raw import values', () => {
-    const mapping = {
-      name: 'Name',
-      phone: 'Phone',
-      lastService: 'Journal notes',
-    };
-    const headers = contactImportMappedHeaders(mapping);
-
-    expect(headers).toEqual(['Name', 'Phone', 'Journal notes']);
+  it('only allows phone bulk suppressions', () => {
     expect(
-      contactImportRowForHeaders(
-        {
-          Name: 'Ada Lovelace',
-          Phone: '0701234567',
-          'Journal notes': 'medical note',
-          Extra: 'ignored',
-        },
-        headers,
-      ),
-    ).toEqual({
-      Name: 'Ada Lovelace',
-      Phone: '0701234567',
-      'Journal notes': 'medical note',
-    });
+      bulkSuppressContactsSchema.safeParse({
+        contactIds: ['11111111-1111-4111-8111-111111111111'],
+        type: 'phone',
+      }).success,
+    ).toBe(true);
+    expect(
+      bulkSuppressContactsSchema.safeParse({
+        contactIds: ['11111111-1111-4111-8111-111111111111'],
+        type: 'email',
+      }).success,
+    ).toBe(false);
   });
 
   it('automaps contact import headers and reports mapping readiness', () => {
@@ -349,8 +362,6 @@ describe('contact contracts', () => {
       phone: 'Telefon',
       email: 'E-mail',
       lastBookingAt: 'Last booking date',
-      lastService: 'Service',
-      source: 'Source system',
     });
     expect(contactImportMappingReady(mapping)).toBe(true);
     expect(contactImportMappingReady({ name: 'Customer name' })).toBe(false);
@@ -359,21 +370,19 @@ describe('contact contracts', () => {
       { target: 'phone', header: 'Telefon' },
       { target: 'email', header: 'E-mail' },
       { target: 'lastBookingAt', header: 'Last booking date' },
-      { target: 'lastService', header: 'Service' },
-      { target: 'source', header: 'Source system' },
     ]);
   });
 
   it('requires import permission attestation before processing contacts', () => {
     expect(
-      contactImportProcessSchema.safeParse({
+      contactImportStartSchema.safeParse({
         mapping: { phone: 'Phone' },
         phoneCountryCode: 'SE',
       }).success,
     ).toBe(false);
 
     expect(
-      contactImportProcessSchema.safeParse({
+      contactImportStartSchema.safeParse({
         mapping: { phone: 'Phone' },
         phoneCountryCode: 'SE',
         permissionAttestation: true,
@@ -385,13 +394,11 @@ describe('contact contracts', () => {
     expect(
       contactListQuerySchema.parse({
         issue: 'suppressed_phone',
-        importedFrom: '11111111-1111-4111-8111-111111111111',
         sort: 'name',
         direction: 'asc',
       }),
     ).toMatchObject({
       issue: 'suppressed_phone',
-      importedFrom: '11111111-1111-4111-8111-111111111111',
       sort: 'name',
       direction: 'asc',
     });

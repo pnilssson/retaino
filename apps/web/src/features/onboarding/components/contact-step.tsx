@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from '@tanstack/react-form';
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { CountryCombobox } from '@/components/country-combobox';
 import { PhoneInput } from '@/components/phone-input';
 import { Button } from '@/components/ui/button';
@@ -165,6 +166,7 @@ export function ContactStep({
 
         <div className="flex flex-wrap justify-between gap-3 pt-2">
           <Button onClick={onBack} type="button" variant="outline">
+            <ArrowLeft aria-hidden="true" data-icon="inline-start" />
             Back
           </Button>
           <form.Subscribe
@@ -175,9 +177,17 @@ export function ContactStep({
                 disabled={!canSubmit || isPending || isSubmitting}
                 type="submit"
               >
-                {isPending || isSubmitting
-                  ? 'Saving profile'
-                  : 'Save and continue'}
+                {isPending || isSubmitting ? (
+                  <Loader2
+                    aria-hidden="true"
+                    className="animate-spin"
+                    data-icon="inline-start"
+                  />
+                ) : null}
+                {isPending || isSubmitting ? 'Saving profile' : 'Save and continue'}
+                {!isPending && !isSubmitting ? (
+                  <ArrowRight aria-hidden="true" data-icon="inline-end" />
+                ) : null}
               </Button>
             )}
           </form.Subscribe>

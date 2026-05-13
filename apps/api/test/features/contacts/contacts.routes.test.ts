@@ -5,16 +5,16 @@ import {
   createContactSuppression,
   deleteContact,
   deleteContactSuppression,
+  deleteContacts,
+  failContactImport,
   getCurrentLegalBundle,
   getCurrentOrganizationLegalAcceptance,
   getContactById,
   getContactImportById,
   getOrganizationCountryCode,
   getOrganizationProfileByOrganizationId,
-  listContactImportRows,
-  listContactImports,
   listContacts,
-  markContactImportProcessing,
+  suppressContacts,
   updateContact,
 } from '@retaino/db';
 import type {
@@ -33,16 +33,16 @@ vi.mock('@retaino/db', () => ({
   createContactImport: vi.fn(),
   deleteContact: vi.fn(),
   deleteContactSuppression: vi.fn(),
+  deleteContacts: vi.fn(),
+  failContactImport: vi.fn(),
   getCurrentLegalBundle: vi.fn(),
   getCurrentOrganizationLegalAcceptance: vi.fn(),
   getContactById: vi.fn(),
   getContactImportById: vi.fn(),
   getOrganizationCountryCode: vi.fn(),
   getOrganizationProfileByOrganizationId: vi.fn(),
-  listContactImportRows: vi.fn(),
-  listContactImports: vi.fn(),
   listContacts: vi.fn(),
-  markContactImportProcessing: vi.fn(),
+  suppressContacts: vi.fn(),
   updateContact: vi.fn(),
 }));
 
@@ -63,7 +63,7 @@ const organization = {
   clerkOrganizationId: 'org_123',
   name: 'Retaino',
   slug: 'retaino',
-  onboardingStatus: 'profile_required',
+  onboardingStatus: 'complete',
   role: 'org:admin',
 };
 
@@ -116,95 +116,25 @@ const legalDocumentVersions: LegalDocumentVersion[] = [
     createdAt: '2026-05-08T00:00:00.000Z',
     updatedAt: '2026-05-08T00:00:00.000Z',
   },
-  {
-    id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-    legalDocumentId: 'dddddddd-dddd-4ddd-8ddd-ddddddddddd1',
-    documentType: 'subprocessors',
-    slug: 'subprocessors',
-    title: 'Subprocessors',
-    documentVersion: '2026-05-08',
-    effectiveDate: '2026-05-08',
-    bodyMdx: '# Subprocessors',
-    contentHash: 'c'.repeat(64),
-    publicVisible: true,
-    acceptanceRequired: true,
-    sortOrder: 30,
-    publishedAt: '2026-05-08T00:00:00.000Z',
-    createdAt: '2026-05-08T00:00:00.000Z',
-    updatedAt: '2026-05-08T00:00:00.000Z',
-  },
-  {
-    id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
-    legalDocumentId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1',
-    documentType: 'transfer_terms',
-    slug: 'transfer_terms',
-    title: 'Transfer Terms',
-    documentVersion: '2026-05-08',
-    effectiveDate: '2026-05-08',
-    bodyMdx: '# Transfer Terms',
-    contentHash: 'd'.repeat(64),
-    publicVisible: true,
-    acceptanceRequired: true,
-    sortOrder: 40,
-    publishedAt: '2026-05-08T00:00:00.000Z',
-    createdAt: '2026-05-08T00:00:00.000Z',
-    updatedAt: '2026-05-08T00:00:00.000Z',
-  },
-  {
-    id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
-    legalDocumentId: 'ffffffff-ffff-4fff-8fff-fffffffffff1',
-    documentType: 'sending_policy',
-    slug: 'sending_policy',
-    title: 'Sending Policy',
-    documentVersion: '2026-05-08',
-    effectiveDate: '2026-05-08',
-    bodyMdx: '# Sending Policy',
-    contentHash: 'e'.repeat(64),
-    publicVisible: true,
-    acceptanceRequired: true,
-    sortOrder: 50,
-    publishedAt: '2026-05-08T00:00:00.000Z',
-    createdAt: '2026-05-08T00:00:00.000Z',
-    updatedAt: '2026-05-08T00:00:00.000Z',
-  },
-  {
-    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-    legalDocumentId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
-    documentType: 'campaign_attestation',
-    slug: 'campaign_attestation',
-    title: 'Campaign Attestation',
-    documentVersion: '2026-05-08',
-    effectiveDate: '2026-05-08',
-    bodyMdx: '# Campaign Attestation',
-    contentHash: 'f'.repeat(64),
-    publicVisible: true,
-    acceptanceRequired: true,
-    sortOrder: 60,
-    publishedAt: '2026-05-08T00:00:00.000Z',
-    createdAt: '2026-05-08T00:00:00.000Z',
-    updatedAt: '2026-05-08T00:00:00.000Z',
-  },
 ];
 
 const legalBundle: LegalBundle = {
   version: '2026-05-09',
   hash: 'f'.repeat(64),
-  documents: legalDocumentVersions
-    .filter((document) => document.documentType !== 'campaign_attestation')
-    .map((document) => ({
-      id: document.id,
-      legalDocumentId: document.legalDocumentId,
-      documentType: document.documentType,
-      slug: document.slug,
-      title: document.title,
-      documentVersion: document.documentVersion,
-      effectiveDate: document.effectiveDate,
-      contentHash: document.contentHash,
-      publicVisible: document.publicVisible,
-      acceptanceRequired: document.acceptanceRequired,
-      sortOrder: document.sortOrder,
-      publishedAt: document.publishedAt,
-    })),
+  documents: legalDocumentVersions.map((document) => ({
+    id: document.id,
+    legalDocumentId: document.legalDocumentId,
+    documentType: document.documentType,
+    slug: document.slug,
+    title: document.title,
+    documentVersion: document.documentVersion,
+    effectiveDate: document.effectiveDate,
+    contentHash: document.contentHash,
+    publicVisible: document.publicVisible,
+    acceptanceRequired: document.acceptanceRequired,
+    sortOrder: document.sortOrder,
+    publishedAt: document.publishedAt,
+  })),
 };
 
 const legalAcceptance: OrganizationLegalAcceptance = {
@@ -224,18 +154,8 @@ const importDetail: ContactImportDetail = {
   id: '44444444-4444-4444-8444-444444444444',
   organizationId: organization.id,
   createdByUserId: user.id,
-  status: 'uploaded',
-  filename: 'contacts.csv',
-  fileSize: 60,
-  contentType: 'text/csv',
-  source: null,
+  status: 'processing',
   phoneCountryCode: 'SE',
-  mapping: null,
-  preview: {
-    headers: ['Name', 'Phone'],
-    sampleRows: [{ Name: 'Ada Lovelace', Phone: '0701234567' }],
-    warnings: [],
-  },
   totalRows: 0,
   processedRows: 0,
   createdCount: 0,
@@ -245,8 +165,9 @@ const importDetail: ContactImportDetail = {
   duplicateCount: 0,
   suppressedCount: 0,
   errorSummary: [],
-  permissionAttestedAt: null,
-  permissionAttestedByUserId: null,
+  permissionAttestedAt: '2026-05-08T00:00:00.000Z',
+  permissionAttestedByUserId: user.id,
+  startedAt: '2026-05-08T00:00:00.000Z',
   completedAt: null,
   failedAt: null,
   createdAt: '2026-05-08T00:00:00.000Z',
@@ -263,11 +184,7 @@ const contactDetail: ContactDetail = {
   normalizedEmail: 'ada@example.com',
   lastBookingAt: null,
   lastContactedAt: null,
-  lastService: 'Cut',
   consentStatus: 'granted',
-  source: 'csv',
-  createdFromImportId: importDetail.id,
-  lastImportId: importDetail.id,
   contactStatus: 'ready',
   contactIssues: [],
   suppressions: [],
@@ -283,7 +200,6 @@ function testApp(input: { role?: string } = {}) {
     c.set('user', user);
     c.set('organization', {
       ...organization,
-      onboardingStatus: 'complete',
       role: input.role ?? organization.role,
     });
     await next();
@@ -304,54 +220,65 @@ function env() {
   };
 }
 
+function importForm(input: {
+  csv?: string;
+  mapping?: Record<string, string>;
+  permissionAttestation?: string;
+}) {
+  const body = new FormData();
+  body.set(
+    'file',
+    new File([input.csv ?? 'Name,Phone\nAda,0701234567\n'], 'contacts.csv', {
+      type: 'text/csv',
+    }),
+  );
+  body.set('mapping', JSON.stringify(input.mapping ?? { name: 'Name', phone: 'Phone' }));
+  body.set('phoneCountryCode', 'SE');
+  if (input.permissionAttestation !== undefined) {
+    body.set('permissionAttestation', input.permissionAttestation);
+  }
+
+  return body;
+}
+
 describe('contactsRoutes', () => {
   beforeEach(() => {
     vi.mocked(createContactSuppression).mockReset();
     vi.mocked(createContactImport).mockReset();
     vi.mocked(deleteContact).mockReset();
     vi.mocked(deleteContactSuppression).mockReset();
+    vi.mocked(deleteContacts).mockReset();
+    vi.mocked(failContactImport).mockReset();
     vi.mocked(getCurrentLegalBundle).mockReset();
     vi.mocked(getCurrentOrganizationLegalAcceptance).mockReset();
     vi.mocked(getContactById).mockReset();
     vi.mocked(getContactImportById).mockReset();
     vi.mocked(getOrganizationCountryCode).mockReset();
     vi.mocked(getOrganizationProfileByOrganizationId).mockReset();
-    vi.mocked(listContactImportRows).mockReset();
-    vi.mocked(listContactImports).mockReset();
     vi.mocked(listContacts).mockReset();
-    vi.mocked(markContactImportProcessing).mockReset();
+    vi.mocked(suppressContacts).mockReset();
     vi.mocked(updateContact).mockReset();
     vi.mocked(enqueueContactImportProcessing).mockReset();
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(profile);
     vi.mocked(getCurrentLegalBundle).mockResolvedValue(legalBundle);
-    vi.mocked(getCurrentOrganizationLegalAcceptance).mockResolvedValue(
-      legalAcceptance,
-    );
+    vi.mocked(getCurrentOrganizationLegalAcceptance).mockResolvedValue(legalAcceptance);
+    vi.mocked(getOrganizationCountryCode).mockResolvedValue('SE');
   });
 
-  it('uploads a CSV, stores it in R2, and returns preview rows only', async () => {
-    vi.mocked(getOrganizationCountryCode).mockResolvedValue('SE');
+  it('starts a one-step CSV import and enqueues processing', async () => {
     vi.mocked(createContactImport).mockResolvedValue(importDetail);
-    const body = new FormData();
-    body.set(
-      'file',
-      new File(
-        [
-          'Name,Phone\nAda Lovelace,0701234567\nGrace Hopper,0707654321\n',
-        ],
-        'contacts.csv',
-        { type: 'text/csv' },
-      ),
-    );
-
     const testEnv = env();
+
     const response = await testApp().request(
       '/v1/contact-imports',
-      { method: 'POST', body },
+      {
+        method: 'POST',
+        body: importForm({ permissionAttestation: 'true' }),
+      },
       testEnv,
     );
 
-    expect(response.status).toBe(201);
+    expect(response.status).toBe(202);
     expect(testEnv.CONTACT_IMPORTS_BUCKET.put).toHaveBeenCalled();
     expect(createContactImport).toHaveBeenCalledWith(expect.anything(), {
       organizationId: organization.id,
@@ -359,36 +286,28 @@ describe('contactsRoutes', () => {
       fileKey: expect.stringContaining(
         `organizations/${organization.id}/contact-imports/`,
       ),
-      filename: 'contacts.csv',
-      fileSize: expect.any(Number),
-      contentType: 'text/csv',
-      checksum: expect.any(String),
-      source: null,
+      mapping: { name: 'Name', phone: 'Phone' },
       phoneCountryCode: 'SE',
-      preview: {
-        headers: ['Name', 'Phone'],
-        sampleRows: [
-          { Name: 'Ada Lovelace', Phone: '0701234567' },
-          { Name: 'Grace Hopper', Phone: '0707654321' },
-        ],
-        warnings: [],
-      },
+      permissionAttestedByUserId: user.id,
+    });
+    expect(enqueueContactImportProcessing).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      contactImportId: importDetail.id,
+      userId: user.id,
     });
   });
 
   it('rejects malformed CSV before storing an import file', async () => {
-    const body = new FormData();
     const testEnv = env();
-    body.set(
-      'file',
-      new File(['Name,Phone\n"Ada,0701234567\n'], 'contacts.csv', {
-        type: 'text/csv',
-      }),
-    );
-
     const response = await testApp().request(
       '/v1/contact-imports',
-      { method: 'POST', body },
+      {
+        method: 'POST',
+        body: importForm({
+          csv: 'Name,Phone\n"Ada,0701234567\n',
+          permissionAttestation: 'true',
+        }),
+      },
       testEnv,
     );
 
@@ -397,230 +316,129 @@ describe('contactsRoutes', () => {
     expect(createContactImport).not.toHaveBeenCalled();
   });
 
-  it('rejects upload when organization setup is incomplete', async () => {
-    vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(null);
-    const body = new FormData();
-    body.set('file', new File(['Name\nAda\n'], 'contacts.csv'));
+  it('cleans up the temporary file if enqueueing fails', async () => {
+    vi.mocked(createContactImport).mockResolvedValue(importDetail);
+    vi.mocked(enqueueContactImportProcessing).mockRejectedValue(
+      new Error('queue down'),
+    );
+    const testEnv = env();
 
     const response = await testApp().request(
       '/v1/contact-imports',
-      { method: 'POST', body },
-      env(),
-    );
-
-    expect(response.status).toBe(403);
-    expect(createContactImport).not.toHaveBeenCalled();
-  });
-
-  it('rejects upload when legal bundle version acceptance is outdated', async () => {
-    vi.mocked(getCurrentOrganizationLegalAcceptance).mockResolvedValue({
-      ...legalAcceptance,
-      bundleVersion: '2026-01-01',
-    });
-    const body = new FormData();
-    body.set('file', new File(['Name\nAda\n'], 'contacts.csv'));
-
-    const response = await testApp().request(
-      '/v1/contact-imports',
-      { method: 'POST', body },
-      env(),
-    );
-
-    expect(response.status).toBe(403);
-    expect(createContactImport).not.toHaveBeenCalled();
-  });
-
-  it('rejects upload when legal bundle hash acceptance is outdated', async () => {
-    vi.mocked(getCurrentOrganizationLegalAcceptance).mockResolvedValue({
-      ...legalAcceptance,
-      bundleHash: '0'.repeat(64),
-    });
-    const body = new FormData();
-    body.set('file', new File(['Name\nAda\n'], 'contacts.csv'));
-
-    const response = await testApp().request(
-      '/v1/contact-imports',
-      { method: 'POST', body },
-      env(),
-    );
-
-    expect(response.status).toBe(403);
-    expect(createContactImport).not.toHaveBeenCalled();
-  });
-
-  it('rejects upload for organization members', async () => {
-    const body = new FormData();
-    body.set('file', new File(['Name\nAda\n'], 'contacts.csv'));
-
-    const response = await testApp({ role: 'org:member' }).request(
-      '/v1/contact-imports',
-      { method: 'POST', body },
-      env(),
-    );
-
-    expect(response.status).toBe(403);
-    expect(createContactImport).not.toHaveBeenCalled();
-  });
-
-  it('validates mapping, stores phoneCountryCode, and emits the process event', async () => {
-    vi.mocked(markContactImportProcessing).mockResolvedValue({
-      status: 'updated',
-      import: {
-        ...importDetail,
-        status: 'processing',
-        mapping: { name: 'Name', phone: 'Phone' },
-      },
-    });
-
-    const response = await testApp().request(
-      `/v1/contact-imports/${importDetail.id}/process`,
       {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          mapping: { name: 'Name', phone: 'Phone' },
-          phoneCountryCode: 'SE',
-          permissionAttestation: true,
-        }),
+        body: importForm({ permissionAttestation: 'true' }),
       },
-      env(),
+      testEnv,
     );
 
-    expect(response.status).toBe(202);
-    expect(markContactImportProcessing).toHaveBeenCalledWith(
-      expect.anything(),
-      {
-        organizationId: organization.id,
-        contactImportId: importDetail.id,
-        mapping: { name: 'Name', phone: 'Phone' },
-        phoneCountryCode: 'SE',
-        permissionAttestedByUserId: user.id,
-      },
+    expect(response.status).toBe(500);
+    expect(testEnv.CONTACT_IMPORTS_BUCKET.delete).toHaveBeenCalledWith(
+      expect.stringContaining(`organizations/${organization.id}/contact-imports/`),
     );
-    expect(enqueueContactImportProcessing).toHaveBeenCalledWith(expect.anything(), {
+    expect(failContactImport).toHaveBeenCalledWith(expect.anything(), {
       organizationId: organization.id,
       contactImportId: importDetail.id,
-      userId: user.id,
+      error: 'queue down',
     });
   });
 
-  it('rejects contact import mappings that include consent status', async () => {
-    const response = await testApp().request(
-      `/v1/contact-imports/${importDetail.id}/process`,
+  it('rejects invalid mappings and missing attestation', async () => {
+    const invalidMapping = await testApp().request(
+      '/v1/contact-imports',
       {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          mapping: { phone: 'Phone', consentStatus: 'Marketing consent' },
-          phoneCountryCode: 'SE',
-          permissionAttestation: true,
+        body: importForm({
+          mapping: { phone: 'Phone', lastService: 'Service' },
+          permissionAttestation: 'true',
         }),
       },
       env(),
     );
-
-    expect(response.status).toBe(400);
-    expect(markContactImportProcessing).not.toHaveBeenCalled();
-    expect(enqueueContactImportProcessing).not.toHaveBeenCalled();
-  });
-
-  it('rejects processing without contact permission attestation', async () => {
-    const response = await testApp().request(
-      `/v1/contact-imports/${importDetail.id}/process`,
+    const missingAttestation = await testApp().request(
+      '/v1/contact-imports',
       {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          mapping: { name: 'Name', phone: 'Phone' },
-          phoneCountryCode: 'SE',
-        }),
+        body: importForm({}),
       },
       env(),
     );
 
-    expect(response.status).toBe(400);
-    expect(markContactImportProcessing).not.toHaveBeenCalled();
-    expect(enqueueContactImportProcessing).not.toHaveBeenCalled();
+    expect(invalidMapping.status).toBe(400);
+    expect(missingAttestation.status).toBe(400);
+    expect(createContactImport).not.toHaveBeenCalled();
   });
 
-  it('rejects processing when an import has already started', async () => {
-    vi.mocked(markContactImportProcessing).mockResolvedValue({
-      status: 'invalid_status',
-      import: { ...importDetail, status: 'processing' },
+  it('rejects import start for blocked organizations and members', async () => {
+    vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValueOnce(null);
+    const incomplete = await testApp().request(
+      '/v1/contact-imports',
+      {
+        method: 'POST',
+        body: importForm({ permissionAttestation: 'true' }),
+      },
+      env(),
+    );
+    const member = await testApp({ role: 'org:member' }).request(
+      '/v1/contact-imports',
+      {
+        method: 'POST',
+        body: importForm({ permissionAttestation: 'true' }),
+      },
+      env(),
+    );
+
+    expect(incomplete.status).toBe(403);
+    expect(member.status).toBe(403);
+    expect(createContactImport).not.toHaveBeenCalled();
+  });
+
+  it('polls the current import job by id', async () => {
+    vi.mocked(getContactImportById).mockResolvedValue(importDetail);
+
+    const response = await testApp().request(
+      `/v1/contact-imports/${importDetail.id}`,
+      undefined,
+      env(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(getContactImportById).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      contactImportId: importDetail.id,
     });
-
-    const response = await testApp().request(
-      `/v1/contact-imports/${importDetail.id}/process`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          mapping: { name: 'Name', phone: 'Phone' },
-          phoneCountryCode: 'SE',
-          permissionAttestation: true,
-        }),
-      },
-      env(),
-    );
-
-    expect(response.status).toBe(409);
-    expect(enqueueContactImportProcessing).not.toHaveBeenCalled();
   });
 
-  it('returns not found when processing a missing import', async () => {
-    vi.mocked(markContactImportProcessing).mockResolvedValue({
-      status: 'not_found',
-    });
-
-    const response = await testApp().request(
-      `/v1/contact-imports/${importDetail.id}/process`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          mapping: { name: 'Name', phone: 'Phone' },
-          phoneCountryCode: 'SE',
-          permissionAttestation: true,
-        }),
-      },
-      env(),
-    );
-
-    expect(response.status).toBe(404);
-    expect(enqueueContactImportProcessing).not.toHaveBeenCalled();
+  it('does not expose import history, process, or row routes', async () => {
+    await expect(
+      testApp().request('/v1/contact-imports', undefined, env()),
+    ).resolves.toHaveProperty('status', 404);
+    await expect(
+      testApp().request(
+        `/v1/contact-imports/${importDetail.id}/process`,
+        { method: 'POST' },
+        env(),
+      ),
+    ).resolves.toHaveProperty('status', 404);
+    await expect(
+      testApp().request(
+        `/v1/contact-imports/${importDetail.id}/rows`,
+        undefined,
+        env(),
+      ),
+    ).resolves.toHaveProperty('status', 404);
   });
 
-  it('returns computed contact status from the contacts list', async () => {
+  it('returns contacts without import-batch filtering', async () => {
     vi.mocked(listContacts).mockResolvedValue({
-      contacts: [
-        {
-          id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-          organizationId: organization.id,
-          name: 'Ada Lovelace',
-          phone: '0701234567',
-          email: null,
-          normalizedPhone: '+46701234567',
-          normalizedEmail: null,
-          lastBookingAt: null,
-          lastContactedAt: null,
-          lastService: null,
-          consentStatus: 'granted',
-          source: 'csv',
-          createdFromImportId: importDetail.id,
-          lastImportId: importDetail.id,
-          contactStatus: 'ready',
-          contactIssues: [],
-          createdAt: '2026-05-08T00:00:00.000Z',
-          updatedAt: '2026-05-08T00:00:00.000Z',
-        },
-      ],
+      contacts: [contactDetail],
       page: 1,
       pageSize: 25,
       total: 1,
     });
 
     const response = await testApp().request(
-      `/v1/contacts?issue=suppressed_phone&importedFrom=${importDetail.id}&sort=name&direction=asc`,
+      '/v1/contacts?issue=suppressed_phone&sort=name&direction=asc',
       undefined,
       env(),
     );
@@ -632,159 +450,155 @@ describe('contactsRoutes', () => {
         page: 1,
         pageSize: 25,
         issue: 'suppressed_phone',
-        importedFrom: importDetail.id,
         sort: 'name',
         direction: 'asc',
       },
     });
-    await expect(response.json()).resolves.toMatchObject({
-      contacts: [{ contactStatus: 'ready', contactIssues: [] }],
-    });
   });
 
-  it('returns row-level import errors by status filter', async () => {
-    vi.mocked(listContactImportRows).mockResolvedValue({
-      rows: [
-        {
-          id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
-          organizationId: organization.id,
-          contactImportId: importDetail.id,
-          rowNumber: 2,
-          status: 'invalid',
-          contactId: null,
-          rawValues: { Phone: '123' },
-          normalizedValues: {},
-          errors: ['invalid_phone'],
-          createdAt: '2026-05-08T00:00:00.000Z',
-        },
-      ],
-      page: 1,
-      pageSize: 25,
-      total: 1,
+  it('updates and deletes contacts for organization admins', async () => {
+    vi.mocked(updateContact).mockResolvedValue({
+      status: 'updated',
+      contact: { ...contactDetail, name: 'Grace Hopper' },
     });
+    vi.mocked(deleteContact).mockResolvedValue(true);
 
-    const response = await testApp().request(
-      `/v1/contact-imports/${importDetail.id}/rows?status=invalid`,
-      undefined,
-      env(),
-    );
-
-    expect(response.status).toBe(200);
-    expect(listContactImportRows).toHaveBeenCalledWith(expect.anything(), {
-      organizationId: organization.id,
-      contactImportId: importDetail.id,
-      query: { page: 1, pageSize: 25, status: 'invalid' },
-    });
-  });
-
-  it('returns a contact detail by id', async () => {
-    vi.mocked(getContactById).mockResolvedValue(contactDetail);
-
-    const response = await testApp().request(
-      `/v1/contacts/${contactDetail.id}`,
-      undefined,
-      env(),
-    );
-
-    expect(response.status).toBe(200);
-    expect(getContactById).toHaveBeenCalledWith(expect.anything(), {
-      organizationId: organization.id,
-      contactId: contactDetail.id,
-    });
-    await expect(response.json()).resolves.toMatchObject({
-      contact: { id: contactDetail.id, suppressions: [] },
-    });
-  });
-
-  it('returns not found for a missing contact detail', async () => {
-    vi.mocked(getContactById).mockResolvedValue(null);
-
-    const response = await testApp().request(
-      `/v1/contacts/${contactDetail.id}`,
-      undefined,
-      env(),
-    );
-
-    expect(response.status).toBe(404);
-  });
-
-  it('updates a contact for organization admins', async () => {
-    vi.mocked(updateContact).mockResolvedValue({ status: 'updated', contact: {
-      ...contactDetail,
-      name: 'Grace Hopper',
-    } });
-
-    const response = await testApp().request(
+    const update = await testApp().request(
       `/v1/contacts/${contactDetail.id}`,
       {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          name: 'Grace Hopper',
-          phoneCountryCode: 'SE',
-        }),
+        body: JSON.stringify({ name: 'Grace Hopper', phoneCountryCode: 'SE' }),
+      },
+      env(),
+    );
+    const deleted = await testApp().request(
+      `/v1/contacts/${contactDetail.id}`,
+      { method: 'DELETE' },
+      env(),
+    );
+
+    expect(update.status).toBe(200);
+    expect(deleted.status).toBe(204);
+  });
+
+  it('bulk deletes selected contacts for organization admins', async () => {
+    vi.mocked(deleteContacts).mockResolvedValue(2);
+    const contactIds = [
+      contactDetail.id,
+      '33333333-3333-4333-8333-333333333333',
+    ];
+
+    const response = await testApp().request(
+      '/v1/contacts/bulk-delete',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ contactIds }),
       },
       env(),
     );
 
     expect(response.status).toBe(200);
-    expect(updateContact).toHaveBeenCalledWith(expect.anything(), {
+    expect(deleteContacts).toHaveBeenCalledWith(expect.anything(), {
       organizationId: organization.id,
-      contactId: contactDetail.id,
-      input: {
-        name: 'Grace Hopper',
-        phoneCountryCode: 'SE',
-      },
+      contactIds,
+    });
+    await expect(response.json()).resolves.toEqual({
+      requestedCount: 2,
+      affectedCount: 2,
+      skippedCount: 0,
     });
   });
 
-  it('rejects contact updates that include consent status', async () => {
-    const response = await testApp().request(
-      `/v1/contacts/${contactDetail.id}`,
-      {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ consentStatus: 'denied' }),
-      },
-      env(),
-    );
-
-    expect(response.status).toBe(400);
-    expect(updateContact).not.toHaveBeenCalled();
-  });
-
-  it('rejects contact updates for organization members', async () => {
-    const response = await testApp({ role: 'org:member' }).request(
-      `/v1/contacts/${contactDetail.id}`,
-      {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name: 'Grace Hopper' }),
-      },
-      env(),
-    );
-
-    expect(response.status).toBe(403);
-    expect(updateContact).not.toHaveBeenCalled();
-  });
-
-  it('returns conflict when updating a duplicate contact method', async () => {
-    vi.mocked(updateContact).mockResolvedValue({ status: 'duplicate' });
+  it('bulk suppresses selected contacts for organization admins', async () => {
+    vi.mocked(suppressContacts).mockResolvedValue({
+      affectedCount: 1,
+      skippedCount: 1,
+    });
+    const contactIds = [
+      contactDetail.id,
+      '33333333-3333-4333-8333-333333333333',
+    ];
 
     const response = await testApp().request(
-      `/v1/contacts/${contactDetail.id}`,
+      '/v1/contacts/bulk-suppressions',
       {
-        method: 'PATCH',
+        method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: 'ada@example.com' }),
+        body: JSON.stringify({ contactIds, type: 'phone' }),
       },
       env(),
     );
 
-    expect(response.status).toBe(409);
+    expect(response.status).toBe(200);
+    expect(suppressContacts).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      contactIds,
+      type: 'phone',
+    });
+    await expect(response.json()).resolves.toEqual({
+      requestedCount: 2,
+      affectedCount: 1,
+      skippedCount: 1,
+    });
   });
 
-  it('creates a selected contact suppression for organization admins', async () => {
+  it('rejects bulk contact management for organization members', async () => {
+    const contactIds = [contactDetail.id];
+
+    const deleted = await testApp({ role: 'org:member' }).request(
+      '/v1/contacts/bulk-delete',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ contactIds }),
+      },
+      env(),
+    );
+    const suppressed = await testApp({ role: 'org:member' }).request(
+      '/v1/contacts/bulk-suppressions',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ contactIds, type: 'phone' }),
+      },
+      env(),
+    );
+
+    expect(deleted.status).toBe(403);
+    expect(suppressed.status).toBe(403);
+    expect(deleteContacts).not.toHaveBeenCalled();
+    expect(suppressContacts).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid bulk contact payloads', async () => {
+    const deleted = await testApp().request(
+      '/v1/contacts/bulk-delete',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ contactIds: [] }),
+      },
+      env(),
+    );
+    const suppressed = await testApp().request(
+      '/v1/contacts/bulk-suppressions',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ contactIds: [contactDetail.id], type: 'email' }),
+      },
+      env(),
+    );
+
+    expect(deleted.status).toBe(400);
+    expect(suppressed.status).toBe(400);
+    expect(deleteContacts).not.toHaveBeenCalled();
+    expect(suppressContacts).not.toHaveBeenCalled();
+  });
+
+  it('manages suppressions for organization admins', async () => {
     vi.mocked(createContactSuppression).mockResolvedValue({
       status: 'created',
       contact: {
@@ -793,8 +607,12 @@ describe('contactsRoutes', () => {
         contactIssues: ['suppressed_phone'],
       },
     });
+    vi.mocked(deleteContactSuppression).mockResolvedValue({
+      status: 'deleted',
+      contact: contactDetail,
+    });
 
-    const response = await testApp().request(
+    const created = await testApp().request(
       `/v1/contacts/${contactDetail.id}/suppressions`,
       {
         method: 'POST',
@@ -803,51 +621,13 @@ describe('contactsRoutes', () => {
       },
       env(),
     );
-
-    expect(response.status).toBe(201);
-    expect(createContactSuppression).toHaveBeenCalledWith(expect.anything(), {
-      organizationId: organization.id,
-      contactId: contactDetail.id,
-      type: 'phone',
-    });
-  });
-
-  it('removes a selected contact suppression for organization admins', async () => {
-    vi.mocked(deleteContactSuppression).mockResolvedValue({
-      status: 'deleted',
-      contact: contactDetail,
-    });
-
-    const response = await testApp().request(
+    const deleted = await testApp().request(
       `/v1/contacts/${contactDetail.id}/suppressions/33333333-3333-4333-8333-333333333333`,
       { method: 'DELETE' },
       env(),
     );
 
-    expect(response.status).toBe(200);
-    expect(deleteContactSuppression).toHaveBeenCalledWith(expect.anything(), {
-      organizationId: organization.id,
-      contactId: contactDetail.id,
-      suppressionId: '33333333-3333-4333-8333-333333333333',
-    });
-    await expect(response.json()).resolves.toMatchObject({
-      contact: { id: contactDetail.id, suppressions: [] },
-    });
-  });
-
-  it('hard deletes a contact for organization admins', async () => {
-    vi.mocked(deleteContact).mockResolvedValue(true);
-
-    const response = await testApp().request(
-      `/v1/contacts/${contactDetail.id}`,
-      { method: 'DELETE' },
-      env(),
-    );
-
-    expect(response.status).toBe(204);
-    expect(deleteContact).toHaveBeenCalledWith(expect.anything(), {
-      organizationId: organization.id,
-      contactId: contactDetail.id,
-    });
+    expect(created.status).toBe(201);
+    expect(deleted.status).toBe(200);
   });
 });

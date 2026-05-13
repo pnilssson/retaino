@@ -12,9 +12,8 @@ export const routes = {
   contacts: '/app/contacts',
   contact: (id: string) => `/app/contacts/${id}`,
   contactsImport: '/app/contacts/import',
-  contactImports: '/app/contacts/imports',
-  contactImport: (id: string) => `/app/contacts/imports/${id}`,
   campaigns: '/app/campaigns',
   reports: '/app/reports',
+  legal: '/app/legal',
   settings: '/app/organization/settings'
 } as const;

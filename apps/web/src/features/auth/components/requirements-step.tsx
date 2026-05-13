@@ -1,5 +1,6 @@
 "use client";
 
+import { Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { useEmailCodeAuth } from '@/features/auth/hooks/use-email-code-auth';
 
@@ -29,6 +30,7 @@ export function RequirementsStep({
         type="button"
         variant="outline"
       >
+        <Mail aria-hidden="true" data-icon="inline-start" />
         Use a different email
       </Button>
     </div>

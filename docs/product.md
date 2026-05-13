@@ -101,8 +101,7 @@ Defer:
 ### Audience Import
 
 1. User uploads a CSV customer list.
-2. Retaino maps fields such as name, phone, email, last booking date, service,
-   and marketing status when available.
+2. Retaino maps name, phone, email, and last booking date when available.
 3. User confirms these contacts can lawfully receive marketing SMS from the
    organization.
 4. Retaino validates phone numbers and emails.

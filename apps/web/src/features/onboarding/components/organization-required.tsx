@@ -97,9 +97,13 @@ export function OrganizationRequired() {
                   variant="outline"
                 >
                   {pendingOrganizationId === membership.organization.id ? (
-                    <Loader2 aria-hidden="true" className="animate-spin" />
+                    <Loader2
+                      aria-hidden="true"
+                      className="animate-spin"
+                      data-icon="inline-start"
+                    />
                   ) : (
-                    <Building2 aria-hidden="true" />
+                    <Building2 aria-hidden="true" data-icon="inline-start" />
                   )}
                   <span className="min-w-0 truncate">
                     {membership.organization.name}
@@ -113,7 +117,7 @@ export function OrganizationRequired() {
         <div className="grid gap-3">
           <Button asChild className="w-fit">
             <Link href={routes.organizationNew}>
-              <Plus aria-hidden="true" />
+              <Plus aria-hidden="true" data-icon="inline-start" />
               Create organization
             </Link>
           </Button>

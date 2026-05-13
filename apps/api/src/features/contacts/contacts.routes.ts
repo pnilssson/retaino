@@ -1,30 +1,24 @@
 import {
-  createContactSuppression,
   createContactImport,
+  createContactSuppression,
   deleteContact,
   deleteContactSuppression,
-  getCurrentLegalBundle,
-  getCurrentOrganizationLegalAcceptance,
+  deleteContacts,
+  failContactImport,
   getContactById,
   getContactImportById,
-  getOrganizationCountryCode,
-  getOrganizationProfileByOrganizationId,
-  listContactImportRows,
-  listContactImports,
   listContacts,
-  markContactImportProcessing,
+  suppressContacts,
   updateContact,
 } from '@retaino/db';
 import {
+  bulkContactIdsSchema,
+  bulkSuppressContactsSchema,
   canManageOrganizationSetup,
-  createContactSuppressionSchema,
-  contactImportListQuerySchema,
-  contactImportProcessSchema,
-  contactImportPreviewFromRows,
-  contactImportRowsQuerySchema,
+  contactImportStartSchema,
   contactListQuerySchema,
+  createContactSuppressionSchema,
   updateContactSchema,
-  type ContactImportPreview,
 } from '@retaino/shared/contracts';
 import { parse } from 'csv-parse/sync';
 import { Hono, type Context } from 'hono';
@@ -32,14 +26,11 @@ import { z } from 'zod';
 import { apiError } from '../../lib/errors';
 import { parseJsonBody } from '../../lib/route-helpers';
 import type { AppEnv } from '../../types';
-import {
-  getOrganizationEligibility,
-  getOrganizationReadiness,
-} from '../organization/organization.readiness';
+import { requireContactImportEligibility } from '../organization/organization.gates';
+import { deleteTemporaryImportFile } from './contact-import-storage';
 import { enqueueContactImportProcessing } from './contacts.jobs';
 
 const MAX_UPLOAD_SIZE = 25 * 1024 * 1024;
-const PREVIEW_ROWS = 5;
 
 export const contactsRoutes = new Hono<AppEnv>()
   .get('/contacts', async (c) => {
@@ -62,6 +53,63 @@ export const contactsRoutes = new Hono<AppEnv>()
         query: parsed.data,
       }),
     );
+  })
+  .post('/contacts/bulk-delete', async (c) => {
+    const gate = validateContactManagementPermission(c);
+
+    if (!gate.ok) {
+      return gate.response;
+    }
+
+    const parsed = await parseJsonBody(
+      c,
+      bulkContactIdsSchema,
+      'Invalid bulk delete request.',
+    );
+
+    if (!parsed.ok) {
+      return parsed.response;
+    }
+
+    const affectedCount = await deleteContacts(c.get('db'), {
+      organizationId: c.get('organization').id,
+      contactIds: parsed.data.contactIds,
+    });
+
+    return c.json({
+      requestedCount: parsed.data.contactIds.length,
+      affectedCount,
+      skippedCount: parsed.data.contactIds.length - affectedCount,
+    });
+  })
+  .post('/contacts/bulk-suppressions', async (c) => {
+    const gate = validateContactManagementPermission(c);
+
+    if (!gate.ok) {
+      return gate.response;
+    }
+
+    const parsed = await parseJsonBody(
+      c,
+      bulkSuppressContactsSchema,
+      'Invalid bulk suppression request.',
+    );
+
+    if (!parsed.ok) {
+      return parsed.response;
+    }
+
+    const result = await suppressContacts(c.get('db'), {
+      organizationId: c.get('organization').id,
+      contactIds: parsed.data.contactIds,
+      type: parsed.data.type,
+    });
+
+    return c.json({
+      requestedCount: parsed.data.contactIds.length,
+      affectedCount: result.affectedCount,
+      skippedCount: result.skippedCount,
+    });
   })
   .get('/contacts/:id', async (c) => {
     const contact = await getContactById(c.get('db'), {
@@ -204,29 +252,8 @@ export const contactsRoutes = new Hono<AppEnv>()
 
     return c.json({ contact: result.contact });
   })
-  .get('/contact-imports', async (c) => {
-    const parsed = contactImportListQuerySchema.safeParse(c.req.query());
-
-    if (!parsed.success) {
-      return c.json(
-        apiError(
-          'validation_failed',
-          'Invalid import query.',
-          z.treeifyError(parsed.error),
-        ),
-        400,
-      );
-    }
-
-    return c.json(
-      await listContactImports(c.get('db'), {
-        organizationId: c.get('organization').id,
-        query: parsed.data,
-      }),
-    );
-  })
   .post('/contact-imports', async (c) => {
-    const gate = await validateImportGate(c);
+    const gate = await requireContactImportEligibility(c);
 
     if (!gate.ok) {
       return gate.response;
@@ -246,10 +273,22 @@ export const contactsRoutes = new Hono<AppEnv>()
       );
     }
 
-    const buffer = await file.arrayBuffer();
-    const preview = safeParseCsvPreview(new TextDecoder().decode(buffer));
+    const startInput = parseImportStartForm(form);
 
-    if (!preview.ok) {
+    if (!startInput.ok) {
+      return c.json(
+        apiError(
+          'validation_failed',
+          'Invalid import request.',
+          startInput.error,
+        ),
+        400,
+      );
+    }
+
+    const buffer = await file.arrayBuffer();
+
+    if (!isValidCsv(new TextDecoder().decode(buffer))) {
       return c.json(
         apiError('validation_failed', 'CSV file could not be parsed.'),
         400,
@@ -259,38 +298,26 @@ export const contactsRoutes = new Hono<AppEnv>()
     const organization = c.get('organization');
     const storageId = crypto.randomUUID();
     const fileKey = `organizations/${organization.id}/contact-imports/${storageId}/source.csv`;
-    const phoneCountryCode = await getOrganizationCountryCode(
-      c.get('db'),
-      organization.id,
-    );
-    const contentType = file.type || 'text/csv';
 
     await c.env.CONTACT_IMPORTS_BUCKET.put(fileKey, buffer, {
-      httpMetadata: { contentType },
+      httpMetadata: { contentType: file.type || 'text/csv' },
       customMetadata: { organizationId: organization.id },
     });
 
-    const importRow = await createContactImport(c.get('db'), {
-      organizationId: organization.id,
-      createdByUserId: c.get('user').id,
+    const importRow = await createAndEnqueueContactImport(c, {
       fileKey,
-      filename: file.name,
-      fileSize: file.size,
-      contentType,
-      checksum: await sha256(buffer),
-      source: normalizedFormString(form.get('source')),
-      phoneCountryCode,
-      preview: preview.value,
+      mapping: startInput.data.mapping,
+      phoneCountryCode: startInput.data.phoneCountryCode,
     });
 
-    if (!importRow) {
+    if (!importRow.ok) {
       return c.json(
-        apiError('internal_error', 'Failed to create contact import.'),
+        apiError('internal_error', 'Failed to start contact import.'),
         500,
       );
     }
 
-    return c.json({ import: importRow, preview: preview.value }, 201);
+    return c.json({ import: importRow.import }, 202);
   })
   .get('/contact-imports/:id', async (c) => {
     const importRow = await getContactImportById(c.get('db'), {
@@ -303,78 +330,6 @@ export const contactsRoutes = new Hono<AppEnv>()
     }
 
     return c.json({ import: importRow });
-  })
-  .post('/contact-imports/:id/process', async (c) => {
-    const gate = await validateImportGate(c);
-
-    if (!gate.ok) {
-      return gate.response;
-    }
-
-    const parsed = await parseJsonBody(
-      c,
-      contactImportProcessSchema,
-      'Invalid import mapping.',
-    );
-
-    if (!parsed.ok) {
-      return parsed.response;
-    }
-
-    const organization = c.get('organization');
-    const transition = await markContactImportProcessing(c.get('db'), {
-      organizationId: organization.id,
-      contactImportId: c.req.param('id'),
-      mapping: parsed.data.mapping,
-      phoneCountryCode: parsed.data.phoneCountryCode,
-      permissionAttestedByUserId: c.get('user').id,
-    });
-
-    if (transition.status === 'not_found') {
-      return c.json(apiError('not_found', 'Contact import was not found.'), 404);
-    }
-
-    if (transition.status === 'invalid_status') {
-      return c.json(
-        apiError(
-          'validation_failed',
-          'Contact import has already started processing.',
-        ),
-        409,
-      );
-    }
-
-    const importRow = transition.import;
-
-    await enqueueContactImportProcessing(c.env, {
-      organizationId: organization.id,
-      contactImportId: importRow.id,
-      userId: c.get('user').id,
-    });
-
-    return c.json({ import: importRow }, 202);
-  })
-  .get('/contact-imports/:id/rows', async (c) => {
-    const parsed = contactImportRowsQuerySchema.safeParse(c.req.query());
-
-    if (!parsed.success) {
-      return c.json(
-        apiError(
-          'validation_failed',
-          'Invalid import rows query.',
-          z.treeifyError(parsed.error),
-        ),
-        400,
-      );
-    }
-
-    return c.json(
-      await listContactImportRows(c.get('db'), {
-        organizationId: c.get('organization').id,
-        contactImportId: c.req.param('id'),
-        query: parsed.data,
-      }),
-    );
   });
 
 function validateContactManagementPermission(c: Context<AppEnv>) {
@@ -391,100 +346,105 @@ function validateContactManagementPermission(c: Context<AppEnv>) {
   return { ok: true as const };
 }
 
-async function validateImportGate(c: Context<AppEnv>) {
+async function createAndEnqueueContactImport(
+  c: Context<AppEnv>,
+  input: {
+    fileKey: string;
+    mapping: z.infer<typeof contactImportStartSchema>['mapping'];
+    phoneCountryCode: string;
+  },
+) {
   const organization = c.get('organization');
-  const db = c.get('db');
-  const profile = await getOrganizationProfileByOrganizationId(db, organization.id);
-  const legalBundle = await getCurrentLegalBundle(db);
-  const legalAcceptance = await getCurrentOrganizationLegalAcceptance(db, {
-    organizationId: organization.id,
-    bundleVersion: legalBundle.version,
-  });
-  const readiness = getOrganizationReadiness({
-    hasProfile: profile !== null,
-    onboardingStatus: organization.onboardingStatus,
-    legalBundle,
-    legalAcceptance,
-  });
-  const eligibility = getOrganizationEligibility({
-    readiness,
-    role: organization.role,
-  });
+  let contactImportId: string | null = null;
 
-  if (eligibility.contactImports.blocker === 'admin_required') {
-    return {
-      ok: false as const,
-      response: c.json(
-        apiError('forbidden', 'Only organization admins can import contacts.'),
-        403,
-      ),
-    };
-  }
-
-  if (eligibility.contactImports.blocker === 'setup_required') {
-    return {
-      ok: false as const,
-      response: c.json(
-        apiError(
-          'forbidden',
-          'Organization setup must be complete before importing contacts.',
-        ),
-        403,
-      ),
-    };
-  }
-
-  if (eligibility.contactImports.blocker === 'legal_update_required') {
-    return {
-      ok: false as const,
-      response: c.json(
-        apiError(
-          'forbidden',
-          'Legal agreement must be current before importing contacts.',
-        ),
-        403,
-      ),
-    };
-  }
-
-  return { ok: true as const };
-}
-
-function parseCsvPreview(text: string): ContactImportPreview {
-  const records = parse(text, {
-    bom: true,
-    relax_column_count: true,
-    skip_empty_lines: true,
-    trim: true,
-    to_line: PREVIEW_ROWS + 1,
-  }) as string[][];
-  const [headerRow = [], ...sampleValueRows] = records;
-
-  return contactImportPreviewFromRows({
-    headers: headerRow,
-    rows: sampleValueRows,
-    maxRows: PREVIEW_ROWS,
-  });
-}
-
-function safeParseCsvPreview(text: string):
-  | { ok: true; value: ContactImportPreview }
-  | { ok: false } {
   try {
-    return { ok: true, value: parseCsvPreview(text) };
+    const importRow = await createContactImport(c.get('db'), {
+      organizationId: organization.id,
+      createdByUserId: c.get('user').id,
+      fileKey: input.fileKey,
+      mapping: input.mapping,
+      phoneCountryCode: input.phoneCountryCode,
+      permissionAttestedByUserId: c.get('user').id,
+    });
+
+    if (!importRow) {
+      throw new Error('Failed to create contact import.');
+    }
+
+    contactImportId = importRow.id;
+
+    await enqueueContactImportProcessing(c.env, {
+      organizationId: organization.id,
+      contactImportId: importRow.id,
+      userId: c.get('user').id,
+    });
+
+    return { ok: true, import: importRow };
+  } catch (error) {
+    await deleteTemporaryImportFile(c.env.CONTACT_IMPORTS_BUCKET, input.fileKey);
+
+    if (contactImportId) {
+      await failContactImport(c.get('db'), {
+        organizationId: organization.id,
+        contactImportId,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Contact import failed to start.',
+      });
+    }
+
+    return { ok: false };
+  }
+}
+
+function parseImportStartForm(form: FormData):
+  | { ok: true; data: z.infer<typeof contactImportStartSchema> }
+  | { ok: false; error: unknown } {
+  const mapping = parseMapping(form.get('mapping'));
+  const parsed = contactImportStartSchema.safeParse({
+    mapping: mapping.ok ? mapping.value : undefined,
+    phoneCountryCode: form.get('phoneCountryCode'),
+    permissionAttestation: form.get('permissionAttestation') === 'true',
+  });
+
+  if (!mapping.ok) {
+    return { ok: false, error: { mapping: 'Mapping must be valid JSON.' } };
+  }
+
+  if (!parsed.success) {
+    return { ok: false, error: z.treeifyError(parsed.error) };
+  }
+
+  return { ok: true, data: parsed.data };
+}
+
+function parseMapping(value: FormDataEntryValue | null):
+  | { ok: true; value: unknown }
+  | { ok: false } {
+  if (typeof value !== 'string') {
+    return { ok: false };
+  }
+
+  try {
+    return { ok: true, value: JSON.parse(value) };
   } catch {
     return { ok: false };
   }
 }
 
-async function sha256(buffer: ArrayBuffer) {
-  const digest = await crypto.subtle.digest('SHA-256', buffer);
+function isValidCsv(text: string) {
+  try {
+    parse(text, {
+      bom: true,
+      relax_column_count: true,
+      skip_empty_lines: true,
+      trim: true,
+      to_line: 2,
+    });
 
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-function normalizedFormString(value: FormDataEntryValue | null) {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
+    return true;
+  } catch {
+    return false;
+  }
 }

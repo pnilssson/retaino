@@ -5,12 +5,12 @@ import {
   formatPhoneCountryLabel,
   type OrganizationSession,
 } from '@retaino/shared/contracts';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { CountryCombobox } from '@/components/country-combobox';
 import { PhoneInput } from '@/components/phone-input';
+import { StatusBadge } from '@/components/status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   ItemActions,
@@ -43,6 +43,7 @@ export function ProfileSection({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const profile = session.profile;
+  const status = organizationProfileStatus(session);
 
   function openEditMode() {
     setIsEditing(true);
@@ -57,9 +58,9 @@ export function ProfileSection({
       <section id="organization-profile">
         <ItemHeader className="items-start">
           <ItemContent className="gap-2">
-            <ItemTitle className="flex-wrap text-base">
+            <ItemTitle className="flex flex-wrap items-center gap-2 text-base">
               Organization profile
-              {!profile ? <Badge variant="outline">Missing</Badge> : null}
+              <StatusBadge label={status.label} tone={status.tone} />
             </ItemTitle>
             <ItemDescription className="max-w-2xl">
               Legal, billing, and responsible contact details for this
@@ -69,6 +70,7 @@ export function ProfileSection({
           {canManageSetup && !isEditing ? (
             <ItemActions>
               <Button onClick={openEditMode} type="button" variant="outline">
+                <Pencil aria-hidden="true" data-icon="inline-start" />
                 {profile ? 'Edit profile' : 'Complete profile'}
               </Button>
             </ItemActions>
@@ -96,6 +98,27 @@ export function ProfileSection({
       </section>
     </AppPageItem>
   );
+}
+
+function organizationProfileStatus(session: OrganizationSession) {
+  if (session.readiness.legalUpdatesRequired) {
+    return {
+      label: 'Legal updates required',
+      tone: 'amber',
+    } as const;
+  }
+
+  if (session.readiness.ready) {
+    return {
+      label: 'Ready',
+      tone: 'green',
+    } as const;
+  }
+
+  return {
+    label: 'Setup incomplete',
+    tone: 'amber',
+  } as const;
 }
 
 function ProfileEditor({

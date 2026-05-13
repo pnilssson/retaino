@@ -146,8 +146,19 @@ Use App Router route groups by intent:
 - `src/app/(auth)/...`
 - `src/app/(app)/...`
 
-Feature modules live under `src/features/<feature>/`. Shared frontend utilities
-live under `src/lib/`.
+Feature modules live under `src/features/<feature>/`. Keep feature file layout
+strict:
+
+- `src/features/<feature>/components` contains React component `.tsx` files
+  only.
+- `src/features/<feature>/hooks` contains hook files named `use-*.ts` or
+  `use-*.tsx` only.
+- Pure feature `.ts` helpers, constants, formatters, query keys, and types live
+  directly under `src/features/<feature>/`.
+- Do not add feature `lib` folders for now.
+
+Shared frontend utilities live under `src/lib/`. Shared hooks used by multiple
+features live under `src/hooks/`.
 
 Reusable generated shadcn primitives live under `src/components/ui/`. Do not
 manually edit generated shadcn files. Compose them from feature code.

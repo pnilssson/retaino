@@ -1,20 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  completeContactImportFromRows,
+  completeContactImport,
   failContactImport,
   findSuppressionByHash,
   getContactImportForProcessing,
-  upsertContactImportRow,
   upsertImportedContact,
 } from '@retaino/db';
 import { processContactImport } from '../../../src/features/contacts/contacts.service';
 
 vi.mock('@retaino/db', () => ({
-  completeContactImportFromRows: vi.fn(),
+  completeContactImport: vi.fn(),
   failContactImport: vi.fn(),
   findSuppressionByHash: vi.fn(),
   getContactImportForProcessing: vi.fn(),
-  upsertContactImportRow: vi.fn(),
   upsertImportedContact: vi.fn(),
 }));
 
@@ -27,7 +25,7 @@ function bucket(csv: string) {
       arrayBuffer: async () => new TextEncoder().encode(csv).buffer,
     }),
     put: vi.fn(),
-    delete: vi.fn(),
+    delete: vi.fn().mockResolvedValue(undefined),
   } as unknown as R2Bucket;
 }
 
@@ -42,8 +40,6 @@ function importRecord() {
       phone: 'Phone',
       email: 'Email',
       lastBookingAt: 'Last booking',
-      lastService: 'Service',
-      source: 'Source',
     },
     phoneCountryCode: 'SE',
   };
@@ -51,11 +47,10 @@ function importRecord() {
 
 describe('processContactImport', () => {
   beforeEach(() => {
-    vi.mocked(completeContactImportFromRows).mockReset();
+    vi.mocked(completeContactImport).mockReset();
     vi.mocked(failContactImport).mockReset();
     vi.mocked(findSuppressionByHash).mockReset();
     vi.mocked(getContactImportForProcessing).mockReset();
-    vi.mocked(upsertContactImportRow).mockReset();
     vi.mocked(upsertImportedContact).mockReset();
     vi.mocked(getContactImportForProcessing).mockResolvedValue(importRecord());
     vi.mocked(findSuppressionByHash).mockResolvedValue(null);
@@ -71,11 +66,7 @@ describe('processContactImport', () => {
         normalizedEmail: 'ada@example.com',
         lastBookingAt: null,
         lastContactedAt: null,
-        lastService: null,
         consentStatus: 'granted',
-        source: 'csv',
-        createdFromImportId: contactImportId,
-        lastImportId: contactImportId,
         contactStatus: 'ready',
         contactIssues: [],
         createdAt: '2026-05-08T00:00:00.000Z',
@@ -84,12 +75,14 @@ describe('processContactImport', () => {
     });
   });
 
-  it('creates contacts from valid rows and stores final counts', async () => {
+  it('creates contacts from valid rows and stores aggregate counts', async () => {
+    const r2 = bucket(
+      'Name,Phone,Email,Last booking,Service,Source\nAda Lovelace,0701234567,ada@example.com,2026-01-02,Cut,booking\n',
+    );
+
     await processContactImport({
       db: {} as never,
-      bucket: bucket(
-        'Name,Phone,Email,Last booking,Service,Consent,Source\nAda Lovelace,0701234567,ada@example.com,2026-01-02,Cut,no,booking\n',
-      ),
+      bucket: r2,
       organizationId,
       contactImportId,
     });
@@ -105,219 +98,92 @@ describe('processContactImport', () => {
       phoneHash: expect.any(String),
       emailHash: expect.any(String),
       lastBookingAt: new Date('2026-01-02T00:00:00.000Z'),
-      lastService: 'Cut',
       consentStatus: 'granted',
-      source: 'booking',
     });
-    expect(upsertContactImportRow).toHaveBeenCalledWith(expect.anything(), {
+    expect(completeContactImport).toHaveBeenCalledWith(expect.anything(), {
       organizationId,
       contactImportId,
-      rowNumber: 2,
-      status: 'created',
-      contactId: '55555555-5555-4555-8555-555555555555',
-      rawValues: {},
-      normalizedValues: {
-        phone: '+46701234567',
-        email: 'ada@example.com',
+      counts: {
+        totalRows: 1,
+        processedRows: 1,
+        createdCount: 1,
+        updatedCount: 0,
+        skippedCount: 0,
+        invalidCount: 0,
+        duplicateCount: 0,
+        suppressedCount: 0,
+        errorSummary: [],
       },
-      errors: [],
     });
-    expect(completeContactImportFromRows).toHaveBeenCalledWith(expect.anything(), {
-      organizationId,
-      contactImportId,
-    });
+    expect(r2.delete).toHaveBeenCalledWith('source.csv');
   });
 
-  it('updates existing contacts instead of duplicating them', async () => {
-    vi.mocked(upsertImportedContact).mockResolvedValue({
-      action: 'updated',
-      contact: null,
-    });
-
-    await processContactImport({
-      db: {} as never,
-      bucket: bucket('Name,Phone,Email,Consent\nAda,0701234567,,no\n'),
-      organizationId,
-      contactImportId,
-    });
-
-    expect(completeContactImportFromRows).toHaveBeenCalledWith(
-      expect.anything(),
-      { organizationId, contactImportId },
-    );
-    expect(upsertContactImportRow).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ status: 'updated' }),
-    );
-  });
-
-  it('writes invalid row errors', async () => {
-    await processContactImport({
-      db: {} as never,
-      bucket: bucket('Name,Phone,Email,Consent\nAda,123,,yes\n'),
-      organizationId,
-      contactImportId,
-    });
-
-    expect(upsertContactImportRow).toHaveBeenCalledWith(expect.anything(), {
-      organizationId,
-      contactImportId,
-      rowNumber: 2,
-      status: 'invalid',
-      contactId: null,
-      rawValues: expect.objectContaining({ Phone: '123' }),
-      normalizedValues: {
-        phone: null,
-        email: null,
-      },
-      errors: ['invalid_phone'],
-    });
-  });
-
-  it('omits unmapped raw values from failed row results', async () => {
-    await processContactImport({
-      db: {} as never,
-      bucket: bucket(
-        'Name,Phone,Email,Consent,Extra\nAda,123,,yes,unmapped\n',
-      ),
-      organizationId,
-      contactImportId,
-    });
-
-    expect(upsertContactImportRow).toHaveBeenCalledWith(expect.anything(), {
-      organizationId,
-      contactImportId,
-      rowNumber: 2,
-      status: 'invalid',
-      contactId: null,
-      rawValues: {
-        Name: 'Ada',
-        Phone: '123',
-        Email: '',
-      },
-      normalizedValues: {
-        phone: null,
-        email: null,
-      },
-      errors: ['invalid_phone'],
-    });
-  });
-
-  it('skips suppressed rows', async () => {
-    vi.mocked(findSuppressionByHash).mockResolvedValue({
+  it('counts invalid, duplicate, suppressed, and conflicting rows without row persistence', async () => {
+    const suppression = {
       id: '66666666-6666-4666-8666-666666666666',
       organizationId,
-      type: 'phone',
-      value: '+46701234567',
-      normalizedValue: '+46701234567',
+      type: 'phone' as const,
+      value: '+46700000000',
+      normalizedValue: '+46700000000',
       valueHash: 'hash',
       reason: 'opt_out',
       source: null,
       createdAt: new Date('2026-05-08T00:00:00.000Z'),
-    });
+    };
+    vi.mocked(findSuppressionByHash)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(suppression)
+      .mockResolvedValue(null);
+    vi.mocked(upsertImportedContact)
+      .mockResolvedValueOnce({ action: 'created', contact: null })
+      .mockResolvedValueOnce({ action: 'conflict', contact: null });
 
-    await processContactImport({
-      db: {} as never,
-      bucket: bucket('Name,Phone,Email,Consent\nAda,0701234567,,yes\n'),
-      organizationId,
-      contactImportId,
-    });
-
-    expect(upsertImportedContact).not.toHaveBeenCalled();
-    expect(upsertContactImportRow).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ status: 'suppressed' }),
-    );
-  });
-
-  it('handles duplicate rows deterministically', async () => {
     await processContactImport({
       db: {} as never,
       bucket: bucket(
-        'Name,Phone,Email,Consent\nAda,0701234567,,yes\nAda Duplicate,0701234567,,yes\n',
+        'Name,Phone,Email,Last booking\nValid,0701234567,,\nInvalid,123,,\nDupe,0701234567,,\nSuppressed,0700000000,,\nConflict,0701111111,ada@example.com,\n',
       ),
       organizationId,
       contactImportId,
     });
 
-    expect(upsertImportedContact).toHaveBeenCalledTimes(1);
-    expect(upsertContactImportRow).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        rowNumber: 3,
-        status: 'duplicate',
-        errors: ['duplicate_contact_method'],
+    expect(completeContactImport).toHaveBeenCalledWith(expect.anything(), {
+      organizationId,
+      contactImportId,
+      counts: expect.objectContaining({
+        totalRows: 5,
+        processedRows: 5,
+        createdCount: 1,
+        skippedCount: 1,
+        invalidCount: 1,
+        duplicateCount: 1,
+        suppressedCount: 1,
+        errorSummary: [
+          'invalid_phone',
+          'duplicate_contact_method',
+          'suppressed_contact_method',
+          'conflicting_contact_methods',
+        ],
       }),
-    );
+    });
   });
 
-  it('skips rows with conflicting existing contact methods', async () => {
-    vi.mocked(upsertImportedContact).mockResolvedValue({
-      action: 'conflict',
-      contact: null,
-    });
+  it('marks the import failed and still deletes the temporary file when processing throws', async () => {
+    vi.mocked(upsertImportedContact).mockRejectedValue(new Error('database down'));
+    const r2 = bucket('Name,Phone\nAda,0701234567\n');
 
     await processContactImport({
       db: {} as never,
-      bucket: bucket('Name,Phone,Email,Consent\nAda,0701234567,ada@example.com,yes\n'),
+      bucket: r2,
       organizationId,
       contactImportId,
     });
-
-    expect(upsertContactImportRow).toHaveBeenCalledWith(expect.anything(), {
-      organizationId,
-      contactImportId,
-      rowNumber: 2,
-      status: 'skipped',
-      contactId: null,
-      rawValues: expect.objectContaining({
-        Phone: '0701234567',
-        Email: 'ada@example.com',
-      }),
-      normalizedValues: {
-        phone: '+46701234567',
-        email: 'ada@example.com',
-      },
-      errors: ['conflicting_contact_methods'],
-    });
-  });
-
-  it('rejects rolled-over last booking dates', async () => {
-    await processContactImport({
-      db: {} as never,
-      bucket: bucket(
-        'Name,Phone,Email,Last booking,Consent\nAda,0701234567,,2026-02-31,yes\n',
-      ),
-      organizationId,
-      contactImportId,
-    });
-
-    expect(upsertImportedContact).not.toHaveBeenCalled();
-    expect(upsertContactImportRow).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        status: 'invalid',
-        errors: ['invalid_last_booking_at'],
-      }),
-    );
-  });
-
-  it('marks the import failed when processing throws', async () => {
-    vi.mocked(getContactImportForProcessing).mockResolvedValue(null);
-
-    await expect(
-      processContactImport({
-        db: {} as never,
-        bucket: bucket('Name\nAda\n'),
-        organizationId,
-        contactImportId,
-      }),
-    ).rejects.toThrow('Contact import was not found.');
 
     expect(failContactImport).toHaveBeenCalledWith(expect.anything(), {
       organizationId,
       contactImportId,
-      error: 'Contact import was not found.',
+      error: 'database down',
     });
+    expect(r2.delete).toHaveBeenCalledWith('source.csv');
   });
 });

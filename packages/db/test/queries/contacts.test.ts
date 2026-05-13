@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 import {
@@ -8,8 +8,10 @@ import {
   contactSuppressionMethodFilter,
   contactStatusFilter,
   contactToContract,
-  importRowToContract,
+  deleteContacts,
+  failContactImport,
   resolveImportedContactMatch,
+  suppressContacts,
 } from '../../src/queries/contacts';
 
 describe('contact query helpers', () => {
@@ -32,11 +34,7 @@ describe('contact query helpers', () => {
           emailHash: 'e',
           lastBookingAt: null,
           lastContactedAt: null,
-          lastService: null,
           consentStatus: 'granted',
-          source: 'csv',
-          createdFromImportId: null,
-          lastImportId: null,
           createdAt: new Date('2026-05-08T00:00:00.000Z'),
           updatedAt: new Date('2026-05-08T00:00:00.000Z'),
         },
@@ -63,11 +61,7 @@ describe('contact query helpers', () => {
           emailHash: 'e',
           lastBookingAt: null,
           lastContactedAt: null,
-          lastService: null,
           consentStatus: 'granted',
-          source: 'csv',
-          createdFromImportId: null,
-          lastImportId: null,
           createdAt: new Date('2026-05-08T00:00:00.000Z'),
           updatedAt: new Date('2026-05-08T00:00:00.000Z'),
         },
@@ -89,27 +83,6 @@ describe('contact query helpers', () => {
       contactStatus: 'blocked',
       contactIssues: ['suppressed_phone'],
       suppressions: [{ type: 'phone', reason: 'manual_contact_suppression' }],
-    });
-  });
-
-  it('maps row results without losing row errors', () => {
-    expect(
-      importRowToContract({
-        id: '11111111-1111-4111-8111-111111111111',
-        organizationId: '22222222-2222-4222-8222-222222222222',
-        contactImportId: '33333333-3333-4333-8333-333333333333',
-        rowNumber: 2,
-        status: 'invalid',
-        contactId: null,
-        rawValues: { Phone: '123' },
-        normalizedValues: {},
-        errors: ['invalid_phone'],
-        createdAt: new Date('2026-05-08T00:00:00.000Z'),
-      }),
-    ).toMatchObject({
-      rowNumber: 2,
-      status: 'invalid',
-      errors: ['invalid_phone'],
     });
   });
 
@@ -190,5 +163,154 @@ describe('contact query helpers', () => {
     expect(query.sql).toContain('"suppressions"."type" = $1');
     expect(query.sql).toContain('"suppressions"."value_hash" = $2');
     expect(query.params).toEqual(['phone', 'phone-hash']);
+  });
+
+  it('only fails imports that are still processing', async () => {
+    let whereCondition: SQL | undefined;
+    const db = {
+      update: () => ({
+        set: () => ({
+          where: (condition: SQL | undefined) => {
+            whereCondition = condition;
+
+            return {
+              returning: () => [],
+            };
+          },
+        }),
+      }),
+    };
+
+    await failContactImport(db as never, {
+      organizationId: '22222222-2222-4222-8222-222222222222',
+      contactImportId: '44444444-4444-4444-8444-444444444444',
+      error: 'stale event',
+    });
+
+    if (!whereCondition) {
+      throw new Error('Expected failContactImport to build a where condition.');
+    }
+
+    const query = new PgDialect().sqlToQuery(
+      sql`select 1 where ${whereCondition}`,
+    );
+
+    expect(query.sql).toContain('"contact_imports"."status" = $3');
+    expect(query.params).toEqual([
+      '22222222-2222-4222-8222-222222222222',
+      '44444444-4444-4444-8444-444444444444',
+      'processing',
+    ]);
+  });
+
+  it('bulk deletes only contacts owned by the organization', async () => {
+    let whereCondition: SQL | undefined;
+    const db = {
+      delete: () => ({
+        where: (condition: SQL | undefined) => {
+          whereCondition = condition;
+
+          return {
+            returning: () => [
+              { id: '11111111-1111-4111-8111-111111111111' },
+            ],
+          };
+        },
+      }),
+    };
+
+    await deleteContacts(db as never, {
+      organizationId: '22222222-2222-4222-8222-222222222222',
+      contactIds: [
+        '11111111-1111-4111-8111-111111111111',
+        '33333333-3333-4333-8333-333333333333',
+      ],
+    });
+
+    if (!whereCondition) {
+      throw new Error('Expected deleteContacts to build a where condition.');
+    }
+
+    const query = new PgDialect().sqlToQuery(
+      sql`select 1 where ${whereCondition}`,
+    );
+
+    expect(query.sql).toContain('"contacts"."organization_id" = $1');
+    expect(query.sql).toContain('"contacts"."id" in ($2, $3)');
+    expect(query.params).toEqual([
+      '22222222-2222-4222-8222-222222222222',
+      '11111111-1111-4111-8111-111111111111',
+      '33333333-3333-4333-8333-333333333333',
+    ]);
+  });
+
+  it('bulk suppresses usable phone contacts and ignores insert conflicts', async () => {
+    let insertedValues: unknown[] = [];
+    let conflictConfig: unknown;
+    const db = {
+      select: () => ({
+        from: () => ({
+          where: () => [
+            {
+              id: '11111111-1111-4111-8111-111111111111',
+              phone: '0701234567',
+              normalizedPhone: '+46701234567',
+              phoneHash: 'phone-hash-1',
+            },
+            {
+              id: '33333333-3333-4333-8333-333333333333',
+              phone: null,
+              normalizedPhone: null,
+              phoneHash: null,
+            },
+          ],
+        }),
+      }),
+      insert: () => ({
+        values: (values: unknown[]) => {
+          insertedValues = values;
+
+          return {
+            onConflictDoNothing: (config: unknown) => {
+              conflictConfig = config;
+
+              return {
+                returning: () => [{ valueHash: 'phone-hash-1' }],
+              };
+            },
+          };
+        },
+      }),
+      update: () => ({
+        set: () => ({
+          where: () => ({
+            returning: () => [],
+          }),
+        }),
+      }),
+    };
+
+    const result = await suppressContacts(db as never, {
+      organizationId: '22222222-2222-4222-8222-222222222222',
+      contactIds: [
+        '11111111-1111-4111-8111-111111111111',
+        '33333333-3333-4333-8333-333333333333',
+        '44444444-4444-4444-8444-444444444444',
+      ],
+      type: 'phone',
+    });
+
+    expect(insertedValues).toHaveLength(1);
+    expect(insertedValues[0]).toMatchObject({
+      organizationId: '22222222-2222-4222-8222-222222222222',
+      type: 'phone',
+      value: '0701234567',
+      normalizedValue: '+46701234567',
+      valueHash: 'phone-hash-1',
+      reason: 'manual_contact_suppression',
+      source: 'app',
+    });
+    expect(conflictConfig).toBeDefined();
+    expect(result).toEqual({ affectedCount: 1, skippedCount: 2 });
   });
 });

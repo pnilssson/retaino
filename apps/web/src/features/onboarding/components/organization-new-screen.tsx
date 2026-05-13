@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getFieldError } from '@/lib/form-errors';
 import { routes } from '@/lib/routes';
-import { defaultOrganizationName } from '../lib/default-organization-name';
+import { defaultOrganizationName } from '../default-organization-name';
 import { OnboardingFrame } from './onboarding-frame';
 import { OnboardingItem } from './onboarding-item';
 
@@ -149,9 +149,13 @@ export function OrganizationNewScreen() {
                 type="submit"
               >
                 {isSubmitting ? (
-                  <Loader2 aria-hidden="true" className="animate-spin" />
+                  <Loader2
+                    aria-hidden="true"
+                    className="animate-spin"
+                    data-icon="inline-start"
+                  />
                 ) : (
-                  <Plus aria-hidden="true" />
+                  <Plus aria-hidden="true" data-icon="inline-start" />
                 )}
                 Create organization
               </Button>

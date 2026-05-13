@@ -39,7 +39,7 @@ import {
   SidebarRail,
   useSidebar
 } from '@/components/ui/sidebar';
-import { useCookieConsent } from '@/features/cookies/cookie-consent-provider';
+import { useCookieConsent } from '@/features/cookies/hooks/use-cookie-consent';
 import { routes } from '@/lib/routes';
 import { OrganizationSwitcher } from './organization-switcher';
 
@@ -59,8 +59,8 @@ const navigationItems = [
         href: routes.contacts,
       },
       {
-        title: 'Imports',
-        href: routes.contactImports,
+        title: 'Import contacts',
+        href: routes.contactsImport,
       },
     ],
   },
@@ -252,17 +252,11 @@ function isNavigationItemActive(pathname: string, href: string) {
 }
 
 function isNavigationSubItemActive(pathname: string, href: string) {
-  if (href === routes.contactImports) {
-    return pathname === href || pathname.startsWith(`${href}/`);
-  }
-
   if (href === routes.contacts) {
     return (
       pathname === href ||
       (pathname.startsWith(`${href}/`) &&
-        pathname !== routes.contactsImport &&
-        pathname !== routes.contactImports &&
-        !pathname.startsWith(`${routes.contactImports}/`))
+        pathname !== routes.contactsImport)
     );
   }
 

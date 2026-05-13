@@ -20,26 +20,17 @@ import {
   type ContactConsentStatus,
   type ContactDetail,
   type ContactImportDetail,
-  type ContactImportPreview,
-  type ContactImportRow,
-  type ContactImportRowStatus,
   type ContactImportStatus,
-  type ContactImportSummary,
   type ContactListQuery,
   type ContactListResponse,
-  type ContactImportListQuery,
-  type ContactImportListResponse,
-  type ContactImportRowsQuery,
-  type ContactImportRowsResponse,
   type ContactSuppression,
   type CsvMapping,
   type SuppressionType,
   type UpdateContactInput,
-  prepareContactMethods,
+  prepareContactMethodIdentity,
 } from '@retaino/shared/contracts';
 import type { DbClient } from '../client';
 import {
-  contactImportRows,
   contactImports,
   contacts,
   organizationProfiles,
@@ -48,21 +39,27 @@ import {
 
 type ContactRow = typeof contacts.$inferSelect;
 type ContactImportDbRow = typeof contactImports.$inferSelect;
-type ImportResultRow = typeof contactImportRows.$inferSelect;
 type SuppressionRow = typeof suppressions.$inferSelect;
-
-export type MarkContactImportProcessingResult =
-  | { status: 'updated'; import: ContactImportDetail }
-  | { status: 'not_found' }
-  | { status: 'invalid_status'; import: ContactImportDetail };
 
 export type ContactImportProcessingRecord = {
   id: string;
   organizationId: string;
   status: ContactImportStatus;
-  fileKey: string;
+  fileKey: string | null;
   mapping: CsvMapping | null;
   phoneCountryCode: string;
+};
+
+export type ContactImportCounts = {
+  totalRows: number;
+  processedRows: number;
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  invalidCount: number;
+  duplicateCount: number;
+  suppressedCount: number;
+  errorSummary: string[];
 };
 
 export type UpdateContactResult =
@@ -101,11 +98,7 @@ export function contactToContract(
     normalizedEmail: row.normalizedEmail,
     lastBookingAt: row.lastBookingAt?.toISOString() ?? null,
     lastContactedAt: row.lastContactedAt?.toISOString() ?? null,
-    lastService: row.lastService,
     consentStatus: row.consentStatus as ContactConsentStatus,
-    source: row.source,
-    createdFromImportId: row.createdFromImportId,
-    lastImportId: row.lastImportId,
     ...deriveSmsContactStatus({
       normalizedPhone: row.normalizedPhone,
       consentStatus: row.consentStatus as ContactConsentStatus,
@@ -139,18 +132,12 @@ export function contactDetailToContract(
   };
 }
 
-export function contactImportToSummary(
-  row: ContactImportDbRow,
-): ContactImportSummary {
+export function contactImportToDetail(row: ContactImportDbRow): ContactImportDetail {
   return {
     id: row.id,
     organizationId: row.organizationId,
     createdByUserId: row.createdByUserId,
     status: row.status as ContactImportStatus,
-    filename: row.filename,
-    fileSize: row.fileSize,
-    contentType: row.contentType,
-    source: row.source,
     phoneCountryCode: row.phoneCountryCode,
     totalRows: row.totalRows,
     processedRows: row.processedRows,
@@ -165,37 +152,11 @@ export function contactImportToSummary(
       : [],
     permissionAttestedAt: row.permissionAttestedAt?.toISOString() ?? null,
     permissionAttestedByUserId: row.permissionAttestedByUserId,
+    startedAt: row.startedAt?.toISOString() ?? null,
     completedAt: row.completedAt?.toISOString() ?? null,
     failedAt: row.failedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-  };
-}
-
-export function contactImportToDetail(
-  row: ContactImportDbRow,
-): ContactImportDetail {
-  return {
-    ...contactImportToSummary(row),
-    mapping: row.mapping as CsvMapping | null,
-    preview: row.preview as ContactImportPreview | null,
-  };
-}
-
-export function importRowToContract(row: ImportResultRow): ContactImportRow {
-  return {
-    id: row.id,
-    organizationId: row.organizationId,
-    contactImportId: row.contactImportId,
-    rowNumber: row.rowNumber,
-    status: row.status as ContactImportRowStatus,
-    contactId: row.contactId,
-    rawValues: isRecord(row.rawValues) ? stringifyRecord(row.rawValues) : {},
-    normalizedValues: isRecord(row.normalizedValues)
-      ? nullableStringRecord(row.normalizedValues)
-      : {},
-    errors: Array.isArray(row.errors) ? row.errors.map(String) : [],
-    createdAt: row.createdAt.toISOString(),
   };
 }
 
@@ -220,13 +181,9 @@ export async function createContactImport(
     organizationId: string;
     createdByUserId: string;
     fileKey: string;
-    filename: string;
-    fileSize: number;
-    contentType: string;
-    checksum?: string | null;
-    source?: string | null;
+    mapping: CsvMapping;
     phoneCountryCode: string;
-    preview: ContactImportPreview;
+    permissionAttestedByUserId: string;
   },
 ) {
   assertOrganizationId(input.organizationId);
@@ -234,9 +191,15 @@ export async function createContactImport(
   const [row] = await db
     .insert(contactImports)
     .values({
-      ...input,
-      checksum: input.checksum ?? null,
-      source: input.source ?? null,
+      organizationId: input.organizationId,
+      createdByUserId: input.createdByUserId,
+      status: 'processing',
+      fileKey: input.fileKey,
+      mapping: input.mapping,
+      phoneCountryCode: input.phoneCountryCode,
+      permissionAttestedAt: new Date(),
+      permissionAttestedByUserId: input.permissionAttestedByUserId,
+      startedAt: new Date(),
     })
     .returning();
 
@@ -296,80 +259,6 @@ export async function getContactImportForProcessing(
     : null;
 }
 
-export async function listContactImports(
-  db: DbClient,
-  input: { organizationId: string; query: ContactImportListQuery },
-): Promise<ContactImportListResponse> {
-  assertOrganizationId(input.organizationId);
-
-  const where = [
-    eq(contactImports.organizationId, input.organizationId),
-    input.query.status ? eq(contactImports.status, input.query.status) : undefined,
-  ].filter(Boolean);
-  const offset = (input.query.page - 1) * input.query.pageSize;
-  const rows = await db
-    .select()
-    .from(contactImports)
-    .where(and(...where))
-    .orderBy(desc(contactImports.createdAt))
-    .limit(input.query.pageSize)
-    .offset(offset);
-  const [totalRow] = await db
-    .select({ total: count() })
-    .from(contactImports)
-    .where(and(...where));
-
-  return {
-    imports: rows.map(contactImportToSummary),
-    page: input.query.page,
-    pageSize: input.query.pageSize,
-    total: totalRow?.total ?? 0,
-  };
-}
-
-export async function markContactImportProcessing(
-  db: DbClient,
-  input: {
-    organizationId: string;
-    contactImportId: string;
-    mapping: CsvMapping;
-    phoneCountryCode: string;
-    permissionAttestedByUserId: string;
-  },
-): Promise<MarkContactImportProcessingResult> {
-  assertOrganizationId(input.organizationId);
-
-  const [row] = await db
-    .update(contactImports)
-    .set({
-      mapping: input.mapping,
-      phoneCountryCode: input.phoneCountryCode,
-      status: 'processing',
-      permissionAttestedAt: new Date(),
-      permissionAttestedByUserId: input.permissionAttestedByUserId,
-      startedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(contactImports.organizationId, input.organizationId),
-        eq(contactImports.id, input.contactImportId),
-        eq(contactImports.status, 'uploaded'),
-      ),
-    )
-    .returning();
-
-  if (row) {
-    return { status: 'updated', import: contactImportToDetail(row) };
-  }
-
-  const existing = await getContactImportById(db, input);
-
-  return existing
-    ? { status: 'invalid_status', import: existing }
-    : { status: 'not_found' };
-}
-
 export async function listContacts(
   db: DbClient,
   input: { organizationId: string; query: ContactListQuery },
@@ -378,9 +267,6 @@ export async function listContacts(
 
   const where = [
     eq(contacts.organizationId, input.organizationId),
-    input.query.importedFrom
-      ? eq(contacts.lastImportId, input.query.importedFrom)
-      : undefined,
     input.query.search
       ? or(
           ilike(contacts.name, `%${input.query.search}%`),
@@ -493,7 +379,7 @@ export async function updateContact(
     input.input.phone === undefined ? existing.phone : input.input.phone;
   const email =
     input.input.email === undefined ? existing.email : input.input.email;
-  const methods = await prepareContactMethods({
+  const methods = await prepareContactMethodIdentity({
     phone,
     email,
     phoneCountryCode: countryCode,
@@ -534,12 +420,6 @@ export async function updateContact(
           : input.input.lastBookingAt
             ? new Date(input.input.lastBookingAt)
             : null,
-      lastService:
-        input.input.lastService === undefined
-          ? existing.lastService
-          : input.input.lastService,
-      source:
-        input.input.source === undefined ? existing.source : input.input.source,
       updatedAt: new Date(),
     })
     .where(
@@ -580,6 +460,107 @@ export async function deleteContact(
     .returning({ id: contacts.id });
 
   return Boolean(deleted);
+}
+
+export async function deleteContacts(
+  db: DbClient,
+  input: { organizationId: string; contactIds: string[] },
+) {
+  assertOrganizationId(input.organizationId);
+
+  if (input.contactIds.length === 0) {
+    return 0;
+  }
+
+  const deleted = await db
+    .delete(contacts)
+    .where(
+      and(
+        eq(contacts.organizationId, input.organizationId),
+        inArray(contacts.id, input.contactIds),
+      ),
+    )
+    .returning({ id: contacts.id });
+
+  return deleted.length;
+}
+
+export async function suppressContacts(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    contactIds: string[];
+    type: Extract<SuppressionType, 'phone'>;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+
+  if (input.contactIds.length === 0) {
+    return { affectedCount: 0, skippedCount: 0 };
+  }
+
+  const contactRows = await db
+    .select()
+    .from(contacts)
+    .where(
+      and(
+        eq(contacts.organizationId, input.organizationId),
+        inArray(contacts.id, input.contactIds),
+      ),
+    );
+  const suppressionValues = contactRows.flatMap((contact) => {
+    if (!contact.phoneHash || !contact.normalizedPhone || !contact.phone) {
+      return [];
+    }
+
+    return [
+      {
+        organizationId: input.organizationId,
+        type: input.type,
+        value: contact.phone,
+        normalizedValue: contact.normalizedPhone,
+        valueHash: contact.phoneHash,
+        reason: 'manual_contact_suppression',
+        source: 'app',
+      },
+    ];
+  });
+
+  if (suppressionValues.length === 0) {
+    return { affectedCount: 0, skippedCount: input.contactIds.length };
+  }
+
+  const inserted = await db
+    .insert(suppressions)
+    .values(suppressionValues)
+    .onConflictDoNothing({
+      target: [
+        suppressions.organizationId,
+        suppressions.type,
+        suppressions.valueHash,
+      ],
+    })
+    .returning({ valueHash: suppressions.valueHash });
+  const insertedHashes = Array.from(
+    new Set(inserted.map((suppression) => suppression.valueHash)),
+  );
+
+  if (insertedHashes.length > 0) {
+    await db
+      .update(contacts)
+      .set({ updatedAt: new Date() })
+      .where(
+        and(
+          eq(contacts.organizationId, input.organizationId),
+          inArray(contacts.phoneHash, insertedHashes),
+        ),
+      );
+  }
+
+  return {
+    affectedCount: inserted.length,
+    skippedCount: input.contactIds.length - inserted.length,
+  };
 }
 
 export async function createContactSuppression(
@@ -863,44 +844,6 @@ async function contactMethodBelongsToAnotherContact(
   return Boolean(match);
 }
 
-export async function listContactImportRows(
-  db: DbClient,
-  input: {
-    organizationId: string;
-    contactImportId: string;
-    query: ContactImportRowsQuery;
-  },
-): Promise<ContactImportRowsResponse> {
-  assertOrganizationId(input.organizationId);
-
-  const where = [
-    eq(contactImportRows.organizationId, input.organizationId),
-    eq(contactImportRows.contactImportId, input.contactImportId),
-    input.query.status
-      ? eq(contactImportRows.status, input.query.status)
-      : undefined,
-  ].filter(Boolean);
-  const offset = (input.query.page - 1) * input.query.pageSize;
-  const rows = await db
-    .select()
-    .from(contactImportRows)
-    .where(and(...where))
-    .orderBy(contactImportRows.rowNumber)
-    .limit(input.query.pageSize)
-    .offset(offset);
-  const [totalRow] = await db
-    .select({ total: count() })
-    .from(contactImportRows)
-    .where(and(...where));
-
-  return {
-    rows: rows.map(importRowToContract),
-    page: input.query.page,
-    pageSize: input.query.pageSize,
-    total: totalRow?.total ?? 0,
-  };
-}
-
 export async function findSuppressionByHash(
   db: DbClient,
   input: { organizationId: string; type: 'phone' | 'email'; valueHash: string },
@@ -935,9 +878,7 @@ export async function upsertImportedContact(
     phoneHash: string | null;
     emailHash: string | null;
     lastBookingAt: Date | null;
-    lastService: string | null;
     consentStatus: ContactConsentStatus;
-    source: string | null;
   },
 ) {
   assertOrganizationId(input.organizationId);
@@ -989,10 +930,7 @@ export async function upsertImportedContact(
         phoneHash: input.phoneHash ?? existing.phoneHash,
         emailHash: input.emailHash ?? existing.emailHash,
         lastBookingAt: input.lastBookingAt ?? existing.lastBookingAt,
-        lastService: input.lastService ?? existing.lastService,
         consentStatus: input.consentStatus,
-        source: input.source ?? existing.source,
-        lastImportId: input.contactImportId,
         updatedAt: new Date(),
       })
       .where(
@@ -1018,11 +956,7 @@ export async function upsertImportedContact(
       phoneHash: input.phoneHash,
       emailHash: input.emailHash,
       lastBookingAt: input.lastBookingAt,
-      lastService: input.lastService,
       consentStatus: input.consentStatus,
-      source: input.source,
-      createdFromImportId: input.contactImportId,
-      lastImportId: input.contactImportId,
     })
     .returning();
 
@@ -1048,107 +982,31 @@ export function resolveImportedContactMatch<TContact extends { id: string }>(
   };
 }
 
-export async function upsertContactImportRow(
+export async function completeContactImport(
   db: DbClient,
   input: {
     organizationId: string;
     contactImportId: string;
-    rowNumber: number;
-    status: ContactImportRowStatus;
-    contactId: string | null;
-    rawValues: Record<string, string>;
-    normalizedValues: Record<string, string | null>;
-    errors: string[];
+    counts: ContactImportCounts;
   },
 ) {
   assertOrganizationId(input.organizationId);
-
-  const [row] = await db
-    .insert(contactImportRows)
-    .values(input)
-    .onConflictDoUpdate({
-      target: [
-        contactImportRows.organizationId,
-        contactImportRows.contactImportId,
-        contactImportRows.rowNumber,
-      ],
-      set: {
-        status: input.status,
-        contactId: input.contactId,
-        rawValues: input.rawValues,
-        normalizedValues: input.normalizedValues,
-        errors: input.errors,
-      },
-    })
-    .returning();
-
-  return row ? importRowToContract(row) : null;
-}
-
-export async function completeContactImportFromRows(
-  db: DbClient,
-  input: {
-    organizationId: string;
-    contactImportId: string;
-  },
-) {
-  assertOrganizationId(input.organizationId);
-  const rows = await db
-    .select({
-      status: contactImportRows.status,
-      errors: contactImportRows.errors,
-    })
-    .from(contactImportRows)
-    .where(
-      and(
-        eq(contactImportRows.organizationId, input.organizationId),
-        eq(contactImportRows.contactImportId, input.contactImportId),
-      ),
-    );
-  const counts = rows.reduce(
-    (accumulator, row) => {
-      accumulator.totalRows += 1;
-      accumulator.processedRows += 1;
-
-      if (row.status === 'created') accumulator.createdCount += 1;
-      if (row.status === 'updated') accumulator.updatedCount += 1;
-      if (row.status === 'skipped') accumulator.skippedCount += 1;
-      if (row.status === 'invalid') accumulator.invalidCount += 1;
-      if (row.status === 'duplicate') accumulator.duplicateCount += 1;
-      if (row.status === 'suppressed') accumulator.suppressedCount += 1;
-
-      if (Array.isArray(row.errors)) {
-        row.errors.forEach((error) => accumulator.errorSummary.add(String(error)));
-      }
-
-      return accumulator;
-    },
-    {
-      totalRows: 0,
-      processedRows: 0,
-      createdCount: 0,
-      updatedCount: 0,
-      skippedCount: 0,
-      invalidCount: 0,
-      duplicateCount: 0,
-      suppressedCount: 0,
-      errorSummary: new Set<string>(),
-    },
-  );
 
   const [row] = await db
     .update(contactImports)
     .set({
-      totalRows: counts.totalRows,
-      processedRows: counts.processedRows,
-      createdCount: counts.createdCount,
-      updatedCount: counts.updatedCount,
-      skippedCount: counts.skippedCount,
-      invalidCount: counts.invalidCount,
-      duplicateCount: counts.duplicateCount,
-      suppressedCount: counts.suppressedCount,
-      errorSummary: Array.from(counts.errorSummary),
+      totalRows: input.counts.totalRows,
+      processedRows: input.counts.processedRows,
+      createdCount: input.counts.createdCount,
+      updatedCount: input.counts.updatedCount,
+      skippedCount: input.counts.skippedCount,
+      invalidCount: input.counts.invalidCount,
+      duplicateCount: input.counts.duplicateCount,
+      suppressedCount: input.counts.suppressedCount,
+      errorSummary: input.counts.errorSummary,
       status: 'completed',
+      fileKey: null,
+      mapping: null,
       completedAt: new Date(),
       failedAt: null,
       updatedAt: new Date(),
@@ -1174,6 +1032,8 @@ export async function failContactImport(
     .update(contactImports)
     .set({
       status: 'failed',
+      fileKey: null,
+      mapping: null,
       errorSummary: [input.error],
       failedAt: new Date(),
       updatedAt: new Date(),
@@ -1182,30 +1042,12 @@ export async function failContactImport(
       and(
         eq(contactImports.organizationId, input.organizationId),
         eq(contactImports.id, input.contactImportId),
+        eq(contactImports.status, 'processing'),
       ),
     )
     .returning();
 
   return row ? contactImportToDetail(row) : null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-function stringifyRecord(value: Record<string, unknown>) {
-  return Object.fromEntries(
-    Object.entries(value).map(([key, entry]) => [key, String(entry ?? '')]),
-  );
-}
-
-function nullableStringRecord(value: Record<string, unknown>) {
-  return Object.fromEntries(
-    Object.entries(value).map(([key, entry]) => [
-      key,
-      entry === null ? null : String(entry),
-    ]),
-  );
 }
 
 export function contactStatusFilter(

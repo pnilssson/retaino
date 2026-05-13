@@ -1,7 +1,6 @@
 import {
   createOrganizationLegalAcceptance,
   getCurrentLegalBundle,
-  getCurrentOrganizationLegalAcceptance,
   getOrganizationProfileByOrganizationId,
   markOrganizationOnboardingComplete,
   upsertOrganizationProfile,
@@ -20,35 +19,23 @@ import {
   getOrganizationEligibility,
   getOrganizationReadiness,
 } from './organization.readiness';
+import { getOrganizationSessionState } from './organization.service';
 
 export const organizationRoutes = new Hono<AppEnv>()
   .get('/me', async (c) => {
-    const db = c.get('db');
-    const organization = c.get('organization');
-    const profile = await getOrganizationProfileByOrganizationId(db, organization.id);
-    const legalBundle = await getCurrentLegalBundle(db);
-    const legalAcceptance = await getCurrentOrganizationLegalAcceptance(db, {
-      organizationId: organization.id,
-      bundleVersion: legalBundle.version,
-    });
-    const readiness = getOrganizationReadiness({
-      hasProfile: profile !== null,
-      onboardingStatus: organization.onboardingStatus,
-      legalBundle,
-      legalAcceptance,
-    });
+    const state = await getOrganizationSessionState(
+      c.get('db'),
+      c.get('organization'),
+    );
 
     return c.json({
       user: c.get('user'),
-      organization,
-      profile,
-      legalBundle,
-      legalAcceptance,
-      eligibility: getOrganizationEligibility({
-        readiness,
-        role: organization.role,
-      }),
-      readiness,
+      organization: c.get('organization'),
+      profile: state.profile,
+      legalBundle: state.legalBundle,
+      legalAcceptance: state.legalAcceptance,
+      eligibility: state.eligibility,
+      readiness: state.readiness,
     });
   })
   .post('/organization/profile', async (c) => {

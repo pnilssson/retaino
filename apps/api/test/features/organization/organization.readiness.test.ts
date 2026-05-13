@@ -128,4 +128,28 @@ describe('getOrganizationReadiness', () => {
       },
     });
   });
+
+  it('blocks contact imports for non-admin organization members', () => {
+    const readiness = getOrganizationReadiness({
+      hasProfile: true,
+      onboardingStatus: 'complete',
+      legalBundle,
+      legalAcceptance: {
+        bundleVersion: legalBundle.version,
+        bundleHash: legalBundle.hash,
+      },
+    });
+
+    expect(
+      getOrganizationEligibility({
+        readiness,
+        role: 'org:member',
+      }),
+    ).toEqual({
+      contactImports: {
+        allowed: false,
+        blocker: 'admin_required',
+      },
+    });
+  });
 });

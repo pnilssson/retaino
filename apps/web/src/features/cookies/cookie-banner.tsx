@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
 
-import { useCookieConsent } from './cookie-consent-provider';
+import { useCookieConsent } from './hooks/use-cookie-consent';
 import { CookiePreferencesDialog } from './cookie-preferences-dialog';
 
 export function CookieBanner() {

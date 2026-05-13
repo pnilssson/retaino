@@ -3,11 +3,12 @@
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { canManageOrganizationSetup } from '@retaino/shared/contracts';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { ApiClientError } from '@/lib/api-client';
 import { routes } from '@/lib/routes';
 import { useActiveOrganizationBootstrap } from '../hooks/use-active-organization-bootstrap';
@@ -60,13 +61,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
     (!organizationBootstrap.isReady && !organizationBootstrap.error) ||
     session.isLoading
   ) {
-    return (
-      <GateState
-        description="Retaino is checking organization readiness."
-        eyebrow="Organization setup"
-        title="Checking workspace access."
-      />
-    );
+    return <GateLoader />;
   }
 
   if (organizationBootstrap.error) {
@@ -109,6 +104,22 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   );
 }
 
+function GateLoader() {
+  return (
+    <div
+      aria-label="Loading workspace"
+      className="grid flex-1 place-items-center bg-background"
+      role="status"
+    >
+      <Spinner
+        aria-hidden="true"
+        className="size-5 text-muted-foreground"
+        role="presentation"
+      />
+    </div>
+  );
+}
+
 function GateState({
   description,
   eyebrow,
@@ -144,7 +155,8 @@ function LegalUpdatesBanner({ canManageSetup }: { canManageSetup: boolean }) {
               : 'Updated terms require acceptance by an organization admin before imports or campaigns can continue.'}
           </span>
           <Button asChild size="sm" variant="outline">
-            <Link href={`${routes.settings}#legal-agreement`}>
+            <Link href={routes.legal}>
+              <FileText aria-hidden="true" data-icon="inline-start" />
               {canManageSetup ? 'Review updates' : 'View legal'}
             </Link>
           </Button>

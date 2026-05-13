@@ -5,10 +5,9 @@ import {
   canManageOrganizationSetup,
   type OrganizationSession,
 } from '@retaino/shared/contracts';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Settings2 } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AppPageContent } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
@@ -72,15 +71,18 @@ function SettingsContent({
   onManageOrganization: () => void;
   session: OrganizationSession;
 }) {
-  const status = organizationSettingsStatus(session);
   const headerActions = canManageSetup ? (
     session.readiness.setupComplete ? (
       <Button onClick={onManageOrganization} type="button" variant="outline">
+        <Settings2 aria-hidden="true" data-icon="inline-start" />
         Manage organization
       </Button>
     ) : (
       <Button asChild variant="outline">
-        <Link href={routes.organizationSetup}>Finish setup</Link>
+        <Link href={routes.organizationSetup}>
+          <CheckCircle2 aria-hidden="true" data-icon="inline-start" />
+          Finish setup
+        </Link>
       </Button>
     )
   ) : null;
@@ -90,7 +92,6 @@ function SettingsContent({
       <section className="mx-auto grid w-full max-w-6xl content-start gap-8 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={headerActions}
-          badge={<Badge variant={status.badgeVariant}>{status.label}</Badge>}
           description="Manage organization identity, legal agreement status, and team access from one place."
           eyebrow="Organization settings"
           title={session.organization.name}
@@ -99,30 +100,9 @@ function SettingsContent({
         <AppPageContent>
           <ProfileSection canManageSetup={canManageSetup} session={session} />
           <TeamInvitationSection session={session} />
-          <ComplianceSection canManageSetup={canManageSetup} session={session} />
+          <ComplianceSection session={session} />
         </AppPageContent>
       </section>
     </main>
   );
-}
-
-function organizationSettingsStatus(session: OrganizationSession) {
-  if (session.readiness.legalUpdatesRequired) {
-    return {
-      badgeVariant: 'outline',
-      label: 'Legal updates required',
-    } as const;
-  }
-
-  if (session.readiness.ready) {
-    return {
-      badgeVariant: 'default',
-      label: 'Ready',
-    } as const;
-  }
-
-  return {
-    badgeVariant: 'outline',
-    label: 'Setup incomplete',
-  } as const;
 }

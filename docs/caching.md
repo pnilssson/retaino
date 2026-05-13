@@ -16,8 +16,7 @@ refreshes.
 
 Contacts screens should use cached data with previous-page behavior so filter,
 sort, and pagination changes do not flash empty loading states. Prefer
-`placeholderData` or the current TanStack Query equivalent for lists and import
-row tables.
+`placeholderData` or the current TanStack Query equivalent for lists.
 
 ### Next Data Cache
 
@@ -64,9 +63,7 @@ Use these shapes:
 ```ts
 ['contacts', orgId, query]
 ['contact', orgId, contactId]
-['contact-imports', orgId, query]
 ['contact-import', orgId, importId]
-['contact-import-rows', orgId, importId, query]
 ```
 
 Rules:
@@ -87,12 +84,11 @@ changes for long:
 | --- | --- |
 | Contacts list | 30 seconds |
 | Contact detail | 60 seconds |
-| Import list or detail while processing | 10 seconds |
-| Import list or detail once terminal | 60 seconds |
-| Import rows for terminal imports | 30 seconds |
+| Current import detail while processing | 10 seconds |
+| Current import detail once terminal | 60 seconds |
 
 Import detail should poll only while status is `processing`. Stop polling when
-the status is `completed`, `failed`, or `canceled`.
+the status is `completed` or `failed`.
 
 ## Contacts Invalidation
 
@@ -121,25 +117,15 @@ Unsuppress contact:
 - invalidate `['contacts', orgId]`
 - later, invalidate any campaign audience or send eligibility queries
 
-Upload contact import:
-
-- invalidate `['contact-imports', orgId]`
-- seed `['contact-import', orgId, importId]` when the upload response contains
-  the import detail
-
-Start import processing:
+Start contact import:
 
 - set or invalidate `['contact-import', orgId, importId]`
-- invalidate `['contact-imports', orgId]`
-- invalidate `['contact-import-rows', orgId, importId]`
 - invalidate `['contacts', orgId]`
 - poll the import detail while processing
 
 Import reaches a terminal status:
 
 - invalidate `['contact-import', orgId, importId]`
-- invalidate `['contact-imports', orgId]`
-- invalidate `['contact-import-rows', orgId, importId]`
 - invalidate `['contacts', orgId]`
 - stop polling
 
@@ -165,7 +151,7 @@ they must re-read the current database state when correctness matters.
 
 Contact lists and details are tenant-scoped, mutable, filter-heavy, and
 suppression-sensitive. A backend response cache would need keys for
-organization, role gates, search, filters, sort, pagination, import batch, and
+organization, role gates, search, filters, sort, pagination, and
 suppression-derived status. It would also need broad invalidation after edits,
 deletes, suppressions, unsuppressions, imports, and import job completion.
 
@@ -177,7 +163,7 @@ database reads remain a bottleneck.
 ## Implementation Order
 
 1. Normalize contacts query keys around `orgId`.
-2. Add previous-page behavior for contacts, import lists, and import row tables.
+2. Add previous-page behavior for contacts.
 3. Add the stale times listed above.
 4. Poll only active processing imports.
 5. Tighten mutation invalidation.

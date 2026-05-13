@@ -49,6 +49,11 @@ This repository is the Retaino monorepo.
 - Use TanStack Form for application forms. Do not hand-roll form state,
   validation, touched state, or submit handling with local React state unless
   the user explicitly asks for a one-off exception.
+- Web feature `components` folders contain `.tsx` component files only. Feature
+  `hooks` folders contain hook files named `use-*.ts` or `use-*.tsx` only.
+  Pure feature `.ts` helpers, constants, formatters, query keys, and types live
+  directly in the feature folder. Do not add feature `lib` folders for now.
+  Shared hooks used by multiple features live in `apps/web/src/hooks`.
 - No duplicate functions, constants, or types. Shared logic belongs in `packages/shared`.
 
 ## Commits

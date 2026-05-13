@@ -1,11 +1,11 @@
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CheckCircle2, FileText } from 'lucide-react';
 import Link from 'next/link';
 import {
   canManageOrganizationSetup,
   type OrganizationSession,
 } from '@retaino/shared/contracts';
+import { StatusBadge } from '@/components/status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   AppPageContent,
@@ -38,13 +38,13 @@ export function BlockedContacts({ session }: { session: OrganizationSession }) {
     ? 'Ask an organization admin to upload the CSV or update your organization role before importing contacts.'
     : legalUpdateRequired
       ? canManageSetup
-        ? 'Review and accept the updated legal terms in organization settings to resume CSV uploads and imports.'
+        ? 'Review and accept the updated legal terms to resume CSV uploads and imports.'
         : 'An organization admin needs to accept the updated legal terms before CSV uploads and imports can continue.'
       : 'Complete organization setup to unlock CSV uploads, validation, dedupe, suppression checks, and contact status.';
   const actionHref = adminRequired
     ? routes.contacts
     : legalUpdateRequired
-      ? `${routes.settings}#legal-agreement`
+      ? routes.legal
       : routes.organizationSetup;
   const actionLabel = adminRequired
     ? 'Back to contacts'
@@ -59,13 +59,16 @@ export function BlockedContacts({ session }: { session: OrganizationSession }) {
       <section className="mx-auto grid w-full max-w-5xl content-start gap-6 px-5 py-8 sm:px-8 lg:px-10">
         <AppPageHeader
           badge={
-            <Badge variant="outline">
-              {adminRequired
-                ? 'Admin required'
-                : legalUpdateRequired
-                  ? 'Legal updates required'
-                  : 'Setup required'}
-            </Badge>
+            <StatusBadge
+              label={
+                adminRequired
+                  ? 'Admin required'
+                  : legalUpdateRequired
+                    ? 'Legal updates required'
+                    : 'Setup required'
+              }
+              tone="amber"
+            />
           }
           description={description}
           eyebrow="Contacts"
@@ -81,7 +84,19 @@ export function BlockedContacts({ session }: { session: OrganizationSession }) {
               </Alert>
               <div className="flex justify-end">
                 <Button asChild>
-                  <Link href={actionHref}>{actionLabel}</Link>
+                  <Link href={actionHref}>
+                    {adminRequired ? (
+                      <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+                    ) : legalUpdateRequired ? (
+                      <FileText aria-hidden="true" data-icon="inline-start" />
+                    ) : (
+                      <CheckCircle2
+                        aria-hidden="true"
+                        data-icon="inline-start"
+                      />
+                    )}
+                    {actionLabel}
+                  </Link>
                 </Button>
               </div>
             </section>

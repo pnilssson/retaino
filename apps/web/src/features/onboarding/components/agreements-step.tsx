@@ -4,6 +4,7 @@ import {
   legalDocumentUrl,
   type OrganizationSession,
 } from '@retaino/shared/contracts';
+import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { legalBundleDocumentLabels } from '../onboarding.constants';
@@ -72,6 +73,7 @@ export function AgreementsStep({
 
         <div className="flex flex-wrap justify-between gap-3 pt-2">
           <Button onClick={onBack} type="button" variant="outline">
+            <ArrowLeft aria-hidden="true" data-icon="inline-start" />
             Back
           </Button>
           <Button
@@ -81,6 +83,15 @@ export function AgreementsStep({
             }}
             type="button"
           >
+            {isPending ? (
+              <Loader2
+                aria-hidden="true"
+                className="animate-spin"
+                data-icon="inline-start"
+              />
+            ) : (
+              <CheckCircle2 aria-hidden="true" data-icon="inline-start" />
+            )}
             {isPending ? 'Finishing setup' : 'Finish setup'}
           </Button>
         </div>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 
-import { useCookieConsent } from '@/features/cookies/cookie-consent-provider';
+import { useCookieConsent } from '@/features/cookies/hooks/use-cookie-consent';
 import { routes } from '@/lib/routes';
 
 export function SiteFooter() {

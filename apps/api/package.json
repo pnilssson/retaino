@@ -8,7 +8,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "r2:lifecycle:set": "wrangler r2 bucket lifecycle set retaino-contact-imports --file r2-lifecycle.json"
   },
   "dependencies": {
     "@clerk/backend": "^3.4.6",

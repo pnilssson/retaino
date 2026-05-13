@@ -1,4 +1,4 @@
-import { ArrowUpDown, Filter, Search } from 'lucide-react';
+import { ArrowUpDown, Filter, Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,11 +33,6 @@ const issueLabels: Record<string, string> = {
   suppressed_phone: 'Suppressed phone',
 };
 
-const importLabels: Record<string, string> = {
-  all: 'Any import',
-  latest: 'Latest import',
-};
-
 const sortLabels: Record<string, string> = {
   createdAt: 'Import date',
   lastBookingAt: 'Last booking',
@@ -47,32 +42,25 @@ const sortLabels: Record<string, string> = {
 
 export function ContactFilters({
   direction,
-  importedFrom,
   issue,
-  latestImportAvailable,
   onChange,
   search,
   sort,
   status,
 }: {
   direction: string;
-  importedFrom: string;
   issue: string;
-  latestImportAvailable: boolean;
   onChange: (values: Record<string, string>) => void;
   search: string;
   sort: string;
   status: string;
 }) {
   const issueValue = issue === 'invalid_phone' ? 'missing_phone' : issue;
-  const advancedFilterCount = [issue !== 'all', importedFrom !== 'all'].filter(
-    Boolean,
-  ).length;
+  const advancedFilterCount = [issue !== 'all'].filter(Boolean).length;
   const activeFilters = [
     search.trim() ? `Search: ${search.trim()}` : null,
     status !== 'all' ? statusLabels[status] ?? status : null,
     issue !== 'all' ? issueLabels[issue] ?? issue : null,
-    importedFrom !== 'all' ? importLabels[importedFrom] ?? 'Selected import' : null,
   ].filter((value): value is string => Boolean(value));
   const directionLabels =
     sort === 'name'
@@ -117,7 +105,7 @@ export function ContactFilters({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="h-9 flex-1 sm:flex-none" type="button" variant="outline">
-                <Filter aria-hidden="true" />
+                <Filter aria-hidden="true" data-icon="inline-start" />
                 Filters
                 {advancedFilterCount > 0 ? (
                   <Badge className="ml-1 px-1.5" variant="secondary">
@@ -151,28 +139,6 @@ export function ContactFilters({
                   Suppressed phone
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
-
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Import</DropdownMenuLabel>
-              <DropdownMenuRadioGroup
-                onValueChange={(value) => onChange({ importedFrom: value })}
-                value={importedFrom}
-              >
-                <DropdownMenuRadioItem
-                  onSelect={(event) => event.preventDefault()}
-                  value="all"
-                >
-                  Any import
-                </DropdownMenuRadioItem>
-                {latestImportAvailable ? (
-                  <DropdownMenuRadioItem
-                    onSelect={(event) => event.preventDefault()}
-                    value="latest"
-                  >
-                    Latest import
-                  </DropdownMenuRadioItem>
-                ) : null}
-              </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -183,7 +149,7 @@ export function ContactFilters({
                 type="button"
                 variant="outline"
               >
-                <ArrowUpDown aria-hidden="true" />
+                <ArrowUpDown aria-hidden="true" data-icon="inline-start" />
                 <span className="truncate">Sort: {sortSummary}</span>
               </Button>
             </DropdownMenuTrigger>
@@ -254,7 +220,6 @@ export function ContactFilters({
             className="h-7 px-2 text-xs"
             onClick={() =>
               onChange({
-                importedFrom: 'all',
                 issue: 'all',
                 search: '',
                 status: 'all',
@@ -264,6 +229,7 @@ export function ContactFilters({
             type="button"
             variant="ghost"
           >
+            <X aria-hidden="true" data-icon="inline-start" />
             Clear
           </Button>
         </div>

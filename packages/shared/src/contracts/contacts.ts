@@ -18,21 +18,9 @@ export const countryCodeSchema = z
   });
 
 export const CONTACT_IMPORT_STATUSES = [
-  'uploaded',
-  'mapped',
   'processing',
   'completed',
   'failed',
-  'canceled',
-] as const;
-
-export const CONTACT_IMPORT_ROW_STATUSES = [
-  'created',
-  'updated',
-  'duplicate',
-  'invalid',
-  'suppressed',
-  'skipped',
 ] as const;
 
 export const CONTACT_STATUSES = ['ready', 'blocked', 'incomplete'] as const;
@@ -57,13 +45,9 @@ export const CONTACT_IMPORT_TARGET_FIELDS = [
   'phone',
   'email',
   'lastBookingAt',
-  'lastService',
-  'source',
 ] as const;
 
 export type ContactImportStatus = (typeof CONTACT_IMPORT_STATUSES)[number];
-export type ContactImportRowStatus =
-  (typeof CONTACT_IMPORT_ROW_STATUSES)[number];
 export type ContactStatus = (typeof CONTACT_STATUSES)[number];
 export type ContactIssueCode = (typeof CONTACT_ISSUE_CODES)[number];
 export type ContactConsentStatus = (typeof CONTACT_CONSENT_STATUSES)[number];
@@ -86,10 +70,11 @@ export type ContactMethodFacts = {
   errors: ContactMethodError[];
 };
 
+export type ContactMethodIdentity = ContactMethodFacts & {
+  dedupeKeys: string[];
+};
+
 export const contactImportStatusSchema = z.enum(CONTACT_IMPORT_STATUSES);
-export const contactImportRowStatusSchema = z.enum(
-  CONTACT_IMPORT_ROW_STATUSES,
-);
 export const contactStatusSchema = z.enum(CONTACT_STATUSES);
 export const contactIssueCodeSchema = z.enum(CONTACT_ISSUE_CODES);
 export const contactConsentStatusSchema = z.enum(CONTACT_CONSENT_STATUSES);
@@ -122,11 +107,7 @@ export const contactSchema = z.object({
   normalizedEmail: z.email().nullable(),
   lastBookingAt: timestampSchema.nullable(),
   lastContactedAt: timestampSchema.nullable(),
-  lastService: nonEmptyStringSchema.nullable(),
   consentStatus: contactConsentStatusSchema,
-  source: nonEmptyStringSchema.nullable(),
-  createdFromImportId: idSchema.nullable(),
-  lastImportId: idSchema.nullable(),
   contactStatus: contactStatusSchema,
   contactIssues: z.array(contactIssueCodeSchema),
   createdAt: timestampSchema,
@@ -146,15 +127,11 @@ export const contactDetailSchema = contactSchema.extend({
   suppressions: z.array(contactSuppressionSchema),
 });
 
-export const contactImportSummarySchema = z.object({
+export const contactImportDetailSchema = z.object({
   id: idSchema,
   organizationId: idSchema,
   createdByUserId: idSchema,
   status: contactImportStatusSchema,
-  filename: nonEmptyStringSchema,
-  fileSize: z.number().int().nonnegative(),
-  contentType: nonEmptyStringSchema,
-  source: nonEmptyStringSchema.nullable(),
   phoneCountryCode: countryCodeSchema,
   totalRows: z.number().int().nonnegative(),
   processedRows: z.number().int().nonnegative(),
@@ -167,34 +144,11 @@ export const contactImportSummarySchema = z.object({
   errorSummary: z.array(nonEmptyStringSchema),
   permissionAttestedAt: timestampSchema.nullable(),
   permissionAttestedByUserId: idSchema.nullable(),
+  startedAt: timestampSchema.nullable(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
   completedAt: timestampSchema.nullable(),
   failedAt: timestampSchema.nullable(),
-});
-
-export const contactImportPreviewSchema = z.object({
-  headers: z.array(nonEmptyStringSchema),
-  sampleRows: z.array(z.record(z.string(), z.string())),
-  warnings: z.array(nonEmptyStringSchema),
-});
-
-export const contactImportDetailSchema = contactImportSummarySchema.extend({
-  mapping: csvMappingSchema.nullable(),
-  preview: contactImportPreviewSchema.nullable(),
-});
-
-export const contactImportRowSchema = z.object({
-  id: idSchema,
-  organizationId: idSchema,
-  contactImportId: idSchema,
-  rowNumber: z.number().int().positive(),
-  status: contactImportRowStatusSchema,
-  contactId: idSchema.nullable(),
-  rawValues: z.record(z.string(), z.string()),
-  normalizedValues: z.record(z.string(), z.string().nullable()),
-  errors: z.array(nonEmptyStringSchema),
-  createdAt: timestampSchema,
 });
 
 export const contactListQuerySchema = z.object({
@@ -203,26 +157,13 @@ export const contactListQuerySchema = z.object({
   search: z.string().trim().optional(),
   status: contactStatusSchema.optional(),
   issue: contactIssueCodeSchema.optional(),
-  importedFrom: idSchema.optional(),
   sort: z
     .enum(['createdAt', 'lastBookingAt', 'lastContactedAt', 'name'])
     .default('createdAt'),
   direction: z.enum(['asc', 'desc']).default('desc'),
 });
 
-export const contactImportListQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(10),
-  status: contactImportStatusSchema.optional(),
-});
-
-export const contactImportRowsQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(25),
-  status: contactImportRowStatusSchema.optional(),
-});
-
-export const contactImportProcessSchema = z.object({
+export const contactImportStartSchema = z.object({
   mapping: csvMappingSchema,
   phoneCountryCode: countryCodeSchema,
   permissionAttestation: z.literal(true, {
@@ -237,8 +178,6 @@ export const updateContactSchema = z
     phoneCountryCode: countryCodeSchema.optional(),
     email: z.email().nullable().optional(),
     lastBookingAt: timestampSchema.nullable().optional(),
-    lastService: z.string().trim().min(1).nullable().optional(),
-    source: z.string().trim().min(1).nullable().optional(),
   })
   .strict();
 
@@ -248,26 +187,33 @@ export const createContactSuppressionSchema = z
   })
   .strict();
 
+export const bulkContactIdsSchema = z
+  .object({
+    contactIds: z.array(idSchema).min(1).max(100),
+  })
+  .strict();
+
+export const bulkSuppressContactsSchema = bulkContactIdsSchema
+  .extend({
+    type: z.literal('phone'),
+  })
+  .strict();
+
 export type Contact = z.infer<typeof contactSchema>;
 export type ContactSuppression = z.infer<typeof contactSuppressionSchema>;
 export type ContactDetail = z.infer<typeof contactDetailSchema>;
-export type ContactImportSummary = z.infer<typeof contactImportSummarySchema>;
-export type ContactImportPreview = z.infer<typeof contactImportPreviewSchema>;
 export type ContactImportDetail = z.infer<typeof contactImportDetailSchema>;
-export type ContactImportRow = z.infer<typeof contactImportRowSchema>;
 export type ContactListQuery = z.infer<typeof contactListQuerySchema>;
-export type ContactImportListQuery = z.infer<
-  typeof contactImportListQuerySchema
->;
-export type ContactImportRowsQuery = z.infer<
-  typeof contactImportRowsQuerySchema
->;
-export type ContactImportProcessInput = z.infer<
-  typeof contactImportProcessSchema
+export type ContactImportStartInput = z.infer<
+  typeof contactImportStartSchema
 >;
 export type UpdateContactInput = z.infer<typeof updateContactSchema>;
 export type CreateContactSuppressionInput = z.infer<
   typeof createContactSuppressionSchema
+>;
+export type BulkContactIdsInput = z.infer<typeof bulkContactIdsSchema>;
+export type BulkSuppressContactsInput = z.infer<
+  typeof bulkSuppressContactsSchema
 >;
 export type CsvMapping = z.infer<typeof csvMappingSchema>;
 
@@ -282,80 +228,19 @@ export type ContactDetailResponse = {
   contact: ContactDetail;
 };
 
-export type ContactImportListResponse = {
-  imports: ContactImportSummary[];
-  page: number;
-  pageSize: number;
-  total: number;
-};
-
-export type ContactImportRowsResponse = {
-  rows: ContactImportRow[];
-  page: number;
-  pageSize: number;
-  total: number;
-};
-
 export type CreateContactImportResponse = {
   import: ContactImportDetail;
-  preview: ContactImportPreview;
 };
 
-export type ContactImportProcessResponse = {
+export type ContactImportDetailResponse = {
   import: ContactImportDetail;
 };
 
-export function contactImportMappedHeaders(
-  mapping: Record<string, string | undefined>,
-) {
-  return Array.from(new Set(Object.values(mapping)))
-    .filter((header): header is string => Boolean(header));
-}
-
-export function contactImportRowForHeaders(
-  row: Record<string, string>,
-  headers: string[],
-) {
-  return Object.fromEntries(
-    headers
-      .filter((header) => Object.hasOwn(row, header))
-      .map((header) => [header, row[header] ?? '']),
-  );
-}
-
-export function contactImportValuesForHeaders(
-  allHeaders: string[],
-  values: string[],
-  allowedHeaders: string[],
-) {
-  const allowed = new Set(allowedHeaders);
-
-  return Object.fromEntries(
-    allHeaders
-      .map((header, index) => [header, values[index] ?? ''] as const)
-      .filter(([header]) => allowed.has(header)),
-  );
-}
-
-export function contactImportPreviewFromRows(input: {
-  headers: string[];
-  rows: string[][];
-  maxRows?: number;
-}): ContactImportPreview {
-  const allHeaders = input.headers
-    .map((header) => header.trim())
-    .filter(Boolean);
-
-  return {
-    headers: allHeaders,
-    sampleRows: input.rows
-      .slice(0, input.maxRows)
-      .map((values) =>
-        contactImportValuesForHeaders(allHeaders, values, allHeaders),
-      ),
-    warnings: [],
-  };
-}
+export type BulkContactActionResponse = {
+  requestedCount: number;
+  affectedCount: number;
+  skippedCount: number;
+};
 
 export function autoMapContactImportHeaders(headers: string[]): CsvMapping {
   const mapping: CsvMapping = {};
@@ -369,8 +254,6 @@ export function autoMapContactImportHeaders(headers: string[]): CsvMapping {
     if (/name|namn/i.test(header)) mapping.name = header;
     if (/email|e-mail|epost/i.test(header)) mapping.email = header;
     if (/booking|last.*date|senaste/i.test(header)) mapping.lastBookingAt = header;
-    if (/service|treatment|category/i.test(header)) mapping.lastService = header;
-    if (/source|system/i.test(header)) mapping.source = header;
   }
 
   return mapping;
@@ -479,12 +362,12 @@ export async function hashContactValue(value: string) {
     .join('');
 }
 
-export async function prepareContactMethods(input: {
+export async function prepareContactMethodIdentity(input: {
   phone: string | null | undefined;
   email: string | null | undefined;
   phoneCountryCode: string;
   requireContactMethod?: boolean;
-}): Promise<ContactMethodFacts> {
+}): Promise<ContactMethodIdentity> {
   const phone = cleanContactMethodValue(input.phone);
   const email = cleanContactMethodValue(input.email);
   const normalizedPhone = phone
@@ -512,7 +395,7 @@ export async function prepareContactMethods(input: {
   const normalizedPhoneValue =
     normalizedPhone && normalizedPhone.ok ? normalizedPhone.normalizedPhone : null;
 
-  return {
+  const identity: ContactMethodFacts = {
     phone,
     email,
     normalizedPhone: normalizedPhoneValue,
@@ -522,6 +405,30 @@ export async function prepareContactMethods(input: {
       : null,
     emailHash: normalizedEmail ? await hashContactValue(normalizedEmail) : null,
     errors,
+  };
+
+  return {
+    ...identity,
+    dedupeKeys: contactMethodDedupeKeys(identity),
+  };
+}
+
+export async function prepareContactMethods(input: {
+  phone: string | null | undefined;
+  email: string | null | undefined;
+  phoneCountryCode: string;
+  requireContactMethod?: boolean;
+}): Promise<ContactMethodFacts> {
+  const identity = await prepareContactMethodIdentity(input);
+
+  return {
+    email: identity.email,
+    emailHash: identity.emailHash,
+    errors: identity.errors,
+    normalizedEmail: identity.normalizedEmail,
+    normalizedPhone: identity.normalizedPhone,
+    phone: identity.phone,
+    phoneHash: identity.phoneHash,
   };
 }
 

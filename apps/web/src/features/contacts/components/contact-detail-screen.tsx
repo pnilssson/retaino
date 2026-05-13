@@ -1,22 +1,31 @@
 "use client";
 
 import { useForm } from '@tanstack/react-form';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowLeft, Loader2, Trash2, Undo2 } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  Ban,
+  CalendarIcon,
+  Loader2,
+  MailX,
+  Pencil,
+  Trash2,
+  Undo2,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
   canManageOrganizationSetup,
   type ContactDetail,
-  type ContactDetailResponse,
   type ContactSuppression,
-  type CreateContactSuppressionInput,
   type UpdateContactInput,
   normalizePhoneNumber,
 } from '@retaino/shared/contracts';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/phone-input';
 import {
@@ -28,13 +37,21 @@ import {
 } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
   AppPageContent,
   AppPageItem,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
-import { useApi } from '@/features/onboarding/hooks/use-api';
+import { useContact } from '@/features/contacts/hooks/use-contact';
+import { useDeleteContact } from '@/features/contacts/hooks/use-delete-contact';
+import { useDeleteContactSuppression } from '@/features/contacts/hooks/use-delete-contact-suppression';
+import { useSuppressContact } from '@/features/contacts/hooks/use-suppress-contact';
+import { useUpdateContact } from '@/features/contacts/hooks/use-update-contact';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
-import { ApiClientError } from '@/lib/api-client';
 import { routes } from '@/lib/routes';
 import { BlockedContacts } from './blocked-contacts';
 import {
@@ -42,17 +59,15 @@ import {
   formatDate,
   formatDateTime,
   formatSuppressionReason,
-} from './contacts-format';
+} from '../contacts-format';
 import { ContactStatusBadge } from './status-badge';
 
 export function ContactDetailScreen({ contactId }: { contactId: string }) {
-  const api = useApi();
   const session = useOrganizationSession();
-  const contact = useQuery({
+  const contact = useContact({
+    contactId,
     enabled: Boolean(session.data?.readiness.ready),
-    queryKey: ['contact', contactId],
-    queryFn: () =>
-      api.get<ContactDetailResponse>(`/v1/contacts/${contactId}`),
+    organizationId: session.data?.organization.id ?? null,
   });
 
   if (session.isLoading) {
@@ -98,15 +113,10 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
           actions={
             <Button asChild variant="outline">
               <Link href={routes.contacts}>
-                <ArrowLeft aria-hidden="true" />
+                <ArrowLeft aria-hidden="true" data-icon="inline-start" />
                 Back to contacts
               </Link>
             </Button>
-          }
-          badge={
-            latestContact ? (
-              <ContactStatusBadge status={latestContact.contactStatus} />
-            ) : undefined
           }
           description="Review contact data, SMS readiness, and suppression state."
           eyebrow="Contact"
@@ -168,6 +178,7 @@ function ContactDetailContent({
                   type="button"
                   variant="outline"
                 >
+                  <Pencil aria-hidden="true" data-icon="inline-start" />
                   Edit contact
                 </Button>
               </ItemActions>
@@ -186,8 +197,6 @@ function ContactDetailContent({
               <DetailField label="Name" value={contact.name ?? 'Unnamed'} />
               <DetailField label="Phone" value={contact.phone ?? 'No phone'} />
               <DetailField label="Email" value={contact.email ?? 'No email'} />
-              <DetailField label="Source" value={contact.source ?? 'Import'} />
-              <DetailField label="Last service" value={contact.lastService ?? 'Unknown'} />
             </dl>
           )}
         </section>
@@ -197,7 +206,7 @@ function ContactDetailContent({
         <section>
           <ItemHeader className="items-start">
             <ItemContent className="gap-2">
-              <ItemTitle className="flex-wrap text-base">
+              <ItemTitle className="flex flex-wrap items-center gap-2 text-base">
                 SMS readiness
                 <ContactStatusBadge status={contact.contactStatus} />
               </ItemTitle>
@@ -264,7 +273,11 @@ function ContactEditForm({
   onSaved: () => void;
   phoneCountryCode: string;
 }) {
-  const updateContact = useUpdateContact(contact.id, onSaved);
+  const updateContact = useUpdateContact(
+    contact.organizationId,
+    contact.id,
+    onSaved,
+  );
   const form = useForm({
     defaultValues: contactToFormValues(contact, phoneCountryCode),
     onSubmit: async ({ value }) => {
@@ -326,32 +339,9 @@ function ContactEditForm({
         <form.Field name="lastBookingAt">
           {(field) => (
             <FormField label="Last booking">
-              <Input
+              <LastBookingDatePicker
                 name={field.name}
-                onChange={(event) => field.handleChange(event.target.value)}
-                type="date"
-                value={field.state.value}
-              />
-            </FormField>
-          )}
-        </form.Field>
-        <form.Field name="lastService">
-          {(field) => (
-            <FormField label="Last service">
-              <Input
-                name={field.name}
-                onChange={(event) => field.handleChange(event.target.value)}
-                value={field.state.value}
-              />
-            </FormField>
-          )}
-        </form.Field>
-        <form.Field name="source">
-          {(field) => (
-            <FormField label="Source">
-              <Input
-                name={field.name}
-                onChange={(event) => field.handleChange(event.target.value)}
+                onChange={field.handleChange}
                 value={field.state.value}
               />
             </FormField>
@@ -376,7 +366,11 @@ function ContactEditForm({
         </Button>
         <Button disabled={updateContact.mutation.isPending} type="submit">
           {updateContact.mutation.isPending ? (
-            <Loader2 aria-hidden="true" className="animate-spin" />
+            <Loader2
+              aria-hidden="true"
+              className="animate-spin"
+              data-icon="inline-start"
+            />
           ) : null}
           Save contact
         </Button>
@@ -392,8 +386,11 @@ function ContactSuppressionSection({
   canManageContacts: boolean;
   contact: ContactDetail;
 }) {
-  const suppress = useSuppressContact(contact.id);
-  const unsuppress = useDeleteContactSuppression(contact.id);
+  const suppress = useSuppressContact(contact.organizationId, contact.id);
+  const unsuppress = useDeleteContactSuppression(
+    contact.organizationId,
+    contact.id,
+  );
   const phoneSuppressed = contact.suppressions.some(
     (suppression) => suppression.type === 'phone',
   );
@@ -440,6 +437,7 @@ function ContactSuppressionSection({
               type="button"
               variant="outline"
             >
+              <Ban aria-hidden="true" data-icon="inline-start" />
               Suppress phone
             </Button>
             <Button
@@ -448,6 +446,7 @@ function ContactSuppressionSection({
               type="button"
               variant="outline"
             >
+              <MailX aria-hidden="true" data-icon="inline-start" />
               Suppress email
             </Button>
           </div>
@@ -496,9 +495,13 @@ function SuppressionRow({
           variant="outline"
         >
           {isPending ? (
-            <Loader2 aria-hidden="true" className="animate-spin" />
+            <Loader2
+              aria-hidden="true"
+              className="animate-spin"
+              data-icon="inline-start"
+            />
           ) : (
-            <Undo2 aria-hidden="true" />
+            <Undo2 aria-hidden="true" data-icon="inline-start" />
           )}
           Allow again
         </Button>
@@ -508,8 +511,7 @@ function SuppressionRow({
 }
 
 function DeleteContactSection({ contact }: { contact: ContactDetail }) {
-  const [isConfirming, setIsConfirming] = useState(false);
-  const deleteContact = useDeleteContact(contact.id);
+  const deleteContact = useDeleteContact(contact.organizationId, contact.id);
 
   return (
     <AppPageItem asChild>
@@ -521,49 +523,23 @@ function DeleteContactSection({ contact }: { contact: ContactDetail }) {
               Remove this contact from the organization.
             </ItemDescription>
           </ItemContent>
-          {!isConfirming ? (
-            <ItemActions>
-              <Button
-                onClick={() => setIsConfirming(true)}
-                type="button"
-                variant="destructive"
-              >
-                <Trash2 aria-hidden="true" />
-                Delete contact
-              </Button>
-            </ItemActions>
-          ) : null}
+          <ItemActions>
+            <ConfirmDialog
+              confirmLabel="Delete permanently"
+              description="This permanently deletes the contact from this organization."
+              isPending={deleteContact.mutation.isPending}
+              onConfirm={() => deleteContact.mutation.mutateAsync()}
+              title="Delete contact?"
+              trigger={
+                <Button type="button" variant="destructive">
+                  <Trash2 aria-hidden="true" data-icon="inline-start" />
+                  Delete contact
+                </Button>
+              }
+              variant="destructive"
+            />
+          </ItemActions>
         </ItemHeader>
-        {isConfirming ? (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              This permanently deletes the contact.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                disabled={deleteContact.mutation.isPending}
-                onClick={() => setIsConfirming(false)}
-                type="button"
-                variant="outline"
-              >
-                Cancel
-              </Button>
-              <Button
-                disabled={deleteContact.mutation.isPending}
-                onClick={() => deleteContact.mutation.mutate()}
-                type="button"
-                variant="destructive"
-              >
-                {deleteContact.mutation.isPending ? (
-                  <Loader2 aria-hidden="true" className="animate-spin" />
-                ) : (
-                  <Trash2 aria-hidden="true" />
-                )}
-                Delete permanently
-              </Button>
-            </div>
-          </div>
-        ) : null}
         {deleteContact.error ? (
           <Alert variant="destructive">
             <AlertCircle aria-hidden="true" />
@@ -573,6 +549,63 @@ function DeleteContactSection({ contact }: { contact: ContactDetail }) {
         ) : null}
       </section>
     </AppPageItem>
+  );
+}
+
+function LastBookingDatePicker({
+  name,
+  onChange,
+  value,
+}: {
+  name: string;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedDate = dateInputToLocalDate(value);
+
+  return (
+    <Popover onOpenChange={setOpen} open={open}>
+      <PopoverTrigger asChild>
+        <Button
+          aria-label="Select last booking date"
+          className="w-full justify-start"
+          id={name}
+          type="button"
+          variant="outline"
+        >
+          <CalendarIcon aria-hidden="true" data-icon="inline-start" />
+          {selectedDate ? formatDateInputLabel(value) : 'Select date'}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-auto p-0">
+        <Calendar
+          captionLayout="dropdown"
+          mode="single"
+          onSelect={(date) => {
+            onChange(date ? localDateToDateInput(date) : '');
+            setOpen(false);
+          }}
+          selected={selectedDate}
+        />
+        {selectedDate ? (
+          <div className="flex justify-end border-t p-2">
+            <Button
+              onClick={() => {
+                onChange('');
+                setOpen(false);
+              }}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <X aria-hidden="true" data-icon="inline-start" />
+              Clear
+            </Button>
+          </div>
+        ) : null}
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -600,102 +633,13 @@ function FormField({
   );
 }
 
-function useUpdateContact(contactId: string, onSaved: () => void) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const mutation = useMutation({
-    mutationFn: (input: UpdateContactInput) =>
-      api.request<ContactDetailResponse>(`/v1/contacts/${contactId}`, {
-        body: input,
-        method: 'PATCH',
-      }),
-    onSuccess: async (response) => {
-      queryClient.setQueryData(['contact', contactId], response);
-      await queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      onSaved();
-    },
-  });
-
-  return {
-    error: mutation.error instanceof Error ? mutation.error.message : null,
-    mutation,
-  };
-}
-
-function useSuppressContact(contactId: string) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const mutation = useMutation({
-    mutationFn: (input: CreateContactSuppressionInput) =>
-      api.post<ContactDetailResponse>(
-        `/v1/contacts/${contactId}/suppressions`,
-        input,
-      ),
-    onSuccess: async (response) => {
-      queryClient.setQueryData(['contact', contactId], response);
-      await queryClient.invalidateQueries({ queryKey: ['contacts'] });
-    },
-  });
-
-  return {
-    error: mutation.error instanceof Error ? mutation.error.message : null,
-    mutation,
-  };
-}
-
-function useDeleteContactSuppression(contactId: string) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const mutation = useMutation({
-    mutationFn: (suppressionId: string) =>
-      api.request<ContactDetailResponse>(
-        `/v1/contacts/${contactId}/suppressions/${suppressionId}`,
-        { method: 'DELETE' },
-      ),
-    onSuccess: async (response) => {
-      queryClient.setQueryData(['contact', contactId], response);
-      await queryClient.invalidateQueries({ queryKey: ['contacts'] });
-    },
-  });
-
-  return {
-    error: mutation.error instanceof Error ? mutation.error.message : null,
-    mutation,
-  };
-}
-
-function useDeleteContact(contactId: string) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const router = useRouter();
-  const mutation = useMutation({
-    mutationFn: () =>
-      api.request<void>(`/v1/contacts/${contactId}`, { method: 'DELETE' }),
-    onSuccess: async () => {
-      queryClient.removeQueries({ queryKey: ['contact', contactId] });
-      await queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      router.push(routes.contacts);
-    },
-  });
-
-  return {
-    error:
-      mutation.error instanceof ApiClientError || mutation.error instanceof Error
-        ? mutation.error.message
-        : null,
-    mutation,
-  };
-}
-
 function contactToFormValues(contact: ContactDetail, phoneCountryCode = 'SE') {
   return {
     email: contact.email ?? '',
     lastBookingAt: dateInputValue(contact.lastBookingAt),
-    lastService: contact.lastService ?? '',
     name: contact.name ?? '',
     phone: contact.phone ?? '',
     phoneCountryCode,
-    source: contact.source ?? '',
   };
 }
 
@@ -712,11 +656,9 @@ function contactFormValuesToInput(
     lastBookingAt: value.lastBookingAt
       ? new Date(`${value.lastBookingAt}T00:00:00.000Z`).toISOString()
       : null,
-    lastService: nullableFormValue(value.lastService),
     name: nullableFormValue(value.name),
     phone: normalizedPhone,
     phoneCountryCode: value.phoneCountryCode,
-    source: nullableFormValue(value.source),
   };
 }
 
@@ -731,6 +673,34 @@ function dateInputValue(value: string | null) {
   }
 
   return value.slice(0, 10);
+}
+
+function dateInputToLocalDate(value: string) {
+  const [year, month, day] = value.split('-').map(Number);
+
+  if (!year || !month || !day) {
+    return undefined;
+  }
+
+  return new Date(year, month - 1, day);
+}
+
+function localDateToDateInput(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateInputLabel(value: string) {
+  const date = dateInputToLocalDate(value);
+
+  if (!date) {
+    return 'Select date';
+  }
+
+  return new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(date);
 }
 
 function nullablePhoneFormValue(value: string, countryCode: string) {

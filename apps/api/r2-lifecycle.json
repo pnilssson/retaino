@@ -1,0 +1,17 @@
+{
+  "rules": [
+    {
+      "id": "delete-temporary-contact-imports-after-1-day",
+      "conditions": {
+        "prefix": "organizations/"
+      },
+      "enabled": true,
+      "deleteObjectsTransition": {
+        "condition": {
+          "type": "Age",
+          "maxAge": 86400
+        }
+      }
+    }
+  ]
+}

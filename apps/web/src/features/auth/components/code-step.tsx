@@ -12,7 +12,7 @@ import {
 import { Label } from '@/components/ui/label';
 import type { useEmailCodeAuth } from '@/features/auth/hooks/use-email-code-auth';
 import { getFieldError } from '@/lib/form-errors';
-import { clerkOtpLength, clerkOtpPattern } from './form-constants';
+import { clerkOtpLength, clerkOtpPattern } from '../form-constants';
 
 type EmailCodeAuth = ReturnType<typeof useEmailCodeAuth>;
 
@@ -118,13 +118,16 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
           >
             {isSubmitting || auth.isFetching ? (
               <>
-                <Loader2 className="size-4 animate-spin" />
+                <Loader2
+                  className="size-4 animate-spin"
+                  data-icon="inline-start"
+                />
                 Verifying
               </>
             ) : (
               <>
                 Verify code
-                <ArrowRight className="size-4" />
+                <ArrowRight className="size-4" data-icon="inline-end" />
               </>
             )}
           </Button>
@@ -150,7 +153,7 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
           type="button"
           variant="link"
         >
-          <RefreshCw className="size-3.5" />
+          <RefreshCw className="size-3.5" data-icon="inline-start" />
           Resend code
         </Button>
       </div>

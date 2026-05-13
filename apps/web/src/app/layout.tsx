@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, JetBrains_Mono } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Providers } from "@/components/providers";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CookieBanner } from "@/features/cookies/cookie-banner";
 import { CookieConsentProvider } from "@/features/cookies/cookie-consent-provider";
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <Providers>
               <CookieConsentProvider>
                 <TooltipProvider>{children}</TooltipProvider>
+                <Toaster richColors />
                 <CookieBanner />
               </CookieConsentProvider>
             </Providers>

@@ -1,8 +1,6 @@
 "use client";
 
-import { useAuth } from '@clerk/nextjs';
 import { useForm } from '@tanstack/react-form';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   ArrowLeft,
@@ -12,27 +10,21 @@ import {
   Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { parse } from 'csv-parse/sync';
 import {
   CONTACT_IMPORT_TARGET_FIELDS,
   autoMapContactImportHeaders,
   contactImportMappedFieldEntries,
   contactImportMappingReady,
   type ContactImportDetail,
-  type ContactImportProcessInput,
-  type ContactImportRowsResponse,
-  type CreateContactImportResponse,
   type CsvMapping,
-  type OrganizationWorkflowBlocker,
 } from '@retaino/shared/contracts';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CountryCombobox } from '@/components/country-combobox';
-import { Input } from '@/components/ui/input';
 import {
   ItemContent,
   ItemDescription,
@@ -40,6 +32,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -60,37 +53,31 @@ import {
   AppPageItem,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
-import { useApi } from '@/features/onboarding/hooks/use-api';
+import { useContactImport } from '@/features/contacts/hooks/use-contact-import';
+import { useStartContactImport } from '@/features/contacts/hooks/use-start-contact-import';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
-import { ApiClientError } from '@/lib/api-client';
+import { cn } from '@/lib/utils';
 import { routes } from '@/lib/routes';
 import { BlockedContacts } from './blocked-contacts';
-import { formatTargetField } from './contacts-format';
-import { ImportStatusPanel } from './import-status-panel';
+import { formatImportIssue, formatTargetField } from '../contacts-format';
 import { ImportStatusBadge } from './status-badge';
 
-type ContactImportDetailResponse = {
-  import: ContactImportDetail;
-};
+const MAX_UPLOAD_SIZE = 25 * 1024 * 1024;
+const SAMPLE_ROWS = 5;
 
-type ContactImportProcessFormValues = Omit<
-  ContactImportProcessInput,
-  'permissionAttestation'
-> & {
-  permissionAttestation: boolean;
+type CsvPreview = {
+  headers: string[];
+  sampleRows: Record<string, string>[];
 };
 
 export function ContactImportUploadScreen() {
   const session = useOrganizationSession();
-  const router = useRouter();
-  const upload = useUploadContactImport({
-    onSuccess: (response) => router.push(routes.contactImport(response.import.id)),
-  });
+  const [currentImportId, setCurrentImportId] = useState<string | null>(null);
 
   if (session.isLoading) {
     return (
       <main className="flex flex-1 items-start bg-background">
-        <section className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-8 lg:px-10">
+        <section className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8 lg:px-10">
           <p className="text-sm text-muted-foreground">Loading import form.</p>
         </section>
       </main>
@@ -119,17 +106,17 @@ export function ContactImportUploadScreen() {
 
   return (
     <main className="flex flex-1 items-start bg-background">
-      <section className="mx-auto grid w-full max-w-4xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
+      <section className="mx-auto grid w-full max-w-5xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={
             <Button asChild variant="outline">
               <Link href={routes.contacts}>
-                <ArrowLeft aria-hidden="true" />
+                <ArrowLeft aria-hidden="true" data-icon="inline-start" />
                 Back to contacts
               </Link>
             </Button>
           }
-          description="Upload a customer CSV, preview the columns, then confirm how each column should be imported."
+          description="Upload a CSV, map the contact fields, and start a background import."
           eyebrow="Contacts"
           title="Import contacts"
         />
@@ -139,21 +126,19 @@ export function ContactImportUploadScreen() {
             <section>
               <ItemHeader className="items-start">
                 <ItemContent className="gap-2">
-                  <ItemTitle className="text-base">Upload CSV</ItemTitle>
+                  <ItemTitle className="text-base">CSV import</ItemTitle>
                   <ItemDescription className="max-w-2xl">
-                    CSV files are stored privately and processed only after you
-                    review the detected columns.
+                    Retaino reads the CSV in your browser for mapping, then
+                    stores the file only while the import job runs.
                   </ItemDescription>
                 </ItemContent>
               </ItemHeader>
-              <UploadForm mutation={upload.mutation} />
-              {upload.error ? (
-                <Alert variant="destructive">
-                  <AlertCircle aria-hidden="true" />
-                  <AlertTitle>Upload failed</AlertTitle>
-                  <AlertDescription>{upload.error}</AlertDescription>
-                </Alert>
-              ) : null}
+              <ImportForm
+                currentImportId={currentImportId}
+                defaultCountryCode={session.data.profile?.countryCode ?? 'SE'}
+                onCurrentImportChange={setCurrentImportId}
+                organizationId={session.data.organization.id}
+              />
             </section>
           </AppPageItem>
         </AppPageContent>
@@ -162,164 +147,73 @@ export function ContactImportUploadScreen() {
   );
 }
 
-export function ContactImportDetailScreen({ importId }: { importId: string }) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const session = useOrganizationSession();
-  const [query, setQuery] = useQueryStates({
-    rowStatus: parseAsString.withDefault('invalid'),
-    rowPage: parseAsInteger.withDefault(1),
-  });
-  const importDetail = useQuery({
-    enabled: Boolean(session.data?.readiness.ready),
-    queryKey: ['contact-import', importId],
-    queryFn: () =>
-      api.get<ContactImportDetailResponse>(`/v1/contact-imports/${importId}`),
-  });
-  const latestImport = importDetail.data?.import ?? null;
-  const rows = useQuery({
-    enabled: Boolean(latestImport?.id),
-    queryKey: [
-      'contact-import-rows',
-      latestImport?.id,
-      query.rowStatus,
-      query.rowPage,
-    ],
-    queryFn: () => {
-      const params = new URLSearchParams({
-        page: String(query.rowPage),
-        pageSize: '25',
-      });
-
-      if (query.rowStatus !== 'all') params.set('status', query.rowStatus);
-
-      return api.get<ContactImportRowsResponse>(
-        `/v1/contact-imports/${latestImport?.id}/rows?${params}`,
-      );
-    },
-  });
-
-  if (session.isLoading) {
-    return (
-      <main className="flex flex-1 items-start bg-background">
-        <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-10">
-          <p className="text-sm text-muted-foreground">Loading import.</p>
-        </section>
-      </main>
-    );
-  }
-
-  if (session.isError) {
-    return (
-      <main className="flex flex-1 items-center justify-center bg-background px-5 py-10">
-        <Alert className="max-w-lg" variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Import could not be loaded</AlertTitle>
-          <AlertDescription>{session.error.message}</AlertDescription>
-        </Alert>
-      </main>
-    );
-  }
-
-  if (!session.data) {
-    return null;
-  }
-
-  if (!session.data.readiness.ready) {
-    return <BlockedContacts session={session.data} />;
-  }
-
-  const title = latestImport?.filename ?? 'Contact import';
-  const showMapping = latestImport?.status === 'uploaded';
-
-  return (
-    <main className="flex flex-1 items-start bg-background">
-      <section className="mx-auto grid w-full max-w-6xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
-        <AppPageHeader
-          actions={
-            <Button asChild variant="outline">
-              <Link href={routes.contactImports}>
-                <ArrowLeft aria-hidden="true" />
-                Back to imports
-              </Link>
-            </Button>
-          }
-          badge={
-            latestImport ? (
-              <ImportStatusBadge status={latestImport.status} />
-            ) : undefined
-          }
-          description="Review mapping, processing progress, and row-level import results."
-          eyebrow="Contact import"
-          title={title}
-        />
-
-        {importDetail.isError ? (
-          <Alert variant="destructive">
-            <AlertCircle aria-hidden="true" />
-            <AlertTitle>Import could not be fetched</AlertTitle>
-            <AlertDescription>
-              {importDetail.error instanceof Error
-                ? importDetail.error.message
-                : 'Try refreshing the page.'}
-            </AlertDescription>
-          </Alert>
-        ) : importDetail.isLoading ? (
-          <section className="py-8">
-            <p className="text-sm text-muted-foreground">Loading import.</p>
-          </section>
-        ) : latestImport && showMapping ? (
-          <MappingPanel
-            importDetail={latestImport}
-            onProcessed={async () => {
-              await queryClient.invalidateQueries({
-                queryKey: ['contact-import', importId],
-              });
-              await queryClient.invalidateQueries({
-                queryKey: ['contact-imports'],
-              });
-              await queryClient.invalidateQueries({ queryKey: ['contacts'] });
-            }}
-            processingBlocker={session.data.eligibility.contactImports.blocker}
-          />
-        ) : latestImport ? (
-          <ImportStatusPanel
-            latestImport={latestImport}
-            onPageChange={(page) => void setQuery({ rowPage: page })}
-            onStatusChange={(rowStatus) =>
-              void setQuery({ rowPage: 1, rowStatus })
-            }
-            rowStatus={query.rowStatus}
-            rows={rows.data}
-          />
-        ) : null}
-      </section>
-    </main>
-  );
-}
-
-function UploadForm({
-  mutation,
+function ImportForm({
+  currentImportId,
+  defaultCountryCode,
+  onCurrentImportChange,
+  organizationId,
 }: {
-  mutation: ReturnType<typeof useUploadContactImport>['mutation'];
+  currentImportId: string | null;
+  defaultCountryCode: string;
+  onCurrentImportChange: (importId: string | null) => void;
+  organizationId: string;
 }) {
+  const [activeFileName, setActiveFileName] = useState<string | null>(null);
+  const [preview, setPreview] = useState<CsvPreview | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const upload = useStartContactImport({
+    onSuccess: (response) => onCurrentImportChange(response.import.id),
+    organizationId,
+  });
   const form = useForm({
     defaultValues: {
       file: null as File | null,
-      source: '',
+      mapping: {} as CsvMapping,
+      phoneCountryCode: defaultCountryCode,
+      permissionAttestation: false as boolean,
     },
     onSubmit: async ({ value }) => {
-      if (!value.file) {
+      if (!value.file || parseError || !contactImportMappingReady(value.mapping)) {
         return;
       }
 
-      await mutation.mutateAsync({ file: value.file, source: value.source });
+      setActiveFileName(value.file.name);
+
+      try {
+        await upload.mutation.mutateAsync({
+          file: value.file,
+          mapping: value.mapping,
+          phoneCountryCode: value.phoneCountryCode,
+          permissionAttestation: value.permissionAttestation,
+        });
+      } catch (error) {
+        setActiveFileName(null);
+        throw error;
+      }
     },
   });
 
+  if (currentImportId) {
+    return (
+      <ImportProgress
+        fileName={activeFileName}
+        importId={currentImportId}
+        onImportAnother={() => {
+          form.reset();
+          upload.mutation.reset();
+          setActiveFileName(null);
+          setParseError(null);
+          setPreview(null);
+          onCurrentImportChange(null);
+        }}
+        organizationId={organizationId}
+      />
+    );
+  }
+
   return (
     <form
-      className="grid gap-4"
+      className="grid gap-6"
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
@@ -343,14 +237,25 @@ function UploadForm({
                 className="flex min-h-28 cursor-pointer flex-col justify-center gap-3 rounded-lg border border-dashed border-input px-4 py-5 transition-colors hover:bg-muted/50 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
                 htmlFor={field.name}
               >
-                <Input
+                <input
                   accept=".csv,text/csv"
                   className="sr-only"
                   id={field.name}
                   name={field.name}
-                  onChange={(event) =>
-                    field.handleChange(event.target.files?.[0] ?? null)
-                  }
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    field.handleChange(file);
+                    void updatePreview(file, setPreview, setParseError).then(
+                      (csvPreview) => {
+                        form.setFieldValue(
+                          'mapping',
+                          csvPreview
+                            ? autoMapContactImportHeaders(csvPreview.headers)
+                            : {},
+                        );
+                      },
+                    );
+                  }}
                   type="file"
                 />
                 <span className="flex items-center gap-3">
@@ -372,384 +277,185 @@ function UploadForm({
               {error ? (
                 <p className="text-sm text-destructive">{String(error)}</p>
               ) : null}
+              {parseError ? (
+                <p className="text-sm text-destructive">{parseError}</p>
+              ) : null}
             </div>
           );
         }}
       </form.Field>
-      <form.Field name="source">
-        {(field) => (
-          <div className="grid gap-2">
-            <Label htmlFor={field.name}>Original system</Label>
-            <Input
-              id={field.name}
-              name={field.name}
-              onChange={(event) => field.handleChange(event.target.value)}
-              placeholder="Bokadirekt, Fresha, spreadsheet export"
-              value={field.state.value}
-            />
-            <p className="text-sm text-muted-foreground">
-              Optional, shown in contact history. Example: Bokadirekt, Fresha,
-              spreadsheet export.
-            </p>
+
+      {preview ? (
+        <>
+          <div className="grid max-w-3xl gap-3">
+            <div className="hidden grid-cols-[180px_2rem_minmax(0,1fr)] items-center gap-3 px-1 text-xs font-medium uppercase text-muted-foreground sm:grid">
+              <span>Retaino field</span>
+              <span aria-hidden="true" />
+              <span>CSV column</span>
+            </div>
+            {CONTACT_IMPORT_TARGET_FIELDS.map((target) => (
+              <form.Field key={target} name={`mapping.${target}`}>
+                {(field) => (
+                  <div className="grid gap-2 sm:grid-cols-[180px_2rem_minmax(0,1fr)] sm:items-center">
+                    <Label>
+                      <span className="text-xs font-medium uppercase text-muted-foreground sm:hidden">
+                        Retaino field
+                      </span>
+                      <span>{formatTargetField(target)}</span>
+                    </Label>
+                    <ArrowRight
+                      aria-hidden="true"
+                      className="hidden size-4 justify-self-center text-muted-foreground sm:block"
+                    />
+                    <div className="grid gap-1">
+                      <span className="text-xs font-medium uppercase text-muted-foreground sm:hidden">
+                        CSV column
+                      </span>
+                      <Select
+                        onValueChange={(value) =>
+                          field.handleChange(
+                            value === 'none' ? undefined : value,
+                          )
+                        }
+                        value={field.state.value ?? 'none'}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Not mapped</SelectItem>
+                          {preview.headers.map((header) => (
+                            <SelectItem key={header} value={header}>
+                              {header}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+              </form.Field>
+            ))}
           </div>
-        )}
-      </form.Field>
+          <form.Field name="phoneCountryCode">
+            {(field) => (
+              <div className="grid max-w-2xl gap-2 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-center">
+                <Label htmlFor={field.name}>Phone country</Label>
+                <CountryCombobox
+                  id={field.name}
+                  name={field.name}
+                  onBlur={field.handleBlur}
+                  onChange={(value) =>
+                    field.handleChange(value as typeof field.state.value)
+                  }
+                  value={field.state.value}
+                />
+                <p className="text-sm text-muted-foreground sm:col-start-2">
+                  Used for phone numbers without a country code.
+                </p>
+              </div>
+            )}
+          </form.Field>
+
+          <form.Subscribe selector={(state) => state.values.mapping}>
+            {(mapping) => (
+              <MappedPreviewTable
+                fields={contactImportMappedFieldEntries(mapping)}
+                sampleRows={preview.sampleRows}
+              />
+            )}
+          </form.Subscribe>
+
+          <form.Field
+            name="permissionAttestation"
+            validators={{
+              onSubmit: ({ value }) =>
+                value
+                  ? undefined
+                  : 'Confirm these contacts can lawfully receive marketing SMS.',
+            }}
+          >
+            {(field) => (
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  aria-describedby={
+                    field.state.meta.errors.length > 0
+                      ? 'permission-attestation-error'
+                      : undefined
+                  }
+                  checked={field.state.value}
+                  id={field.name}
+                  onBlur={field.handleBlur}
+                  onCheckedChange={(checked) =>
+                    field.handleChange(checked === true)
+                  }
+                />
+                <div className="grid gap-1">
+                  <Label htmlFor={field.name}>
+                    I confirm these contacts can lawfully receive marketing SMS
+                    from this organization.
+                  </Label>
+                  {field.state.meta.errors.length > 0 ? (
+                    <p
+                      className="text-xs text-destructive"
+                      id="permission-attestation-error"
+                    >
+                      {String(field.state.meta.errors[0])}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            )}
+          </form.Field>
+        </>
+      ) : null}
+
+      {upload.error ? (
+        <Alert variant="destructive">
+          <AlertCircle aria-hidden="true" />
+          <AlertTitle>Import could not start</AlertTitle>
+          <AlertDescription>{upload.error}</AlertDescription>
+        </Alert>
+      ) : null}
+
       <form.Subscribe
         selector={(state) => ({
           canSubmit: state.canSubmit,
           file: state.values.file,
           isSubmitting: state.isSubmitting,
+          mapping: state.values.mapping,
+          permissionAttestation: state.values.permissionAttestation,
         })}
       >
-        {({ canSubmit, file, isSubmitting }) => (
-          <Button
-            disabled={!file || !canSubmit || isSubmitting || mutation.isPending}
-            type="submit"
-          >
-            {mutation.isPending || isSubmitting ? (
-              <Loader2 aria-hidden="true" className="animate-spin" />
-            ) : (
-              <FileUp aria-hidden="true" />
-            )}
-            Upload and preview
-          </Button>
+        {({ canSubmit, file, isSubmitting, mapping, permissionAttestation }) => (
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              disabled={
+                !file ||
+                !canSubmit ||
+                isSubmitting ||
+                upload.mutation.isPending ||
+                Boolean(parseError) ||
+                !contactImportMappingReady(mapping) ||
+                !permissionAttestation
+              }
+              type="submit"
+            >
+              {upload.mutation.isPending || isSubmitting ? (
+                <Loader2
+                  aria-hidden="true"
+                  className="animate-spin"
+                  data-icon="inline-start"
+                />
+              ) : (
+                <CheckCircle2 aria-hidden="true" data-icon="inline-start" />
+              )}
+              Start import
+            </Button>
+          </div>
         )}
       </form.Subscribe>
     </form>
-  );
-}
-
-function MappingPanel({
-  importDetail,
-  onProcessed,
-  processingBlocker,
-}: {
-  importDetail: ContactImportDetail;
-  onProcessed: () => void | Promise<void>;
-  processingBlocker: OrganizationWorkflowBlocker | null;
-}) {
-  const processImport = useProcessContactImport(importDetail.id, onProcessed);
-  const headers = importDetail.preview?.headers ?? [];
-  const sampleRows = importDetail.preview?.sampleRows ?? [];
-  const processingBlocked = processingBlocker !== null;
-  const [step, setStep] = useState<'map' | 'review'>('map');
-  const form = useForm({
-    defaultValues: {
-      mapping: autoMapContactImportHeaders(headers),
-      phoneCountryCode: importDetail.phoneCountryCode,
-      permissionAttestation: false as boolean,
-    } satisfies ContactImportProcessFormValues,
-    onSubmit: async ({ value }) => {
-      if (processingBlocked || !value.permissionAttestation) {
-        return;
-      }
-
-      await processImport.mutateAsync({
-        mapping: value.mapping,
-        phoneCountryCode: value.phoneCountryCode,
-        permissionAttestation: true,
-      });
-    },
-  });
-
-  return (
-    <AppPageItem asChild>
-      <section>
-        <ItemHeader className="items-start">
-          <ItemContent className="gap-2">
-            <ItemTitle className="flex-wrap text-base">
-              {step === 'map' ? 'Map CSV columns' : 'Review import'}
-              <Badge variant="outline">
-                {step === 'map' ? 'Step 1 of 2' : 'Step 2 of 2'}
-              </Badge>
-            </ItemTitle>
-            <ItemDescription className="max-w-2xl">
-              {step === 'map'
-                ? 'Map a phone column to send SMS. Other fields help with filtering and matching.'
-                : 'Review the imported preview before Retaino starts processing this import.'}
-            </ItemDescription>
-          </ItemContent>
-        </ItemHeader>
-
-        <form
-          className="grid gap-5"
-          noValidate
-          onSubmit={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            void form.handleSubmit();
-          }}
-        >
-          {step === 'map' ? (
-            <>
-              <div className="grid max-w-3xl gap-3">
-                <div className="hidden grid-cols-[180px_2rem_minmax(0,1fr)] items-center gap-3 px-1 text-xs font-medium uppercase text-muted-foreground sm:grid">
-                  <span>Retaino field</span>
-                  <span aria-hidden="true" />
-                  <span>CSV column</span>
-                </div>
-                {CONTACT_IMPORT_TARGET_FIELDS.map((target) => (
-                  <form.Field key={target} name={`mapping.${target}`}>
-                    {(field) => (
-                      <div className="grid gap-2 sm:grid-cols-[180px_2rem_minmax(0,1fr)] sm:items-center">
-                        <Label>
-                          <span className="text-xs font-medium uppercase text-muted-foreground sm:hidden">
-                            Retaino field
-                          </span>
-                          <span>{formatTargetField(target)}</span>
-                        </Label>
-                        <ArrowRight
-                          aria-hidden="true"
-                          className="hidden size-4 justify-self-center text-muted-foreground sm:block"
-                        />
-                        <div className="grid gap-1">
-                          <span className="text-xs font-medium uppercase text-muted-foreground sm:hidden">
-                            CSV column
-                          </span>
-                        <Select
-                          onValueChange={(value) =>
-                            field.handleChange(
-                              value === 'none' ? undefined : value,
-                            )
-                          }
-                          value={field.state.value ?? 'none'}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Not mapped</SelectItem>
-                            {headers.map((header) => (
-                              <SelectItem key={header} value={header}>
-                                {header}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        </div>
-                      </div>
-                    )}
-                  </form.Field>
-                ))}
-              </div>
-              <form.Field name="phoneCountryCode">
-                {(field) => (
-                  <div className="grid max-w-2xl gap-2 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-center">
-                    <Label htmlFor={field.name}>Phone country</Label>
-                    <CountryCombobox
-                      id={field.name}
-                      name={field.name}
-                      onBlur={field.handleBlur}
-                      onChange={(value) =>
-                        field.handleChange(value as typeof field.state.value)
-                      }
-                      value={field.state.value}
-                    />
-                    <p className="text-sm text-muted-foreground sm:col-start-2">
-                      Used for phone numbers without a country code.
-                    </p>
-                  </div>
-                )}
-              </form.Field>
-              <form.Subscribe selector={(state) => state.values.mapping}>
-                {(mapping) => (
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <Button
-                      disabled={!contactImportMappingReady(mapping)}
-                      onClick={() => setStep('review')}
-                      type="button"
-                    >
-                      Review import
-                    </Button>
-                  </div>
-                )}
-              </form.Subscribe>
-            </>
-          ) : (
-            <>
-              <form.Field
-                name="permissionAttestation"
-                validators={{
-                  onBlur: ({ value }) =>
-                    value
-                      ? undefined
-                      : 'Confirm these contacts can lawfully receive marketing SMS.',
-                  onSubmit: ({ value }) =>
-                    value
-                      ? undefined
-                      : 'Confirm these contacts can lawfully receive marketing SMS.',
-                }}
-              >
-                {(field) => (
-                  <div className="flex items-start gap-3">
-                    <Checkbox
-                      aria-describedby={
-                        field.state.meta.errors.length > 0
-                          ? 'permission-attestation-error'
-                          : undefined
-                      }
-                      checked={field.state.value}
-                      id={field.name}
-                      onBlur={field.handleBlur}
-                      onCheckedChange={(checked) =>
-                        field.handleChange(checked === true)
-                      }
-                    />
-                    <div className="grid gap-1">
-                      <Label htmlFor={field.name}>
-                        I confirm these contacts can lawfully receive marketing
-                        SMS from this organization.
-                      </Label>
-                      <p className="text-sm leading-6 text-muted-foreground">
-                        This is separate from opt-out handling. Retaino adds
-                        opt-out text to every SMS.
-                      </p>
-                      {field.state.meta.errors.length > 0 ? (
-                        <p
-                          className="text-xs text-destructive"
-                          id="permission-attestation-error"
-                        >
-                          {String(field.state.meta.errors[0])}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                )}
-              </form.Field>
-              <form.Subscribe selector={(state) => state.values}>
-                {({ mapping, permissionAttestation }) => (
-                  <ReviewStep
-                    isSubmitting={processImport.isPending}
-                    mapping={mapping}
-                    onBack={() => setStep('map')}
-                    permissionAttestation={permissionAttestation}
-                    processError={processImport.error}
-                    processingBlocker={processingBlocker}
-                    sampleRows={sampleRows}
-                  />
-                )}
-              </form.Subscribe>
-            </>
-          )}
-        </form>
-      </section>
-    </AppPageItem>
-  );
-}
-
-function ReviewStep({
-  isSubmitting,
-  mapping,
-  onBack,
-  permissionAttestation,
-  processError,
-  processingBlocker,
-  sampleRows,
-}: {
-  isSubmitting: boolean;
-  mapping: CsvMapping;
-  onBack: () => void;
-  permissionAttestation: boolean;
-  processError: Error | null;
-  processingBlocker: OrganizationWorkflowBlocker | null;
-  sampleRows: Record<string, string>[];
-}) {
-  const mappedFields = contactImportMappedFieldEntries(mapping);
-  const processingBlocked = processingBlocker !== null;
-
-  return (
-    <div className="grid gap-5">
-      <MappedPreviewTable fields={mappedFields} sampleRows={sampleRows} />
-      {processError ? (
-        <Alert variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Import could not start</AlertTitle>
-          <AlertDescription>{processError.message}</AlertDescription>
-        </Alert>
-      ) : null}
-      <ProcessingBlockerAlert blocker={processingBlocker} />
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button
-          disabled={isSubmitting}
-          onClick={onBack}
-          type="button"
-          variant="outline"
-        >
-          Back to mapping
-        </Button>
-        <Button
-          disabled={
-            isSubmitting ||
-            processingBlocked ||
-            !contactImportMappingReady(mapping) ||
-            !permissionAttestation
-          }
-          type="submit"
-        >
-          {isSubmitting ? (
-            <Loader2 aria-hidden="true" className="animate-spin" />
-          ) : (
-            <CheckCircle2 aria-hidden="true" />
-          )}
-          Start import
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function ProcessingBlockerAlert({
-  blocker,
-}: {
-  blocker: OrganizationWorkflowBlocker | null;
-}) {
-  if (!blocker) {
-    return null;
-  }
-
-  if (blocker === 'admin_required') {
-    return (
-      <Alert>
-        <AlertCircle aria-hidden="true" />
-        <AlertTitle>Admin access required before processing</AlertTitle>
-        <AlertDescription>
-          This uploaded file is still available to review. An organization admin
-          must start processing for this import.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (blocker === 'setup_required') {
-    return (
-      <Alert>
-        <AlertCircle aria-hidden="true" />
-        <AlertTitle>Setup required before processing</AlertTitle>
-        <AlertDescription>
-          Complete organization setup before Retaino can process new contacts.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  return (
-    <Alert>
-      <AlertCircle aria-hidden="true" />
-      <AlertTitle>Legal update required before processing</AlertTitle>
-      <AlertDescription className="grid gap-3">
-        <span>
-          This uploaded file is still available to review. An admin must accept
-          the current legal agreement before Retaino can process new contacts.
-        </span>
-        <span>
-          <Button asChild size="sm" variant="outline">
-            <Link href={`${routes.settings}#legal-agreement`}>
-              Review legal agreement
-            </Link>
-          </Button>
-        </span>
-      </AlertDescription>
-    </Alert>
   );
 }
 
@@ -760,9 +466,13 @@ function MappedPreviewTable({
   fields: Array<{ header: string; target: keyof CsvMapping }>;
   sampleRows: Record<string, string>[];
 }) {
+  if (fields.length === 0) {
+    return null;
+  }
+
   return (
     <div className="grid gap-2">
-      <h3 className="text-sm font-medium">Imported preview</h3>
+      <h3 className="text-sm font-medium">Sample values</h3>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader className="[&_tr]:border-0">
@@ -789,97 +499,312 @@ function MappedPreviewTable({
   );
 }
 
-function useUploadContactImport({
-  onSuccess,
+function ImportProgress({
+  fileName,
+  importId,
+  onImportAnother,
+  organizationId,
 }: {
-  onSuccess: (response: CreateContactImportResponse) => void;
+  fileName: string | null;
+  importId: string;
+  onImportAnother: () => void;
+  organizationId: string;
 }) {
-  const { getToken } = useAuth();
-  const queryClient = useQueryClient();
-  const mutation = useMutation({
-    mutationFn: async (value: { file: File; source: string }) => {
-      const token = await getToken();
-      const body = new FormData();
-      body.set('file', value.file);
-
-      if (value.source.trim()) {
-        body.set('source', value.source.trim());
-      }
-
-      const response = await fetch(apiUrl('/v1/contact-imports'), {
-        method: 'POST',
-        headers: token ? { authorization: `Bearer ${token}` } : undefined,
-        body,
-      });
-
-      if (!response.ok) {
-        throw await parseUploadError(response);
-      }
-
-      return (await response.json()) as CreateContactImportResponse;
-    },
-    onSuccess: async (response) => {
-      await queryClient.invalidateQueries({ queryKey: ['contact-imports'] });
-      onSuccess(response);
-    },
+  const { importQuery, latestImport } = useContactImport({
+    importId,
+    organizationId,
   });
+  const notifiedStatus = useRef<ContactImportDetail['status'] | null>(null);
 
-  return {
-    error: mutation.error instanceof Error ? mutation.error.message : null,
-    mutation,
-  };
-}
-
-function useProcessContactImport(
-  importId: string,
-  onProcessed: () => void | Promise<void>,
-) {
-  const api = useApi();
-
-  return useMutation({
-    mutationFn: (value: ContactImportProcessInput) =>
-      api.post(`/v1/contact-imports/${importId}/process`, value),
-    onSuccess: async () => {
-      await onProcessed();
-    },
-  });
-}
-
-function apiUrl(path: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  if (!baseUrl) {
-    throw new Error('NEXT_PUBLIC_API_URL is not configured.');
-  }
-
-  return `${baseUrl.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
-}
-
-async function parseUploadError(response: Response) {
-  try {
-    const payload = await response.json();
-
-    if (
-      payload &&
-      typeof payload === 'object' &&
-      'error' in payload &&
-      payload.error &&
-      typeof payload.error === 'object' &&
-      'message' in payload.error &&
-      typeof payload.error.message === 'string'
-    ) {
-      return new ApiClientError({
-        code:
-          'code' in payload.error && typeof payload.error.code === 'string'
-            ? (payload.error.code as ApiClientError['code'])
-            : 'unknown_error',
-        message: payload.error.message,
-        status: response.status,
-      });
+  useEffect(() => {
+    if (!latestImport || notifiedStatus.current === latestImport.status) {
+      return;
     }
-  } catch {
-    // Fall through to generic error.
+
+    if (latestImport.status === 'completed') {
+      const issueCount = importIssueCount(latestImport);
+
+      toast.success(
+        issueCount > 0
+          ? 'Import complete with issues'
+          : 'Import complete',
+        {
+          description:
+            issueCount > 0
+              ? `${latestImport.processedRows} rows processed, ${issueCount} need attention.`
+              : `${latestImport.processedRows} contacts are ready.`,
+        },
+      );
+      notifiedStatus.current = latestImport.status;
+    }
+
+    if (latestImport.status === 'failed') {
+      toast.error('Import failed', {
+        description:
+          latestImport.errorSummary[0] ?? 'Review the import result and try again.',
+      });
+      notifiedStatus.current = latestImport.status;
+    }
+  }, [latestImport]);
+
+  if (importQuery.isLoading) {
+    return (
+      <section className="grid gap-4">
+        <Separator />
+        <p className="text-sm text-muted-foreground">Loading import status.</p>
+      </section>
+    );
   }
 
-  return new Error(`Upload failed with status ${response.status}.`);
+  if (importQuery.isError || !latestImport) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle aria-hidden="true" />
+        <AlertTitle>Import status could not be loaded</AlertTitle>
+        <AlertDescription>
+          {importQuery.error instanceof Error
+            ? importQuery.error.message
+            : 'Try refreshing the page.'}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <section className="grid gap-5">
+      <ImportProgressHeader fileName={fileName} importRow={latestImport} />
+      <ImportMetrics importRow={latestImport} />
+      <ImportIssues importRow={latestImport} />
+      {latestImport.status === 'completed' || latestImport.status === 'failed' ? (
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button onClick={onImportAnother} type="button" variant="outline">
+            <FileUp aria-hidden="true" data-icon="inline-start" />
+            Import another CSV
+          </Button>
+          {latestImport.status === 'completed' ? (
+            <Button asChild>
+              <Link href={routes.contacts}>
+                <CheckCircle2 aria-hidden="true" data-icon="inline-start" />
+                View contacts
+              </Link>
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function ImportProgressHeader({
+  fileName,
+  importRow,
+}: {
+  fileName: string | null;
+  importRow: ContactImportDetail;
+}) {
+  const issueCount = importIssueCount(importRow);
+  const title =
+    importRow.status === 'processing'
+      ? 'Import running'
+      : importRow.status === 'failed'
+        ? 'Import failed'
+        : issueCount > 0
+          ? 'Import complete with issues'
+          : 'Import complete';
+  const description =
+    importRow.status === 'processing'
+      ? 'Retaino is validating, deduplicating, and checking suppressions in the background.'
+      : importRow.status === 'failed'
+        ? 'The contacts were not imported. Review the issue below and try again.'
+        : issueCount > 0
+          ? 'Contacts were imported, but some rows need attention.'
+          : 'Contacts are ready to use for segmentation and campaigns.';
+
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="grid min-w-0 gap-2">
+        <h3 className="text-base font-medium">{title}</h3>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          {description}
+        </p>
+        {fileName ? (
+          <p className="truncate text-xs text-muted-foreground">
+            File: {fileName}
+          </p>
+        ) : null}
+      </div>
+      <ImportStatusBadge status={importRow.status} />
+    </div>
+  );
+}
+
+function ImportMetrics({ importRow }: { importRow: ContactImportDetail }) {
+  const rowsLabel =
+    importRow.status === 'processing' && importRow.processedRows === 0
+      ? 'Pending'
+      : importRow.processedRows;
+
+  return (
+    <dl className="grid gap-3 text-sm sm:grid-cols-4">
+      <Metric label="Rows" tone="neutral" value={rowsLabel} />
+      <Metric label="Created" tone="green" value={importRow.createdCount} />
+      <Metric label="Updated" tone="blue" value={importRow.updatedCount} />
+      <Metric label="Skipped" tone="amber" value={importRow.skippedCount} />
+      <Metric label="Invalid" tone="red" value={importRow.invalidCount} />
+      <Metric label="Duplicate" tone="violet" value={importRow.duplicateCount} />
+      <Metric label="Suppressed" tone="slate" value={importRow.suppressedCount} />
+    </dl>
+  );
+}
+
+function ImportIssues({ importRow }: { importRow: ContactImportDetail }) {
+  if (importRow.errorSummary.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="grid gap-2">
+      <h3 className="text-sm font-medium">
+        {importRow.status === 'failed' ? 'Import error' : 'Rows needing attention'}
+      </h3>
+      <div className="flex flex-wrap gap-2">
+        {importRow.errorSummary.map((issue) => (
+          <span
+            className="rounded-md bg-muted px-2 py-1 text-sm text-muted-foreground"
+            key={issue}
+          >
+            {formatImportIssue(issue)}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type MetricTone =
+  | 'amber'
+  | 'blue'
+  | 'green'
+  | 'neutral'
+  | 'red'
+  | 'slate'
+  | 'violet';
+
+const metricToneClasses: Record<
+  MetricTone,
+  { panel: string; value: string }
+> = {
+  amber: {
+    panel: 'bg-amber-50/55 dark:bg-amber-950/25',
+    value: 'text-amber-800 dark:text-amber-200',
+  },
+  blue: {
+    panel: 'bg-sky-50/55 dark:bg-sky-950/25',
+    value: 'text-sky-800 dark:text-sky-200',
+  },
+  green: {
+    panel: 'bg-emerald-50/55 dark:bg-emerald-950/25',
+    value: 'text-emerald-800 dark:text-emerald-200',
+  },
+  neutral: {
+    panel: 'bg-muted/20',
+    value: 'text-foreground',
+  },
+  red: {
+    panel: 'bg-rose-50/55 dark:bg-rose-950/25',
+    value: 'text-rose-800 dark:text-rose-200',
+  },
+  slate: {
+    panel: 'bg-slate-50/70 dark:bg-slate-950/30',
+    value: 'text-slate-800 dark:text-slate-200',
+  },
+  violet: {
+    panel: 'bg-violet-50/55 dark:bg-violet-950/25',
+    value: 'text-violet-800 dark:text-violet-200',
+  },
+};
+
+function Metric({
+  label,
+  tone,
+  value,
+}: {
+  label: string;
+  tone: MetricTone;
+  value: number | string;
+}) {
+  const toneClasses = metricToneClasses[tone];
+
+  return (
+    <div
+      className={cn(
+        'grid min-h-16 gap-1 rounded-md border px-3 py-2',
+        toneClasses.panel,
+      )}
+    >
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className={cn('font-medium tabular-nums', toneClasses.value)}>
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function importIssueCount(importRow: ContactImportDetail) {
+  return (
+    importRow.skippedCount +
+    importRow.invalidCount +
+    importRow.duplicateCount +
+    importRow.suppressedCount
+  );
+}
+
+async function updatePreview(
+  file: File | null,
+  setPreview: (preview: CsvPreview | null) => void,
+  setParseError: (error: string | null) => void,
+): Promise<CsvPreview | null> {
+  setParseError(null);
+  setPreview(null);
+
+  if (!file) {
+    return null;
+  }
+
+  if (file.size > MAX_UPLOAD_SIZE) {
+    setParseError('CSV uploads are limited to 25 MB.');
+    return null;
+  }
+
+  try {
+    const csvPreview = parseCsvPreview(await file.text());
+    setPreview(csvPreview);
+    return csvPreview;
+  } catch {
+    setParseError('CSV file could not be parsed.');
+    return null;
+  }
+}
+
+function parseCsvPreview(text: string): CsvPreview {
+  const records = parse(text, {
+    bom: true,
+    relax_column_count: true,
+    skip_empty_lines: true,
+    trim: true,
+    to_line: SAMPLE_ROWS + 1,
+  }) as string[][];
+  const [rawHeaders = [], ...valueRows] = records;
+  const headers = rawHeaders
+    .map((header) => header.trim())
+    .filter((header) => header.length > 0);
+  const sampleRows = valueRows.map((values) =>
+    Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ''])),
+  );
+
+  if (headers.length === 0) {
+    throw new Error('Missing header row.');
+  }
+
+  return { headers, sampleRows };
 }

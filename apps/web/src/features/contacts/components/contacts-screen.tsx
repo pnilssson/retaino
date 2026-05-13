@@ -1,17 +1,10 @@
 "use client";
 
-import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, FileUp, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
-import {
-  parseAsInteger,
-  parseAsString,
-  useQueryStates,
-} from 'nuqs';
-import {
-  type ContactImportListResponse,
-  type ContactListResponse,
-} from '@retaino/shared/contracts';
+import { useMemo, useState } from 'react';
+import type { RowSelectionState } from '@tanstack/react-table';
+import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,10 +18,12 @@ import {
   AppPageItem,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
-import { useApi } from '@/features/onboarding/hooks/use-api';
+import { useContactListQueryState } from '@/features/contacts/hooks/use-contact-list-query-state';
+import { useContacts } from '@/features/contacts/hooks/use-contacts';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
 import { BlockedContacts } from './blocked-contacts';
+import { ContactBulkActions } from './contact-bulk-actions';
 import { ContactFilters } from './contact-filters';
 import { ContactsTable } from './contacts-table';
 import {
@@ -38,58 +33,25 @@ import {
 } from './data-table';
 
 export function ContactsScreen() {
-  const api = useApi();
   const session = useOrganizationSession();
-  const [query, setQuery] = useQueryStates({
-    page: parseAsInteger.withDefault(1),
-    search: parseAsString.withDefault(''),
-    status: parseAsString.withDefault('all'),
-    issue: parseAsString.withDefault('all'),
-    importedFrom: parseAsString.withDefault('all'),
-    sort: parseAsString.withDefault('createdAt'),
-    direction: parseAsString.withDefault('desc'),
-  });
-  const imports = useQuery({
+  const [query, setQuery] = useContactListQueryState();
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const contacts = useContacts({
     enabled: Boolean(session.data?.readiness.ready),
-    queryKey: ['contact-imports'],
-    queryFn: () =>
-      api.get<ContactImportListResponse>('/v1/contact-imports'),
+    organizationId: session.data?.organization.id ?? null,
+    query,
   });
-  const latestImport = imports.data?.imports[0] ?? null;
-  const contacts = useQuery({
-    enabled: Boolean(
-      session.data?.readiness.ready &&
-        (query.importedFrom !== 'latest' || latestImport?.id),
-    ),
-    queryKey: [
-      'contacts',
-      query.page,
-      query.search,
-      query.status,
-      query.issue,
-      query.importedFrom,
-      latestImport?.id,
-      query.sort,
-      query.direction,
-    ],
-    queryFn: () => {
-      const params = new URLSearchParams({
-        page: String(query.page),
-        pageSize: '25',
-        sort: query.sort,
-        direction: query.direction,
-      });
+  const selectedContacts = useMemo(
+    () =>
+      contacts.data?.contacts.filter((contact) => rowSelection[contact.id]) ??
+      [],
+    [contacts.data?.contacts, rowSelection],
+  );
+  const selectedContactIds = useMemo(
+    () => selectedContacts.map((contact) => contact.id),
+    [selectedContacts],
+  );
 
-      if (query.search) params.set('search', query.search);
-      if (query.status !== 'all') params.set('status', query.status);
-      if (query.issue !== 'all') params.set('issue', query.issue);
-      if (query.importedFrom === 'latest' && latestImport?.id) {
-        params.set('importedFrom', latestImport.id);
-      }
-
-      return api.get<ContactListResponse>(`/v1/contacts?${params}`);
-    },
-  });
   if (session.isLoading) {
     return (
       <main className="flex flex-1 items-start bg-background">
@@ -120,6 +82,10 @@ export function ContactsScreen() {
     return <BlockedContacts session={session.data} />;
   }
 
+  const canManageContacts = canManageOrganizationSetup(
+    session.data.organization.role,
+  );
+
   return (
     <main className="flex flex-1 items-start bg-background">
       <section className="mx-auto grid w-full max-w-7xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
@@ -128,19 +94,18 @@ export function ContactsScreen() {
             <>
               <Button asChild>
                 <Link href={routes.contactsImport}>
-                  <FileUp aria-hidden="true" />
+                  <FileUp aria-hidden="true" data-icon="inline-start" />
                   Import CSV
                 </Link>
               </Button>
               <Button
                 onClick={() => {
                   void contacts.refetch();
-                  void imports.refetch();
                 }}
                 type="button"
                 variant="outline"
               >
-                <RefreshCw aria-hidden="true" />
+                <RefreshCw aria-hidden="true" data-icon="inline-start" />
                 Refresh
               </Button>
             </>
@@ -157,16 +122,17 @@ export function ContactsScreen() {
                 <ItemContent className="gap-2">
                   <ItemTitle className="text-base">Contacts</ItemTitle>
                   <ItemDescription>
-                    Filter by SMS readiness, import batch, and data issues.
+                    Filter by SMS readiness and data issues.
                   </ItemDescription>
                 </ItemContent>
               </ItemHeader>
               <ContactFilters
                 direction={query.direction}
-                importedFrom={query.importedFrom}
                 issue={query.issue}
-                latestImportAvailable={Boolean(latestImport)}
-                onChange={(values) => void setQuery({ page: 1, ...values })}
+                onChange={(values) => {
+                  setRowSelection({});
+                  void setQuery({ page: 1, ...values });
+                }}
                 search={query.search}
                 sort={query.sort}
                 status={query.status}
@@ -186,10 +152,25 @@ export function ContactsScreen() {
                 <TableLoading label="Loading contacts" />
               ) : contacts.data && contacts.data.contacts.length > 0 ? (
                 <>
-                  <ContactsTable contacts={contacts.data.contacts} />
+                  {canManageContacts ? (
+                    <ContactBulkActions
+                      contactIds={selectedContactIds}
+                      onClear={() => setRowSelection({})}
+                      selectedCount={selectedContactIds.length}
+                    />
+                  ) : null}
+                  <ContactsTable
+                    contacts={contacts.data.contacts}
+                    onRowSelectionChange={setRowSelection}
+                    rowSelection={rowSelection}
+                    selectable={canManageContacts}
+                  />
                   <PaginationControls
                     itemLabel="contacts"
-                    onPageChange={(page) => void setQuery({ page })}
+                    onPageChange={(page) => {
+                      setRowSelection({});
+                      void setQuery({ page });
+                    }}
                     page={contacts.data.page}
                     pageSize={contacts.data.pageSize}
                     total={contacts.data.total}
@@ -197,8 +178,7 @@ export function ContactsScreen() {
                 </>
               ) : query.search ||
                 query.status !== 'all' ||
-                query.issue !== 'all' ||
-                query.importedFrom !== 'all' ? (
+                query.issue !== 'all' ? (
                 <EmptyState
                   description="Clear or change the filters to see more imported contacts."
                   title="No contacts match these filters"

@@ -1,15 +1,14 @@
 "use client";
 
 import { useClerk } from '@clerk/nextjs';
-import { LockKeyhole, UsersRound } from 'lucide-react';
 import type { OrganizationSession } from '@retaino/shared/contracts';
+import { UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   ItemActions,
   ItemContent,
   ItemDescription,
   ItemHeader,
-  ItemMedia,
   ItemTitle
 } from '@/components/ui/item';
 import { AppPageItem } from '@/features/appshell/components/app-page-content';
@@ -40,53 +39,18 @@ export function TeamInvitationSection({ session }: TeamInvitationSectionProps) {
               {session.organization.name}.
             </ItemDescription>
           </ItemContent>
-        </ItemHeader>
-
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-          <div className="flex min-w-0 items-start gap-3">
-            <ItemMedia
-              className="mt-0.5 size-8 rounded-md bg-muted"
-              variant="icon"
-            >
-              {canManageTeam ? (
-                <UsersRound
-                  aria-hidden="true"
-                  className="size-4"
-                  strokeWidth={1.5}
-                />
-              ) : (
-                <LockKeyhole
-                  aria-hidden="true"
-                  className="size-4"
-                  strokeWidth={1.5}
-                />
-              )}
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle>
-                {canManageTeam
-                  ? 'Organization access'
-                  : 'Organization access is locked'}
-              </ItemTitle>
-              <ItemDescription>
-                {canManageTeam
-                  ? 'Open organization management to update members, invitations, roles, and profile details.'
-                  : 'Complete organization setup before managing team access.'}
-              </ItemDescription>
-            </ItemContent>
-          </div>
-          <ItemActions className="w-full sm:w-auto">
+          <ItemActions>
             <Button
-              className="w-full sm:w-auto"
               disabled={!canManageTeam}
               onClick={() => openOrganizationProfile()}
               type="button"
               variant="outline"
             >
+              <UsersRound aria-hidden="true" data-icon="inline-start" />
               Manage access
             </Button>
           </ItemActions>
-        </div>
+        </ItemHeader>
       </section>
     </AppPageItem>
   );

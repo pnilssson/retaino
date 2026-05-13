@@ -2,6 +2,7 @@ import {
   legalDocumentVersionSchema,
   type LegalDocumentVersion,
 } from '@retaino/shared/contracts';
+import { ApiClientError, fetchPublicApi } from '@/lib/api-client';
 
 type LegalDocumentResponse = {
   legalDocument: LegalDocumentVersion;
@@ -21,29 +22,19 @@ export async function fetchLegalDocumentVersion(input: {
 }
 
 async function fetchLegalDocument(path: string) {
-  const response = await fetch(`${apiBaseUrl()}${path}`, {
-    cache: 'no-store',
-  });
+  let payload: LegalDocumentResponse;
 
-  if (response.status === 404) {
-    return null;
-  }
+  try {
+    payload = await fetchPublicApi<LegalDocumentResponse>(path, {
+      cache: 'no-store',
+    });
+  } catch (error) {
+    if (error instanceof ApiClientError && error.status === 404) {
+      return null;
+    }
 
-  if (!response.ok) {
     throw new Error('Legal document could not be loaded.');
   }
 
-  const payload = (await response.json()) as LegalDocumentResponse;
-
   return legalDocumentVersionSchema.parse(payload.legalDocument);
-}
-
-function apiBaseUrl() {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  if (!baseUrl) {
-    throw new Error('NEXT_PUBLIC_API_URL is not configured.');
-  }
-
-  return baseUrl.replace(/\/+$/, '');
 }

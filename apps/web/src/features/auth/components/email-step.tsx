@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { useEmailCodeAuth } from '@/features/auth/hooks/use-email-code-auth';
 import { getFieldError } from '@/lib/form-errors';
-import { emailPattern } from './form-constants';
+import { emailPattern } from '../form-constants';
 
 type EmailCodeAuth = ReturnType<typeof useEmailCodeAuth>;
 
@@ -110,13 +110,16 @@ export function EmailStep({ auth }: { auth: EmailCodeAuth }) {
           >
             {isSubmitting || auth.isFetching ? (
               <>
-                <Loader2 className="size-4 animate-spin" />
+                <Loader2
+                  className="size-4 animate-spin"
+                  data-icon="inline-start"
+                />
                 Sending code
               </>
             ) : (
               <>
                 Continue
-                <ArrowRight className="size-4" />
+                <ArrowRight className="size-4" data-icon="inline-end" />
               </>
             )}
           </Button>

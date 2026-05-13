@@ -4,7 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import type { Contact } from '@retaino/shared/contracts';
 import { routes } from '@/lib/routes';
-import { formatDate } from './contacts-format';
+import { formatDate } from '../contacts-format';
 import { ContactStatusBadge } from './status-badge';
 
 export const contactColumns: ColumnDef<Contact>[] = [
@@ -53,24 +53,6 @@ export const contactColumns: ColumnDef<Contact>[] = [
     cell: ({ row }) => (
       <LinkedCell contact={row.original}>
         {formatDate(row.original.lastContactedAt)}
-      </LinkedCell>
-    ),
-  },
-  {
-    accessorKey: 'lastService',
-    header: 'Service',
-    cell: ({ row }) => (
-      <LinkedCell contact={row.original}>
-        {row.original.lastService ?? 'Unknown'}
-      </LinkedCell>
-    ),
-  },
-  {
-    accessorKey: 'source',
-    header: 'Source',
-    cell: ({ row }) => (
-      <LinkedCell contact={row.original}>
-        {row.original.source ?? 'Import'}
       </LinkedCell>
     ),
   },

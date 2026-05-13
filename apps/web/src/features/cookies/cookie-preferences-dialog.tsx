@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { routes } from '@/lib/routes';
 
-import { useCookieConsent } from './cookie-consent-provider';
+import { useCookieConsent } from './hooks/use-cookie-consent';
 
 function Toggle({
   checked,
