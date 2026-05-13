@@ -25,6 +25,7 @@ export function useCreateCurrentOrganizationLegalAcceptance() {
           current
             ? {
                 ...current,
+                eligibility: data.eligibility,
                 legalAcceptance: data.legalAcceptance,
                 readiness: data.readiness,
               }

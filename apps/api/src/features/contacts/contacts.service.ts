@@ -8,19 +8,14 @@ import {
   type DbClient,
 } from '@retaino/db';
 import {
-  hashContactValue,
-  normalizeEmail,
-  normalizePhoneNumber,
-  type ContactConsentStatus,
+  contactImportMappedHeaders,
+  contactImportRowForHeaders,
+  contactMethodDedupeKeys,
+  prepareContactMethods,
   type ContactImportRowStatus,
   type CsvMapping,
 } from '@retaino/shared/contracts';
 import { parse } from 'csv-parse/sync';
-import {
-  csvAllowedMappedHeaders,
-  csvRowForHeaders,
-  isSensitiveCsvHeader,
-} from './contacts.csv';
 
 type ProcessContactImportInput = {
   db: DbClient;
@@ -41,7 +36,6 @@ type PreparedRow = {
   emailHash: string | null;
   lastBookingAt: Date | null;
   lastService: string | null;
-  consentStatus: ContactConsentStatus;
   source: string | null;
   persistedRawValues: Record<string, string>;
   errors: string[];
@@ -93,10 +87,7 @@ export async function processContactImport(input: ProcessContactImportInput) {
         continue;
       }
 
-      const dedupeKeys = [
-        prepared.phoneHash ? `phone:${prepared.phoneHash}` : null,
-        prepared.emailHash ? `email:${prepared.emailHash}` : null,
-      ].filter((key): key is string => key !== null);
+      const dedupeKeys = contactMethodDedupeKeys(prepared);
       const duplicate = dedupeKeys.some((key) => seenContactMethods.has(key));
 
       if (duplicate) {
@@ -127,7 +118,7 @@ export async function processContactImport(input: ProcessContactImportInput) {
         emailHash: prepared.emailHash,
         lastBookingAt: prepared.lastBookingAt,
         lastService: prepared.lastService,
-        consentStatus: prepared.consentStatus,
+        consentStatus: 'granted',
         source: prepared.source,
       });
 
@@ -182,23 +173,13 @@ async function prepareRow(input: {
 }): Promise<PreparedRow> {
   const phone = mappedValue(input.rawValues, input.mapping.phone);
   const email = mappedValue(input.rawValues, input.mapping.email);
-  const normalizedPhone = phone
-    ? normalizePhoneNumber(phone, input.phoneCountryCode)
-    : null;
-  const normalizedEmail = email ? normalizeEmail(email) : null;
-  const errors: string[] = [];
-
-  if (!phone && !email) {
-    errors.push('missing_contact_method');
-  }
-
-  if (normalizedPhone && !normalizedPhone.ok) {
-    errors.push(normalizedPhone.error);
-  }
-
-  if (email && !normalizedEmail) {
-    errors.push('invalid_email');
-  }
+  const methods = await prepareContactMethods({
+    phone,
+    email,
+    phoneCountryCode: input.phoneCountryCode,
+    requireContactMethod: true,
+  });
+  const errors: string[] = [...methods.errors];
 
   const parsedBookingDate = parseOptionalDate(
     mappedValue(input.rawValues, input.mapping.lastBookingAt),
@@ -208,30 +189,22 @@ async function prepareRow(input: {
     errors.push(parsedBookingDate.error);
   }
 
-  const normalizedPhoneValue =
-    normalizedPhone && normalizedPhone.ok ? normalizedPhone.normalizedPhone : null;
-
   return {
     rowNumber: input.rowNumber,
     rawValues: input.rawValues,
     name: mappedValue(input.rawValues, input.mapping.name),
-    phone,
-    email,
-    normalizedPhone: normalizedPhoneValue,
-    normalizedEmail,
-    phoneHash: normalizedPhoneValue
-      ? await hashContactValue(normalizedPhoneValue)
-      : null,
-    emailHash: normalizedEmail ? await hashContactValue(normalizedEmail) : null,
+    phone: methods.phone,
+    email: methods.email,
+    normalizedPhone: methods.normalizedPhone,
+    normalizedEmail: methods.normalizedEmail,
+    phoneHash: methods.phoneHash,
+    emailHash: methods.emailHash,
     lastBookingAt: parsedBookingDate.value,
     lastService: mappedValue(input.rawValues, input.mapping.lastService),
-    consentStatus: normalizeConsent(
-      mappedValue(input.rawValues, input.mapping.consentStatus),
-    ),
     source: mappedValue(input.rawValues, input.mapping.source),
-    persistedRawValues: csvRowForHeaders(
+    persistedRawValues: contactImportRowForHeaders(
       input.rawValues,
-      csvAllowedMappedHeaders(input.mapping),
+      contactImportMappedHeaders(input.mapping),
     ),
     errors,
   };
@@ -293,30 +266,12 @@ async function isSuppressed(
 }
 
 function mappedValue(row: Record<string, string>, header: string | undefined) {
-  if (!header || isSensitiveCsvHeader(header)) {
+  if (!header) {
     return null;
   }
 
   const value = row[header]?.trim();
   return value ? value : null;
-}
-
-function normalizeConsent(value: string | null): ContactConsentStatus {
-  if (!value) {
-    return 'unknown';
-  }
-
-  const normalized = value.trim().toLowerCase();
-
-  if (['1', 'true', 'yes', 'y', 'granted', 'opted in'].includes(normalized)) {
-    return 'granted';
-  }
-
-  if (['0', 'false', 'no', 'n', 'denied', 'opted out'].includes(normalized)) {
-    return 'denied';
-  }
-
-  return 'unknown';
 }
 
 function parseOptionalDate(value: string | null):

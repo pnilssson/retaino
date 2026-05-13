@@ -5,7 +5,6 @@ import { LockKeyhole, UsersRound } from 'lucide-react';
 import type { OrganizationSession } from '@retaino/shared/contracts';
 import { Button } from '@/components/ui/button';
 import {
-  Item,
   ItemActions,
   ItemContent,
   ItemDescription,
@@ -13,6 +12,7 @@ import {
   ItemMedia,
   ItemTitle
 } from '@/components/ui/item';
+import { AppPageItem } from '@/features/appshell/components/app-page-content';
 
 type TeamInvitationSectionProps = {
   session: OrganizationSession;
@@ -23,7 +23,7 @@ export function TeamInvitationSection({ session }: TeamInvitationSectionProps) {
   const canManageTeam = session.readiness.setupComplete;
 
   return (
-    <Item asChild className="grid items-stretch gap-5 border-border bg-card px-5 py-5">
+    <AppPageItem asChild>
       <section id="team-access">
         <ItemHeader className="items-start">
           <ItemContent className="gap-2">
@@ -88,6 +88,6 @@ export function TeamInvitationSection({ session }: TeamInvitationSectionProps) {
           </ItemActions>
         </div>
       </section>
-    </Item>
+    </AppPageItem>
   );
 }

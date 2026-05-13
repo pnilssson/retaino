@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allowedBrowserOrigins, parseConfiguredOrigins } from './origins';
+import { allowedBrowserOrigins, parseConfiguredOrigins } from '../../src/lib/origins';
 
 describe('parseConfiguredOrigins', () => {
   it('trims comma-separated origins and removes blanks', () => {

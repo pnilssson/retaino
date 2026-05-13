@@ -8,6 +8,7 @@ import {
 } from '@/features/organization-profile/organization-profile-form';
 import { ProfileInput } from '@/features/organization-profile/profile-input';
 import { getFieldError } from '@/lib/form-errors';
+import { OnboardingItem } from './onboarding-item';
 
 export function CompanyStep({
   defaultValues,
@@ -24,18 +25,13 @@ export function CompanyStep({
   });
 
   return (
-    <section className="pt-4">
-      <p className="text-sm text-muted-foreground">Company identity</p>
-      <h1 className="mt-2 text-2xl leading-tight tracking-tight sm:text-3xl">
-        Tell us who runs {organizationName}.
-      </h1>
-      <p className="mt-3 text-sm leading-6 text-muted-foreground">
-        Retaino uses this identity for agreements, billing records, and
-        organization-level audit evidence.
-      </p>
-
+    <OnboardingItem
+      description="Retaino uses this identity for agreements, billing records, and organization-level audit evidence."
+      eyebrow="Company identity"
+      title={<>Tell us who runs {organizationName}.</>}
+    >
       <form
-        className="mt-8 grid gap-5"
+        className="grid gap-5"
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
@@ -46,7 +42,7 @@ export function CompanyStep({
         <form.Field
           name="legalName"
           validators={{
-            onChange: ({ value }) =>
+            onBlur: ({ value }) =>
               validateRequired(value, 'Enter the legal company name.'),
             onSubmit: ({ value }) =>
               validateRequired(value, 'Enter the legal company name.'),
@@ -67,7 +63,7 @@ export function CompanyStep({
         <form.Field
           name="registrationNumber"
           validators={{
-            onChange: ({ value }) =>
+            onBlur: ({ value }) =>
               validateRequired(value, 'Enter the registration number.'),
             onSubmit: ({ value }) =>
               validateRequired(value, 'Enter the registration number.'),
@@ -95,6 +91,6 @@ export function CompanyStep({
           </form.Subscribe>
         </div>
       </form>
-    </section>
+    </OnboardingItem>
   );
 }

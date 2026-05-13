@@ -5,8 +5,8 @@ import {
   getPublishedLegalDocumentVersion,
 } from '@retaino/db';
 import type { LegalDocumentVersion } from '@retaino/shared/contracts';
-import { legalRoutes } from './legal.routes';
-import type { AppEnv } from '../../types';
+import { legalRoutes } from '../../../src/features/legal/legal.routes';
+import type { AppEnv } from '../../../src/types';
 
 vi.mock('@retaino/db', () => ({
   getLatestPublishedLegalDocumentVersion: vi.fn(),

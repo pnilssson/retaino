@@ -1,5 +1,4 @@
 import type {
-  ContactConsentStatus,
   ContactIssueCode,
   ContactImportRowStatus,
   ContactImportStatus,
@@ -25,19 +24,12 @@ const importRowStatusLabels: Record<ContactImportRowStatus, string> = {
 };
 
 const targetFieldLabels: Record<ContactImportTargetField, string> = {
-  consentStatus: 'Consent',
   email: 'Email',
   lastBookingAt: 'Last booking',
   lastService: 'Latest service',
   name: 'Name',
   phone: 'Phone',
   source: 'Original system',
-};
-
-const contactConsentStatusLabels: Record<ContactConsentStatus, string> = {
-  denied: 'Denied',
-  granted: 'Granted',
-  unknown: 'Unknown',
 };
 
 const contactIssueLabels: Record<ContactIssueCode, string> = {
@@ -93,10 +85,6 @@ export function formatImportRowStatus(status: ContactImportRowStatus) {
 
 export function formatImportRowIssue(issue: string) {
   return importRowIssueLabels[issue] ?? humanizeIssueCode(issue);
-}
-
-export function formatContactConsentStatus(status: ContactConsentStatus) {
-  return contactConsentStatusLabels[status];
 }
 
 export function formatContactIssue(issue: ContactIssueCode) {

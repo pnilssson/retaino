@@ -10,13 +10,13 @@ import {
   type ContactImportSummary,
 } from '@retaino/shared/contracts';
 import {
-  Item,
   ItemActions,
   ItemContent,
   ItemDescription,
   ItemHeader,
   ItemTitle,
 } from '@/components/ui/item';
+import { AppPageItem } from '@/features/appshell/components/app-page-content';
 import { Progress } from '@/components/ui/progress';
 import {
   Select,
@@ -66,10 +66,7 @@ export function ImportStatusPanel({
 }) {
   if (!latestImport) {
     return (
-      <Item
-        asChild
-        className="grid items-stretch gap-5 border-border bg-card px-5 py-5"
-      >
+      <AppPageItem asChild>
         <section>
           <ItemHeader className="items-start">
             <ItemContent className="gap-2">
@@ -81,7 +78,7 @@ export function ImportStatusPanel({
             title="No import activity yet"
           />
         </section>
-      </Item>
+      </AppPageItem>
     );
   }
 
@@ -93,10 +90,7 @@ export function ImportStatusPanel({
         : 0;
 
   return (
-    <Item
-      asChild
-      className="grid items-stretch gap-5 border-border bg-card px-5 py-5"
-    >
+    <AppPageItem asChild>
       <section>
         <ItemHeader className="items-start">
           <ItemContent className="min-w-0 gap-2">
@@ -172,7 +166,7 @@ export function ImportStatusPanel({
           )}
         </div>
       </section>
-    </Item>
+    </AppPageItem>
   );
 }
 

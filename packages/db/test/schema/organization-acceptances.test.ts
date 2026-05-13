@@ -1,6 +1,6 @@
 import { getTableConfig } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
-import { organizationLegalAcceptances } from './organization-acceptances';
+import { organizationLegalAcceptances } from '../../src/schema/organization-acceptances';
 
 describe('organization legal acceptances schema', () => {
   it('preserves legal acceptance audit records when a user delete is attempted', () => {

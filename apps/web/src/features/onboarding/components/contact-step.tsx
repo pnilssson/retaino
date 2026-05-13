@@ -15,6 +15,7 @@ import {
 import { ProfileInput } from '@/features/organization-profile/profile-input';
 import { getFieldError } from '@/lib/form-errors';
 import { InlineError } from './inline-error';
+import { OnboardingItem } from './onboarding-item';
 
 export function ContactStep({
   defaultValues,
@@ -37,18 +38,13 @@ export function ContactStep({
   });
 
   return (
-    <section className="pt-4">
-      <p className="text-sm text-muted-foreground">Responsible contact</p>
-      <h1 className="mt-2 text-2xl leading-tight tracking-tight sm:text-3xl">
-        Add the person accountable for campaigns.
-      </h1>
-      <p className="mt-3 text-sm leading-6 text-muted-foreground">
-        This contact is used for compliance, billing, and operational follow-up
-        if a campaign needs review.
-      </p>
-
+    <OnboardingItem
+      description="This contact is used for compliance, billing, and operational follow-up if a campaign needs review."
+      eyebrow="Responsible contact"
+      title="Add the person accountable for campaigns."
+    >
       <form
-        className="mt-8 grid gap-5"
+        className="grid gap-5"
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
@@ -59,7 +55,7 @@ export function ContactStep({
         <form.Field
           name="billingEmail"
           validators={{
-            onChange: ({ value }) => validateEmail(value, 'billing email'),
+            onBlur: ({ value }) => validateEmail(value, 'billing email'),
             onSubmit: ({ value }) => validateEmail(value, 'billing email'),
           }}
         >
@@ -79,7 +75,7 @@ export function ContactStep({
         <form.Field
           name="responsibleName"
           validators={{
-            onChange: ({ value }) =>
+            onBlur: ({ value }) =>
               validateRequired(value, 'Enter the responsible contact.'),
             onSubmit: ({ value }) =>
               validateRequired(value, 'Enter the responsible contact.'),
@@ -100,7 +96,7 @@ export function ContactStep({
         <form.Field
           name="responsibleEmail"
           validators={{
-            onChange: ({ value }) => validateEmail(value, 'responsible email'),
+            onBlur: ({ value }) => validateEmail(value, 'responsible email'),
             onSubmit: ({ value }) => validateEmail(value, 'responsible email'),
           }}
         >
@@ -120,7 +116,7 @@ export function ContactStep({
         <form.Field
           name="countryCode"
           validators={{
-            onChange: ({ value }) => validateCountryCode(value),
+            onBlur: ({ value }) => validateCountryCode(value),
             onSubmit: ({ value }) => validateCountryCode(value),
           }}
         >
@@ -140,7 +136,7 @@ export function ContactStep({
         <form.Field
           name="responsiblePhone"
           validators={{
-            onChange: ({ value }) =>
+            onBlur: ({ value }) =>
               validatePhone(value, form.getFieldValue('countryCode')),
             onSubmit: ({ value }) =>
               validatePhone(value, form.getFieldValue('countryCode')),
@@ -187,7 +183,7 @@ export function ContactStep({
           </form.Subscribe>
         </div>
       </form>
-    </section>
+    </OnboardingItem>
   );
 }
 

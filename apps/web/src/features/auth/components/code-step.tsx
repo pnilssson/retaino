@@ -45,7 +45,8 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
       <codeForm.Field
         name="code"
         validators={{
-          onChange: ({ value }) => validateCode(value),
+          onBlur: ({ value }) => validateCode(value),
+          onSubmit: ({ value }) => validateCode(value),
         }}
       >
         {(field) => {

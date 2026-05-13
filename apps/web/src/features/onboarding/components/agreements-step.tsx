@@ -1,16 +1,13 @@
 "use client";
 
-import { useForm } from '@tanstack/react-form';
 import {
   legalDocumentUrl,
   type OrganizationSession,
 } from '@retaino/shared/contracts';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { getFieldError } from '@/lib/form-errors';
 import { legalBundleDocumentLabels } from '../onboarding.constants';
+import { OnboardingItem } from './onboarding-item';
 
 export function AgreementsStep({
   legalBundle,
@@ -25,37 +22,15 @@ export function AgreementsStep({
   onBack: () => void;
   onComplete: () => Promise<void>;
 }) {
-  const form = useForm({
-    defaultValues: {
-      authorization: false,
-    },
-    onSubmit: async () => {
-      await onComplete();
-    },
-  });
-
   return (
-    <section className="pt-4">
-      <p className="text-sm text-muted-foreground">Legal</p>
-      <h1 className="mt-2 text-2xl leading-tight tracking-tight sm:text-3xl">
-        Accept Retaino legal terms.
-      </h1>
-      <p className="mt-3 text-sm leading-6 text-muted-foreground">
-        One agreement covers the terms, data processing terms, sending policy,
-        and related policies for this organization.
-      </p>
-
-      <form
-        className="mt-8 grid gap-6"
-        noValidate
-        onSubmit={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          void form.handleSubmit();
-        }}
-      >
+    <OnboardingItem
+      description="These documents apply to this Retaino workspace."
+      eyebrow="Legal"
+      title="Finish setup."
+    >
+      <div className="grid gap-6">
         <p className="text-sm leading-6 text-muted-foreground">
-          By continuing, you agree to the{' '}
+          Documents:{' '}
           {legalBundle.documents.map((document, index) => {
             const label =
               legalBundleDocumentLabels[
@@ -87,77 +62,29 @@ export function AgreementsStep({
           .
         </p>
 
-        <form.Field
-          name="authorization"
-          validators={{
-            onChange: ({ value }) =>
-              value
-                ? undefined
-                : 'Confirm that you are authorized to accept these documents.',
-            onSubmit: ({ value }) =>
-              value
-                ? undefined
-                : 'Confirm that you are authorized to accept these documents.',
-          }}
-        >
-          {(field) => {
-            const error =
-              mutationError ?? getFieldError(field.state.meta.errors);
+        <p className="text-sm leading-6 text-muted-foreground">
+          By finishing setup, you agree to the documents above.
+        </p>
 
-            return (
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  aria-describedby={error ? 'authorization-error' : undefined}
-                  checked={field.state.value}
-                  id={field.name}
-                  onBlur={field.handleBlur}
-                  onCheckedChange={(checked) =>
-                    field.handleChange(checked === true)
-                  }
-                />
-                <div className="grid gap-1">
-                  <Label htmlFor={field.name}>
-                    I am authorized to agree to Retaino Terms, Data Processing
-                    Terms, Sending Policy, and related policies for this
-                    organization.
-                  </Label>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    Acceptance is recorded once for the current legal bundle.
-                  </p>
-                  {error ? (
-                    <p
-                      className="text-xs text-destructive"
-                      id="authorization-error"
-                    >
-                      {error}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            );
-          }}
-        </form.Field>
+        {mutationError ? (
+          <p className="text-sm text-destructive">{mutationError}</p>
+        ) : null}
 
         <div className="flex flex-wrap justify-between gap-3 pt-2">
           <Button onClick={onBack} type="button" variant="outline">
             Back
           </Button>
-          <form.Subscribe
-            selector={(state) => [state.canSubmit, state.isSubmitting]}
+          <Button
+            disabled={isPending}
+            onClick={() => {
+              void onComplete().catch(() => undefined);
+            }}
+            type="button"
           >
-            {([canSubmit, isSubmitting]) => (
-              <Button
-                disabled={!canSubmit || isPending || isSubmitting}
-                type="submit"
-              >
-                {isPending || isSubmitting
-                  ? 'Recording acceptance'
-                  : 'Accept and finish setup'}
-              </Button>
-            )}
-          </form.Subscribe>
+            {isPending ? 'Finishing setup' : 'Finish setup'}
+          </Button>
         </div>
-      </form>
-    </section>
+      </div>
+    </OnboardingItem>
   );
 }

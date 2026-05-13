@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
 import { OnboardingFrame } from './onboarding-frame';
+import { OnboardingItem } from './onboarding-item';
 
 export function OrganizationRequired() {
   const router = useRouter();
@@ -53,31 +54,27 @@ export function OrganizationRequired() {
   if (!isLoaded) {
     return (
       <OnboardingFrame completedSteps={[]} currentStep="organization">
-        <section className="pt-10">
-          <p className="text-sm text-muted-foreground">
-            Preparing organization setup.
-          </p>
-        </section>
+        <OnboardingItem
+          eyebrow="Organization"
+          title="Preparing organization setup."
+        />
       </OnboardingFrame>
     );
   }
 
   return (
     <OnboardingFrame completedSteps={[]} currentStep="organization">
-      <section className="pt-10">
-        <p className="text-sm text-muted-foreground">Organization</p>
-        <h1 className="mt-2 text-2xl leading-tight tracking-tight sm:text-3xl">
-          {hasExistingOrganizations
+      <OnboardingItem
+        description="Retaino works inside a shared workspace so your team can use the same contacts, campaigns, and results."
+        eyebrow="Organization"
+        title={
+          hasExistingOrganizations
             ? 'Choose an organization to continue.'
-            : 'Create or join an organization.'}
-        </h1>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-          Retaino works inside a shared workspace so your team can use the same
-          contacts, campaigns, and results.
-        </p>
-
+            : 'Create or join an organization.'
+        }
+      >
         {error ? (
-          <Alert className="mt-6" variant="destructive">
+          <Alert variant="destructive">
             <AlertCircle aria-hidden="true" />
             <AlertTitle>Organization could not be selected</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
@@ -85,7 +82,7 @@ export function OrganizationRequired() {
         ) : null}
 
         {hasExistingOrganizations ? (
-          <div className="mt-8 border-y py-5">
+          <div className="border-y py-5">
             <p className="text-sm font-medium">Your organizations</p>
             <div className="mt-4 grid gap-2">
               {memberships.map((membership) => (
@@ -113,7 +110,7 @@ export function OrganizationRequired() {
           </div>
         ) : null}
 
-        <div className="mt-8 grid gap-3">
+        <div className="grid gap-3">
           <Button asChild className="w-fit">
             <Link href={routes.organizationNew}>
               <Plus aria-hidden="true" />
@@ -125,7 +122,7 @@ export function OrganizationRequired() {
             link from your email. You do not need to create a new workspace.
           </p>
         </div>
-      </section>
+      </OnboardingItem>
     </OnboardingFrame>
   );
 }

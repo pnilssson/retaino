@@ -4,7 +4,7 @@ import {
   contactImports,
   contacts,
   suppressions,
-} from './contacts';
+} from '../../src/schema/contacts';
 
 describe('contacts schema', () => {
   it('keeps every contacts table organization scoped', () => {

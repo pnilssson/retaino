@@ -83,7 +83,7 @@ export function OnboardingFrame({
           </ol>
         </aside>
 
-        <div className="min-w-0">{children}</div>
+        <div className="grid min-w-0 content-start gap-6">{children}</div>
       </section>
     </main>
   );

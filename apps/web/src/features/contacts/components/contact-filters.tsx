@@ -29,7 +29,6 @@ const statusLabels: Record<string, string> = {
 const issueLabels: Record<string, string> = {
   all: 'All issues',
   invalid_phone: 'No valid phone',
-  missing_consent: 'Missing consent',
   missing_phone: 'No valid phone',
   suppressed_phone: 'Suppressed phone',
 };
@@ -104,7 +103,7 @@ export function ContactFilters({
             onValueChange={(value) => onChange({ status: value })}
             value={status}
           >
-            <SelectTrigger className="h-9 flex-1 sm:w-40 sm:flex-none">
+            <SelectTrigger className="h-9 min-h-9 flex-1 sm:w-40 sm:flex-none">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -150,12 +149,6 @@ export function ContactFilters({
                   value="suppressed_phone"
                 >
                   Suppressed phone
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem
-                  onSelect={(event) => event.preventDefault()}
-                  value="missing_consent"
-                >
-                  Missing consent
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
 

@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ItemGroup } from '@/components/ui/item';
+import { AppPageContent } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
@@ -24,7 +24,7 @@ export function OrganizationSettingsScreen() {
 
   if (session.isLoading) {
     return (
-      <main className="flex flex-1 bg-background">
+      <main className="flex flex-1 items-start bg-background">
         <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-10">
           <p className="text-sm text-muted-foreground">
             Loading organization settings.
@@ -86,8 +86,8 @@ function SettingsContent({
   ) : null;
 
   return (
-    <main className="flex flex-1 bg-background">
-      <section className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-6 sm:px-8 lg:px-10">
+    <main className="flex flex-1 items-start bg-background">
+      <section className="mx-auto grid w-full max-w-6xl content-start gap-8 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={headerActions}
           badge={<Badge variant={status.badgeVariant}>{status.label}</Badge>}
@@ -96,11 +96,11 @@ function SettingsContent({
           title={session.organization.name}
         />
 
-        <ItemGroup className="gap-5">
+        <AppPageContent>
           <ProfileSection canManageSetup={canManageSetup} session={session} />
           <TeamInvitationSection session={session} />
           <ComplianceSection canManageSetup={canManageSetup} session={session} />
-        </ItemGroup>
+        </AppPageContent>
       </section>
     </main>
   );

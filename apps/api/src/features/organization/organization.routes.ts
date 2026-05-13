@@ -16,7 +16,10 @@ import { Hono } from 'hono';
 import { apiError } from '../../lib/errors';
 import { parseJsonBody } from '../../lib/route-helpers';
 import type { AppEnv } from '../../types';
-import { getOrganizationReadiness } from './organization.readiness';
+import {
+  getOrganizationEligibility,
+  getOrganizationReadiness,
+} from './organization.readiness';
 
 export const organizationRoutes = new Hono<AppEnv>()
   .get('/me', async (c) => {
@@ -28,6 +31,12 @@ export const organizationRoutes = new Hono<AppEnv>()
       organizationId: organization.id,
       bundleVersion: legalBundle.version,
     });
+    const readiness = getOrganizationReadiness({
+      hasProfile: profile !== null,
+      onboardingStatus: organization.onboardingStatus,
+      legalBundle,
+      legalAcceptance,
+    });
 
     return c.json({
       user: c.get('user'),
@@ -35,12 +44,11 @@ export const organizationRoutes = new Hono<AppEnv>()
       profile,
       legalBundle,
       legalAcceptance,
-      readiness: getOrganizationReadiness({
-        hasProfile: profile !== null,
-        onboardingStatus: organization.onboardingStatus,
-        legalBundle,
-        legalAcceptance,
+      eligibility: getOrganizationEligibility({
+        readiness,
+        role: organization.role,
       }),
+      readiness,
     });
   })
   .post('/organization/profile', async (c) => {
@@ -143,17 +151,22 @@ export const organizationRoutes = new Hono<AppEnv>()
       db,
       organization.id,
     );
+    const readiness = getOrganizationReadiness({
+      hasProfile: profile !== null,
+      onboardingStatus:
+        completedOrganization?.onboardingStatus ?? 'complete',
+      legalBundle,
+      legalAcceptance,
+    });
 
     return c.json(
       {
         legalAcceptance,
-        readiness: getOrganizationReadiness({
-          hasProfile: profile !== null,
-          onboardingStatus:
-            completedOrganization?.onboardingStatus ?? 'complete',
-          legalBundle,
-          legalAcceptance,
+        eligibility: getOrganizationEligibility({
+          readiness,
+          role: organization.role,
         }),
+        readiness,
       },
       201,
     );

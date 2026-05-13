@@ -17,11 +17,15 @@ import { useState } from 'react';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import {
   CONTACT_IMPORT_TARGET_FIELDS,
+  autoMapContactImportHeaders,
+  contactImportMappedFieldEntries,
+  contactImportMappingReady,
   type ContactImportDetail,
   type ContactImportProcessInput,
   type ContactImportRowsResponse,
   type CreateContactImportResponse,
   type CsvMapping,
+  type OrganizationWorkflowBlocker,
 } from '@retaino/shared/contracts';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -30,10 +34,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { CountryCombobox } from '@/components/country-combobox';
 import { Input } from '@/components/ui/input';
 import {
-  Item,
   ItemContent,
   ItemDescription,
-  ItemGroup,
   ItemHeader,
   ItemTitle,
 } from '@/components/ui/item';
@@ -53,6 +55,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AppPageContent,
+  AppPageItem,
+} from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useApi } from '@/features/onboarding/hooks/use-api';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
@@ -107,7 +113,7 @@ export function ContactImportUploadScreen() {
     return null;
   }
 
-  if (!session.data.readiness.ready || session.data.readiness.legalUpdatesRequired) {
+  if (!session.data.eligibility.contactImports.allowed) {
     return <BlockedContacts session={session.data} />;
   }
 
@@ -128,11 +134,8 @@ export function ContactImportUploadScreen() {
           title="Import contacts"
         />
 
-        <ItemGroup className="gap-5">
-          <Item
-            asChild
-            className="grid items-stretch gap-5 border-border bg-card px-5 py-5"
-          >
+        <AppPageContent>
+          <AppPageItem asChild>
             <section>
               <ItemHeader className="items-start">
                 <ItemContent className="gap-2">
@@ -152,8 +155,8 @@ export function ContactImportUploadScreen() {
                 </Alert>
               ) : null}
             </section>
-          </Item>
-        </ItemGroup>
+          </AppPageItem>
+        </AppPageContent>
       </section>
     </main>
   );
@@ -277,7 +280,7 @@ export function ContactImportDetailScreen({ importId }: { importId: string }) {
               });
               await queryClient.invalidateQueries({ queryKey: ['contacts'] });
             }}
-            processingBlocked={session.data.readiness.legalUpdatesRequired}
+            processingBlocker={session.data.eligibility.contactImports.blocker}
           />
         ) : latestImport ? (
           <ImportStatusPanel
@@ -419,19 +422,20 @@ function UploadForm({
 function MappingPanel({
   importDetail,
   onProcessed,
-  processingBlocked,
+  processingBlocker,
 }: {
   importDetail: ContactImportDetail;
   onProcessed: () => void | Promise<void>;
-  processingBlocked: boolean;
+  processingBlocker: OrganizationWorkflowBlocker | null;
 }) {
   const processImport = useProcessContactImport(importDetail.id, onProcessed);
   const headers = importDetail.preview?.headers ?? [];
   const sampleRows = importDetail.preview?.sampleRows ?? [];
+  const processingBlocked = processingBlocker !== null;
   const [step, setStep] = useState<'map' | 'review'>('map');
   const form = useForm({
     defaultValues: {
-      mapping: autoMapHeaders(headers),
+      mapping: autoMapContactImportHeaders(headers),
       phoneCountryCode: importDetail.phoneCountryCode,
       permissionAttestation: false as boolean,
     } satisfies ContactImportProcessFormValues,
@@ -449,10 +453,7 @@ function MappingPanel({
   });
 
   return (
-    <Item
-      asChild
-      className="grid items-stretch gap-5 border-border bg-card px-5 py-5"
-    >
+    <AppPageItem asChild>
       <section>
         <ItemHeader className="items-start">
           <ItemContent className="gap-2">
@@ -554,7 +555,7 @@ function MappingPanel({
                 {(mapping) => (
                   <div className="flex flex-wrap justify-end gap-2">
                     <Button
-                      disabled={!mappingReady(mapping)}
+                      disabled={!contactImportMappingReady(mapping)}
                       onClick={() => setStep('review')}
                       type="button"
                     >
@@ -569,7 +570,7 @@ function MappingPanel({
               <form.Field
                 name="permissionAttestation"
                 validators={{
-                  onChange: ({ value }) =>
+                  onBlur: ({ value }) =>
                     value
                       ? undefined
                       : 'Confirm these contacts can lawfully receive marketing SMS.',
@@ -623,7 +624,7 @@ function MappingPanel({
                     onBack={() => setStep('map')}
                     permissionAttestation={permissionAttestation}
                     processError={processImport.error}
-                    processingBlocked={processingBlocked}
+                    processingBlocker={processingBlocker}
                     sampleRows={sampleRows}
                   />
                 )}
@@ -632,7 +633,7 @@ function MappingPanel({
           )}
         </form>
       </section>
-    </Item>
+    </AppPageItem>
   );
 }
 
@@ -642,7 +643,7 @@ function ReviewStep({
   onBack,
   permissionAttestation,
   processError,
-  processingBlocked,
+  processingBlocker,
   sampleRows,
 }: {
   isSubmitting: boolean;
@@ -650,10 +651,11 @@ function ReviewStep({
   onBack: () => void;
   permissionAttestation: boolean;
   processError: Error | null;
-  processingBlocked: boolean;
+  processingBlocker: OrganizationWorkflowBlocker | null;
   sampleRows: Record<string, string>[];
 }) {
-  const mappedFields = mappedFieldEntries(mapping);
+  const mappedFields = contactImportMappedFieldEntries(mapping);
+  const processingBlocked = processingBlocker !== null;
 
   return (
     <div className="grid gap-5">
@@ -665,26 +667,7 @@ function ReviewStep({
           <AlertDescription>{processError.message}</AlertDescription>
         </Alert>
       ) : null}
-      {processingBlocked ? (
-        <Alert>
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Legal update required before processing</AlertTitle>
-          <AlertDescription className="grid gap-3">
-            <span>
-              This uploaded file is still available to review. An admin must
-              accept the current legal agreement before Retaino can process new
-              contacts.
-            </span>
-            <span>
-              <Button asChild size="sm" variant="outline">
-                <Link href={`${routes.settings}#legal-agreement`}>
-                  Review legal agreement
-                </Link>
-              </Button>
-            </span>
-          </AlertDescription>
-        </Alert>
-      ) : null}
+      <ProcessingBlockerAlert blocker={processingBlocker} />
       <div className="flex flex-wrap justify-end gap-2">
         <Button
           disabled={isSubmitting}
@@ -698,7 +681,7 @@ function ReviewStep({
           disabled={
             isSubmitting ||
             processingBlocked ||
-            !mappingReady(mapping) ||
+            !contactImportMappingReady(mapping) ||
             !permissionAttestation
           }
           type="submit"
@@ -712,6 +695,61 @@ function ReviewStep({
         </Button>
       </div>
     </div>
+  );
+}
+
+function ProcessingBlockerAlert({
+  blocker,
+}: {
+  blocker: OrganizationWorkflowBlocker | null;
+}) {
+  if (!blocker) {
+    return null;
+  }
+
+  if (blocker === 'admin_required') {
+    return (
+      <Alert>
+        <AlertCircle aria-hidden="true" />
+        <AlertTitle>Admin access required before processing</AlertTitle>
+        <AlertDescription>
+          This uploaded file is still available to review. An organization admin
+          must start processing for this import.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (blocker === 'setup_required') {
+    return (
+      <Alert>
+        <AlertCircle aria-hidden="true" />
+        <AlertTitle>Setup required before processing</AlertTitle>
+        <AlertDescription>
+          Complete organization setup before Retaino can process new contacts.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <Alert>
+      <AlertCircle aria-hidden="true" />
+      <AlertTitle>Legal update required before processing</AlertTitle>
+      <AlertDescription className="grid gap-3">
+        <span>
+          This uploaded file is still available to review. An admin must accept
+          the current legal agreement before Retaino can process new contacts.
+        </span>
+        <span>
+          <Button asChild size="sm" variant="outline">
+            <Link href={`${routes.settings}#legal-agreement`}>
+              Review legal agreement
+            </Link>
+          </Button>
+        </span>
+      </AlertDescription>
+    </Alert>
   );
 }
 
@@ -804,35 +842,6 @@ function useProcessContactImport(
     onSuccess: async () => {
       await onProcessed();
     },
-  });
-}
-
-function autoMapHeaders(headers: string[]) {
-  const mapping: ContactImportProcessInput['mapping'] = {
-    phone: headers.find((header) => /phone|mobile|telefon/i.test(header)),
-  };
-
-  for (const header of headers) {
-    if (/name|namn/i.test(header)) mapping.name = header;
-    if (/email|e-mail|epost/i.test(header)) mapping.email = header;
-    if (/booking|last.*date|senaste/i.test(header)) mapping.lastBookingAt = header;
-    if (/service|treatment|category/i.test(header)) mapping.lastService = header;
-    if (/consent|marketing|sms/i.test(header)) mapping.consentStatus = header;
-    if (/source|system/i.test(header)) mapping.source = header;
-  }
-
-  return mapping;
-}
-
-function mappingReady(mapping: CsvMapping) {
-  return Boolean(mapping.phone || mapping.email);
-}
-
-function mappedFieldEntries(mapping: CsvMapping) {
-  return CONTACT_IMPORT_TARGET_FIELDS.flatMap((target) => {
-    const header = mapping[target];
-
-    return header ? [{ target, header }] : [];
   });
 }
 

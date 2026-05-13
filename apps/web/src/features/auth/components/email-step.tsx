@@ -40,7 +40,8 @@ export function EmailStep({ auth }: { auth: EmailCodeAuth }) {
       <emailForm.Field
         name="email"
         validators={{
-          onChange: ({ value }) => validateEmail(value),
+          onBlur: ({ value }) => validateEmail(value),
+          onSubmit: ({ value }) => validateEmail(value),
         }}
       >
         {(field) => {

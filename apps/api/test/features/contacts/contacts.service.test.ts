@@ -7,7 +7,7 @@ import {
   upsertContactImportRow,
   upsertImportedContact,
 } from '@retaino/db';
-import { processContactImport } from './contacts.service';
+import { processContactImport } from '../../../src/features/contacts/contacts.service';
 
 vi.mock('@retaino/db', () => ({
   completeContactImportFromRows: vi.fn(),
@@ -43,7 +43,6 @@ function importRecord() {
       email: 'Email',
       lastBookingAt: 'Last booking',
       lastService: 'Service',
-      consentStatus: 'Consent',
       source: 'Source',
     },
     phoneCountryCode: 'SE',
@@ -89,7 +88,7 @@ describe('processContactImport', () => {
     await processContactImport({
       db: {} as never,
       bucket: bucket(
-        'Name,Phone,Email,Last booking,Service,Consent,Source\nAda Lovelace,0701234567,ada@example.com,2026-01-02,Cut,yes,booking\n',
+        'Name,Phone,Email,Last booking,Service,Consent,Source\nAda Lovelace,0701234567,ada@example.com,2026-01-02,Cut,no,booking\n',
       ),
       organizationId,
       contactImportId,
@@ -137,7 +136,7 @@ describe('processContactImport', () => {
 
     await processContactImport({
       db: {} as never,
-      bucket: bucket('Name,Phone,Email,Consent\nAda,0701234567,,yes\n'),
+      bucket: bucket('Name,Phone,Email,Consent\nAda,0701234567,,no\n'),
       organizationId,
       contactImportId,
     });
@@ -175,11 +174,11 @@ describe('processContactImport', () => {
     });
   });
 
-  it('omits sensitive and unmapped raw values from failed row results', async () => {
+  it('omits unmapped raw values from failed row results', async () => {
     await processContactImport({
       db: {} as never,
       bucket: bucket(
-        'Name,Phone,Email,Consent,Journal notes,Extra\nAda,123,,yes,medical note,unmapped\n',
+        'Name,Phone,Email,Consent,Extra\nAda,123,,yes,unmapped\n',
       ),
       organizationId,
       contactImportId,
@@ -195,7 +194,6 @@ describe('processContactImport', () => {
         Name: 'Ada',
         Phone: '123',
         Email: '',
-        Consent: 'yes',
       },
       normalizedValues: {
         phone: null,

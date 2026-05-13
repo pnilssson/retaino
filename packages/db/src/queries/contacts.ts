@@ -35,9 +35,7 @@ import {
   type CsvMapping,
   type SuppressionType,
   type UpdateContactInput,
-  hashContactValue,
-  normalizeEmail,
-  normalizePhoneNumber,
+  prepareContactMethods,
 } from '@retaino/shared/contracts';
 import type { DbClient } from '../client';
 import {
@@ -495,34 +493,26 @@ export async function updateContact(
     input.input.phone === undefined ? existing.phone : input.input.phone;
   const email =
     input.input.email === undefined ? existing.email : input.input.email;
-  const normalizedPhone = phone
-    ? normalizePhoneNumber(phone, countryCode)
-    : null;
-  const normalizedEmail = email ? normalizeEmail(email) : null;
+  const methods = await prepareContactMethods({
+    phone,
+    email,
+    phoneCountryCode: countryCode,
+  });
 
-  if (normalizedPhone && !normalizedPhone.ok) {
+  if (methods.errors.includes('invalid_phone')) {
     return { status: 'invalid_phone' };
   }
 
-  if (email && !normalizedEmail) {
+  if (methods.errors.includes('invalid_email')) {
     return { status: 'invalid_email' };
   }
-
-  const normalizedPhoneValue =
-    normalizedPhone && normalizedPhone.ok ? normalizedPhone.normalizedPhone : null;
-  const phoneHash = normalizedPhoneValue
-    ? await hashContactValue(normalizedPhoneValue)
-    : null;
-  const emailHash = normalizedEmail
-    ? await hashContactValue(normalizedEmail)
-    : null;
 
   if (
     await contactMethodBelongsToAnotherContact(db, {
       organizationId: input.organizationId,
       contactId: input.contactId,
-      phoneHash,
-      emailHash,
+      phoneHash: methods.phoneHash,
+      emailHash: methods.emailHash,
     })
   ) {
     return { status: 'duplicate' };
@@ -532,12 +522,12 @@ export async function updateContact(
     .update(contacts)
     .set({
       name: input.input.name === undefined ? existing.name : input.input.name,
-      phone,
-      email,
-      normalizedPhone: normalizedPhoneValue,
-      normalizedEmail,
-      phoneHash,
-      emailHash,
+      phone: methods.phone,
+      email: methods.email,
+      normalizedPhone: methods.normalizedPhone,
+      normalizedEmail: methods.normalizedEmail,
+      phoneHash: methods.phoneHash,
+      emailHash: methods.emailHash,
       lastBookingAt:
         input.input.lastBookingAt === undefined
           ? existing.lastBookingAt
@@ -550,7 +540,6 @@ export async function updateContact(
           : input.input.lastService,
       source:
         input.input.source === undefined ? existing.source : input.input.source,
-      consentStatus: input.input.consentStatus ?? existing.consentStatus,
       updatedAt: new Date(),
     })
     .where(

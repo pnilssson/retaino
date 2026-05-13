@@ -9,8 +9,8 @@ import {
   upsertOrganizationProfile,
 } from '@retaino/db';
 import type { LegalBundle, OrganizationLegalAcceptance } from '@retaino/shared/contracts';
-import { organizationRoutes } from './organization.routes';
-import type { AppEnv } from '../../types';
+import { organizationRoutes } from '../../../src/features/organization/organization.routes';
+import type { AppEnv } from '../../../src/types';
 
 vi.mock('@retaino/db', () => ({
   createOrganizationLegalAcceptance: vi.fn(),
@@ -125,6 +125,12 @@ describe('organizationRoutes', () => {
       profile: null,
       legalBundle,
       legalAcceptance: null,
+      eligibility: {
+        contactImports: {
+          allowed: false,
+          blocker: 'setup_required',
+        },
+      },
       readiness: {
         profileComplete: false,
         legalCurrent: false,
@@ -230,6 +236,12 @@ describe('organizationRoutes', () => {
     );
     await expect(response.json()).resolves.toMatchObject({
       legalAcceptance,
+      eligibility: {
+        contactImports: {
+          allowed: true,
+          blocker: null,
+        },
+      },
       readiness: {
         profileComplete: true,
         legalCurrent: true,

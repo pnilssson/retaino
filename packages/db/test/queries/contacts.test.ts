@@ -10,7 +10,7 @@ import {
   contactToContract,
   importRowToContract,
   resolveImportedContactMatch,
-} from './contacts';
+} from '../../src/queries/contacts';
 
 describe('contact query helpers', () => {
   it('rejects tenant scoped calls without an organization id', () => {
@@ -134,21 +134,37 @@ describe('contact query helpers', () => {
   });
 
   it.each([
-    ['status ready', contactStatusFilter, 'ready', 'not exists ('],
-    ['status blocked', contactStatusFilter, 'blocked', 'exists ('],
+    [
+      'status ready',
+      () =>
+        contactStatusFilter(
+          '22222222-2222-4222-8222-222222222222',
+          'ready',
+        ),
+      'not exists (',
+    ],
+    [
+      'status blocked',
+      () =>
+        contactStatusFilter(
+          '22222222-2222-4222-8222-222222222222',
+          'blocked',
+        ),
+      'exists (',
+    ],
     [
       'issue suppressed phone',
-      contactIssueFilter,
-      'suppressed_phone',
+      () =>
+        contactIssueFilter(
+          '22222222-2222-4222-8222-222222222222',
+          'suppressed_phone',
+        ),
       'exists (',
     ],
   ] as const)(
     'builds valid suppression SQL for %s',
-    (_name, filter, value, expected) => {
-      const condition = filter(
-        '22222222-2222-4222-8222-222222222222',
-        value,
-      );
+    (_name, buildCondition, expected) => {
+      const condition = buildCondition();
       const query = new PgDialect().sqlToQuery(sql`select 1 where ${condition}`);
 
       expect(query.sql).toContain(expected);

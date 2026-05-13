@@ -13,7 +13,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Item,
   ItemActions,
   ItemContent,
   ItemDescription,
@@ -21,6 +20,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
+import { AppPageItem } from '@/features/appshell/components/app-page-content';
 import { useUpdateOrganizationProfile } from '@/features/onboarding/hooks/use-update-organization-profile';
 import {
   organizationProfileFormValuesFromSession,
@@ -53,7 +53,7 @@ export function ProfileSection({
   }
 
   return (
-    <Item asChild className="grid items-stretch gap-5 border-border bg-card px-5 py-5">
+    <AppPageItem asChild>
       <section id="organization-profile">
         <ItemHeader className="items-start">
           <ItemContent className="gap-2">
@@ -94,7 +94,7 @@ export function ProfileSection({
           </Alert>
         )}
       </section>
-    </Item>
+    </AppPageItem>
   );
 }
 
@@ -132,7 +132,7 @@ function ProfileEditor({
         <form.Field
           name="legalName"
           validators={{
-            onChange: ({ value }) =>
+            onBlur: ({ value }) =>
               validateRequired(value, 'Enter the legal company name.'),
             onSubmit: ({ value }) =>
               validateRequired(value, 'Enter the legal company name.'),
@@ -152,7 +152,7 @@ function ProfileEditor({
         <form.Field
           name="registrationNumber"
           validators={{
-            onChange: ({ value }) =>
+            onBlur: ({ value }) =>
               validateRequired(value, 'Enter the registration number.'),
             onSubmit: ({ value }) =>
               validateRequired(value, 'Enter the registration number.'),
@@ -172,7 +172,7 @@ function ProfileEditor({
         <form.Field
           name="billingEmail"
           validators={{
-            onChange: ({ value }) => validateEmail(value, 'billing email'),
+            onBlur: ({ value }) => validateEmail(value, 'billing email'),
             onSubmit: ({ value }) => validateEmail(value, 'billing email'),
           }}
         >
@@ -191,7 +191,7 @@ function ProfileEditor({
         <form.Field
           name="responsibleName"
           validators={{
-            onChange: ({ value }) =>
+            onBlur: ({ value }) =>
               validateRequired(value, 'Enter the responsible contact.'),
             onSubmit: ({ value }) =>
               validateRequired(value, 'Enter the responsible contact.'),
@@ -211,7 +211,7 @@ function ProfileEditor({
         <form.Field
           name="responsibleEmail"
           validators={{
-            onChange: ({ value }) =>
+            onBlur: ({ value }) =>
               validateEmail(value, 'responsible email'),
             onSubmit: ({ value }) => validateEmail(value, 'responsible email'),
           }}
@@ -231,7 +231,7 @@ function ProfileEditor({
         <form.Field
           name="countryCode"
           validators={{
-            onChange: ({ value }) => validateCountryCode(value),
+            onBlur: ({ value }) => validateCountryCode(value),
             onSubmit: ({ value }) => validateCountryCode(value),
           }}
         >
@@ -251,7 +251,7 @@ function ProfileEditor({
         <form.Field
           name="responsiblePhone"
           validators={{
-            onChange: ({ value }) =>
+            onBlur: ({ value }) =>
               validatePhone(value, form.getFieldValue('countryCode')),
             onSubmit: ({ value }) =>
               validatePhone(value, form.getFieldValue('countryCode')),

@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   CONTACT_IMPORT_TARGET_FIELDS,
+  autoMapContactImportHeaders,
+  contactMethodDedupeKeys,
   contactDetailSchema,
+  contactImportMappedHeaders,
+  contactImportMappingReady,
+  contactImportMappedFieldEntries,
   contactListQuerySchema,
   contactImportProcessSchema,
+  contactImportPreviewFromRows,
+  contactImportRowForHeaders,
   contactSchema,
   countryCodeSchema,
   createContactSuppressionSchema,
@@ -14,9 +21,10 @@ import {
   isSupportedCountryCode,
   normalizeEmail,
   normalizePhoneNumber,
+  prepareContactMethods,
   updateContactSchema,
   updateOrganizationProfileSchema,
-} from './index';
+} from '../../src/contracts';
 
 describe('organization profile countryCode', () => {
   it('requires an ISO alpha-2 country code', () => {
@@ -85,6 +93,53 @@ describe('phone and email helpers', () => {
       await hashContactValue('+46701234567'),
     );
     await expect(hashContactValue('+46701234567')).resolves.toHaveLength(64);
+  });
+
+  it('prepares contact method facts for storage and matching', async () => {
+    const methods = await prepareContactMethods({
+      phone: '070 123 45 67',
+      email: ' Ada@Example.COM ',
+      phoneCountryCode: 'SE',
+      requireContactMethod: true,
+    });
+
+    expect(methods).toMatchObject({
+      normalizedPhone: '+46701234567',
+      normalizedEmail: 'ada@example.com',
+      errors: [],
+    });
+    expect(methods.phoneHash).toHaveLength(64);
+    expect(methods.emailHash).toHaveLength(64);
+    expect(contactMethodDedupeKeys(methods)).toEqual([
+      `phone:${methods.phoneHash}`,
+      `email:${methods.emailHash}`,
+    ]);
+  });
+
+  it('reports missing or invalid contact methods with stable errors', async () => {
+    await expect(
+      prepareContactMethods({
+        phone: null,
+        email: null,
+        phoneCountryCode: 'SE',
+        requireContactMethod: true,
+      }),
+    ).resolves.toMatchObject({
+      errors: ['missing_contact_method'],
+    });
+
+    await expect(
+      prepareContactMethods({
+        phone: '123',
+        email: 'not-an-email',
+        phoneCountryCode: 'SE',
+        requireContactMethod: true,
+      }),
+    ).resolves.toMatchObject({
+      normalizedPhone: null,
+      normalizedEmail: null,
+      errors: ['invalid_phone', 'invalid_email'],
+    });
   });
 });
 
@@ -158,12 +213,13 @@ describe('contact contracts', () => {
         lastBookingAt: '2026-05-08T00:00:00.000Z',
         lastService: 'Cut',
         source: 'manual',
-        consentStatus: 'granted',
       }),
     ).toMatchObject({
       name: 'Ada Lovelace',
-      consentStatus: 'granted',
     });
+    expect(
+      updateContactSchema.safeParse({ consentStatus: 'granted' }).success,
+    ).toBe(false);
 
     expect(
       createContactSuppressionSchema.parse({ type: 'phone' }),
@@ -196,6 +252,7 @@ describe('contact contracts', () => {
 
   it('validates CSV mapping payloads', () => {
     expect(CONTACT_IMPORT_TARGET_FIELDS).toContain('phone');
+    expect(CONTACT_IMPORT_TARGET_FIELDS).not.toContain('consentStatus');
     expect(
       contactImportProcessSchema.safeParse({
         mapping: {
@@ -218,6 +275,93 @@ describe('contact contracts', () => {
         phoneCountryCode: 'SE',
       }).success,
     ).toBe(false);
+    expect(
+      contactImportProcessSchema.safeParse({
+        mapping: {
+          phone: 'Phone',
+          consentStatus: 'Marketing consent',
+        },
+        phoneCountryCode: 'SE',
+        permissionAttestation: true,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('builds contact import previews from CSV rows', () => {
+    expect(
+      contactImportPreviewFromRows({
+        headers: ['Name', 'Phone', 'Notes'],
+        rows: [['Ada Lovelace', '0701234567', 'example note']],
+      }),
+    ).toEqual({
+      headers: ['Name', 'Phone', 'Notes'],
+      sampleRows: [
+        {
+          Name: 'Ada Lovelace',
+          Phone: '0701234567',
+          Notes: 'example note',
+        },
+      ],
+      warnings: [],
+    });
+  });
+
+  it('keeps only mapped raw import values', () => {
+    const mapping = {
+      name: 'Name',
+      phone: 'Phone',
+      lastService: 'Journal notes',
+    };
+    const headers = contactImportMappedHeaders(mapping);
+
+    expect(headers).toEqual(['Name', 'Phone', 'Journal notes']);
+    expect(
+      contactImportRowForHeaders(
+        {
+          Name: 'Ada Lovelace',
+          Phone: '0701234567',
+          'Journal notes': 'medical note',
+          Extra: 'ignored',
+        },
+        headers,
+      ),
+    ).toEqual({
+      Name: 'Ada Lovelace',
+      Phone: '0701234567',
+      'Journal notes': 'medical note',
+    });
+  });
+
+  it('automaps contact import headers and reports mapping readiness', () => {
+    const mapping = autoMapContactImportHeaders([
+      'Customer name',
+      'Telefon',
+      'E-mail',
+      'Last booking date',
+      'Service',
+      'Marketing consent',
+      'SMS opt-in',
+      'Source system',
+    ]);
+
+    expect(mapping).toEqual({
+      name: 'Customer name',
+      phone: 'Telefon',
+      email: 'E-mail',
+      lastBookingAt: 'Last booking date',
+      lastService: 'Service',
+      source: 'Source system',
+    });
+    expect(contactImportMappingReady(mapping)).toBe(true);
+    expect(contactImportMappingReady({ name: 'Customer name' })).toBe(false);
+    expect(contactImportMappedFieldEntries(mapping)).toEqual([
+      { target: 'name', header: 'Customer name' },
+      { target: 'phone', header: 'Telefon' },
+      { target: 'email', header: 'E-mail' },
+      { target: 'lastBookingAt', header: 'Last booking date' },
+      { target: 'lastService', header: 'Service' },
+      { target: 'source', header: 'Source system' },
+    ]);
   });
 
   it('requires import permission attestation before processing contacts', () => {

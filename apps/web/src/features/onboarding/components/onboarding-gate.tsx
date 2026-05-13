@@ -12,6 +12,7 @@ import { ApiClientError } from '@/lib/api-client';
 import { routes } from '@/lib/routes';
 import { useActiveOrganizationBootstrap } from '../hooks/use-active-organization-bootstrap';
 import { useOrganizationSession } from '../hooks/use-organization-session';
+import { OnboardingItem } from './onboarding-item';
 
 export function OnboardingGate({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -60,75 +61,41 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
     session.isLoading
   ) {
     return (
-      <div className="flex flex-1 flex-col bg-background">
-        <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-10">
-          <div className="max-w-xl">
-            <p className="text-sm text-muted-foreground">Organization setup</p>
-            <h1 className="mt-2 text-2xl leading-tight tracking-tight sm:text-3xl">
-              Checking workspace access.
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Retaino is checking organization readiness.
-            </p>
-          </div>
-        </section>
-      </div>
+      <GateState
+        description="Retaino is checking organization readiness."
+        eyebrow="Organization setup"
+        title="Checking workspace access."
+      />
     );
   }
 
   if (organizationBootstrap.error) {
     return (
-      <div className="flex flex-1 flex-col bg-background">
-        <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-10">
-          <div className="max-w-xl">
-            <p className="text-sm text-muted-foreground">Organization error</p>
-            <h1 className="mt-2 text-2xl leading-tight tracking-tight sm:text-3xl">
-              Retaino could not prepare the active organization.
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              {organizationBootstrap.error.message}
-            </p>
-          </div>
-        </section>
-      </div>
+      <GateState
+        description={organizationBootstrap.error.message}
+        eyebrow="Organization error"
+        title="Retaino could not prepare the active organization."
+      />
     );
   }
 
   if (shouldShowSetupPending) {
     return (
-      <div className="flex flex-1 flex-col bg-background">
-        <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-10">
-          <div className="max-w-xl">
-            <p className="text-sm text-muted-foreground">Setup pending</p>
-            <h1 className="mt-2 text-2xl leading-tight tracking-tight sm:text-3xl">
-              This workspace is still being set up.
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              An organization admin needs to finish setup before members can
-              use Retaino. You can switch to another organization from the
-              sidebar.
-            </p>
-          </div>
-        </section>
-      </div>
+      <GateState
+        description="An organization admin needs to finish setup before members can use Retaino. You can switch to another organization from the sidebar."
+        eyebrow="Setup pending"
+        title="This workspace is still being set up."
+      />
     );
   }
 
   if (session.isError && !hasMissingActiveOrganization) {
     return (
-      <div className="flex flex-1 flex-col bg-background">
-        <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-10">
-          <div className="max-w-xl">
-            <p className="text-sm text-muted-foreground">Workspace unavailable</p>
-            <h1 className="mt-2 text-2xl leading-tight tracking-tight sm:text-3xl">
-              Retaino could not load this workspace.
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Refresh the page and try again.
-            </p>
-          </div>
-        </section>
-      </div>
+      <GateState
+        description="Refresh the page and try again."
+        eyebrow="Workspace unavailable"
+        title="Retaino could not load this workspace."
+      />
     );
   }
 
@@ -139,6 +106,28 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
       ) : null}
       {children}
     </>
+  );
+}
+
+function GateState({
+  description,
+  eyebrow,
+  title,
+}: {
+  description: string;
+  eyebrow: string;
+  title: string;
+}) {
+  return (
+    <div className="flex flex-1 flex-col bg-background">
+      <section className="mx-auto grid w-full max-w-6xl content-start gap-6 px-5 py-8 sm:px-8 lg:px-10">
+        <OnboardingItem
+          description={description}
+          eyebrow={eyebrow}
+          title={title}
+        />
+      </section>
+    </div>
   );
 }
 

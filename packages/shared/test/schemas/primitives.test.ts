@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { timestampSchema } from './primitives';
+import { timestampSchema } from '../../src/schemas/primitives';
 
 describe('timestampSchema', () => {
   it('accepts ISO datetimes with time zone offsets', () => {

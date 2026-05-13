@@ -29,7 +29,7 @@ vi.mock('inngest', () => ({
   },
 }));
 
-vi.mock('./contacts.service', () => ({
+vi.mock('../../../src/features/contacts/contacts.service', () => ({
   processContactImport,
 }));
 
@@ -45,7 +45,9 @@ describe('contacts jobs', () => {
   });
 
   it('sends import process events with the Worker event key', async () => {
-    const { enqueueContactImportProcessing } = await import('./contacts.jobs');
+    const { enqueueContactImportProcessing } = await import(
+      '../../../src/features/contacts/contacts.jobs'
+    );
 
     await enqueueContactImportProcessing(
       { INNGEST_EVENT_KEY: 'worker-event-key' },
@@ -71,7 +73,7 @@ describe('contacts jobs', () => {
   });
 
   it('processes imports directly with injected Worker bindings', async () => {
-    await import('./contacts.jobs');
+    await import('../../../src/features/contacts/contacts.jobs');
     const step = {
       run: vi.fn(async (_name: string, callback: () => Promise<void>) =>
         callback(),

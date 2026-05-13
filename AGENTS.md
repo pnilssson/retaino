@@ -13,6 +13,9 @@ This repository is the Retaino monorepo.
 - Every finding is a fix. If you find something wrong, fix it now.
 - Never revert working code to avoid a build step. If native code needs rebuilding, say so. The user will rebuild.
 - Never leave unused code, files, imports, or dependencies behind. If something is no longer used, delete it immediately.
+- When asked to remove a concept, remove it completely. Do not preserve the
+  deleted idea as negative tests, comments, docs, renamed helpers, or
+  explanatory artifacts unless the user explicitly asks for a guardrail.
 - Dependencies used in code must be declared in the correct `package.json`. Do not rely on hoisting.
 - Prefer simple names when they stay clear. Avoid adding hyphens or compound names unless they improve clarity or match existing conventions.
 
@@ -21,6 +24,16 @@ This repository is the Retaino monorepo.
 - Never use em dashes. Commas or rewrite.
 - Never design cards inside cards. Use sections, bands, lists, tables, or split
   layouts instead of nesting framed surfaces.
+
+## Tests
+
+- Do not add tests to `apps/web`.
+- Put tests for non-web application logic in the matching package-level
+  `test` folder, such as `apps/api/test`, `packages/shared/test`, or
+  `packages/db/test`.
+- Keep test folders separate from implementation files and mirror the matching
+  `src` structure. Do not colocate `*.test.*` or `*.spec.*` files next to
+  production source files.
 
 ### Technical
 

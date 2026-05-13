@@ -11,10 +11,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
-  Item,
   ItemContent,
   ItemDescription,
-  ItemGroup,
   ItemHeader,
   ItemTitle,
 } from '@/components/ui/item';
@@ -26,6 +24,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AppPageContent,
+  AppPageItem,
+} from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useApi } from '@/features/onboarding/hooks/use-api';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
@@ -119,11 +121,8 @@ export function ContactImportsScreen() {
           title="Imports"
         />
 
-        <ItemGroup className="gap-5">
-          <Item
-            asChild
-            className="grid items-stretch gap-5 border-border bg-card px-5 py-5"
-          >
+        <AppPageContent>
+          <AppPageItem asChild>
             <section>
               <ItemHeader className="items-start">
                 <ItemContent className="gap-2">
@@ -159,21 +158,13 @@ export function ContactImportsScreen() {
                 </>
               ) : (
                 <EmptyState
-                  action={
-                    <Button asChild>
-                      <Link href={routes.contactsImport}>
-                        <FileUp aria-hidden="true" />
-                        Import CSV
-                      </Link>
-                    </Button>
-                  }
                   description="Upload a customer CSV to create the first import record."
                   title="No imports yet"
                 />
               )}
             </section>
-          </Item>
-        </ItemGroup>
+          </AppPageItem>
+        </AppPageContent>
       </section>
     </main>
   );

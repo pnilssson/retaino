@@ -58,7 +58,6 @@ export const CONTACT_IMPORT_TARGET_FIELDS = [
   'email',
   'lastBookingAt',
   'lastService',
-  'consentStatus',
   'source',
 ] as const;
 
@@ -72,6 +71,20 @@ export type SuppressionType = (typeof SUPPRESSION_TYPES)[number];
 export type ContactImportTargetField =
   (typeof CONTACT_IMPORT_TARGET_FIELDS)[number];
 export type IsoCountryCode = CountryCode;
+export type ContactMethodError =
+  | 'missing_contact_method'
+  | 'invalid_phone'
+  | 'invalid_email';
+
+export type ContactMethodFacts = {
+  phone: string | null;
+  email: string | null;
+  normalizedPhone: string | null;
+  normalizedEmail: string | null;
+  phoneHash: string | null;
+  emailHash: string | null;
+  errors: ContactMethodError[];
+};
 
 export const contactImportStatusSchema = z.enum(CONTACT_IMPORT_STATUSES);
 export const contactImportRowStatusSchema = z.enum(
@@ -226,7 +239,6 @@ export const updateContactSchema = z
     lastBookingAt: timestampSchema.nullable().optional(),
     lastService: z.string().trim().min(1).nullable().optional(),
     source: z.string().trim().min(1).nullable().optional(),
-    consentStatus: contactConsentStatusSchema.optional(),
   })
   .strict();
 
@@ -292,6 +304,89 @@ export type CreateContactImportResponse = {
 export type ContactImportProcessResponse = {
   import: ContactImportDetail;
 };
+
+export function contactImportMappedHeaders(
+  mapping: Record<string, string | undefined>,
+) {
+  return Array.from(new Set(Object.values(mapping)))
+    .filter((header): header is string => Boolean(header));
+}
+
+export function contactImportRowForHeaders(
+  row: Record<string, string>,
+  headers: string[],
+) {
+  return Object.fromEntries(
+    headers
+      .filter((header) => Object.hasOwn(row, header))
+      .map((header) => [header, row[header] ?? '']),
+  );
+}
+
+export function contactImportValuesForHeaders(
+  allHeaders: string[],
+  values: string[],
+  allowedHeaders: string[],
+) {
+  const allowed = new Set(allowedHeaders);
+
+  return Object.fromEntries(
+    allHeaders
+      .map((header, index) => [header, values[index] ?? ''] as const)
+      .filter(([header]) => allowed.has(header)),
+  );
+}
+
+export function contactImportPreviewFromRows(input: {
+  headers: string[];
+  rows: string[][];
+  maxRows?: number;
+}): ContactImportPreview {
+  const allHeaders = input.headers
+    .map((header) => header.trim())
+    .filter(Boolean);
+
+  return {
+    headers: allHeaders,
+    sampleRows: input.rows
+      .slice(0, input.maxRows)
+      .map((values) =>
+        contactImportValuesForHeaders(allHeaders, values, allHeaders),
+      ),
+    warnings: [],
+  };
+}
+
+export function autoMapContactImportHeaders(headers: string[]): CsvMapping {
+  const mapping: CsvMapping = {};
+  const phone = headers.find((header) => /phone|mobile|telefon/i.test(header));
+
+  if (phone) {
+    mapping.phone = phone;
+  }
+
+  for (const header of headers) {
+    if (/name|namn/i.test(header)) mapping.name = header;
+    if (/email|e-mail|epost/i.test(header)) mapping.email = header;
+    if (/booking|last.*date|senaste/i.test(header)) mapping.lastBookingAt = header;
+    if (/service|treatment|category/i.test(header)) mapping.lastService = header;
+    if (/source|system/i.test(header)) mapping.source = header;
+  }
+
+  return mapping;
+}
+
+export function contactImportMappingReady(mapping: CsvMapping) {
+  return Boolean(mapping.phone || mapping.email);
+}
+
+export function contactImportMappedFieldEntries(mapping: CsvMapping) {
+  return CONTACT_IMPORT_TARGET_FIELDS.flatMap((target) => {
+    const header = mapping[target];
+
+    return header ? [{ target, header }] : [];
+  });
+}
 
 export function normalizePhoneNumber(
   value: string | null | undefined,
@@ -382,6 +477,68 @@ export async function hashContactValue(value: string) {
   return Array.from(new Uint8Array(digest))
     .map((byte) => byte.toString(16).padStart(2, '0'))
     .join('');
+}
+
+export async function prepareContactMethods(input: {
+  phone: string | null | undefined;
+  email: string | null | undefined;
+  phoneCountryCode: string;
+  requireContactMethod?: boolean;
+}): Promise<ContactMethodFacts> {
+  const phone = cleanContactMethodValue(input.phone);
+  const email = cleanContactMethodValue(input.email);
+  const normalizedPhone = phone
+    ? normalizePhoneNumber(phone, input.phoneCountryCode)
+    : null;
+  const normalizedEmail = email ? normalizeEmail(email) : null;
+  const errors: ContactMethodError[] = [];
+
+  if (input.requireContactMethod && !phone && !email) {
+    errors.push('missing_contact_method');
+  }
+
+  if (normalizedPhone && !normalizedPhone.ok) {
+    errors.push(
+      normalizedPhone.error === 'missing_phone'
+        ? 'missing_contact_method'
+        : normalizedPhone.error,
+    );
+  }
+
+  if (email && !normalizedEmail) {
+    errors.push('invalid_email');
+  }
+
+  const normalizedPhoneValue =
+    normalizedPhone && normalizedPhone.ok ? normalizedPhone.normalizedPhone : null;
+
+  return {
+    phone,
+    email,
+    normalizedPhone: normalizedPhoneValue,
+    normalizedEmail,
+    phoneHash: normalizedPhoneValue
+      ? await hashContactValue(normalizedPhoneValue)
+      : null,
+    emailHash: normalizedEmail ? await hashContactValue(normalizedEmail) : null,
+    errors,
+  };
+}
+
+export function contactMethodDedupeKeys(input: {
+  phoneHash: string | null;
+  emailHash: string | null;
+}) {
+  return [
+    input.phoneHash ? `phone:${input.phoneHash}` : null,
+    input.emailHash ? `email:${input.emailHash}` : null,
+  ].filter((key): key is string => key !== null);
+}
+
+function cleanContactMethodValue(value: string | null | undefined) {
+  const input = value?.trim();
+
+  return input ? input : null;
 }
 
 export function deriveSmsContactStatus(input: {

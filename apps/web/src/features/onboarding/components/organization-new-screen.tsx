@@ -13,6 +13,7 @@ import { getFieldError } from '@/lib/form-errors';
 import { routes } from '@/lib/routes';
 import { defaultOrganizationName } from '../lib/default-organization-name';
 import { OnboardingFrame } from './onboarding-frame';
+import { OnboardingItem } from './onboarding-item';
 
 export function OrganizationNewScreen() {
   const router = useRouter();
@@ -63,29 +64,23 @@ export function OrganizationNewScreen() {
   if (!isLoaded || !isUserLoaded) {
     return (
       <OnboardingFrame completedSteps={[]} currentStep="organization">
-        <section className="pt-10">
-          <p className="text-sm text-muted-foreground">
-            Preparing organization creation.
-          </p>
-        </section>
+        <OnboardingItem
+          eyebrow="New organization"
+          title="Preparing organization creation."
+        />
       </OnboardingFrame>
     );
   }
 
   return (
     <OnboardingFrame completedSteps={[]} currentStep="organization">
-      <section className="pt-10">
-        <p className="text-sm text-muted-foreground">New organization</p>
-        <h1 className="mt-2 text-2xl leading-tight tracking-tight sm:text-3xl">
-          Create a shared workspace.
-        </h1>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-          Set up a place for your team to manage contacts, campaigns, and
-          results together.
-        </p>
-
+      <OnboardingItem
+        description="Set up a place for your team to manage contacts, campaigns, and results together."
+        eyebrow="New organization"
+        title="Create a shared workspace."
+      >
         {error ? (
-          <Alert className="mt-6" variant="destructive">
+          <Alert variant="destructive">
             <AlertCircle aria-hidden="true" />
             <AlertTitle>Organization could not be created</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
@@ -93,7 +88,7 @@ export function OrganizationNewScreen() {
         ) : null}
 
         <form
-          className="mt-8 grid gap-4"
+          className="grid gap-4"
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
@@ -104,7 +99,7 @@ export function OrganizationNewScreen() {
           <form.Field
             name="organizationName"
             validators={{
-              onChange: ({ value }) =>
+              onBlur: ({ value }) =>
                 value.trim() ? undefined : 'Enter an organization name.',
               onSubmit: ({ value }) =>
                 value.trim() ? undefined : 'Enter an organization name.',
@@ -167,7 +162,7 @@ export function OrganizationNewScreen() {
             link from your email instead.
           </p>
         </form>
-      </section>
+      </OnboardingItem>
     </OnboardingFrame>
   );
 }

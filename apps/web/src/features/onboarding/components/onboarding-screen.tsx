@@ -7,6 +7,7 @@ import { useActiveOrganizationBootstrap } from '../hooks/use-active-organization
 import { useOrganizationSession } from '../hooks/use-organization-session';
 import { OnboardingFlow, onboardingFlowKey } from './flow';
 import { OnboardingFrame } from './onboarding-frame';
+import { OnboardingItem } from './onboarding-item';
 import { OrganizationRequired } from './organization-required';
 import { SetupError, SetupPending } from './setup-states';
 
@@ -26,11 +27,10 @@ export function OnboardingScreen() {
   ) {
     return (
       <OnboardingFrame completedSteps={[]} currentStep="organization">
-        <section className="pt-10">
-          <p className="text-sm text-muted-foreground">
-            Preparing organization setup.
-          </p>
-        </section>
+        <OnboardingItem
+          eyebrow="Organization"
+          title="Preparing organization setup."
+        />
       </OnboardingFrame>
     );
   }

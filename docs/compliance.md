@@ -30,9 +30,10 @@ vendor disclosures before live campaign sending is enabled. If Twilio settings
 use processing or routing outside the EU/EEA, the transfer terms must cover
 that processing before affected organizations can send campaigns.
 
-The onboarding UI should show one short checkbox with inline links to the legal
-bundle documents. Public versioned legal pages remain available, but onboarding
-must not display a six-document required checklist.
+The onboarding UI should show inline links to the legal bundle documents near
+the final setup action. Clicking the final setup button records acceptance of
+the current bundle. Public versioned legal pages remain available, but
+onboarding must keep the legal step compact.
 
 ## Contact Permission Attestation
 
@@ -129,8 +130,8 @@ reconciliation:
 - delivery, click, opt-out, and reconciliation events
 
 Do not import health notes, journal notes, treatment notes, free-text medical
-fields, or other sensitive special-category data. If a CSV contains unsupported
-sensitive columns, ignore them and warn the user.
+fields, or other sensitive special-category data. Do not use header-name deny
+lists as a safety control.
 
 ## Logging and Audit
 

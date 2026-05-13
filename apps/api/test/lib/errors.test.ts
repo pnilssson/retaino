@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { apiError } from './errors';
+import { apiError } from '../../src/lib/errors';
 
 describe('apiError', () => {
   it('returns a stable API error envelope without details', () => {

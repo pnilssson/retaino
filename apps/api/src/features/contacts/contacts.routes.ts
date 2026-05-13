@@ -20,6 +20,7 @@ import {
   createContactSuppressionSchema,
   contactImportListQuerySchema,
   contactImportProcessSchema,
+  contactImportPreviewFromRows,
   contactImportRowsQuerySchema,
   contactListQuerySchema,
   updateContactSchema,
@@ -32,10 +33,9 @@ import { apiError } from '../../lib/errors';
 import { parseJsonBody } from '../../lib/route-helpers';
 import type { AppEnv } from '../../types';
 import {
-  csvAllowedHeaders,
-  csvSensitiveHeaderWarnings,
-  csvValuesForHeaders,
-} from './contacts.csv';
+  getOrganizationEligibility,
+  getOrganizationReadiness,
+} from '../organization/organization.readiness';
 import { enqueueContactImportProcessing } from './contacts.jobs';
 
 const MAX_UPLOAD_SIZE = 25 * 1024 * 1024;
@@ -393,8 +393,25 @@ function validateContactManagementPermission(c: Context<AppEnv>) {
 
 async function validateImportGate(c: Context<AppEnv>) {
   const organization = c.get('organization');
+  const db = c.get('db');
+  const profile = await getOrganizationProfileByOrganizationId(db, organization.id);
+  const legalBundle = await getCurrentLegalBundle(db);
+  const legalAcceptance = await getCurrentOrganizationLegalAcceptance(db, {
+    organizationId: organization.id,
+    bundleVersion: legalBundle.version,
+  });
+  const readiness = getOrganizationReadiness({
+    hasProfile: profile !== null,
+    onboardingStatus: organization.onboardingStatus,
+    legalBundle,
+    legalAcceptance,
+  });
+  const eligibility = getOrganizationEligibility({
+    readiness,
+    role: organization.role,
+  });
 
-  if (!canManageOrganizationSetup(organization.role)) {
+  if (eligibility.contactImports.blocker === 'admin_required') {
     return {
       ok: false as const,
       response: c.json(
@@ -404,10 +421,7 @@ async function validateImportGate(c: Context<AppEnv>) {
     };
   }
 
-  const db = c.get('db');
-  const profile = await getOrganizationProfileByOrganizationId(db, organization.id);
-
-  if (!profile) {
+  if (eligibility.contactImports.blocker === 'setup_required') {
     return {
       ok: false as const,
       response: c.json(
@@ -420,15 +434,7 @@ async function validateImportGate(c: Context<AppEnv>) {
     };
   }
 
-  const legalBundle = await getCurrentLegalBundle(db);
-  const legalAcceptance = await getCurrentOrganizationLegalAcceptance(db, {
-    organizationId: organization.id,
-    bundleVersion: legalBundle.version,
-  });
-  const legalCurrent =
-    legalAcceptance?.bundleVersion === legalBundle.version;
-
-  if (!legalCurrent) {
+  if (eligibility.contactImports.blocker === 'legal_update_required') {
     return {
       ok: false as const,
       response: c.json(
@@ -453,17 +459,12 @@ function parseCsvPreview(text: string): ContactImportPreview {
     to_line: PREVIEW_ROWS + 1,
   }) as string[][];
   const [headerRow = [], ...sampleValueRows] = records;
-  const allHeaders = headerRow.map((header) => header.trim()).filter(Boolean);
-  const headers = csvAllowedHeaders(allHeaders);
-  const sampleRows = sampleValueRows.slice(0, PREVIEW_ROWS).map((values) =>
-    csvValuesForHeaders(allHeaders, values, headers),
-  );
 
-  return {
-    headers,
-    sampleRows,
-    warnings: csvSensitiveHeaderWarnings(allHeaders),
-  };
+  return contactImportPreviewFromRows({
+    headers: headerRow,
+    rows: sampleValueRows,
+    maxRows: PREVIEW_ROWS,
+  });
 }
 
 function safeParseCsvPreview(text: string):

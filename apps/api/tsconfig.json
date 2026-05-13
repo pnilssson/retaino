@@ -1,5 +1,5 @@
 {
   "extends": "@retaino/typescript-config/worker.json",
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules"]
 }

@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { idSchema, nonEmptyStringSchema, timestampSchema } from '../schemas';
 import {
   legalBundleDocumentSnapshotSchema,
-  legalBundleSchema,
   type LegalBundle,
 } from './legal';
 import { countryCodeSchema, normalizePhoneNumber } from './contacts';
@@ -92,12 +91,25 @@ export type OrganizationReadiness = {
   ready: boolean;
 };
 
+export type OrganizationWorkflowBlocker =
+  | 'admin_required'
+  | 'setup_required'
+  | 'legal_update_required';
+
+export type OrganizationEligibility = {
+  contactImports: {
+    allowed: boolean;
+    blocker: OrganizationWorkflowBlocker | null;
+  };
+};
+
 export type OrganizationSession = {
   user: User;
   organization: OrganizationContext;
   profile: OrganizationProfile | null;
   legalBundle: LegalBundle;
   legalAcceptance: OrganizationLegalAcceptance | null;
+  eligibility: OrganizationEligibility;
   readiness: OrganizationReadiness;
 };
 
@@ -112,6 +124,7 @@ export type CreateCurrentOrganizationLegalAcceptanceInput = z.infer<
 >;
 export type CreateCurrentOrganizationLegalAcceptanceResponse = {
   legalAcceptance: OrganizationLegalAcceptance;
+  eligibility: OrganizationEligibility;
   readiness: OrganizationReadiness;
 };
 

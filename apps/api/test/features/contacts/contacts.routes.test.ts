@@ -24,9 +24,9 @@ import type {
   LegalDocumentVersion,
   OrganizationLegalAcceptance,
 } from '@retaino/shared/contracts';
-import { contactsRoutes } from './contacts.routes';
-import { enqueueContactImportProcessing } from './contacts.jobs';
-import type { AppEnv } from '../../types';
+import { contactsRoutes } from '../../../src/features/contacts/contacts.routes';
+import { enqueueContactImportProcessing } from '../../../src/features/contacts/contacts.jobs';
+import type { AppEnv } from '../../../src/types';
 
 vi.mock('@retaino/db', () => ({
   createContactSuppression: vi.fn(),
@@ -46,7 +46,7 @@ vi.mock('@retaino/db', () => ({
   updateContact: vi.fn(),
 }));
 
-vi.mock('./contacts.jobs', () => ({
+vi.mock('../../../src/features/contacts/contacts.jobs', () => ({
   enqueueContactImportProcessing: vi.fn(),
 }));
 
@@ -283,6 +283,7 @@ function testApp(input: { role?: string } = {}) {
     c.set('user', user);
     c.set('organization', {
       ...organization,
+      onboardingStatus: 'complete',
       role: input.role ?? organization.role,
     });
     await next();
@@ -396,84 +397,6 @@ describe('contactsRoutes', () => {
     expect(createContactImport).not.toHaveBeenCalled();
   });
 
-  it('detects headers and sensitive-column warnings without data rows', async () => {
-    vi.mocked(getOrganizationCountryCode).mockResolvedValue('SE');
-    vi.mocked(createContactImport).mockResolvedValue({
-      ...importDetail,
-      preview: {
-        headers: ['Name', 'Phone'],
-        sampleRows: [],
-        warnings: ['Unsupported sensitive column ignored: Journal notes'],
-      },
-    });
-    const body = new FormData();
-    body.set(
-      'file',
-      new File(['Name,Phone,Journal notes\n'], 'contacts.csv', {
-        type: 'text/csv',
-      }),
-    );
-
-    const response = await testApp().request(
-      '/v1/contact-imports',
-      { method: 'POST', body },
-      env(),
-    );
-
-    expect(response.status).toBe(201);
-    expect(createContactImport).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        preview: {
-          headers: ['Name', 'Phone'],
-          sampleRows: [],
-          warnings: ['Unsupported sensitive column ignored: Journal notes'],
-        },
-      }),
-    );
-  });
-
-  it('drops sensitive columns from persisted preview sample rows', async () => {
-    vi.mocked(getOrganizationCountryCode).mockResolvedValue('SE');
-    vi.mocked(createContactImport).mockResolvedValue({
-      ...importDetail,
-      preview: {
-        headers: ['Name', 'Phone'],
-        sampleRows: [{ Name: 'Ada Lovelace', Phone: '0701234567' }],
-        warnings: ['Unsupported sensitive column ignored: Journal notes'],
-      },
-    });
-    const body = new FormData();
-    body.set(
-      'file',
-      new File(
-        [
-          'Name,Phone,Journal notes\nAda Lovelace,0701234567,medical note\n',
-        ],
-        'contacts.csv',
-        { type: 'text/csv' },
-      ),
-    );
-
-    const response = await testApp().request(
-      '/v1/contact-imports',
-      { method: 'POST', body },
-      env(),
-    );
-
-    expect(response.status).toBe(201);
-    expect(createContactImport).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        preview: {
-          headers: ['Name', 'Phone'],
-          sampleRows: [{ Name: 'Ada Lovelace', Phone: '0701234567' }],
-          warnings: ['Unsupported sensitive column ignored: Journal notes'],
-        },
-      }),
-    );
-  });
-
   it('rejects upload when organization setup is incomplete', async () => {
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(null);
     const body = new FormData();
@@ -507,9 +430,7 @@ describe('contactsRoutes', () => {
     expect(createContactImport).not.toHaveBeenCalled();
   });
 
-  it('allows upload when the accepted bundle version is current with an older hash', async () => {
-    vi.mocked(getOrganizationCountryCode).mockResolvedValue('SE');
-    vi.mocked(createContactImport).mockResolvedValue(importDetail);
+  it('rejects upload when legal bundle hash acceptance is outdated', async () => {
     vi.mocked(getCurrentOrganizationLegalAcceptance).mockResolvedValue({
       ...legalAcceptance,
       bundleHash: '0'.repeat(64),
@@ -523,8 +444,8 @@ describe('contactsRoutes', () => {
       env(),
     );
 
-    expect(response.status).toBe(201);
-    expect(createContactImport).toHaveBeenCalled();
+    expect(response.status).toBe(403);
+    expect(createContactImport).not.toHaveBeenCalled();
   });
 
   it('rejects upload for organization members', async () => {
@@ -581,6 +502,26 @@ describe('contactsRoutes', () => {
       contactImportId: importDetail.id,
       userId: user.id,
     });
+  });
+
+  it('rejects contact import mappings that include consent status', async () => {
+    const response = await testApp().request(
+      `/v1/contact-imports/${importDetail.id}/process`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mapping: { phone: 'Phone', consentStatus: 'Marketing consent' },
+          phoneCountryCode: 'SE',
+          permissionAttestation: true,
+        }),
+      },
+      env(),
+    );
+
+    expect(response.status).toBe(400);
+    expect(markContactImportProcessing).not.toHaveBeenCalled();
+    expect(enqueueContactImportProcessing).not.toHaveBeenCalled();
   });
 
   it('rejects processing without contact permission attestation', async () => {
@@ -780,7 +721,6 @@ describe('contactsRoutes', () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           name: 'Grace Hopper',
-          consentStatus: 'granted',
           phoneCountryCode: 'SE',
         }),
       },
@@ -793,10 +733,24 @@ describe('contactsRoutes', () => {
       contactId: contactDetail.id,
       input: {
         name: 'Grace Hopper',
-        consentStatus: 'granted',
         phoneCountryCode: 'SE',
       },
     });
+  });
+
+  it('rejects contact updates that include consent status', async () => {
+    const response = await testApp().request(
+      `/v1/contacts/${contactDetail.id}`,
+      {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ consentStatus: 'denied' }),
+      },
+      env(),
+    );
+
+    expect(response.status).toBe(400);
+    expect(updateContact).not.toHaveBeenCalled();
   });
 
   it('rejects contact updates for organization members', async () => {

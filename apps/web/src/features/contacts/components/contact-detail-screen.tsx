@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
   canManageOrganizationSetup,
-  type ContactConsentStatus,
   type ContactDetail,
   type ContactDetailResponse,
   type ContactSuppression,
@@ -21,22 +20,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/phone-input';
 import {
-  Item,
   ItemActions,
   ItemContent,
   ItemDescription,
-  ItemGroup,
   ItemHeader,
   ItemTitle,
 } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  AppPageContent,
+  AppPageItem,
+} from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useApi } from '@/features/onboarding/hooks/use-api';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
@@ -44,7 +38,6 @@ import { ApiClientError } from '@/lib/api-client';
 import { routes } from '@/lib/routes';
 import { BlockedContacts } from './blocked-contacts';
 import {
-  formatContactConsentStatus,
   formatContactIssue,
   formatDate,
   formatDateTime,
@@ -158,8 +151,8 @@ function ContactDetailContent({
   const [isEditing, setIsEditing] = useState(false);
 
   return (
-    <ItemGroup className="gap-5">
-      <Item asChild className="grid items-stretch gap-5 border-border bg-card px-5 py-5">
+    <AppPageContent>
+      <AppPageItem asChild>
         <section>
           <ItemHeader className="items-start">
             <ItemContent className="gap-2">
@@ -191,7 +184,6 @@ function ContactDetailContent({
           ) : (
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <DetailField label="Name" value={contact.name ?? 'Unnamed'} />
-              <DetailField label="Consent" value={formatContactConsentStatus(contact.consentStatus)} />
               <DetailField label="Phone" value={contact.phone ?? 'No phone'} />
               <DetailField label="Email" value={contact.email ?? 'No email'} />
               <DetailField label="Source" value={contact.source ?? 'Import'} />
@@ -199,9 +191,9 @@ function ContactDetailContent({
             </dl>
           )}
         </section>
-      </Item>
+      </AppPageItem>
 
-      <Item asChild className="grid items-stretch gap-5 border-border bg-card px-5 py-5">
+      <AppPageItem asChild>
         <section>
           <ItemHeader className="items-start">
             <ItemContent className="gap-2">
@@ -227,14 +219,13 @@ function ContactDetailContent({
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              This contact has a valid phone number, granted consent, and no
-              phone suppression.
+              This contact has a valid phone number and no phone suppression.
             </p>
           )}
         </section>
-      </Item>
+      </AppPageItem>
 
-      <Item asChild className="grid items-stretch gap-5 border-border bg-card px-5 py-5">
+      <AppPageItem asChild>
         <section>
           <ItemHeader className="items-start">
             <ItemContent className="gap-2">
@@ -251,14 +242,14 @@ function ContactDetailContent({
             <DetailField label="Updated" value={formatDateTime(contact.updatedAt)} />
           </dl>
         </section>
-      </Item>
+      </AppPageItem>
 
       <ContactSuppressionSection
         canManageContacts={canManageContacts}
         contact={contact}
       />
       {canManageContacts ? <DeleteContactSection contact={contact} /> : null}
-    </ItemGroup>
+    </AppPageContent>
   );
 }
 
@@ -302,27 +293,6 @@ function ContactEditForm({
                 onChange={(event) => field.handleChange(event.target.value)}
                 value={field.state.value}
               />
-            </FormField>
-          )}
-        </form.Field>
-        <form.Field name="consentStatus">
-          {(field) => (
-            <FormField label="Consent">
-              <Select
-                onValueChange={(value) =>
-                  field.handleChange(value as ContactConsentStatus)
-                }
-                value={field.state.value}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="granted">Granted</SelectItem>
-                  <SelectItem value="unknown">Unknown</SelectItem>
-                  <SelectItem value="denied">Denied</SelectItem>
-                </SelectContent>
-              </Select>
             </FormField>
           )}
         </form.Field>
@@ -432,7 +402,7 @@ function ContactSuppressionSection({
   );
 
   return (
-    <Item asChild className="grid items-stretch gap-5 border-border bg-card px-5 py-5">
+    <AppPageItem asChild>
       <section>
         <ItemHeader className="items-start">
           <ItemContent className="gap-2">
@@ -490,7 +460,7 @@ function ContactSuppressionSection({
           </Alert>
         ) : null}
       </section>
-    </Item>
+    </AppPageItem>
   );
 }
 
@@ -542,7 +512,7 @@ function DeleteContactSection({ contact }: { contact: ContactDetail }) {
   const deleteContact = useDeleteContact(contact.id);
 
   return (
-    <Item asChild className="grid items-stretch gap-5 border-border bg-card px-5 py-5">
+    <AppPageItem asChild>
       <section>
         <ItemHeader className="items-start">
           <ItemContent className="gap-2">
@@ -602,7 +572,7 @@ function DeleteContactSection({ contact }: { contact: ContactDetail }) {
           </Alert>
         ) : null}
       </section>
-    </Item>
+    </AppPageItem>
   );
 }
 
@@ -719,7 +689,6 @@ function useDeleteContact(contactId: string) {
 
 function contactToFormValues(contact: ContactDetail, phoneCountryCode = 'SE') {
   return {
-    consentStatus: contact.consentStatus,
     email: contact.email ?? '',
     lastBookingAt: dateInputValue(contact.lastBookingAt),
     lastService: contact.lastService ?? '',
@@ -739,7 +708,6 @@ function contactFormValuesToInput(
   );
 
   return {
-    consentStatus: value.consentStatus,
     email: nullableFormValue(value.email),
     lastBookingAt: value.lastBookingAt
       ? new Date(`${value.lastBookingAt}T00:00:00.000Z`).toISOString()

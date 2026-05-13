@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { getOrganizationReadiness } from './organization.readiness';
+import {
+  getOrganizationEligibility,
+  getOrganizationReadiness,
+} from '../../../src/features/organization/organization.readiness';
 
 const legalBundle = {
   version: '2026-05-09',
@@ -83,7 +86,7 @@ describe('getOrganizationReadiness', () => {
     });
   });
 
-  it('does not require acceptance again when only the bundle hash changes', () => {
+  it('requires the current legal bundle hash after setup', () => {
     expect(
       getOrganizationReadiness({
         hasProfile: true,
@@ -95,9 +98,34 @@ describe('getOrganizationReadiness', () => {
         },
       }),
     ).toMatchObject({
-      legalCurrent: true,
-      legalUpdatesRequired: false,
+      legalCurrent: false,
+      setupComplete: true,
+      legalUpdatesRequired: true,
       ready: true,
+    });
+  });
+
+  it('blocks contact imports when setup is complete but legal is stale', () => {
+    const readiness = getOrganizationReadiness({
+      hasProfile: true,
+      onboardingStatus: 'complete',
+      legalBundle,
+      legalAcceptance: {
+        bundleVersion: '2026-01-01',
+        bundleHash: legalBundle.hash,
+      },
+    });
+
+    expect(
+      getOrganizationEligibility({
+        readiness,
+        role: 'org:admin',
+      }),
+    ).toEqual({
+      contactImports: {
+        allowed: false,
+        blocker: 'legal_update_required',
+      },
     });
   });
 });
