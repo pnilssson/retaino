@@ -40,8 +40,10 @@ import {
   useSidebar
 } from '@/components/ui/sidebar';
 import { useCookieConsent } from '@/features/cookies/hooks/use-cookie-consent';
+import { initialsFor } from '@/features/appshell/initials';
 import { routes } from '@/lib/routes';
 import { OrganizationSwitcher } from './organization-switcher';
+import { SidebarAvatar } from './sidebar-avatar';
 
 const navigationItems = [
   {
@@ -87,7 +89,7 @@ export function AppSidebar() {
   const { openPreferences } = useCookieConsent();
   const userEmail = user?.primaryEmailAddress?.emailAddress ?? null;
   const userName = user?.fullName ?? userEmail ?? 'Account';
-  const userInitials = initialsFor(user?.fullName ?? userEmail);
+  const userInitials = initialsFor(user?.fullName ?? userEmail, 'AC');
 
   return (
     <Sidebar collapsible="icon">
@@ -163,9 +165,13 @@ export function AppSidebar() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton className="h-12 px-2" tooltip={userName}>
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-xs font-medium text-sidebar-primary-foreground">
-                    {userInitials}
-                  </span>
+                  <SidebarAvatar
+                    alt={userName}
+                    className="size-8 bg-sidebar-primary text-xs font-medium text-sidebar-primary-foreground"
+                    fallback={userInitials}
+                    hasImage={user?.hasImage}
+                    imageUrl={user?.imageUrl}
+                  />
                   <span className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{userName}</span>
                   </span>
@@ -230,17 +236,6 @@ export function AppSidebar() {
       <SidebarRail />
     </Sidebar>
   );
-}
-
-function initialsFor(value: string | null | undefined) {
-  if (!value) {
-    return 'AC';
-  }
-
-  const [first = '', second = ''] = value.trim().split(/\s+/);
-  const initials = `${first[0] ?? ''}${second[0] ?? ''}`.toUpperCase();
-
-  return initials || 'AC';
 }
 
 function isNavigationItemActive(pathname: string, href: string) {

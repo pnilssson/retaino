@@ -141,7 +141,7 @@ Log enough to prove what happened:
 - validation results
 - dedupe decisions
 - suppression removals
-- segment selection
+- campaign audience rules
 - SMS copy and campaign code
 - test send approval
 - live send approval

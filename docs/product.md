@@ -23,9 +23,9 @@ businesses with existing customer lists and repeat booking behavior.
 
 ## Core Workflow
 
-The user imports a customer list, selects lapsed customers, writes an SMS offer,
-sends a campaign, and later sees which bookings and revenue can be attributed to
-that campaign.
+The user imports a customer list, creates a campaign, chooses the eligible
+lapsed audience inside that campaign, writes an SMS offer, sends it, and later
+sees which bookings and revenue can be attributed to that campaign.
 
 The dashboard should answer one question:
 
@@ -39,8 +39,8 @@ legal, and data foundations:
 1. Organization setup, legal bundle acceptance, and team access.
 2. Contact import with permission attestation, validation, dedupe, and
    suppression checks.
-3. Contact status and lapsed customer segmentation.
-4. Campaign drafts, SMS preview, segment counting, and test sends.
+3. Campaign drafts with audience selection for eligible lapsed customers.
+4. SMS preview, segment counting, and test sends.
 5. Short links and campaign send execution.
 6. Booking CSV upload and reconciliation.
 7. Campaign reporting with attribution confidence.
@@ -54,7 +54,7 @@ Required:
   acceptance
 - CSV customer import with field mapping, validation, dedupe, and suppression
   checks, gated by contact permission attestation
-- lapsed customer segmentation rules, such as no booking in X days
+- campaign audience rules for lapsed customers, such as no booking in X days
 - SMS editor with GSM-7 and Unicode segment counter plus cost preview
 - per-recipient short links for click tracking
 - campaign code or offer code for manual attribution
@@ -111,13 +111,18 @@ Defer:
 
 ### Campaign Creation
 
-1. User chooses a lapsed customer segment.
+1. User creates a campaign and chooses the eligible lapsed audience in the
+   campaign flow.
 2. User writes SMS copy.
 3. Retaino counts SMS segments and warns when Unicode increases cost.
 4. User chooses a target booking URL and optional campaign code.
 5. Retaino creates one tracked link per recipient.
 6. User sends a test SMS.
 7. User approves the live send.
+
+Standalone saved segments are deferred. Retaino should start with campaign-owned
+audience rules, then add reusable segments later if customers repeatedly need
+the same audience definitions across campaigns.
 
 ### Campaign Reporting
 

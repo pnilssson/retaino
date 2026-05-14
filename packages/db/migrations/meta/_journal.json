@@ -15,6 +15,13 @@
       "when": 1778676784195,
       "tag": "0001_graceful_reaper",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778754893939,
+      "tag": "0002_damp_famine",
+      "breakpoints": true
     }
   ]
 }

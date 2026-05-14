@@ -22,11 +22,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { initialsFor } from '@/features/appshell/initials';
 import { useOrganizationSwitcher } from '@/features/appshell/hooks/use-organization-switcher';
 import { routes } from '@/lib/routes';
+import { SidebarAvatar } from './sidebar-avatar';
 
 export function OrganizationSwitcher() {
   const {
+    activeOrganizationHasImage,
+    activeOrganizationImageUrl,
     activeOrganizationName,
     canFinishSetup,
     currentOrganizationId,
@@ -45,13 +49,19 @@ export function OrganizationSwitcher() {
               className="h-12 px-2"
               tooltip="Switch organization"
             >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-sidebar-accent text-sidebar-accent-foreground">
-                <Building2
-                  aria-hidden="true"
-                  className="size-4"
-                  strokeWidth={1.5}
-                />
-              </span>
+              <SidebarAvatar
+                alt={activeOrganizationName}
+                className="size-8 bg-sidebar-accent text-sidebar-accent-foreground"
+                fallback={
+                  <Building2
+                    aria-hidden="true"
+                    className="size-4"
+                    strokeWidth={1.5}
+                  />
+                }
+                hasImage={activeOrganizationHasImage}
+                imageUrl={activeOrganizationImageUrl}
+              />
               <span className="grid flex-1 text-left text-sm leading-tight">
                 <span className="text-xs text-sidebar-foreground/60">
                   Organization
@@ -88,9 +98,13 @@ export function OrganizationSwitcher() {
                   key={organization.id}
                   onSelect={() => void switchOrganization(organization.id)}
                 >
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background text-xs font-medium">
-                    {initialsFor(organization.name)}
-                  </span>
+                  <SidebarAvatar
+                    alt={organization.name}
+                    className="size-7 border bg-background text-xs font-medium"
+                    fallback={initialsFor(organization.name, 'OR')}
+                    hasImage={organization.hasImage}
+                    imageUrl={organization.imageUrl}
+                  />
                   <span className="grid min-w-0 flex-1">
                     <span className="truncate font-medium">
                       {organization.name}
@@ -146,11 +160,4 @@ export function OrganizationSwitcher() {
       </SidebarMenuItem>
     </SidebarMenu>
   );
-}
-
-function initialsFor(value: string) {
-  const [first = '', second = ''] = value.trim().split(/\s+/);
-  const initials = `${first[0] ?? ''}${second[0] ?? ''}`.toUpperCase();
-
-  return initials || 'OR';
 }

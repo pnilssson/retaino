@@ -17,7 +17,7 @@ describe('legal document contracts', () => {
       'sending_policy',
       'campaign_attestation',
     ]);
-    expect(LEGAL_BUNDLE_VERSION).toBe('2026-05-09');
+    expect(LEGAL_BUNDLE_VERSION).toBe('2026-05-14');
     expect(REQUIRED_LEGAL_BUNDLE_DOCUMENT_TYPES).toEqual([
       'terms',
       'dpa',

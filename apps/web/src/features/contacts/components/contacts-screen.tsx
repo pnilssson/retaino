@@ -152,6 +152,11 @@ export function ContactsScreen() {
                 <TableLoading label="Loading contacts" />
               ) : contacts.data && contacts.data.contacts.length > 0 ? (
                 <>
+                  <ContactListPosition
+                    page={contacts.data.page}
+                    pageSize={contacts.data.pageSize}
+                    total={contacts.data.total}
+                  />
                   {canManageContacts ? (
                     <ContactBulkActions
                       contactIds={selectedContactIds}
@@ -162,6 +167,8 @@ export function ContactsScreen() {
                   <ContactsTable
                     contacts={contacts.data.contacts}
                     onRowSelectionChange={setRowSelection}
+                    page={contacts.data.page}
+                    pageSize={contacts.data.pageSize}
                     rowSelection={rowSelection}
                     selectable={canManageContacts}
                   />
@@ -194,5 +201,28 @@ export function ContactsScreen() {
         </AppPageContent>
       </section>
     </main>
+  );
+}
+
+function ContactListPosition({
+  page,
+  pageSize,
+  total,
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(total, page * pageSize);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      <span className="font-medium text-foreground">
+        Showing {start}-{end} of {total} contacts
+      </span>
+      <span className="text-muted-foreground">Page {page} of {totalPages}</span>
+    </div>
   );
 }

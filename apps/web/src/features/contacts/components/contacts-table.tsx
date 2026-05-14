@@ -46,17 +46,25 @@ const selectionColumn: ColumnDef<Contact> = {
 export function ContactsTable({
   contacts,
   onRowSelectionChange,
+  page,
+  pageSize,
   rowSelection,
   selectable = false,
 }: {
   contacts: Contact[];
   onRowSelectionChange?: OnChangeFn<RowSelectionState>;
+  page: number;
+  pageSize: number;
   rowSelection?: RowSelectionState;
   selectable?: boolean;
 }) {
+  const rowNumberColumn = createRowNumberColumn(page, pageSize);
+
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    columns: selectable ? [selectionColumn, ...contactColumns] : contactColumns,
+    columns: selectable
+      ? [selectionColumn, rowNumberColumn, ...contactColumns]
+      : [rowNumberColumn, ...contactColumns],
     data: contacts,
     enableRowSelection: selectable,
     getCoreRowModel: getCoreRowModel(),
@@ -69,8 +77,30 @@ export function ContactsTable({
   return (
     <DataTable
       cellClassName="p-0"
-      rowClassName="group hover:bg-muted/40"
+      rowClassName="group odd:bg-muted/20 hover:bg-muted/40"
       table={table}
     />
   );
+}
+
+function createRowNumberColumn(
+  page: number,
+  pageSize: number,
+): ColumnDef<Contact> {
+  const firstRowNumber = (page - 1) * pageSize + 1;
+
+  return {
+    id: 'rowNumber',
+    header: () => <span className="sr-only">Row number</span>,
+    cell: ({ row }) => (
+      <div className="flex w-10 items-center justify-end p-2 text-xs tabular-nums text-muted-foreground">
+        {firstRowNumber + row.index}
+      </div>
+    ),
+    enableHiding: false,
+    enableSorting: false,
+    maxSize: 40,
+    minSize: 40,
+    size: 40,
+  };
 }

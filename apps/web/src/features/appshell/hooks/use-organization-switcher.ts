@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth, useOrganizationList } from '@clerk/nextjs';
+import { useAuth, useOrganization, useOrganizationList } from '@clerk/nextjs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -14,12 +14,16 @@ import { routes } from '@/lib/routes';
 
 type OrganizationSwitcherMembership = {
   organization: {
+    hasImage: boolean;
     id: string;
+    imageUrl: string;
     name: string;
   };
 };
 
 type OrganizationSwitcherState = {
+  activeOrganizationHasImage: boolean;
+  activeOrganizationImageUrl: string | null;
   activeOrganizationName: string;
   canFinishSetup: boolean;
   currentOrganizationId: string | null | undefined;
@@ -33,6 +37,7 @@ export function useOrganizationSwitcher(): OrganizationSwitcherState {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { orgId } = useAuth({ treatPendingAsSignedOut: false });
+  const { organization: activeOrganization } = useOrganization();
   const { setActive, userMemberships } = useOrganizationList({
     userMemberships: {
       pageSize: 20,
@@ -47,15 +52,26 @@ export function useOrganizationSwitcher(): OrganizationSwitcherState {
   >(null);
   const memberships = (userMemberships.data ?? []).map((membership) => ({
     organization: {
+      hasImage: membership.organization.hasImage,
       id: membership.organization.id,
+      imageUrl: membership.organization.imageUrl,
       name: membership.organization.name,
     },
   }));
+  const activeMembership = memberships.find(
+    (membership) => membership.organization.id === orgId,
+  );
   const activeOrganizationName =
     session.data?.organization.name ??
-    memberships.find((membership) => membership.organization.id === orgId)
-      ?.organization.name ??
+    activeOrganization?.name ??
+    activeMembership?.organization.name ??
     'Select organization';
+  const activeOrganizationHasImage =
+    activeOrganization?.hasImage ??
+    activeMembership?.organization.hasImage ??
+    false;
+  const activeOrganizationImageUrl =
+    activeOrganization?.imageUrl ?? activeMembership?.organization.imageUrl ?? null;
   const canFinishSetup =
     session.isSuccess &&
     !session.data.readiness.setupComplete &&
@@ -83,6 +99,8 @@ export function useOrganizationSwitcher(): OrganizationSwitcherState {
   }
 
   return {
+    activeOrganizationHasImage,
+    activeOrganizationImageUrl,
     activeOrganizationName,
     canFinishSetup,
     currentOrganizationId: orgId,
