@@ -8,7 +8,35 @@
 
 **Tech Stack:** Stripe Checkout, Stripe Billing, Stripe Customer Portal, Stripe Tax, Stripe CLI, `stripe` Node SDK, Hono on Cloudflare Workers, Next.js on Vercel, Clerk organizations, Neon Postgres with Drizzle, Vitest.
 
+**Current Status:** Phases 1 through 3 are implemented and pushed on branch `codex/stripe-billing-campaign-mvp` in commit `190a77d`. The next implementation slice should start at Phase 4, Billing API Routes.
+
 ---
+
+## Completed Foundation Work
+
+- Shared billing contracts were added in `packages/shared/src/contracts/billing.ts`
+  and exported from `packages/shared/src/contracts/index.ts`.
+- Shared tests were added for billing contracts and legal bundle versioning.
+- Database billing schema was added in `packages/db/src/schema/billing.ts`.
+- Database billing query helpers were added in `packages/db/src/queries/billing.ts`.
+- Billing migration `packages/db/migrations/0002_damp_famine.sql` was generated
+  through Drizzle.
+- Database tests were added for billing schema, billing queries, and legal
+  manifest bundle-version drift.
+- API Stripe dependency, environment bindings, Stripe client factory, and billing
+  catalog config were added.
+- Billing catalog construction is key-driven from the shared plan and credit
+  pack catalogs, with tests that fail if a shared catalog item lacks a Stripe
+  price binding.
+- API tests were added for Stripe config and billing catalog validation.
+- New Stripe-era legal document versions were added for privacy and
+  subprocessors, and `LEGAL_BUNDLE_VERSION` was bumped to `2026-05-14`.
+- Pricing and campaign planning docs were updated to use Stripe and Retaino SMS
+  credit transactions instead of Polar.
+- Validation completed:
+  - `pnpm test`
+  - `pnpm typecheck`
+  - `pnpm lint`
 
 ## Research Summary
 
@@ -293,33 +321,33 @@ Required webhook events:
 
 ### Phase 1: Billing Contracts
 
-- [ ] Add shared billing keys, schemas, and tests.
-- [ ] Define plan keys and credit pack keys exactly once.
-- [ ] Define credit transaction types exactly once.
-- [ ] Define response schemas for billing status, checkout URL, and portal URL.
-- [ ] Run `pnpm --filter @retaino/shared test`.
-- [ ] Run `pnpm --filter @retaino/shared typecheck`.
+- [x] Add shared billing keys, schemas, and tests.
+- [x] Define plan keys and credit pack keys exactly once.
+- [x] Define credit transaction types exactly once.
+- [x] Define response schemas for billing status, checkout URL, and portal URL.
+- [x] Run `pnpm --filter @retaino/shared test`.
+- [x] Run `pnpm --filter @retaino/shared typecheck`.
 
 ### Phase 2: Database Billing And Credit Transactions
 
-- [ ] Add Drizzle billing schema.
-- [ ] Add billing query functions for projection, webhook events, credit grants,
+- [x] Add Drizzle billing schema.
+- [x] Add billing query functions for projection, webhook events, credit grants,
   credit debits, and balance reads.
-- [ ] Add package-level schema and query tests.
-- [ ] Generate migration through `pnpm --filter @retaino/db db:generate`.
-- [ ] Run `pnpm --filter @retaino/db test`.
-- [ ] Run `pnpm --filter @retaino/db typecheck`.
+- [x] Add package-level schema and query tests.
+- [x] Generate migration through `pnpm --filter @retaino/db db:generate`.
+- [x] Run `pnpm --filter @retaino/db test`.
+- [x] Run `pnpm --filter @retaino/db typecheck`.
 
 ### Phase 3: Stripe Client And Catalog Config
 
-- [ ] Install `stripe` in `apps/api`.
-- [ ] Add Stripe environment bindings to `apps/api/src/types.ts`.
-- [ ] Add a focused Stripe client factory in `apps/api/src/lib/stripe.ts`.
-- [ ] Add `apps/api/src/features/billing/billing.catalog.ts` with price ID
+- [x] Install `stripe` in `apps/api`.
+- [x] Add Stripe environment bindings to `apps/api/src/types.ts`.
+- [x] Add a focused Stripe client factory in `apps/api/src/lib/stripe.ts`.
+- [x] Add `apps/api/src/features/billing/billing.catalog.ts` with price ID
   mapping from environment variables.
-- [ ] Add Stripe config for per-checkout display name. Do not require changing
+- [x] Add Stripe config for per-checkout display name. Do not require changing
   the Stripe account-level public business name to Retaino.
-- [ ] Test catalog validation without contacting Stripe.
+- [x] Test catalog validation without contacting Stripe.
 
 ### Phase 4: Billing API Routes
 
@@ -441,15 +469,15 @@ Manual Stripe test-mode tests:
 
 ## Execution Order
 
-1. Create Stripe test products and prices.
-2. Shared contracts.
-3. Database projection, webhook audit, and SMS credit transactions.
-4. Stripe client and catalog config.
-5. API billing status, checkout, portal, and credit services.
-6. Webhook endpoint and credit transaction processing.
-7. Billing web UI.
-8. Stripe test-mode end-to-end validation.
-9. Campaign credit integration.
+1. [ ] Create Stripe test products and prices.
+2. [x] Shared contracts.
+3. [x] Database projection, webhook audit, and SMS credit transactions.
+4. [x] Stripe client and catalog config.
+5. [ ] API billing status, checkout, portal, and credit services.
+6. [ ] Webhook endpoint and credit transaction processing.
+7. [ ] Billing web UI.
+8. [ ] Stripe test-mode end-to-end validation.
+9. [ ] Campaign credit integration.
 
 ## Completion Criteria
 

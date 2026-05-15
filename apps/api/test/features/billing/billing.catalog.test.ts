@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { getStripeBillingCatalog } from '../../../src/features/billing/billing.catalog';
+import {
+  BILLING_PLAN_KEYS,
+  CREDIT_PACK_KEYS,
+} from '@retaino/shared/contracts';
+import {
+  getBillingCatalogBindingNames,
+  getStripeBillingCatalog,
+} from '../../../src/features/billing/billing.catalog';
 
 const catalogBindings = {
   STRIPE_PRICE_CREDITS_1500_ID: 'price_credits_1500',
@@ -11,6 +18,13 @@ const catalogBindings = {
 };
 
 describe('Stripe billing catalog', () => {
+  it('keeps every shared catalog item mapped to a Stripe price binding', () => {
+    const bindingNames = getBillingCatalogBindingNames();
+
+    expect(Object.keys(bindingNames.plans)).toEqual([...BILLING_PLAN_KEYS]);
+    expect(Object.keys(bindingNames.creditPacks)).toEqual([...CREDIT_PACK_KEYS]);
+  });
+
   it('maps subscription plans to configured Stripe price IDs', () => {
     const catalog = getStripeBillingCatalog(catalogBindings);
 

@@ -1,6 +1,8 @@
 import {
   BILLING_PLAN_CATALOG,
+  BILLING_PLAN_KEYS,
   CREDIT_PACK_CATALOG,
+  CREDIT_PACK_KEYS,
   type BillingPlanKey,
   type CreditPackKey,
 } from '@retaino/shared/contracts';
@@ -37,63 +39,72 @@ export type StripeBillingCatalog = {
   >;
 };
 
+const BILLING_PLAN_PRICE_BINDINGS = {
+  starter: 'STRIPE_PRICE_STARTER_ID',
+  growth: 'STRIPE_PRICE_GROWTH_ID',
+  scale: 'STRIPE_PRICE_SCALE_ID',
+} as const satisfies Record<BillingPlanKey, keyof BillingCatalogBindings>;
+
+const CREDIT_PACK_PRICE_BINDINGS = {
+  credits_500: 'STRIPE_PRICE_CREDITS_500_ID',
+  credits_1500: 'STRIPE_PRICE_CREDITS_1500_ID',
+  credits_5000: 'STRIPE_PRICE_CREDITS_5000_ID',
+} as const satisfies Record<CreditPackKey, keyof BillingCatalogBindings>;
+
 export function getStripeBillingCatalog(
   bindings: BillingCatalogBindings,
 ): StripeBillingCatalog {
   return {
-    plans: {
-      starter: {
-        key: 'starter',
-        stripePriceId: requiredCatalogBinding(
-          bindings.STRIPE_PRICE_STARTER_ID,
-          'STRIPE_PRICE_STARTER_ID',
-        ),
-        ...BILLING_PLAN_CATALOG.starter,
-      },
-      growth: {
-        key: 'growth',
-        stripePriceId: requiredCatalogBinding(
-          bindings.STRIPE_PRICE_GROWTH_ID,
-          'STRIPE_PRICE_GROWTH_ID',
-        ),
-        ...BILLING_PLAN_CATALOG.growth,
-      },
-      scale: {
-        key: 'scale',
-        stripePriceId: requiredCatalogBinding(
-          bindings.STRIPE_PRICE_SCALE_ID,
-          'STRIPE_PRICE_SCALE_ID',
-        ),
-        ...BILLING_PLAN_CATALOG.scale,
-      },
-    },
-    creditPacks: {
-      credits_500: {
-        key: 'credits_500',
-        stripePriceId: requiredCatalogBinding(
-          bindings.STRIPE_PRICE_CREDITS_500_ID,
-          'STRIPE_PRICE_CREDITS_500_ID',
-        ),
-        ...CREDIT_PACK_CATALOG.credits_500,
-      },
-      credits_1500: {
-        key: 'credits_1500',
-        stripePriceId: requiredCatalogBinding(
-          bindings.STRIPE_PRICE_CREDITS_1500_ID,
-          'STRIPE_PRICE_CREDITS_1500_ID',
-        ),
-        ...CREDIT_PACK_CATALOG.credits_1500,
-      },
-      credits_5000: {
-        key: 'credits_5000',
-        stripePriceId: requiredCatalogBinding(
-          bindings.STRIPE_PRICE_CREDITS_5000_ID,
-          'STRIPE_PRICE_CREDITS_5000_ID',
-        ),
-        ...CREDIT_PACK_CATALOG.credits_5000,
-      },
-    },
+    plans: buildPlanCatalog(bindings),
+    creditPacks: buildCreditPackCatalog(bindings),
   };
+}
+
+export function getBillingCatalogBindingNames() {
+  return {
+    plans: BILLING_PLAN_PRICE_BINDINGS,
+    creditPacks: CREDIT_PACK_PRICE_BINDINGS,
+  };
+}
+
+function buildPlanCatalog(bindings: BillingCatalogBindings) {
+  return Object.fromEntries(
+    BILLING_PLAN_KEYS.map((key) => {
+      const bindingName = BILLING_PLAN_PRICE_BINDINGS[key];
+
+      return [
+        key,
+        {
+          key,
+          stripePriceId: requiredCatalogBinding(
+            bindings[bindingName],
+            bindingName,
+          ),
+          ...BILLING_PLAN_CATALOG[key],
+        },
+      ];
+    }),
+  ) as StripeBillingCatalog['plans'];
+}
+
+function buildCreditPackCatalog(bindings: BillingCatalogBindings) {
+  return Object.fromEntries(
+    CREDIT_PACK_KEYS.map((key) => {
+      const bindingName = CREDIT_PACK_PRICE_BINDINGS[key];
+
+      return [
+        key,
+        {
+          key,
+          stripePriceId: requiredCatalogBinding(
+            bindings[bindingName],
+            bindingName,
+          ),
+          ...CREDIT_PACK_CATALOG[key],
+        },
+      ];
+    }),
+  ) as StripeBillingCatalog['creditPacks'];
 }
 
 function requiredCatalogBinding(value: string | undefined, name: string) {
