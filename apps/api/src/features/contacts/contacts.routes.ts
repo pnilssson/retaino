@@ -33,7 +33,7 @@ import { enqueueContactImportProcessing } from './contacts.jobs';
 const MAX_UPLOAD_SIZE = 25 * 1024 * 1024;
 
 export const contactsRoutes = new Hono<AppEnv>()
-  .get('/contacts', async (c) => {
+  .get('/', async (c) => {
     const parsed = contactListQuerySchema.safeParse(c.req.query());
 
     if (!parsed.success) {
@@ -54,7 +54,7 @@ export const contactsRoutes = new Hono<AppEnv>()
       }),
     );
   })
-  .post('/contacts/bulk-delete', async (c) => {
+  .post('/bulk-delete', async (c) => {
     const gate = validateContactManagementPermission(c);
 
     if (!gate.ok) {
@@ -82,7 +82,7 @@ export const contactsRoutes = new Hono<AppEnv>()
       skippedCount: parsed.data.contactIds.length - affectedCount,
     });
   })
-  .post('/contacts/bulk-suppressions', async (c) => {
+  .post('/bulk-suppressions', async (c) => {
     const gate = validateContactManagementPermission(c);
 
     if (!gate.ok) {
@@ -111,7 +111,7 @@ export const contactsRoutes = new Hono<AppEnv>()
       skippedCount: result.skippedCount,
     });
   })
-  .get('/contacts/:id', async (c) => {
+  .get('/:id', async (c) => {
     const contact = await getContactById(c.get('db'), {
       organizationId: c.get('organization').id,
       contactId: c.req.param('id'),
@@ -123,7 +123,7 @@ export const contactsRoutes = new Hono<AppEnv>()
 
     return c.json({ contact });
   })
-  .patch('/contacts/:id', async (c) => {
+  .patch('/:id', async (c) => {
     const gate = validateContactManagementPermission(c);
 
     if (!gate.ok) {
@@ -176,7 +176,7 @@ export const contactsRoutes = new Hono<AppEnv>()
 
     return c.json({ contact: result.contact });
   })
-  .delete('/contacts/:id', async (c) => {
+  .delete('/:id', async (c) => {
     const gate = validateContactManagementPermission(c);
 
     if (!gate.ok) {
@@ -194,7 +194,7 @@ export const contactsRoutes = new Hono<AppEnv>()
 
     return c.body(null, 204);
   })
-  .post('/contacts/:id/suppressions', async (c) => {
+  .post('/:id/suppressions', async (c) => {
     const gate = validateContactManagementPermission(c);
 
     if (!gate.ok) {
@@ -233,7 +233,7 @@ export const contactsRoutes = new Hono<AppEnv>()
       result.status === 'created' ? 201 : 200,
     );
   })
-  .delete('/contacts/:id/suppressions/:suppressionId', async (c) => {
+  .delete('/:id/suppressions/:suppressionId', async (c) => {
     const gate = validateContactManagementPermission(c);
 
     if (!gate.ok) {
@@ -252,7 +252,7 @@ export const contactsRoutes = new Hono<AppEnv>()
 
     return c.json({ contact: result.contact });
   })
-  .post('/contact-imports', async (c) => {
+  .post('/imports', async (c) => {
     const gate = await requireContactImportEligibility(c);
 
     if (!gate.ok) {
@@ -319,7 +319,7 @@ export const contactsRoutes = new Hono<AppEnv>()
 
     return c.json({ import: importRow.import }, 202);
   })
-  .get('/contact-imports/:id', async (c) => {
+  .get('/imports/:id', async (c) => {
     const importRow = await getContactImportById(c.get('db'), {
       organizationId: c.get('organization').id,
       contactImportId: c.req.param('id'),

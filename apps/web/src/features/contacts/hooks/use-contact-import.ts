@@ -18,7 +18,7 @@ export function useContactImport({
   const importQuery = useQuery({
     queryKey: contactsQueryKeys.importDetail(organizationId, importId),
     queryFn: () =>
-      api.get<ContactImportDetailResponse>(`/v1/contact-imports/${importId}`),
+      api.get<ContactImportDetailResponse>(`/v1/contacts/imports/${importId}`),
     refetchInterval: (query) =>
       query.state.data?.import.status === 'processing' ? 1500 : false,
   });

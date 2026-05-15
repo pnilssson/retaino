@@ -8,7 +8,7 @@
 
 **Tech Stack:** Stripe Checkout, Stripe Billing, Stripe Customer Portal, Stripe Tax, Stripe CLI, `stripe` Node SDK, Hono on Cloudflare Workers, Next.js on Vercel, Clerk organizations, Neon Postgres with Drizzle, Vitest.
 
-**Current Status:** Phases 1 through 3 are implemented and pushed on branch `codex/stripe-billing-campaign-mvp` in commit `190a77d`. The next implementation slice should start at Phase 4, Billing API Routes.
+**Current Status:** Phases 1 through 4 are implemented. Phases 1 through 3 were pushed to `main` in commits `190a77d` and `47a3e1f`; Phase 4 is implemented locally and should be committed after verification. The next implementation slice should start at Phase 5, Stripe Webhooks.
 
 ---
 
@@ -29,6 +29,11 @@
   pack catalogs, with tests that fail if a shared catalog item lacks a Stripe
   price binding.
 - API tests were added for Stripe config and billing catalog validation.
+- Billing status, subscription checkout, credit pack checkout, customer portal,
+  campaign credit check, and campaign credit debit service functions were added.
+- Authenticated billing routes were added under `/v1/billing`.
+- Billing checkout and portal creation are restricted to organization admins.
+- Billing status can be read by authenticated organization members.
 - New Stripe-era legal document versions were added for privacy and
   subprocessors, and `LEGAL_BUNDLE_VERSION` was bumped to `2026-05-14`.
 - Pricing and campaign planning docs were updated to use Stripe and Retaino SMS
@@ -351,16 +356,16 @@ Required webhook events:
 
 ### Phase 4: Billing API Routes
 
-- [ ] Add billing service functions for status, checkout, portal, credit checks,
+- [x] Add billing service functions for status, checkout, portal, credit checks,
   and credit debits.
-- [ ] Add authenticated billing routes.
-- [ ] Wire routes in `apps/api/src/server.ts`.
-- [ ] Require `org:admin` for checkout and portal creation.
-- [ ] Let members read billing status if useful for campaign readiness, but keep
+- [x] Add authenticated billing routes.
+- [x] Wire routes in `apps/api/src/server.ts`.
+- [x] Require `org:admin` for checkout and portal creation.
+- [x] Let members read billing status if useful for campaign readiness, but keep
   payment actions admin-only.
-- [ ] Add API route tests with a fake Stripe client.
-- [ ] Run `pnpm --filter @retaino/api test`.
-- [ ] Run `pnpm --filter @retaino/api typecheck`.
+- [x] Add API route tests with a fake Stripe client.
+- [x] Run `pnpm --filter @retaino/api test`.
+- [x] Run `pnpm --filter @retaino/api typecheck`.
 
 ### Phase 5: Stripe Webhooks
 
@@ -473,7 +478,7 @@ Manual Stripe test-mode tests:
 2. [x] Shared contracts.
 3. [x] Database projection, webhook audit, and SMS credit transactions.
 4. [x] Stripe client and catalog config.
-5. [ ] API billing status, checkout, portal, and credit services.
+5. [x] API billing status, checkout, portal, and credit services.
 6. [ ] Webhook endpoint and credit transaction processing.
 7. [ ] Billing web UI.
 8. [ ] Stripe test-mode end-to-end validation.

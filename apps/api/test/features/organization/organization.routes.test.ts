@@ -97,7 +97,7 @@ function testApp(input: { organization?: typeof organization } = {}) {
     await next();
   });
 
-  app.route('/v1', organizationRoutes);
+  app.route('/v1/organization', organizationRoutes);
   return app;
 }
 
@@ -116,7 +116,7 @@ describe('organizationRoutes', () => {
   it('returns the authenticated user, organization, legal bundle, and readiness state', async () => {
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(null);
 
-    const response = await testApp().request('/v1/me');
+    const response = await testApp().request('/v1/organization/me');
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({

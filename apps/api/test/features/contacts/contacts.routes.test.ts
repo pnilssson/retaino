@@ -205,7 +205,7 @@ function testApp(input: { role?: string } = {}) {
     await next();
   });
 
-  app.route('/v1', contactsRoutes);
+  app.route('/v1/contacts', contactsRoutes);
   return app;
 }
 
@@ -270,7 +270,7 @@ describe('contactsRoutes', () => {
     const testEnv = env();
 
     const response = await testApp().request(
-      '/v1/contact-imports',
+      '/v1/contacts/imports',
       {
         method: 'POST',
         body: importForm({ permissionAttestation: 'true' }),
@@ -300,7 +300,7 @@ describe('contactsRoutes', () => {
   it('rejects malformed CSV before storing an import file', async () => {
     const testEnv = env();
     const response = await testApp().request(
-      '/v1/contact-imports',
+      '/v1/contacts/imports',
       {
         method: 'POST',
         body: importForm({
@@ -324,7 +324,7 @@ describe('contactsRoutes', () => {
     const testEnv = env();
 
     const response = await testApp().request(
-      '/v1/contact-imports',
+      '/v1/contacts/imports',
       {
         method: 'POST',
         body: importForm({ permissionAttestation: 'true' }),
@@ -345,7 +345,7 @@ describe('contactsRoutes', () => {
 
   it('rejects invalid mappings and missing attestation', async () => {
     const invalidMapping = await testApp().request(
-      '/v1/contact-imports',
+      '/v1/contacts/imports',
       {
         method: 'POST',
         body: importForm({
@@ -356,7 +356,7 @@ describe('contactsRoutes', () => {
       env(),
     );
     const missingAttestation = await testApp().request(
-      '/v1/contact-imports',
+      '/v1/contacts/imports',
       {
         method: 'POST',
         body: importForm({}),
@@ -372,7 +372,7 @@ describe('contactsRoutes', () => {
   it('rejects import start for blocked organizations and members', async () => {
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValueOnce(null);
     const incomplete = await testApp().request(
-      '/v1/contact-imports',
+      '/v1/contacts/imports',
       {
         method: 'POST',
         body: importForm({ permissionAttestation: 'true' }),
@@ -380,7 +380,7 @@ describe('contactsRoutes', () => {
       env(),
     );
     const member = await testApp({ role: 'org:member' }).request(
-      '/v1/contact-imports',
+      '/v1/contacts/imports',
       {
         method: 'POST',
         body: importForm({ permissionAttestation: 'true' }),
@@ -397,7 +397,7 @@ describe('contactsRoutes', () => {
     vi.mocked(getContactImportById).mockResolvedValue(importDetail);
 
     const response = await testApp().request(
-      `/v1/contact-imports/${importDetail.id}`,
+      `/v1/contacts/imports/${importDetail.id}`,
       undefined,
       env(),
     );
@@ -411,18 +411,18 @@ describe('contactsRoutes', () => {
 
   it('does not expose import history, process, or row routes', async () => {
     await expect(
-      testApp().request('/v1/contact-imports', undefined, env()),
+      testApp().request('/v1/contacts/imports', undefined, env()),
     ).resolves.toHaveProperty('status', 404);
     await expect(
       testApp().request(
-        `/v1/contact-imports/${importDetail.id}/process`,
+        `/v1/contacts/imports/${importDetail.id}/process`,
         { method: 'POST' },
         env(),
       ),
     ).resolves.toHaveProperty('status', 404);
     await expect(
       testApp().request(
-        `/v1/contact-imports/${importDetail.id}/rows`,
+        `/v1/contacts/imports/${importDetail.id}/rows`,
         undefined,
         env(),
       ),

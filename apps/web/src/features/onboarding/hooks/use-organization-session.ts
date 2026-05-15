@@ -13,7 +13,7 @@ export function useOrganizationSession(options: { enabled?: boolean } = {}) {
   return useQuery({
     enabled: options.enabled ?? true,
     queryKey: organizationSessionQueryKey,
-    queryFn: () => api.get<OrganizationSession>('/v1/me'),
+    queryFn: () => api.get<OrganizationSession>('/v1/organization/me'),
     retry: (failureCount, error) => {
       if (
         error instanceof ApiClientError &&

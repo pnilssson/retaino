@@ -35,7 +35,7 @@ export function useStartContactImport({
         value.permissionAttestation ? 'true' : 'false',
       );
 
-      return api.upload<CreateContactImportResponse>('/v1/contact-imports', {
+      return api.upload<CreateContactImportResponse>('/v1/contacts/imports', {
         body,
       });
     },

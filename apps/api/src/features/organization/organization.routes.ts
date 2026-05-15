@@ -38,7 +38,7 @@ export const organizationRoutes = new Hono<AppEnv>()
       readiness: state.readiness,
     });
   })
-  .post('/organization/profile', async (c) => {
+  .post('/profile', async (c) => {
     const organization = c.get('organization');
 
     if (!canManageOrganizationSetup(organization.role)) {
@@ -72,7 +72,7 @@ export const organizationRoutes = new Hono<AppEnv>()
 
     return c.json({ profile });
   })
-  .post('/organization/legal', async (c) => {
+  .post('/legal', async (c) => {
     const organization = c.get('organization');
 
     if (!canManageOrganizationSetup(organization.role)) {
