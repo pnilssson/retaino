@@ -141,6 +141,7 @@ export async function createSubscriptionCheckout(input: {
       planKey: input.planKey,
     },
     subscription_data: {
+      billing_mode: { type: 'flexible' },
       metadata: {
         organizationId: input.organization.id,
         planKey: input.planKey,

@@ -165,6 +165,7 @@ describe('billing service', () => {
           planKey: 'growth',
         },
         subscription_data: {
+          billing_mode: { type: 'flexible' },
           metadata: {
             organizationId: organization.id,
             planKey: 'growth',
