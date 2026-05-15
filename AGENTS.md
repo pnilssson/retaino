@@ -27,6 +27,14 @@ This repository is the Retaino monorepo.
 - API uses Hono on Cloudflare Workers.
 - Auth uses Clerk.
 - Database uses Neon Postgres with Drizzle.
+- Keep local development and deployed production environments strictly
+  separated. Local development runs against development resources only:
+  development database, development Clerk, and Stripe test mode. Anything
+  deployed on Cloudflare or Vercel runs against production resources only:
+  production database, production Clerk, and Stripe live mode. Do not point a
+  deployed environment at development services, and do not point local
+  development at production services unless the user explicitly asks for a
+  one-off production operation.
 - Never manually edit migration SQL or migration metadata. Update the Drizzle
   schema, then generate migrations with the project migration command.
 - Payments use Stripe.

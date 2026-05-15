@@ -15,10 +15,16 @@ describe('parseConfiguredOrigins', () => {
 });
 
 describe('allowedBrowserOrigins', () => {
-  it('combines configured and local browser origins without duplicates', () => {
+  it('uses configured browser origins without adding local development origins', () => {
     expect(allowedBrowserOrigins('http://localhost:3000,https://app.retaino.test')).toEqual([
       'http://localhost:3000',
       'https://app.retaino.test',
+    ]);
+  });
+
+  it('allows local browser origins when no origins are configured', () => {
+    expect(allowedBrowserOrigins(undefined)).toEqual([
+      'http://localhost:3000',
       'http://127.0.0.1:3000',
       'http://localhost:3001',
       'http://127.0.0.1:3001',

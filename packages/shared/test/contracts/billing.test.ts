@@ -4,6 +4,7 @@ import {
   BILLING_PLAN_KEYS,
   CREDIT_PACK_CATALOG,
   CREDIT_PACK_KEYS,
+  SMS_CREDIT_BUCKETS,
   SMS_CREDIT_TRANSACTION_SOURCES,
   SMS_CREDIT_TRANSACTION_TYPES,
   billingStatusResponseSchema,
@@ -126,6 +127,7 @@ describe('billing contracts', () => {
       'debit',
       'adjustment',
     ]);
+    expect(SMS_CREDIT_BUCKETS).toEqual(['subscription_period', 'purchased']);
     expect(SMS_CREDIT_TRANSACTION_SOURCES).toEqual([
       'stripe_invoice',
       'stripe_checkout_session',
@@ -140,14 +142,34 @@ describe('billing contracts', () => {
         transactionType: 'grant',
         source: 'stripe_invoice',
         sourceId: 'in_123',
+        creditBucket: 'subscription_period',
         credits: 1000,
+        periodStart: '2026-05-14T00:00:00.000Z',
+        periodEnd: '2026-06-14T00:00:00.000Z',
         description: 'Growth monthly credits',
         createdAt: '2026-05-14T00:00:00.000Z',
       }),
     ).toMatchObject({
       transactionType: 'grant',
       source: 'stripe_invoice',
+      creditBucket: 'subscription_period',
       credits: 1000,
+    });
+    expect(
+      smsCreditTransactionSchema.parse({
+        transactionType: 'grant',
+        source: 'stripe_checkout_session',
+        sourceId: 'cs_123',
+        creditBucket: 'purchased',
+        credits: 1500,
+        periodStart: null,
+        periodEnd: null,
+        description: '1,500 credits purchase',
+        createdAt: '2026-05-14T00:00:00.000Z',
+      }),
+    ).toMatchObject({
+      source: 'stripe_checkout_session',
+      creditBucket: 'purchased',
     });
     expect(
       smsCreditTransactionSchema.safeParse({

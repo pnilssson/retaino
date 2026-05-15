@@ -13,7 +13,11 @@ export function parseConfiguredOrigins(value: string | undefined) {
 }
 
 export function allowedBrowserOrigins(appAllowedOrigins: string | undefined) {
-  return Array.from(
-    new Set([...parseConfiguredOrigins(appAllowedOrigins), ...localFrontendOrigins]),
-  );
+  const configuredOrigins = parseConfiguredOrigins(appAllowedOrigins);
+
+  if (configuredOrigins.length > 0) {
+    return Array.from(new Set(configuredOrigins));
+  }
+
+  return [...localFrontendOrigins];
 }

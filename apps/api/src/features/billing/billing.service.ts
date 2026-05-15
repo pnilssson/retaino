@@ -3,6 +3,7 @@ import {
   createSmsCreditTransaction,
   getOrganizationBillingProfile,
   getSmsCreditBalance,
+  getSmsCreditBalanceBreakdown,
   upsertOrganizationBillingProfile,
 } from '@retaino/db';
 import type {
@@ -243,14 +244,56 @@ export async function debitSmsCreditUsage(input: {
   actualSegments: number;
   sourceId: string;
 }) {
-  return createSmsCreditTransaction(input.db, {
-    organizationId: input.organizationId,
-    transactionType: 'debit',
-    credits: -input.actualSegments,
-    source: 'campaign_send',
-    sourceId: input.sourceId,
-    description: 'Campaign SMS usage',
-  });
+  const [profile, balance] = await Promise.all([
+    getOrganizationBillingProfile(input.db, input.organizationId),
+    getSmsCreditBalanceBreakdown(input.db, input.organizationId),
+  ]);
+  const canUseSubscriptionPeriod = Boolean(
+    profile?.currentPeriodStart && profile.currentPeriodEnd,
+  );
+  const subscriptionDebit = canUseSubscriptionPeriod
+    ? Math.min(input.actualSegments, Math.max(balance.subscriptionPeriod, 0))
+    : 0;
+  const purchasedDebit = input.actualSegments - subscriptionDebit;
+  const transactions = [];
+
+  if (
+    subscriptionDebit > 0 &&
+    profile?.currentPeriodStart &&
+    profile.currentPeriodEnd
+  ) {
+    transactions.push(
+      await createSmsCreditTransaction(input.db, {
+        organizationId: input.organizationId,
+        transactionType: 'debit',
+        credits: -subscriptionDebit,
+        creditBucket: 'subscription_period',
+        periodStart: profile.currentPeriodStart,
+        periodEnd: profile.currentPeriodEnd,
+        source: 'campaign_send',
+        sourceId: input.sourceId,
+        description: 'Campaign SMS usage',
+      }),
+    );
+  }
+
+  if (purchasedDebit > 0) {
+    transactions.push(
+      await createSmsCreditTransaction(input.db, {
+        organizationId: input.organizationId,
+        transactionType: 'debit',
+        credits: -purchasedDebit,
+        creditBucket: 'purchased',
+        periodStart: null,
+        periodEnd: null,
+        source: 'campaign_send',
+        sourceId: input.sourceId,
+        description: 'Campaign SMS usage',
+      }),
+    );
+  }
+
+  return transactions;
 }
 
 async function ensureStripeCustomer(input: {

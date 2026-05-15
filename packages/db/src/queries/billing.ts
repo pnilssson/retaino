@@ -1,8 +1,9 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, gt, lte, or, sql } from 'drizzle-orm';
 import type {
   BillingPlanKey,
   BillingSubscription,
   BillingSubscriptionStatus,
+  SmsCreditBucket,
   SmsCreditTransaction,
   SmsCreditTransactionSource,
   SmsCreditTransactionType,
@@ -44,6 +45,9 @@ export type CreateSmsCreditTransactionInput = {
   credits: number;
   source: SmsCreditTransactionSource;
   sourceId: string;
+  creditBucket: SmsCreditBucket;
+  periodStart: Date | null;
+  periodEnd: Date | null;
   description: string;
 };
 
@@ -74,7 +78,10 @@ export function smsCreditTransactionToContract(
     transactionType: row.transactionType as SmsCreditTransactionType,
     source: row.source as SmsCreditTransactionSource,
     sourceId: row.sourceId,
+    creditBucket: row.creditBucket as SmsCreditBucket,
     credits: row.credits,
+    periodStart: row.periodStart?.toISOString() ?? null,
+    periodEnd: row.periodEnd?.toISOString() ?? null,
     description: row.description,
     createdAt: row.createdAt.toISOString(),
   };
@@ -143,6 +150,19 @@ export async function recordBillingWebhookEvent(
   return row ?? null;
 }
 
+export async function getBillingWebhookEventByStripeEventId(
+  db: DbClient,
+  stripeEventId: string,
+) {
+  const [row] = await db
+    .select()
+    .from(billingWebhookEvents)
+    .where(eq(billingWebhookEvents.stripeEventId, stripeEventId))
+    .limit(1);
+
+  return row ?? null;
+}
+
 export async function markBillingWebhookEventProcessed(
   db: DbClient,
   stripeEventId: string,
@@ -172,6 +192,7 @@ export async function createSmsCreditTransaction(
       target: [
         smsCreditTransactions.source,
         smsCreditTransactions.sourceId,
+        smsCreditTransactions.creditBucket,
       ],
     })
     .returning();
@@ -183,14 +204,56 @@ export async function getSmsCreditBalance(
   db: DbClient,
   organizationId: string,
 ) {
+  const balance = await getSmsCreditBalanceBreakdown(db, organizationId);
+  return balance.total;
+}
+
+export async function getSmsCreditBalanceBreakdown(
+  db: DbClient,
+  organizationId: string,
+) {
   assertOrganizationId(organizationId);
 
-  const [row] = await db
+  const rows = await db
     .select({
+      creditBucket: smsCreditTransactions.creditBucket,
       balance: sql<number>`coalesce(sum(${smsCreditTransactions.credits}), 0)`,
     })
     .from(smsCreditTransactions)
-    .where(eq(smsCreditTransactions.organizationId, organizationId));
+    .where(getSpendableCreditCondition(organizationId))
+    .groupBy(smsCreditTransactions.creditBucket);
 
-  return Number(row?.balance ?? 0);
+  return creditBalanceRowsToBreakdown(rows);
+}
+
+function getSpendableCreditCondition(organizationId: string) {
+  return and(
+    eq(smsCreditTransactions.organizationId, organizationId),
+    or(
+      eq(smsCreditTransactions.creditBucket, 'purchased'),
+      and(
+        eq(smsCreditTransactions.creditBucket, 'subscription_period'),
+        lte(smsCreditTransactions.periodStart, sql`now()`),
+        gt(smsCreditTransactions.periodEnd, sql`now()`),
+      ),
+    ),
+  );
+}
+
+function creditBalanceRowsToBreakdown(
+  rows: Array<{ creditBucket: string; balance: number }>,
+) {
+  const purchased = Number(
+    rows.find((row) => row.creditBucket === 'purchased')?.balance ?? 0,
+  );
+  const subscriptionPeriod = Number(
+    rows.find((row) => row.creditBucket === 'subscription_period')?.balance ??
+      0,
+  );
+
+  return {
+    purchased,
+    subscriptionPeriod,
+    total: purchased + subscriptionPeriod,
+  };
 }

@@ -8,7 +8,10 @@
 
 **Tech Stack:** Stripe Checkout, Stripe Billing, Stripe Customer Portal, Stripe Tax, Stripe CLI, `stripe` Node SDK, Hono on Cloudflare Workers, Next.js on Vercel, Clerk organizations, Neon Postgres with Drizzle, Vitest.
 
-**Current Status:** Phases 1 through 4 are implemented. Phases 1 through 3 were pushed to `main` in commits `190a77d` and `47a3e1f`; Phase 4 is implemented locally and should be committed after verification. The next implementation slice should start at Phase 5, Stripe Webhooks.
+**Current Status:** Phases 1 through 5 are implemented. Phases 1 through 4
+were pushed to `main` in commits `190a77d`, `47a3e1f`, and `64d4497`.
+Phase 5 is implemented locally and should be committed after verification. The
+next implementation slice should start at Phase 6, Billing Web UI.
 
 ---
 
@@ -32,6 +35,13 @@
 - Billing status, subscription checkout, credit pack checkout, customer portal,
   campaign credit check, and campaign credit debit service functions were added.
 - Authenticated billing routes were added under `/v1/billing`.
+- Unauthenticated Stripe webhook handling was added under
+  `/v1/billing/webhooks`, mounted before Clerk auth and protected by Stripe
+  signature verification.
+- Webhook processing now records accepted events idempotently, ignores
+  non-Retaino events from the same Stripe account, grants subscription and
+  credit-pack credits, updates subscription projection, and creates refund
+  adjustments.
 - Billing checkout and portal creation are restricted to organization admins.
 - Billing status can be read by authenticated organization members.
 - New Stripe-era legal document versions were added for privacy and
@@ -93,8 +103,10 @@ Sources:
 - Use Retaino append-only SMS credit transactions.
 - Subscription renewal webhooks grant included monthly credits.
 - Credit pack payment webhooks grant purchased credits.
-- Included monthly credits do not roll over.
-- Purchased credit pack credits roll over and do not expire in MVP.
+- Included monthly credits use the `subscription_period` credit bucket and only
+  count inside the Stripe invoice period. They do not roll over.
+- Purchased credit pack credits use the `purchased` credit bucket and do not
+  expire in MVP.
 - Active subscription is required to use any SMS credits.
 - Test sends consume credits.
 - Campaign live send checks Retaino credit balance once for the full estimated
@@ -132,8 +144,19 @@ Retaino is a B2B SaaS platform for permission-based SMS customer reactivation. O
   cancellation, and plan switching between the three subscription prices.
 - Enable Stripe Tax if we want Stripe to calculate VAT at checkout.
 - Add webhook endpoint:
-  - local: through Stripe CLI
-  - production: deployed API `/v1/billing/webhooks`
+  - local development: through Stripe CLI forwarding to the local API and
+    Stripe test mode
+  - production: Stripe live mode endpoint pointing at the deployed API
+    `/v1/billing/webhooks`
+- Configure the endpoint to send these Stripe events:
+  `checkout.session.completed`, `customer.subscription.created`,
+  `customer.subscription.updated`, `customer.subscription.deleted`,
+  `invoice.paid`, `invoice.payment_failed`, and `charge.refunded`.
+- Copy the Dashboard endpoint signing secret into the matching deployed API env
+  as `STRIPE_WEBHOOK_SECRET`. Do not reuse the local Stripe CLI webhook secret
+  for production.
+- Do not point Stripe test-mode webhooks at deployed Cloudflare Workers.
+- Do not point Stripe live-mode webhooks at local development.
 - For local webhook testing, run:
 
 ```powershell
@@ -225,6 +248,9 @@ Core tables:
   - `credits`
   - `source`
   - `sourceId`
+  - `creditBucket`
+  - `periodStart`
+  - `periodEnd`
   - `description`
   - `createdAt`
 
@@ -232,12 +258,17 @@ Credit transaction rules:
 
 - Positive credits are grants.
 - Negative credits are debits.
-- `source` and `sourceId` must be unique together for idempotency.
-- Subscription renewal grants use source `stripe_invoice`.
-- Credit pack grants use source `stripe_checkout_session`.
-- Campaign debits use source `campaign_send`.
+- `source`, `sourceId`, and `creditBucket` must be unique together for
+  idempotency.
+- Subscription renewal grants use source `stripe_invoice`, bucket
+  `subscription_period`, and the Stripe invoice period boundaries.
+- Credit pack grants use source `stripe_checkout_session` and bucket
+  `purchased`.
+- Campaign debits use source `campaign_send` and spend `subscription_period`
+  before `purchased`.
 - Test send debits use source `campaign_test_send`.
-- Refund adjustments use source `stripe_refund` or `stripe_credit_note`.
+- Full credit-pack refund adjustments use source `stripe_refund` and bucket
+  `purchased`. Partial refunds are ignored in MVP.
 
 ### API
 
@@ -369,17 +400,17 @@ Required webhook events:
 
 ### Phase 5: Stripe Webhooks
 
-- [ ] Add `/v1/billing/webhooks` before Clerk auth and protect it with Stripe
+- [x] Add `/v1/billing/webhooks` before Clerk auth and protect it with Stripe
   webhook signature validation.
-- [ ] Store every accepted event idempotently.
-- [ ] Process `checkout.session.completed` for credit pack purchases.
-- [ ] Process `invoice.paid` for subscription credit grants.
-- [ ] Process subscription lifecycle events for local billing projection.
-- [ ] Process refunds or credit notes as negative credit adjustments when
+- [x] Store every accepted event idempotently.
+- [x] Process `checkout.session.completed` for credit pack purchases.
+- [x] Process `invoice.paid` for subscription credit grants.
+- [x] Process subscription lifecycle events for local billing projection.
+- [x] Process refunds or credit notes as negative credit adjustments when
   needed.
-- [ ] Add tests for duplicate events, invalid signatures, subscription renewal,
+- [x] Add tests for duplicate events, invalid signatures, subscription renewal,
   credit pack purchase, cancellation, payment failure, and refund adjustment.
-- [ ] Run `pnpm --filter @retaino/api test`.
+- [x] Run `pnpm --filter @retaino/api test`.
 
 ### Phase 6: Billing Web UI
 
@@ -479,7 +510,7 @@ Manual Stripe test-mode tests:
 3. [x] Database projection, webhook audit, and SMS credit transactions.
 4. [x] Stripe client and catalog config.
 5. [x] API billing status, checkout, portal, and credit services.
-6. [ ] Webhook endpoint and credit transaction processing.
+6. [x] Webhook endpoint and credit transaction processing.
 7. [ ] Billing web UI.
 8. [ ] Stripe test-mode end-to-end validation.
 9. [ ] Campaign credit integration.

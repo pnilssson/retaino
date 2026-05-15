@@ -2,10 +2,16 @@ name = "retaino-api"
 main = "src/server.ts"
 compatibility_date = "2026-05-05"
 compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+preview_urls = true
 
 [[r2_buckets]]
 binding = "CONTACT_IMPORTS_BUCKET"
 bucket_name = "retaino-contact-imports"
+
+[[routes]]
+pattern = "api.retaino.io"
+custom_domain = true
 
 [observability]
 enabled = true

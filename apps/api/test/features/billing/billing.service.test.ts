@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getOrganizationBillingProfile,
   getSmsCreditBalance,
+  getSmsCreditBalanceBreakdown,
   createSmsCreditTransaction,
   upsertOrganizationBillingProfile,
 } from '@retaino/db';
@@ -25,6 +26,7 @@ vi.mock('@retaino/db', async (importOriginal) => {
     ...actual,
     getOrganizationBillingProfile: vi.fn(),
     getSmsCreditBalance: vi.fn(),
+    getSmsCreditBalanceBreakdown: vi.fn(),
     createSmsCreditTransaction: vi.fn(),
     upsertOrganizationBillingProfile: vi.fn(),
   };
@@ -85,6 +87,7 @@ describe('billing service', () => {
   beforeEach(() => {
     vi.mocked(getOrganizationBillingProfile).mockReset();
     vi.mocked(getSmsCreditBalance).mockReset();
+    vi.mocked(getSmsCreditBalanceBreakdown).mockReset();
     vi.mocked(createSmsCreditTransaction).mockReset();
     vi.mocked(upsertOrganizationBillingProfile).mockReset();
   });
@@ -331,12 +334,35 @@ describe('billing service', () => {
     ).rejects.toBeInstanceOf(BillingInsufficientCreditsError);
   });
 
-  it('debits actual SMS segment usage as an idempotent credit transaction', async () => {
+  it('debits actual SMS segment usage from current subscription credits first', async () => {
+    vi.mocked(getOrganizationBillingProfile).mockResolvedValue({
+      id: '33333333-3333-4333-8333-333333333333',
+      organizationId: organization.id,
+      stripeCustomerId: 'cus_123',
+      stripeSubscriptionId: 'sub_123',
+      stripePriceId: 'price_growth',
+      planKey: 'growth',
+      subscriptionStatus: 'active',
+      currentPeriodStart: new Date('2026-05-15T00:00:00.000Z'),
+      currentPeriodEnd: new Date('2026-06-15T00:00:00.000Z'),
+      cancelAtPeriodEnd: false,
+      syncedAt: new Date('2026-05-15T00:00:00.000Z'),
+      createdAt: new Date('2026-05-15T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-15T00:00:00.000Z'),
+    });
+    vi.mocked(getSmsCreditBalanceBreakdown).mockResolvedValue({
+      subscriptionPeriod: 100,
+      purchased: 500,
+      total: 600,
+    });
     vi.mocked(createSmsCreditTransaction).mockResolvedValue({
       transactionType: 'debit',
       source: 'campaign_send',
       sourceId: 'campaign_send_123',
       credits: -42,
+      creditBucket: 'subscription_period',
+      periodStart: '2026-05-15T00:00:00.000Z',
+      periodEnd: '2026-06-15T00:00:00.000Z',
       description: 'Campaign SMS usage',
       createdAt: '2026-05-15T00:00:00.000Z',
     });
@@ -348,17 +374,69 @@ describe('billing service', () => {
         actualSegments: 42,
         sourceId: 'campaign_send_123',
       }),
-    ).resolves.toMatchObject({
-      transactionType: 'debit',
-      credits: -42,
-    });
+    ).resolves.toHaveLength(1);
     expect(createSmsCreditTransaction).toHaveBeenCalledWith(expect.anything(), {
       organizationId: organization.id,
       transactionType: 'debit',
       credits: -42,
+      creditBucket: 'subscription_period',
+      periodStart: new Date('2026-05-15T00:00:00.000Z'),
+      periodEnd: new Date('2026-06-15T00:00:00.000Z'),
       source: 'campaign_send',
       sourceId: 'campaign_send_123',
       description: 'Campaign SMS usage',
     });
+  });
+
+  it('splits SMS debit rows when usage crosses subscription and purchased credits', async () => {
+    vi.mocked(getOrganizationBillingProfile).mockResolvedValue({
+      id: '33333333-3333-4333-8333-333333333333',
+      organizationId: organization.id,
+      stripeCustomerId: 'cus_123',
+      stripeSubscriptionId: 'sub_123',
+      stripePriceId: 'price_growth',
+      planKey: 'growth',
+      subscriptionStatus: 'active',
+      currentPeriodStart: new Date('2026-05-15T00:00:00.000Z'),
+      currentPeriodEnd: new Date('2026-06-15T00:00:00.000Z'),
+      cancelAtPeriodEnd: false,
+      syncedAt: new Date('2026-05-15T00:00:00.000Z'),
+      createdAt: new Date('2026-05-15T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-15T00:00:00.000Z'),
+    });
+    vi.mocked(getSmsCreditBalanceBreakdown).mockResolvedValue({
+      subscriptionPeriod: 30,
+      purchased: 500,
+      total: 530,
+    });
+    vi.mocked(createSmsCreditTransaction).mockResolvedValue(null);
+
+    await debitSmsCreditUsage({
+      db,
+      organizationId: organization.id,
+      actualSegments: 42,
+      sourceId: 'campaign_send_123',
+    });
+
+    expect(createSmsCreditTransaction).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        credits: -30,
+        creditBucket: 'subscription_period',
+        sourceId: 'campaign_send_123',
+      }),
+    );
+    expect(createSmsCreditTransaction).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        credits: -12,
+        creditBucket: 'purchased',
+        periodStart: null,
+        periodEnd: null,
+        sourceId: 'campaign_send_123',
+      }),
+    );
   });
 });

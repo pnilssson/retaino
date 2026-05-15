@@ -31,6 +31,8 @@ export const SMS_CREDIT_TRANSACTION_SOURCES = [
   'manual_adjustment',
 ] as const;
 
+export const SMS_CREDIT_BUCKETS = ['subscription_period', 'purchased'] as const;
+
 export const SMS_CREDIT_TRANSACTION_TYPES = [
   'grant',
   'debit',
@@ -93,6 +95,7 @@ export type BillingSubscriptionStatus =
   (typeof BILLING_SUBSCRIPTION_STATUSES)[number];
 export type SmsCreditTransactionSource =
   (typeof SMS_CREDIT_TRANSACTION_SOURCES)[number];
+export type SmsCreditBucket = (typeof SMS_CREDIT_BUCKETS)[number];
 export type SmsCreditTransactionType =
   (typeof SMS_CREDIT_TRANSACTION_TYPES)[number];
 
@@ -104,6 +107,7 @@ export const billingSubscriptionStatusSchema = z.enum(
 export const smsCreditTransactionSourceSchema = z.enum(
   SMS_CREDIT_TRANSACTION_SOURCES,
 );
+export const smsCreditBucketSchema = z.enum(SMS_CREDIT_BUCKETS);
 export const smsCreditTransactionTypeSchema = z.enum(
   SMS_CREDIT_TRANSACTION_TYPES,
 );
@@ -149,7 +153,10 @@ export const smsCreditTransactionSchema = z.object({
   transactionType: smsCreditTransactionTypeSchema,
   source: smsCreditTransactionSourceSchema,
   sourceId: nonEmptyStringSchema,
+  creditBucket: smsCreditBucketSchema,
   credits: z.number().int(),
+  periodStart: timestampSchema.nullable(),
+  periodEnd: timestampSchema.nullable(),
   description: nonEmptyStringSchema,
   createdAt: timestampSchema,
 });

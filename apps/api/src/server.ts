@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { serve } from 'inngest/hono';
 import { billingRoutes } from './features/billing/billing.routes';
+import { billingWebhookRoutes } from './features/billing/billing.webhook-routes';
 import { contactsRoutes } from './features/contacts/contacts.routes';
 import {
   inngest,
@@ -26,6 +27,7 @@ app.get('/', (c) => c.redirect('/health'));
 app.all('/v1/inngest', (c) => inngestHandler(c));
 
 app.use('/v1/*', corsMiddleware);
+app.route('/v1/billing', billingWebhookRoutes);
 app.use('/v1/*', dbMiddleware);
 app.route('/v1/legal', legalRoutes);
 app.use('/v1/*', authMiddleware);

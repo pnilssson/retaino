@@ -22,11 +22,8 @@ export type StripeConfigBindings = {
 
 export function getStripeConfig(bindings: StripeConfigBindings): StripeConfig {
   return {
-    secretKey: requiredStripeBinding(bindings.STRIPE_SECRET_KEY, 'STRIPE_SECRET_KEY'),
-    webhookSecret: requiredStripeBinding(
-      bindings.STRIPE_WEBHOOK_SECRET,
-      'STRIPE_WEBHOOK_SECRET',
-    ),
+    secretKey: getStripeSecretKey(bindings),
+    webhookSecret: getStripeWebhookSecret(bindings),
     successUrl: requiredStripeBinding(
       bindings.STRIPE_SUCCESS_URL,
       'STRIPE_SUCCESS_URL',
@@ -39,12 +36,21 @@ export function getStripeConfig(bindings: StripeConfigBindings): StripeConfig {
 }
 
 export function createStripeClient(bindings: StripeConfigBindings) {
-  const config = getStripeConfig(bindings);
-
-  return new Stripe(config.secretKey, {
+  return new Stripe(getStripeSecretKey(bindings), {
     apiVersion: STRIPE_API_VERSION,
     httpClient: Stripe.createFetchHttpClient(),
   });
+}
+
+export function getStripeWebhookSecret(bindings: StripeConfigBindings) {
+  return requiredStripeBinding(
+    bindings.STRIPE_WEBHOOK_SECRET,
+    'STRIPE_WEBHOOK_SECRET',
+  );
+}
+
+function getStripeSecretKey(bindings: StripeConfigBindings) {
+  return requiredStripeBinding(bindings.STRIPE_SECRET_KEY, 'STRIPE_SECRET_KEY');
 }
 
 function requiredStripeBinding(value: string | undefined, name: string) {

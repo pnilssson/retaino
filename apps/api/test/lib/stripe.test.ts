@@ -50,6 +50,14 @@ describe('Stripe config', () => {
 
     expect(stripe).toBeDefined();
   });
+
+  it('creates a Stripe client without checkout-only bindings', () => {
+    const stripe = createStripeClient({
+      STRIPE_SECRET_KEY: 'sk_test_123',
+    });
+
+    expect(stripe).toBeDefined();
+  });
 });
 
 function omitStripeBinding<
