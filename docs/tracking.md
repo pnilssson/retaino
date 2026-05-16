@@ -13,6 +13,8 @@ Tenant-owned tracking and attribution entities:
 | Contact | Normalized recipient profile. |
 | Suppression | Phone or email that must not receive future sends. |
 | Import | Customer CSV upload, mapping, validation, and dedupe summary. |
+| SmsSender | Dedicated organization sender number and provider configuration. |
+| SmsMessage | Durable inbound and outbound SMS message ledger. |
 | Campaign | Offer, audience, target URL, attribution window, SMS copy, code, status, and spend. |
 | CampaignRecipient | Snapshot of one contact inside one campaign. |
 | MessageEvent | Provider event normalized to Retaino states. |
@@ -34,10 +36,17 @@ opt-out instead of reading Twilio payload fields directly.
 Keep provider message IDs for support and dedupe. Inbound replies must be
 evaluated for STOP-style opt-outs before future sends.
 
+Each organization uses one dedicated SMS-capable sender number in MVP. Inbound
+message routing resolves the organization from the provider sender, service, or
+destination phone number before attempting campaign or recipient matching.
+Non-STOP inbound replies are stored even when campaign matching is uncertain so
+Retaino can add a lightweight inbox later without relying on provider log
+backfills.
+
 ## Short Links
 
 Every SMS contains a unique short link for one campaign recipient, for example
-`https://yourdomain.com/r/a8x91`.
+`https://go.retaino.com/r/a8x91`.
 
 The short link record stores organization ID, campaign ID, recipient ID, phone
 hash, email hash, target booking URL, sent time, first click time, last click
