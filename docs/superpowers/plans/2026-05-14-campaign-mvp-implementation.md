@@ -23,7 +23,8 @@ safe live sending:
 2. Preview the eligible audience.
 3. Give users a simple campaign builder in the web app.
 4. Approve and snapshot recipients.
-5. Send test SMS through the provider adapter.
+5. Provision the organization sender and send test SMS through the provider
+   adapter.
 6. Create tracking links and send live campaigns in background jobs.
 7. Ingest provider callbacks, STOP replies, clicks, and reports.
 
@@ -32,10 +33,15 @@ Twilio is the MVP provider because `docs/architecture.md` and
 Twilio behind an internal SMS provider adapter so campaign workflows do not
 depend on Twilio payloads or SDK types.
 
-Production sending should prefer a Twilio Messaging Service so sender
-configuration, routing, and opt-out behavior are managed in one place. Keep a
-direct `from` phone fallback only for local or test-credential mode, because
-Twilio test credentials do not support `MessagingServiceSid`.
+Production sending uses one Twilio Messaging Service and one SMS-capable Twilio
+number per organization so sender configuration, routing, and opt-out behavior
+are tenant-local. Keep a direct `from` phone fallback only for local or
+test-credential mode, because Twilio test credentials do not support
+`MessagingServiceSid`.
+Live campaign senders must support the opt-out path Retaino shows in the final
+message. Do not use one-way alphanumeric sender IDs for live campaigns while
+reply-based STOP handling is the only opt-out mechanism.
+Do not use one shared Retaino sender number across organizations.
 
 Implement Twilio sending with the REST API first, not the Twilio Node SDK, so it
 works predictably in Cloudflare Workers. If the SDK is introduced later, it must
@@ -57,17 +63,57 @@ Build only what helps a user create and send a clear reactivation campaign:
 - one booking URL
 - optional campaign code
 - required opt-out text
+- dedicated organization sender provisioning
 - approval with recipient snapshot
 - test send
 - per-recipient tracking links
 - live send
-- delivery, click, opt-out, and basic campaign metrics
+- delivery, click, reply, opt-out, and basic campaign metrics
+- inbound reply storage for future inbox support
 
 Do not build saved segments, variants, journeys, A/B tests, copy generation,
 scheduled recurring sends, or booking attribution in this campaign plan.
 Do not build SMS template variables in MVP. Users write offer copy, then
 Retaino appends the tracked booking link and required opt-out text in the final
 rendered SMS.
+
+## Sender Provisioning Direction
+
+Retaino provisions Twilio sender resources lazily. An organization may create
+draft campaigns and preview audiences without a sender. Before the first test
+send or live send, an admin must have an active paid subscription and current
+legal acceptance, then Retaino creates or reuses:
+
+1. One organization-selected SMS-capable Twilio phone number.
+2. One Twilio Messaging Service for the organization.
+3. A sender-pool association between that number and Messaging Service.
+4. Service-level inbound and status callback URLs.
+
+Provisioning should run as an idempotent background job or idempotent service
+operation. Store provider resource IDs, E.164 number, provisioning state,
+failure reason, and timestamps in Retaino. Twilio credentials stay in
+environment bindings.
+
+Onboarding collects the organization identity and address fields Retaino can
+know upfront for sender compliance. Sender setup should not ask for those same
+company details again. If the selected sender country or number type requires
+additional regulatory data, the organization admin completes that in Retaino.
+Retaino staff must not manually configure each customer. Countries or number
+types that cannot be self-served through Retaino are unavailable in MVP.
+
+The admin chooses the sender country based on the recipient market, then selects
+an available SMS-capable number or accepts a recommended number. Do not infer
+sender country only from the organization's legal address.
+
+Twilio Messaging Service configuration APIs are not all equally stable. If a
+required service setting cannot be configured reliably through the API, mark the
+sender as `failed` or `manual_action_required` with a clear internal reason
+instead of treating the sender as ready.
+
+Do not provision Twilio numbers immediately after Stripe checkout. That creates
+recurring sender cost for organizations that have not yet reached campaign
+send-readiness. Do not wait until the live send button either, because users
+need the dedicated sender to send a realistic test SMS before approval.
 
 ## Twilio Testing Strategy
 
@@ -90,26 +136,48 @@ coverage. Use signed webhook fixture tests for callback handling.
 Store both estimated and actual SMS segment counts. Estimates power the draft
 and approval UI; actual provider values are stored from Twilio responses and
 callbacks so reporting can show drift over time.
+Define one SMS encoding policy for MVP. Either disable provider-side Smart
+Encoding or mirror the same substitutions in Retaino's preview counter. The
+preview and send job must estimate the exact rendered body that will be sent.
 
 ## Billing And Credits Direction
 
 Stripe is the source of truth for payments, subscriptions, checkout sessions,
 and customer portal sessions. Retaino is the source of truth for operational SMS
 credit balance through SMS credit transactions funded by Stripe webhooks.
+Campaign work should consume the local billing projection and SMS credit ledger
+that the Stripe integration maintains. It should not introduce a second payment
+provider, a parallel checkout flow, or separate campaign-specific billing state.
+SMS credit transactions are the only source of truth for grants, reservations,
+releases, usage, and adjustments. Available balance is derived from the
+append-only ledger, not stored as a separate mutable value.
 
 Campaign sends use a campaign-level credit check:
 
 1. Estimate required credits for the full approved campaign.
-2. Read the organization's Retaino SMS credit balance.
-3. Block live send if the balance is lower than the estimate.
-4. Send the campaign as a background job.
-5. Store actual provider segment counts.
-6. Record actual SMS segment usage as a Retaino credit transaction after sends.
+2. Require an active subscription in the local Stripe-backed billing projection.
+3. Read the organization's Retaino SMS credit balance.
+4. Block live send if the available balance is lower than the estimate.
+5. Reserve the estimated credits with an append-only Retaino credit transaction.
+6. Send the campaign as a background job.
+7. Store actual provider segment counts.
+8. Reconcile reserved and actual SMS segment usage with append-only Retaino
+   credit transactions after sends.
+
+Use explicit credit transaction types:
+
+- `campaign_send_reservation`
+- `campaign_send_release`
+- `campaign_send_adjustment`
+- `test_send_reservation`
+- `test_send_release`
 
 Do not check credits before every individual SMS. That creates partial
 campaign-send behavior that is worse for users. To avoid two campaign jobs
 spending the same credit balance, allow only one active live send per
-organization at a time.
+organization at a time. Inngest event idempotency is useful, but database
+idempotency and credit reservations are the source of truth because campaign
+send retries can happen after the event-level idempotency window.
 
 ## Non-Negotiables
 
@@ -123,11 +191,16 @@ organization at a time.
 - Campaign sends and reconciliation run in background jobs, not HTTP requests.
 - Suppression checks run during audience preview, approval, and immediately
   before send.
-- Twilio credentials and sender configuration stay in environment bindings.
+- Twilio credentials stay in environment bindings. Organization sender
+  configuration stores provider resource IDs only.
 - Drizzle migrations are generated from schema changes. Do not manually edit
   migration SQL or migration metadata.
 - Campaign booking URLs must be validated as `http` or `https` URLs. Do not
   allow arbitrary schemes in campaign links.
+- Public tracking links use `https://go.retaino.com/r/:code`.
+- Twilio inbound and status webhooks use
+  `https://api.retaino.com/v1/webhooks/twilio/messaging/inbound` and
+  `https://api.retaino.com/v1/webhooks/twilio/messaging/status`.
 - Campaign codes are optional attribution hints, not unique identifiers. Store a
   normalized value, but do not rely on campaign codes alone for attribution.
 

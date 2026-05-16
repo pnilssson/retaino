@@ -14,17 +14,44 @@ Campaign reports should be honest and operational:
 
 - how many recipients were selected
 - how many messages were sent, delivered, failed, and clicked
+- how many non-STOP replies came back
 - how many opt-outs happened
 - what the SMS cost estimate and actual provider data show
 
 Reports must not imply that clicks prove bookings. Booking attribution comes
 from the later reconciliation system.
+This phase stores inbound replies needed for a future Retaino inbox, but it
+does not add manual reply sending, assignments, notifications, or inbox views.
 
 ## Backend Shape
 
 ### Database
 
-Extend campaign schema with:
+Extend messaging and reporting schema with:
+
+Extend the canonical `sms_messages` ledger created in phase 6 with inbound
+message support:
+
+- `id`
+- `organizationId`
+- `direction`: `inbound` or `outbound`
+- `provider`
+- `providerMessageId`
+- `providerMessagingServiceId`
+- `providerPhoneNumberId`
+- `fromPhone`
+- `toPhone`
+- `body`
+- `status`
+- `campaignId`
+- `recipientId`
+- `contactId`
+- `receivedAt`
+- `sentAt`
+- created and updated timestamps
+
+Use this as the durable message ledger for future inbox work. Do not create a
+separate campaign-only message table as a second source of truth.
 
 `campaign_message_events`
 
@@ -58,6 +85,9 @@ Indexes:
 - provider message lookup
 - organization plus campaign
 - clicks by organization and campaign
+- inbound messages by organization and received date
+- inbound messages by organization plus contact or recipient
+- unique provider message ID
 
 ### Tracking Links
 
@@ -67,6 +97,8 @@ public redirect route and click recording.
 Public redirect route:
 
 - `GET /r/:code`
+
+Production tracking URLs use `https://go.retaino.com/r/:code`.
 
 Redirect flow:
 
@@ -84,8 +116,8 @@ data than the product and legal docs allow.
 
 Add routes outside Clerk auth:
 
-- `POST /v1/campaign-webhooks/twilio/status`
-- `POST /v1/campaign-webhooks/twilio/inbound`
+- `POST /v1/webhooks/twilio/messaging/status`
+- `POST /v1/webhooks/twilio/messaging/inbound`
 
 Rules:
 
@@ -95,8 +127,13 @@ Rules:
 - normalize provider statuses into Retaino event types
 - write `campaign_message_events`
 - update message and recipient status where appropriate
+- store every inbound message in `sms_messages`
 - detect STOP-style inbound replies
 - write phone suppressions for STOP replies
+- associate inbound messages to the organization sender by provider service,
+  provider phone number, or destination phone number
+- associate inbound messages to the most recent relevant campaign recipient
+  when possible, but keep the message even when campaign matching is uncertain
 - support `OptOutType` when present, but still detect STOP-style body text
   because the parameter depends on Messaging Service opt-out configuration
 
@@ -120,6 +157,7 @@ Initial metrics:
 - delivered count
 - failed count
 - opt-out count
+- inbound reply count
 - click count
 - unique clickers
 - estimated SMS segments
@@ -133,6 +171,7 @@ Initial metrics:
 Add a campaign report view:
 
 - show delivery, failure, click, and opt-out metrics
+- show inbound reply counts, but do not build the full inbox in this phase
 - show estimated versus actual SMS segments and cost when available
 - clearly label the report as campaign activity, not revenue attribution
 - leave booking and revenue attribution empty or unavailable until the booking
@@ -157,7 +196,10 @@ Minimum coverage:
 - signed webhook fixture tests cover evolving form parameters, not a hard-coded
   current parameter list
 - STOP replies create suppressions
+- non-STOP inbound replies are stored and tenant-scoped
+- inbound replies are preserved even when campaign matching is uncertain
 - reporting metrics are tenant-scoped
+- report includes inbound reply count
 - reporting keeps estimated and actual segment counts separate
 - no report query fetches by campaign ID alone
 - web report does not imply bookings or revenue are known yet
@@ -180,6 +222,10 @@ pnpm --filter @retaino/api typecheck
 - Recording clicks without tenant ownership.
 - Over-collecting raw IP data for click events.
 - Missing STOP variants that customers expect to suppress future sends.
+- Dropping non-STOP replies and making the future inbox require backfilling from
+  provider logs.
+- Making inbound reply routing depend only on the most recent campaign when the
+  destination sender number already identifies the organization.
 - Reporting inferred outcomes as exact bookings or revenue.
 - Depending on Twilio test credentials for callback coverage. Test credentials
   do not emit status callbacks, so callback behavior needs signed fixture tests

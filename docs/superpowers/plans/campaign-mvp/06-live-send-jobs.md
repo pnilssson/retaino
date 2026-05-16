@@ -18,18 +18,31 @@ Every live campaign SMS should use a per-recipient tracking link. Do not send
 direct booking URLs in live campaign messages unless tracking links are
 explicitly disabled in a later product decision.
 
+Live campaign senders must support the opt-out path shown in the SMS. Do not use
+one-way alphanumeric sender IDs while reply-based STOP handling is the only
+opt-out mechanism.
+Live sends must use the organization's ready Messaging Service created in phase
+5. Do not use a global sender for production campaign sends.
+
 ## Backend Shape
 
 ### Database
 
-Extend campaign schema with `campaign_messages`:
+Create or reuse the canonical `sms_messages` ledger for outbound campaign
+messages. Do not create a separate `campaign_messages` source of truth.
+Outbound campaign messages use:
 
 - `id`
 - `organizationId`
+- `direction`: `outbound`
 - `campaignId`
 - `recipientId`
+- `contactId`
 - `provider`
 - `providerMessageId`
+- `providerMessagingServiceId`
+- `providerPhoneNumberId`
+- `fromPhone`
 - `toPhone`
 - `body`
 - `status`
@@ -40,6 +53,8 @@ Extend campaign schema with `campaign_messages`:
 - `currency`
 - queued, sent, delivered, and failed timestamps
 - created and updated timestamps
+
+Phase 7 adds inbound rows to the same `sms_messages` ledger.
 
 Add `tracking_links` before live sending:
 
@@ -55,9 +70,10 @@ Add `tracking_links` before live sending:
 - click count
 - created and updated timestamps
 
-Add `TRACKING_BASE_URL` to environment configuration. Rendered SMS links should
-use this base URL plus `/r/:code`. The base URL must be public and must route to
-the redirect handler introduced in phase 7.
+Add `TRACKING_BASE_URL` to environment configuration with
+`https://go.retaino.com` as the production value. Rendered SMS links should use
+this base URL plus `/r/:code`. The base URL must be public and must route to the
+redirect handler introduced in phase 7.
 
 Add these `campaigns` fields when live sending is introduced:
 
@@ -65,12 +81,14 @@ Add these `campaigns` fields when live sending is introduced:
 - `sentAt`
 - `failedAt`
 - `failureReason`
+- `reservedCreditCount`
+- `actualCreditCount`
 
 Indexes:
 
-- messages by organization and campaign
+- SMS messages by organization and campaign
 - unique provider plus provider message ID when present
-- unique campaign recipient message, unless multiple messages per recipient are
+- unique campaign recipient SMS message, unless multiple messages per recipient are
   introduced in a later phase
 - unique tracking code
 - tracking links by organization and campaign
@@ -89,6 +107,11 @@ Payload:
 - `campaignId`
 - `userId`
 
+Use a deterministic Inngest event ID derived from organization and campaign
+when enqueueing a live send. This reduces accidental duplicate runs, but the
+database message rows, campaign status, and credit reservation remain the
+authoritative idempotency controls.
+
 Job rules:
 
 1. Validate required identifiers.
@@ -96,33 +119,40 @@ Job rules:
 3. Require status `approved` or `sending`.
 4. Re-check campaign send eligibility, including setup, current legal
    acceptance, and sending configuration.
-5. Check the organization's Retaino SMS credit balance and require enough
-   credits for the estimated full campaign.
-6. Prevent starting this send if another campaign for the same organization is
+5. Require a ready organization sender and load its Messaging Service ID.
+6. Require an active subscription in the local Stripe-backed billing projection.
+7. Check the organization's Retaino SMS credit balance and require enough
+   available credits for the estimated full campaign.
+8. Reserve estimated credits with an append-only Retaino credit transaction.
+9. Prevent starting this send if another campaign for the same organization is
    already `sending`.
-7. Mark campaign `sending`.
-8. Load selected recipients by `organizationId` and campaign ID.
-9. Create or reuse one tracking link per recipient.
-10. Render the SMS body by appending the recipient tracking link and required
+10. Mark campaign `sending`.
+11. Load selected recipients by `organizationId` and campaign ID.
+12. Create or reuse one tracking link per recipient.
+13. Render the SMS body by appending the recipient tracking link and required
    opt-out text.
-11. For each recipient, re-check phone suppression.
-12. Create or reuse the message row before provider send.
-13. Send through the SMS provider adapter.
-14. Store the provider message ID, initial normalized status, and actual segment
+14. For each recipient, re-check phone suppression.
+15. Create or reuse the message row before provider send.
+16. Send through the SMS provider adapter using the organization's Messaging
+   Service ID.
+17. Store the provider message ID, provider sender IDs, initial normalized
+   status, and actual segment
    count from the provider response immediately when Twilio returns it.
-15. Mark skipped recipients with an exclusion reason.
-16. Record actual SMS segment usage as a Retaino credit transaction.
-17. Write a send audit event.
-18. Mark the campaign `sent` after all selected recipients have been attempted.
+18. Mark skipped recipients with an exclusion reason.
+19. Reconcile reserved and actual SMS segment usage with append-only Retaino
+   credit transactions.
+20. Write a send audit event.
+21. Mark the campaign `sent` after all selected recipients have been attempted.
 
 Idempotency rule:
 
-- if a recipient already has a provider message ID, do not send that recipient
-  again on job retry
+- if a recipient already has an outbound `sms_messages` row with a provider
+  message ID, do not send that recipient again on job retry
 
 Billing rule:
 
-- check credits once for the whole campaign before sending
+- reserve estimated credits once for the whole campaign before sending
+- reconcile actual usage after sending
 - do not check credits per recipient
 - do not start a second live send while one campaign for the organization is
   already `sending`
@@ -162,21 +192,29 @@ Add or extend tests in:
 Minimum coverage:
 
 - send route enqueues the correct event
+- send route uses a deterministic event ID for the organization and campaign
 - send route rejects non-admin users
 - job rejects missing identifiers
 - job loads campaigns by organization and campaign ID
 - job re-checks setup and legal eligibility before sending
+- job requires a ready organization sender
+- job requires active billing before sending
 - job blocks when Retaino SMS credit balance is lower than the estimated full
   campaign
+- job reserves estimated credits before provider sends
+- job reconciles reserved and actual credits after provider sends
+- outbound sends are recorded in the canonical `sms_messages` ledger
 - job blocks when another campaign for the same organization is already sending
 - job creates or reuses one tracking link per recipient
 - rendered SMS body includes the recipient tracking link and opt-out text
+- sender configuration supports the rendered opt-out path
+- provider sends use the organization's Messaging Service ID
 - rendered tracking links use `TRACKING_BASE_URL`
 - retry does not duplicate provider sends
 - recipients suppressed after approval are skipped
 - initial provider response is stored before waiting for callbacks
 - estimated and actual segment counts are stored separately
-- actual sent segment usage is recorded as a Retaino credit transaction
+- actual sent segment usage is reconciled as Retaino credit transactions
 - send action is audit logged
 - campaign is marked sent after attempts complete
 - web UI shows background send state instead of pretending the send is instant

@@ -34,7 +34,8 @@ this campaign?
 3. Contact import with permission attestation, validation, dedupe, and
    suppression checks.
 4. Campaign drafts with campaign-owned lapsed-customer audience rules.
-5. SMS preview, segment counting, and test sends.
+5. Dedicated organization SMS sender setup, SMS preview, segment counting, and
+   test sends.
 6. Short links and campaign send execution.
 7. Booking CSV upload and reconciliation.
 8. Campaign reporting with attribution confidence.
@@ -44,24 +45,28 @@ this campaign?
 Required:
 
 - organization-scoped product data and access control
-- self-serve onboarding with legal company profile and one legal bundle
+- self-serve onboarding with legal company profile, billing details,
+  responsible contact, sender-compliance company fields, and one legal bundle
   acceptance
 - self-serve billing with Stripe subscriptions, credit packs, and portal access
 - CSV contact import with field mapping, validation, dedupe, and suppression
   checks
 - contact permission attestation inside the import flow
 - campaign-owned lapsed-customer audience rules
+- one dedicated SMS-capable sender number and Messaging Service per
+  organization
 - SMS editor with GSM-7 and Unicode segment counter plus cost preview
 - per-recipient short links
 - campaign code or offer code for manual attribution
-- STOP handling and suppression lists
+- STOP handling, suppression lists, and retention of other inbound replies for
+  future inbox support
 - booking CSV upload and reconciliation
 - campaign dashboard for delivery, clicks, replies, opt-outs, bookings,
   revenue, and attribution confidence
 
 Deferred:
 
-- full shared inbox or two-way support beyond STOP and basic reply routing
+- full shared inbox, manual replies, assignments, and notifications
 - email, WhatsApp, RCS, and broad omni-channel flows
 - advanced automation, CDP behavior, AI copy generation, and experiments
 - generic CRM features
@@ -76,7 +81,8 @@ Onboarding:
 
 1. User signs up or accepts an organization invitation.
 2. Retaino ensures the user has an active organization.
-3. User enters legal company identity, billing details, and responsible contact.
+3. User enters legal company identity, billing details, responsible contact,
+   and sender-compliance company fields Retaino can know upfront.
 4. User accepts the current organization legal bundle.
 5. Retaino enables forced STOP text and suppression handling.
 
@@ -87,6 +93,8 @@ Billing:
 3. Admin can buy one-time credit packs when more credits are needed.
 4. Billing shows subscription status, SMS balance, renewal timing, plans, credit
    packs, and portal access.
+5. Retaino does not provision a Twilio sender during checkout. Sender setup
+   happens later when an admin prepares the first campaign for sending.
 
 Contact import:
 
@@ -102,8 +110,11 @@ Campaign:
 2. User writes SMS copy.
 3. Retaino counts segments and warns when Unicode increases cost.
 4. User chooses a booking URL and optional campaign code.
-5. Retaino creates one tracked link per recipient.
-6. User sends a test SMS, then approves the live send.
+5. Admin chooses the sender country based on recipient market and selects an
+   available SMS-capable number or accepts Retaino's recommendation.
+6. Retaino provisions the organization's dedicated sender if it does not exist.
+7. Retaino creates one tracked link per recipient.
+8. User sends a test SMS, then approves the live send.
 
 Reporting:
 

@@ -67,8 +67,45 @@ payloads.
 
 The adapter normalizes outbound IDs, provider states, error details, inbound
 STOP-style replies, segment counts, and estimated provider cost. Provider
-credentials and sender configuration stay in environment bindings, never
-tenant-owned tables.
+credentials stay in environment bindings, never tenant-owned tables.
+
+Each organization gets its own SMS-capable Twilio number and its own Twilio
+Messaging Service before real sends. Do not use one shared Retaino sender
+number across tenants. Do not use alphanumeric sender IDs for MVP.
+
+Organization sender configuration is tenant-owned operational data. Store the
+provider, Messaging Service SID, phone number SID, E.164 phone number,
+selected country, provisioning status, failure reason, and timestamps in
+Retaino. Do not store Twilio account credentials in tenant-owned tables.
+
+Provision sender resources lazily after the organization has an active paid
+subscription and current legal acceptance, when an admin first prepares a
+campaign for test or live sending. Do not buy a Twilio number immediately after
+checkout and do not require a sender for draft creation or audience preview.
+Provisioning runs idempotently and must not create a second sender for the same
+organization on retries.
+
+Onboarding should collect organization identity and address fields that are
+likely to be required for phone-number compliance so sender setup does not ask
+for the same company details again. If a selected sender country or number type
+requires additional regulatory data, the organization admin supplies it through
+Retaino. Retaino staff must not need to manually configure each customer.
+Countries or number types that cannot be self-served through Retaino are not
+available in MVP.
+
+Sender setup is organization-controlled. Admins choose the target sender country
+based on where their recipients are, then select an available SMS-capable number
+or accept a recommended number. The organization's legal address is only a
+default, not the source of truth for sender country.
+
+Configure organization Messaging Services with service-level inbound and status
+callback URLs. The inbound callback stores every inbound message. STOP-style
+replies create suppressions immediately; other replies are retained so a later
+Retaino inbox can be added without rebuilding campaign messaging.
+
+Live campaign senders must support the opt-out path Retaino presents to
+recipients. Do not use one-way alphanumeric sender IDs for live campaigns while
+reply-based STOP handling is the only opt-out mechanism.
 
 ## Billing
 
@@ -84,9 +121,11 @@ system of record.
 - Accepted webhook events are stored idempotently before side effects.
 - Webhooks grant subscription-period credits, grant purchased credits, update
   local subscription projection, and record relevant refund adjustments.
-- Credit transactions are append-only.
-- Sends must check enough credits before provider cost is incurred, then debit
-  actual usage after send completion.
+- SMS credit transactions are append-only and are the only source of truth for
+  credit grants, reservations, releases, usage, and adjustments. Do not maintain
+  a separate mutable balance that must be synchronized with the ledger.
+- Sends must reserve enough credits before provider cost is incurred, then
+  reconcile estimated and actual usage after send completion.
 - Do not use Stripe metered overage billing or Stripe Billing Credits for MVP
   send authorization.
 
@@ -148,3 +187,7 @@ Authenticated app routes use `/app/...` and are scoped by the active
 organization. Public tracking links use short recipient-focused paths such as
 `/r/:code`. Tracking link lookup resolves organization from the stored link
 record, not from the URL.
+
+Public recipient links use `https://go.retaino.com/r/:code`. API webhooks use
+`https://api.retaino.com/v1/webhooks/twilio/messaging/inbound` and
+`https://api.retaino.com/v1/webhooks/twilio/messaging/status`.

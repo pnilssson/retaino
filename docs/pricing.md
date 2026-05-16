@@ -12,6 +12,11 @@ SMS segment credits, not product feature gates.
 - An active subscription is required to use any credits for SMS sends.
 - Retaino blocks live sends when credits are insufficient.
 - Test sends consume credits.
+- Live sends reserve estimated credits before provider cost is incurred, then
+  reconcile actual segment usage after send completion.
+- SMS credit transactions are the source of truth for grants, reservations,
+  releases, usage, and adjustments. Available balance is derived from the
+  append-only ledger.
 - Use credits-only spending. Do not create automatic overage invoices in MVP.
 
 ## Subscription Tiers
@@ -76,6 +81,24 @@ pricing structure.
 - Stripe webhooks fund Retaino SMS credit transactions.
 - Do not use Stripe metered overage billing in MVP.
 - Do not use Stripe Billing Credits for MVP credit enforcement.
+
+## Credit Transaction Types
+
+Use explicit transaction types rather than spreading credit state across
+campaign, billing, and message records:
+
+- `subscription_grant`
+- `credit_pack_grant`
+- `campaign_send_reservation`
+- `campaign_send_release`
+- `campaign_send_adjustment`
+- `test_send_reservation`
+- `test_send_release`
+- `refund_adjustment`
+
+Every transaction has an idempotency key tied to the source action, such as
+`campaign:{campaignId}:reservation`, `campaign:{campaignId}:reconcile`, or
+`test-send:{testSendId}:reservation`.
 
 ## Tax
 
