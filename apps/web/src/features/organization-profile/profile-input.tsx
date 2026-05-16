@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { textStyles } from '@/lib/text-styles';
 import type { OrganizationProfileFormValues } from './organization-profile-form';
 
 export function ProfileInput({
@@ -37,7 +38,7 @@ export function ProfileInput({
         value={value}
       />
       {error ? (
-        <p className="text-xs text-destructive" id={`${name}-error`}>
+        <p className={textStyles.error} id={`${name}-error`}>
           {error}
         </p>
       ) : null}

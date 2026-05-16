@@ -5,9 +5,11 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "contrast:check": "node scripts/check-contrast.mjs",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "ui:audit": "node scripts/check-ui-surfaces.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.3.2",

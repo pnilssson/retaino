@@ -159,6 +159,10 @@ describe('billing service', () => {
         line_items: [{ price: 'price_growth', quantity: 1 }],
         automatic_tax: { enabled: true },
         tax_id_collection: { enabled: true },
+        customer_update: {
+          address: 'auto',
+          name: 'auto',
+        },
         metadata: {
           organizationId: organization.id,
           purpose: 'subscription',
@@ -243,6 +247,10 @@ describe('billing service', () => {
         line_items: [{ price: 'price_credits_1500', quantity: 1 }],
         automatic_tax: { enabled: true },
         tax_id_collection: { enabled: true },
+        customer_update: {
+          address: 'auto',
+          name: 'auto',
+        },
         metadata: {
           organizationId: organization.id,
           purpose: 'credit_pack',

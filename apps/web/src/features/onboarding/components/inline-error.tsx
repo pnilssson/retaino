@@ -1,5 +1,4 @@
-import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ItemNotice } from '@/components/item-notice';
 
 export function InlineError({
   message,
@@ -8,11 +7,5 @@ export function InlineError({
   message: string;
   title: string;
 }) {
-  return (
-    <Alert variant="destructive">
-      <AlertCircle aria-hidden="true" />
-      <AlertTitle>{title}</AlertTitle>
-      <AlertDescription>{message}</AlertDescription>
-    </Alert>
-  );
+  return <ItemNotice description={message} title={title} tone="destructive" />;
 }

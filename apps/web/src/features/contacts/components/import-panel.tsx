@@ -21,6 +21,7 @@ import {
   type ContactImportDetail,
   type CsvMapping,
 } from '@retaino/shared/contracts';
+import { ItemNotice } from '@/components/item-notice';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -56,8 +57,9 @@ import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useContactImport } from '@/features/contacts/hooks/use-contact-import';
 import { useStartContactImport } from '@/features/contacts/hooks/use-start-contact-import';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
-import { cn } from '@/lib/utils';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 import { BlockedContacts } from './blocked-contacts';
 import { formatImportIssue, formatTargetField } from '../contacts-format';
 import { ImportStatusBadge } from './status-badge';
@@ -268,17 +270,17 @@ function ImportForm({
                         ? field.state.value.name
                         : 'Choose a CSV file'}
                     </span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className={textStyles.mutedBody}>
                       CSV only, up to 25 MB.
                     </span>
                   </span>
                 </span>
               </label>
               {error ? (
-                <p className="text-sm text-destructive">{String(error)}</p>
+                <p className={textStyles.error}>{String(error)}</p>
               ) : null}
               {parseError ? (
-                <p className="text-sm text-destructive">{parseError}</p>
+                <p className={textStyles.error}>{parseError}</p>
               ) : null}
             </div>
           );
@@ -288,7 +290,12 @@ function ImportForm({
       {preview ? (
         <>
           <div className="grid max-w-3xl gap-3">
-            <div className="hidden grid-cols-[180px_2rem_minmax(0,1fr)] items-center gap-3 px-1 text-xs font-medium uppercase text-muted-foreground sm:grid">
+            <div
+              className={cn(
+                'hidden grid-cols-[180px_2rem_minmax(0,1fr)] items-center gap-3 px-1 uppercase sm:grid',
+                textStyles.metaStrong,
+              )}
+            >
               <span>Retaino field</span>
               <span aria-hidden="true" />
               <span>CSV column</span>
@@ -298,7 +305,12 @@ function ImportForm({
                 {(field) => (
                   <div className="grid gap-2 sm:grid-cols-[180px_2rem_minmax(0,1fr)] sm:items-center">
                     <Label>
-                      <span className="text-xs font-medium uppercase text-muted-foreground sm:hidden">
+                      <span
+                        className={cn(
+                          'uppercase sm:hidden',
+                          textStyles.metaStrong,
+                        )}
+                      >
                         Retaino field
                       </span>
                       <span>{formatTargetField(target)}</span>
@@ -308,7 +320,12 @@ function ImportForm({
                       className="hidden size-4 justify-self-center text-muted-foreground sm:block"
                     />
                     <div className="grid gap-1">
-                      <span className="text-xs font-medium uppercase text-muted-foreground sm:hidden">
+                      <span
+                        className={cn(
+                          'uppercase sm:hidden',
+                          textStyles.metaStrong,
+                        )}
+                      >
                         CSV column
                       </span>
                       <Select
@@ -397,7 +414,7 @@ function ImportForm({
                   </Label>
                   {field.state.meta.errors.length > 0 ? (
                     <p
-                      className="text-xs text-destructive"
+                      className={textStyles.error}
                       id="permission-attestation-error"
                     >
                       {String(field.state.meta.errors[0])}
@@ -411,11 +428,11 @@ function ImportForm({
       ) : null}
 
       {upload.error ? (
-        <Alert variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Import could not start</AlertTitle>
-          <AlertDescription>{upload.error}</AlertDescription>
-        </Alert>
+        <ItemNotice
+          description={upload.error}
+          title="Import could not start"
+          tone="destructive"
+        />
       ) : null}
 
       <form.Subscribe
@@ -472,7 +489,7 @@ function MappedPreviewTable({
 
   return (
     <div className="grid gap-2">
-      <h3 className="text-sm font-medium">Sample values</h3>
+      <ItemTitle>Sample values</ItemTitle>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader className="[&_tr]:border-0">
@@ -533,6 +550,7 @@ function ImportProgress({
             issueCount > 0
               ? `${latestImport.processedRows} rows processed, ${issueCount} need attention.`
               : `${latestImport.processedRows} contacts are ready.`,
+          id: `contact-import-${latestImport.id}-completed`,
         },
       );
       notifiedStatus.current = latestImport.status;
@@ -542,6 +560,7 @@ function ImportProgress({
       toast.error('Import failed', {
         description:
           latestImport.errorSummary[0] ?? 'Review the import result and try again.',
+        id: `contact-import-${latestImport.id}-failed`,
       });
       notifiedStatus.current = latestImport.status;
     }
@@ -558,15 +577,15 @@ function ImportProgress({
 
   if (importQuery.isError || !latestImport) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle aria-hidden="true" />
-        <AlertTitle>Import status could not be loaded</AlertTitle>
-        <AlertDescription>
-          {importQuery.error instanceof Error
+      <ItemNotice
+        description={
+          importQuery.error instanceof Error
             ? importQuery.error.message
-            : 'Try refreshing the page.'}
-        </AlertDescription>
-      </Alert>
+            : 'Try refreshing the page.'
+        }
+        title="Import status could not be loaded"
+        tone="destructive"
+      />
     );
   }
 
@@ -623,12 +642,12 @@ function ImportProgressHeader({
   return (
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div className="grid min-w-0 gap-2">
-        <h3 className="text-base font-medium">{title}</h3>
-        <p className="max-w-2xl text-sm text-muted-foreground">
+        <h3 className={textStyles.sectionTitle}>{title}</h3>
+        <p className={cn('max-w-2xl', textStyles.mutedBody)}>
           {description}
         </p>
         {fileName ? (
-          <p className="truncate text-xs text-muted-foreground">
+          <p className={cn('truncate', textStyles.meta)}>
             File: {fileName}
           </p>
         ) : null}
@@ -664,9 +683,9 @@ function ImportIssues({ importRow }: { importRow: ContactImportDetail }) {
 
   return (
     <div className="grid gap-2">
-      <h3 className="text-sm font-medium">
+      <ItemTitle>
         {importRow.status === 'failed' ? 'Import error' : 'Rows needing attention'}
-      </h3>
+      </ItemTitle>
       <div className="flex flex-wrap gap-2">
         {importRow.errorSummary.map((issue) => (
           <span

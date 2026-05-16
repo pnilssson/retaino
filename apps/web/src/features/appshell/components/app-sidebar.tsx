@@ -5,6 +5,7 @@ import {
   Building2,
   ChevronsUpDown,
   Cookie,
+  CreditCard,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -78,6 +79,11 @@ const managementItems = [
     title: 'Settings',
     href: routes.settings,
     icon: Building2
+  },
+  {
+    title: 'Billing',
+    href: routes.billing,
+    icon: CreditCard
   }
 ];
 

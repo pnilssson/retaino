@@ -2,16 +2,17 @@
 
 import { useOrganizationList, useUser } from '@clerk/nextjs';
 import { useForm } from '@tanstack/react-form';
-import { AlertCircle, Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getFieldError } from '@/lib/form-errors';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
 import { defaultOrganizationName } from '../default-organization-name';
+import { InlineError } from './inline-error';
 import { OnboardingFrame } from './onboarding-frame';
 import { OnboardingItem } from './onboarding-item';
 
@@ -80,11 +81,7 @@ export function OrganizationNewScreen() {
         title="Create a shared workspace."
       >
         {error ? (
-          <Alert variant="destructive">
-            <AlertCircle aria-hidden="true" />
-            <AlertTitle>Organization could not be created</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <InlineError message={error} title="Organization could not be created" />
         ) : null}
 
         <form
@@ -129,7 +126,7 @@ export function OrganizationNewScreen() {
                   />
                   {fieldError ? (
                     <p
-                      className="text-xs text-destructive"
+                      className={textStyles.error}
                       id={`${field.name}-error`}
                     >
                       {fieldError}

@@ -17,7 +17,8 @@ const labels: Record<string, string> = {
   [routes.contactsImport]: 'Import contacts',
   [routes.campaigns]: 'Campaigns',
   [routes.legal]: 'Legal',
-  [routes.settings]: 'Organization settings'
+  [routes.settings]: 'Organization settings',
+  [routes.billing]: 'Billing'
 };
 
 export function AppBreadcrumb() {
@@ -46,6 +47,10 @@ export function AppBreadcrumb() {
 function breadcrumbLabelFor(pathname: string) {
   if (pathname.startsWith(`${routes.legal}/`)) {
     return 'Legal';
+  }
+
+  if (pathname.startsWith(`${routes.billing}/`)) {
+    return 'Billing';
   }
 
   if (pathname === routes.contactsImport) {

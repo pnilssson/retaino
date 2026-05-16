@@ -39,6 +39,7 @@ import {
 } from '@/features/onboarding/onboarding.constants';
 import { getFieldError } from '@/lib/form-errors';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
 
 export function LegalOverviewScreen() {
   const session = useOrganizationSession();
@@ -141,7 +142,7 @@ function LegalBundleSection({ session }: { session: OrganizationSession }) {
         </dl>
 
         <div className="grid gap-3">
-          <h3 className="text-sm font-medium">Documents</h3>
+          <ItemTitle>Documents</ItemTitle>
           <ul className="grid gap-2 text-sm">
             {session.legalBundle.documents.map((document) => {
               const documentType =
@@ -158,9 +159,9 @@ function LegalBundleSection({ session }: { session: OrganizationSession }) {
                   key={document.id}
                 >
                   <div className="grid min-w-0 gap-1">
-                    <p className="font-medium">{label}</p>
-                    <p className="text-muted-foreground">{description}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <ItemTitle>{label}</ItemTitle>
+                    <ItemDescription>{description}</ItemDescription>
+                    <p className={textStyles.meta}>
                       Version {document.documentVersion}, effective{' '}
                       {document.effectiveDate}
                     </p>
@@ -229,7 +230,7 @@ function LegalAcceptanceSection({
           </ItemHeader>
 
           <form
-            className="grid gap-4 bg-amber-50/60 py-4 dark:bg-amber-950/20"
+            className="grid gap-4"
             noValidate
             onSubmit={(event) => {
               event.preventDefault();
@@ -273,13 +274,13 @@ function LegalAcceptanceSection({
                         I am authorized to accept the updated legal terms for
                         this organization.
                       </Label>
-                      <p className="text-sm leading-6 text-muted-foreground">
+                      <p className={textStyles.mutedBody}>
                         Campaign sends will use the same gate when campaigns
                         launch.
                       </p>
                       {error ? (
                         <p
-                          className="text-xs text-destructive"
+                          className={textStyles.error}
                           id="legal-updates-authorization-error"
                         >
                           {error}

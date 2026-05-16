@@ -12,6 +12,7 @@ import {
   createSubscriptionCheckoutSchema,
   getBillingPlanCredits,
   getCreditPackCredits,
+  hasCurrentBillingSubscription,
   smsCreditTransactionSchema,
 } from '../../src/contracts';
 
@@ -119,6 +120,14 @@ describe('billing contracts', () => {
         portalAvailable: true,
       }).success,
     ).toBe(false);
+  });
+
+  it('identifies statuses that represent a current subscription', () => {
+    expect(hasCurrentBillingSubscription('active')).toBe(true);
+    expect(hasCurrentBillingSubscription('trialing')).toBe(true);
+    expect(hasCurrentBillingSubscription('canceled')).toBe(false);
+    expect(hasCurrentBillingSubscription('incomplete_expired')).toBe(false);
+    expect(hasCurrentBillingSubscription('none')).toBe(false);
   });
 
   it('allows only known SMS credit transaction sources', () => {

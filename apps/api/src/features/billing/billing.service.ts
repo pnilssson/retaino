@@ -6,6 +6,7 @@ import {
   getSmsCreditBalanceBreakdown,
   upsertOrganizationBillingProfile,
 } from '@retaino/db';
+import { hasCurrentBillingSubscription } from '@retaino/shared/contracts';
 import type {
   BillingCheckoutUrlResponse,
   BillingPlanKey,
@@ -116,7 +117,7 @@ export async function createSubscriptionCheckout(input: {
     input.organization.id,
   );
 
-  if (hasCurrentSubscription(profile?.subscriptionStatus)) {
+  if (hasCurrentBillingSubscription(profile?.subscriptionStatus)) {
     throw new BillingSubscriptionAlreadyExistsError();
   }
 
@@ -132,6 +133,10 @@ export async function createSubscriptionCheckout(input: {
     automatic_tax: { enabled: true },
     tax_id_collection: { enabled: true },
     billing_address_collection: 'auto',
+    customer_update: {
+      address: 'auto',
+      name: 'auto',
+    },
     branding_settings: {
       display_name: input.config.checkoutDisplayName,
     },
@@ -173,6 +178,10 @@ export async function createCreditCheckout(input: {
     automatic_tax: { enabled: true },
     tax_id_collection: { enabled: true },
     billing_address_collection: 'auto',
+    customer_update: {
+      address: 'auto',
+      name: 'auto',
+    },
     branding_settings: {
       display_name: input.config.checkoutDisplayName,
     },
@@ -347,8 +356,4 @@ function checkoutUrlResponse(url: string | null) {
   }
 
   return { url };
-}
-
-function hasCurrentSubscription(status: string | null | undefined) {
-  return status === 'active' || status === 'trialing';
 }

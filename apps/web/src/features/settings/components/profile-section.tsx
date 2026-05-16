@@ -5,12 +5,12 @@ import {
   formatPhoneCountryLabel,
   type OrganizationSession,
 } from '@retaino/shared/contracts';
-import { AlertCircle, Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { CountryCombobox } from '@/components/country-combobox';
+import { ItemNotice } from '@/components/item-notice';
 import { PhoneInput } from '@/components/phone-input';
 import { StatusBadge } from '@/components/status-badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   ItemActions,
@@ -33,6 +33,7 @@ import {
 } from '@/features/organization-profile/organization-profile-form';
 import { ProfileInput } from '@/features/organization-profile/profile-input';
 import { getFieldError } from '@/lib/form-errors';
+import { textStyles } from '@/lib/text-styles';
 
 export function ProfileSection({
   canManageSetup,
@@ -86,14 +87,10 @@ export function ProfileSection({
         ) : profile ? (
           <ProfileSummary profile={profile} />
         ) : (
-          <Alert>
-            <AlertCircle aria-hidden="true" />
-            <AlertTitle>Profile is not complete</AlertTitle>
-            <AlertDescription>
-              Organization admins need to add company and responsible contact
-              details before the workspace is ready.
-            </AlertDescription>
-          </Alert>
+          <ItemNotice
+            description="Organization admins need to add company and responsible contact details before the workspace is ready."
+            title="Profile is not complete"
+          />
         )}
       </section>
     </AppPageItem>
@@ -298,11 +295,11 @@ function ProfileEditor({
       </div>
 
       {updateProfile.error ? (
-        <Alert variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Profile could not be saved</AlertTitle>
-          <AlertDescription>{updateProfile.error.message}</AlertDescription>
-        </Alert>
+        <ItemNotice
+          description={updateProfile.error.message}
+          title="Profile could not be saved"
+          tone="destructive"
+        />
       ) : null}
 
       <div className="flex flex-wrap justify-end gap-2">
@@ -387,7 +384,7 @@ function ProfileCountryInput({
         value={value}
       />
       {error ? (
-        <p className="text-xs text-destructive" id={`${name}-error`}>
+        <p className={textStyles.error} id={`${name}-error`}>
           {error}
         </p>
       ) : null}
@@ -428,7 +425,7 @@ function ProfilePhoneInput({
         value={value}
       />
       {error ? (
-        <p className="text-xs text-destructive" id={`${name}-error`}>
+        <p className={textStyles.error} id={`${name}-error`}>
           {error}
         </p>
       ) : null}
@@ -439,7 +436,7 @@ function ProfilePhoneInput({
 function ProfileRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid min-w-0 gap-1">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
+      <dt className={textStyles.meta}>{label}</dt>
       <dd className="min-w-0 truncate text-sm font-medium">{value}</dd>
     </div>
   );

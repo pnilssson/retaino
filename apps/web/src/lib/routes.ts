@@ -15,5 +15,6 @@ export const routes = {
   campaigns: '/app/campaigns',
   reports: '/app/reports',
   legal: '/app/legal',
-  settings: '/app/organization/settings'
+  settings: '/app/organization/settings',
+  billing: '/app/settings/billing'
 } as const;

@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { AlertCircle, FileUp, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { ItemDescription, ItemTitle } from '@/components/ui/item';
 import { routes } from '@/lib/routes';
 import { OnboardingItem } from './onboarding-item';
 
@@ -52,14 +52,17 @@ export function SetupError({
 }) {
   return (
     <OnboardingItem>
-      <Alert variant="destructive">
-        <AlertCircle aria-hidden="true" />
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>
-          <span className="block">{message}</span>
-          {action}
-        </AlertDescription>
-      </Alert>
+      <div className="flex items-start gap-3">
+        <AlertCircle
+          aria-hidden="true"
+          className="mt-0.5 size-4 shrink-0 text-destructive"
+        />
+        <div className="grid gap-1">
+          <ItemTitle>{title}</ItemTitle>
+          <ItemDescription>{message}</ItemDescription>
+          {action ? <div className="pt-2">{action}</div> : null}
+        </div>
+      </div>
     </OnboardingItem>
   );
 }

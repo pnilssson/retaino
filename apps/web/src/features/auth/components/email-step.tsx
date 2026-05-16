@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { useEmailCodeAuth } from '@/features/auth/hooks/use-email-code-auth';
 import { getFieldError } from '@/lib/form-errors';
+import { textStyles } from '@/lib/text-styles';
 import { emailPattern } from '../form-constants';
 
 type EmailCodeAuth = ReturnType<typeof useEmailCodeAuth>;
@@ -79,17 +80,14 @@ export function EmailStep({ auth }: { auth: EmailCodeAuth }) {
               />
               {emailError ? (
                 <p
-                  className="text-sm leading-5 text-destructive"
+                  className={textStyles.error}
                   id="email-error"
                   role="alert"
                 >
                   {emailError}
                 </p>
               ) : emailHint ? (
-                <p
-                  className="text-xs leading-5 text-muted-foreground"
-                  id="email-hint"
-                >
+                <p className={textStyles.meta} id="email-hint">
                   {emailHint}
                 </p>
               ) : null}

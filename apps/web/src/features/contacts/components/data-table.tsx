@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ItemDescription, ItemTitle } from '@/components/ui/item';
 import { cn } from '@/lib/utils';
 
 export function DataTable<TData>({
@@ -183,8 +184,8 @@ export function EmptyState({
 }) {
   return (
     <div className="py-6">
-      <p className="text-sm font-medium">{title}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+      <ItemTitle>{title}</ItemTitle>
+      <ItemDescription className="mt-1">{description}</ItemDescription>
       {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );

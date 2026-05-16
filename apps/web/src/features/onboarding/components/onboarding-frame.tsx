@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { CheckCircle2, Circle } from 'lucide-react';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 
 export type OnboardingStepId =
   | 'organization'
@@ -36,10 +38,10 @@ export function OnboardingFrame({
     <main className="flex flex-1 bg-background px-5 py-8 sm:px-8 lg:px-10">
       <section className="mx-auto grid w-full max-w-5xl gap-8 lg:grid-cols-[12rem_minmax(0,34rem)] lg:gap-16">
         <div className="lg:hidden">
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+          <p className={cn('uppercase', textStyles.metaStrong)}>
             Step {currentIndex + 1} of {steps.length}
           </p>
-          <p className="mt-1 text-base font-medium">{currentTitle}</p>
+          <p className={cn('mt-1', textStyles.sectionTitle)}>{currentTitle}</p>
         </div>
 
         <aside className="hidden min-w-0 lg:block" aria-label="Setup progress">

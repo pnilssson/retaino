@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEmailCodeAuth } from '@/features/auth/hooks/use-email-code-auth';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 import { CodeStep } from './code-step';
 import { EmailStep } from './email-step';
 import { RequirementsStep } from './requirements-step';
@@ -21,11 +23,11 @@ export function AuthForm() {
       </div>
 
       <div className="flex flex-1 flex-col justify-center">
-        <p className="text-sm text-muted-foreground">Secure workspace access</p>
-        <h1 className="mt-3 max-w-sm text-2xl leading-snug text-foreground">
+        <p className={textStyles.meta}>Secure workspace access</p>
+        <h1 className={cn('mt-3 max-w-sm', textStyles.pageTitle)}>
           Sign in with your work email.
         </h1>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+        <p className={cn('mt-3', textStyles.mutedBody)}>
           We will send a one-time code.
         </p>
 
@@ -40,7 +42,10 @@ export function AuthForm() {
 
           {formError && auth.step !== 'requirements' ? (
             <p
-              className="mt-5 border border-destructive/25 bg-destructive/5 p-3 text-sm leading-6 text-destructive"
+              className={cn(
+                'mt-5 border border-destructive/25 bg-destructive/5 p-3',
+                textStyles.error,
+              )}
               role="alert"
             >
               {formError}
@@ -51,7 +56,7 @@ export function AuthForm() {
         </div>
       </div>
 
-      <p className="text-center text-xs leading-5 text-muted-foreground">
+      <p className={cn('text-center', textStyles.meta)}>
         By continuing, you agree to Retaino&apos;s{' '}
         <Link
           className="text-foreground underline underline-offset-2"

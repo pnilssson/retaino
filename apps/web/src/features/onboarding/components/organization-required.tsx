@@ -1,13 +1,14 @@
 "use client";
 
 import { useOrganizationList } from '@clerk/nextjs';
-import { AlertCircle, Building2, Loader2, Plus } from 'lucide-react';
+import { Building2, Loader2, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { ItemTitle } from '@/components/ui/item';
 import { routes } from '@/lib/routes';
+import { InlineError } from './inline-error';
 import { OnboardingFrame } from './onboarding-frame';
 import { OnboardingItem } from './onboarding-item';
 
@@ -74,16 +75,12 @@ export function OrganizationRequired() {
         }
       >
         {error ? (
-          <Alert variant="destructive">
-            <AlertCircle aria-hidden="true" />
-            <AlertTitle>Organization could not be selected</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <InlineError message={error} title="Organization could not be selected" />
         ) : null}
 
         {hasExistingOrganizations ? (
           <div className="border-y py-5">
-            <p className="text-sm font-medium">Your organizations</p>
+            <ItemTitle>Your organizations</ItemTitle>
             <div className="mt-4 grid gap-2">
               {memberships.map((membership) => (
                 <Button

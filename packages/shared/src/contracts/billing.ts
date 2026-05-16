@@ -184,6 +184,12 @@ export function getBillingPlanCredits(planKey: BillingPlanKey) {
   return BILLING_PLAN_CATALOG[planKey].includedSmsCredits;
 }
 
+export function hasCurrentBillingSubscription(
+  status: string | null | undefined,
+) {
+  return status === 'active' || status === 'trialing';
+}
+
 export function getCreditPackCredits(packKey: CreditPackKey) {
   return CREDIT_PACK_CATALOG[packKey].smsCredits;
 }

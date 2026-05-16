@@ -12,6 +12,7 @@ import {
 import { Label } from '@/components/ui/label';
 import type { useEmailCodeAuth } from '@/features/auth/hooks/use-email-code-auth';
 import { getFieldError } from '@/lib/form-errors';
+import { textStyles } from '@/lib/text-styles';
 import { clerkOtpLength, clerkOtpPattern } from '../form-constants';
 
 type EmailCodeAuth = ReturnType<typeof useEmailCodeAuth>;
@@ -86,17 +87,14 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
               </InputOTP>
               {codeError ? (
                 <p
-                  className="text-sm leading-5 text-destructive"
+                  className={textStyles.error}
                   id="code-error"
                   role="alert"
                 >
                   {codeError}
                 </p>
               ) : (
-                <p
-                  className="text-xs leading-5 text-muted-foreground"
-                  id="code-hint"
-                >
+                <p className={textStyles.meta} id="code-hint">
                   We sent a 6-digit code to {auth.normalizedEmail}. It expires
                   in 10 minutes.
                 </p>

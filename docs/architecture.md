@@ -10,6 +10,7 @@ rules.
 - `docs/compliance.md`: compliance, data minimization, retention, and audit
   rules.
 - `docs/caching.md`: cache layers, tenant-scoped keys, and invalidation rules.
+- `docs/pricing.md`: billing model, SMS credit rules, and Stripe decisions.
 - `docs/tracking.md`: short links, booking reconciliation, attribution, and
   reporting.
 
@@ -126,6 +127,36 @@ Twilio credentials, webhook signing secrets, Messaging Service IDs, sender
 numbers, and region settings belong in environment configuration. Do not store
 provider secrets in tenant-owned product tables.
 
+## Billing
+
+Stripe is the payment system of record. Retaino is the operational credit system
+of record.
+
+Billing rules:
+
+- one Stripe customer maps to one Retaino organization
+- organization admins can create subscription checkout, credit pack checkout,
+  and customer portal sessions
+- members can read billing status when useful for readiness, but cannot start
+  billing mutations
+- Stripe customer, checkout session, subscription, and payment metadata must
+  include the Retaino organization context needed for webhook processing
+- Stripe webhooks grant subscription-period credits, grant purchased credits,
+  update local subscription projection, and create negative credit adjustments
+  for relevant refunds
+- every accepted Stripe webhook event must be stored idempotently before side
+  effects are applied
+- Retaino credit transactions are append-only; positive rows grant credits and
+  negative rows debit or adjust credits
+- campaign sends must reserve or check enough credits before provider cost is
+  incurred, and actual usage must be debited after send completion
+- do not use Stripe metered overage billing or Stripe Billing Credits for MVP
+  send authorization
+
+Keep Stripe test mode strictly local and Stripe live mode strictly deployed.
+Never point deployed environments at test mode webhooks, local webhook secrets,
+or development Stripe price IDs.
+
 ## API Structure
 
 - `src/server.ts` composes routes and global error handling.
@@ -166,6 +197,24 @@ manually edit generated shadcn files. Compose them from feature code.
 Application forms use TanStack Form. Do not hand-roll form state, validation,
 touched state, or submit handling with local React state unless explicitly
 approved for a one-off exception.
+
+Product app surfaces use shared item primitives and text roles:
+
+- use `ItemTitle` and `ItemDescription` for standard item title/subtitle text
+- use `ItemNotice` for inline item-surface notices instead of nesting `Alert`
+  inside app items
+- use `textStyles` from `src/lib/text-styles.ts` for repeated text roles
+- do not design cards inside cards; use sections, lists, tables, split layouts,
+  or direct item content instead
+- use the plain shadcn Sonner wrapper and state-specific toast calls; do not add
+  custom Sonner icons, rich colors, toast class overrides, or extra radius
+  styling
+
+The web package includes UI quality scripts:
+
+- `pnpm --filter @retaino/web contrast:check` verifies required token contrast
+- `pnpm --filter @retaino/web ui:audit` blocks nested item/card patterns such
+  as `Alert` inside `AppPageItem` or `OnboardingItem`
 
 ## Shared Contracts
 

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 
 const quoteRotationInterval = 6500;
 
@@ -93,10 +95,12 @@ export function AuthProofPanel() {
                 ease: 'easeOut'
               }}
             >
-              <blockquote className="text-2xl leading-snug text-white">
+              <blockquote
+                className={cn(textStyles.pageTitle, 'leading-snug text-white')}
+              >
                 {quote.text}
               </blockquote>
-              <figcaption className="mt-6 text-sm leading-6 text-white/75">
+              <figcaption className={cn('mt-6', textStyles.body, 'text-white/75')}>
                 {quote.attribution}
               </figcaption>
             </motion.figure>

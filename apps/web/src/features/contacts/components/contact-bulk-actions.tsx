@@ -1,7 +1,7 @@
 "use client";
 
-import { AlertCircle, Ban, Trash2, X } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Ban, Trash2, X } from 'lucide-react';
+import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { useBulkDeleteContacts } from '@/features/contacts/hooks/use-bulk-delete-contacts';
@@ -99,13 +99,11 @@ export function ContactBulkActions({
         ) : null}
       </div>
       {bulkDelete.error || bulkSuppress.error ? (
-        <Alert variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Bulk action failed</AlertTitle>
-          <AlertDescription>
-            {bulkDelete.error ?? bulkSuppress.error}
-          </AlertDescription>
-        </Alert>
+        <ItemNotice
+          description={bulkDelete.error ?? bulkSuppress.error}
+          title="Bulk action failed"
+          tone="destructive"
+        />
       ) : null}
     </div>
   );

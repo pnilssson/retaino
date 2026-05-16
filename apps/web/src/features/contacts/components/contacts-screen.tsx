@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import type { RowSelectionState } from '@tanstack/react-table';
 import { canManageOrganizationSetup } from '@retaino/shared/contracts';
+import { ItemNotice } from '@/components/item-notice';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -139,15 +140,15 @@ export function ContactsScreen() {
               />
 
               {contacts.isError ? (
-                <Alert variant="destructive">
-                  <AlertCircle aria-hidden="true" />
-                  <AlertTitle>Contacts could not be fetched</AlertTitle>
-                  <AlertDescription>
-                    {contacts.error instanceof Error
+                <ItemNotice
+                  description={
+                    contacts.error instanceof Error
                       ? contacts.error.message
-                      : 'Try refreshing the table.'}
-                  </AlertDescription>
-                </Alert>
+                      : 'Try refreshing the table.'
+                  }
+                  title="Contacts could not be fetched"
+                  tone="destructive"
+                />
               ) : contacts.isLoading ? (
                 <TableLoading label="Loading contacts" />
               ) : contacts.data && contacts.data.contacts.length > 0 ? (

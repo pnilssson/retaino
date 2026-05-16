@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 
 type AppPageHeaderProps = {
   actions?: ReactNode;
@@ -21,16 +23,16 @@ export function AppPageHeader({
         {eyebrow || badge ? (
           <div className="flex flex-wrap items-center gap-2">
             {eyebrow ? (
-              <p className="text-sm text-muted-foreground">{eyebrow}</p>
+              <p className={textStyles.meta}>{eyebrow}</p>
             ) : null}
             {badge}
           </div>
         ) : null}
-        <h1 className="mt-2 truncate text-2xl leading-tight tracking-tight sm:text-3xl">
+        <h1 className={cn('mt-2 truncate', textStyles.pageTitle)}>
           {title}
         </h1>
         {description ? (
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
+          <p className={cn('mt-3 max-w-2xl', textStyles.pageDescription)}>
             {description}
           </p>
         ) : null}

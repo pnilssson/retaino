@@ -85,6 +85,10 @@ Do not make higher tiers unlock major software features in MVP. The reason to
 upgrade is more included credits, fewer top-ups, and a lower effective credit
 price.
 
+In the billing UI, show each tier as the same workflow with different credit
+capacity. Keep plan subtitles short, put included credits and effective credit
+price in the included list, and avoid separate capacity calculators.
+
 ## Credit Packs
 
 Organizations can buy extra credit packs when they need more SMS capacity.
@@ -104,6 +108,10 @@ primary pricing structure.
 Included monthly credits do not roll over. Purchased credit packs do roll over
 and do not expire in MVP. Retaino requires an active subscription before an
 organization can use purchased credits for live sends or test sends.
+
+In the billing UI, credit pack cards should show the pack size once, the pack
+price, and a short included list with effective credit price and rollover
+policy. Do not repeat the credit count in body copy.
 
 ## Tax Policy
 
@@ -126,6 +134,10 @@ from customers are not treated as Retaino revenue.
 - One Stripe customer maps to one Retaino organization.
 - Store `organizationId` in Stripe customer metadata and checkout metadata.
 - Retaino stores SMS credit transactions funded by Stripe webhooks.
+- Billing status, subscription checkout, credit pack checkout, and customer
+  portal access are exposed through authenticated billing API routes.
+- Stripe webhooks are unauthenticated product routes mounted before Clerk auth
+  and protected by Stripe signature validation.
 - Live send checks credits once for the full campaign estimate.
 - Retaino blocks live send if the organization has insufficient credits.
 - Retaino allows only one active live send per organization at a time.
@@ -226,7 +238,7 @@ References:
 - Require an active subscription to use any SMS credits.
 - Use credits-only spending in Retaino. Do not enable automatic overage billing
   in MVP.
-- Scale includes priority setup help as a light service benefit. It does not
-  unlock software features that Starter or Growth lack.
+- All tiers include the same product workflow in MVP. Credits are the only
+  in-app plan difference.
 - Recalculate this page when Twilio, Stripe, tax, or exchange-rate assumptions
   change.

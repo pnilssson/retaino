@@ -7,6 +7,7 @@ import {
 import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { textStyles } from '@/lib/text-styles';
 import { legalBundleDocumentLabels } from '../onboarding.constants';
 import { OnboardingItem } from './onboarding-item';
 
@@ -30,7 +31,7 @@ export function AgreementsStep({
       title="Finish setup."
     >
       <div className="grid gap-6">
-        <p className="text-sm leading-6 text-muted-foreground">
+        <p className={textStyles.mutedBody}>
           Documents:{' '}
           {legalBundle.documents.map((document, index) => {
             const label =
@@ -63,12 +64,12 @@ export function AgreementsStep({
           .
         </p>
 
-        <p className="text-sm leading-6 text-muted-foreground">
+        <p className={textStyles.mutedBody}>
           By finishing setup, you agree to the documents above.
         </p>
 
         {mutationError ? (
-          <p className="text-sm text-destructive">{mutationError}</p>
+          <p className={textStyles.error}>{mutationError}</p>
         ) : null}
 
         <div className="flex flex-wrap justify-between gap-3 pt-2">

@@ -15,6 +15,7 @@ import {
 } from '@/features/organization-profile/organization-profile-form';
 import { ProfileInput } from '@/features/organization-profile/profile-input';
 import { getFieldError } from '@/lib/form-errors';
+import { textStyles } from '@/lib/text-styles';
 import { InlineError } from './inline-error';
 import { OnboardingItem } from './onboarding-item';
 
@@ -224,7 +225,7 @@ function CountryInput({
         value={value}
       />
       {error ? (
-        <p className="text-xs text-destructive" id={`${name}-error`}>
+        <p className={textStyles.error} id={`${name}-error`}>
           {error}
         </p>
       ) : null}
@@ -268,7 +269,7 @@ function PhoneField({
         value={value}
       />
       {error ? (
-        <p className="text-xs text-destructive" id={`${name}-error`}>
+        <p className={textStyles.error} id={`${name}-error`}>
           {error}
         </p>
       ) : null}

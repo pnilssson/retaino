@@ -1,11 +1,11 @@
-import { AlertCircle, ArrowLeft, CheckCircle2, FileText } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, FileText } from 'lucide-react';
 import Link from 'next/link';
 import {
   canManageOrganizationSetup,
   type OrganizationSession,
 } from '@retaino/shared/contracts';
+import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   AppPageContent,
@@ -77,11 +77,7 @@ export function BlockedContacts({ session }: { session: OrganizationSession }) {
         <AppPageContent>
           <AppPageItem asChild>
             <section>
-              <Alert>
-                <AlertCircle aria-hidden="true" />
-                <AlertTitle>{alertTitle}</AlertTitle>
-                <AlertDescription>{alertDescription}</AlertDescription>
-              </Alert>
+              <ItemNotice description={alertDescription} title={alertTitle} />
               <div className="flex justify-end">
                 <Button asChild>
                   <Link href={actionHref}>

@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <Providers>
               <CookieConsentProvider>
                 <TooltipProvider>{children}</TooltipProvider>
-                <Toaster richColors />
+                <Toaster />
                 <CookieBanner />
               </CookieConsentProvider>
             </Providers>

@@ -141,18 +141,17 @@ async function processInvoicePaid(db: DbClient, invoice: Stripe.Invoice) {
   const organizationId = requiredMetadata(metadata, 'organizationId');
   const planKey = parseBillingPlanKey(metadata.planKey);
   const subscriptionId = requiredStripeId(getInvoiceSubscriptionId(invoice));
-  const periodStart = requiredStripeTimestamp(invoice.period_start);
-  const periodEnd = requiredStripeTimestamp(invoice.period_end);
+  const period = getInvoiceSubscriptionCreditPeriod(invoice);
 
   await createSmsCreditTransaction(db, {
     organizationId,
     transactionType: 'grant',
     credits: getBillingPlanCredits(planKey),
     creditBucket: 'subscription_period',
-    periodStart: stripeTimestampToDate(periodStart),
-    periodEnd: stripeTimestampToDate(periodEnd),
+    periodStart: stripeTimestampToDate(period.start),
+    periodEnd: stripeTimestampToDate(period.end),
     source: 'stripe_invoice',
-    sourceId: `${subscriptionId}:${periodStart}:${periodEnd}`,
+    sourceId: `${subscriptionId}:${period.start}:${period.end}`,
     description: `${capitalizePlanKey(planKey)} monthly credits`,
   });
 }
@@ -285,6 +284,41 @@ function getInvoiceSubscriptionId(invoice: Stripe.Invoice) {
   return getStripeId(parent.subscription_details?.subscription ?? null);
 }
 
+function getInvoiceSubscriptionCreditPeriod(invoice: Stripe.Invoice) {
+  const subscriptionId = getInvoiceSubscriptionId(invoice);
+  const subscriptionLine = invoice.lines?.data.find((line) => {
+    const parent = line.parent;
+
+    if (parent?.type !== 'subscription_item_details') {
+      return false;
+    }
+
+    return (
+      getStripeId(parent.subscription_item_details?.subscription ?? null) ===
+        subscriptionId &&
+      parent.subscription_item_details?.proration !== true &&
+      isValidStripePeriod(line.period)
+    );
+  });
+
+  if (subscriptionLine?.period) {
+    return subscriptionLine.period;
+  }
+
+  if (
+    isValidStripeTimestamp(invoice.period_start) &&
+    isValidStripeTimestamp(invoice.period_end) &&
+    invoice.period_end > invoice.period_start
+  ) {
+    return {
+      start: invoice.period_start,
+      end: invoice.period_end,
+    };
+  }
+
+  throw new Error('Stripe invoice subscription period is required.');
+}
+
 function requiredMetadata(metadata: Stripe.Metadata | null | undefined, key: string) {
   const value = optionalMetadata(metadata, key);
 
@@ -298,14 +332,6 @@ function requiredMetadata(metadata: Stripe.Metadata | null | undefined, key: str
 function requiredStripeId(value: string | null) {
   if (!value) {
     throw new Error('Stripe subscription id is required.');
-  }
-
-  return value;
-}
-
-function requiredStripeTimestamp(value: number | null | undefined) {
-  if (!value) {
-    throw new Error('Stripe invoice period is required.');
   }
 
   return value;
@@ -370,6 +396,25 @@ function parseBillingSubscriptionStatus(value: string) {
 
 function stripeTimestampToDate(value: number | null | undefined) {
   return value ? new Date(value * 1000) : null;
+}
+
+function isValidStripePeriod(
+  value: Stripe.InvoiceLineItem.Period | null | undefined,
+) {
+  const start = value?.start;
+  const end = value?.end;
+
+  return (
+    isValidStripeTimestamp(start) &&
+    isValidStripeTimestamp(end) &&
+    end > start
+  );
+}
+
+function isValidStripeTimestamp(
+  value: number | null | undefined,
+): value is number {
+  return typeof value === 'number' && value > 0;
 }
 
 function getStripeId(value: string | { id: string } | null) {

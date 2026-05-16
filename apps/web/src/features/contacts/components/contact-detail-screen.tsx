@@ -22,6 +22,7 @@ import {
   type UpdateContactInput,
   normalizePhoneNumber,
 } from '@retaino/shared/contracts';
+import { ItemNotice } from '@/components/item-notice';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -349,11 +350,11 @@ function ContactEditForm({
         </form.Field>
       </div>
       {updateContact.error ? (
-        <Alert variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Contact could not be saved</AlertTitle>
-          <AlertDescription>{updateContact.error}</AlertDescription>
-        </Alert>
+        <ItemNotice
+          description={updateContact.error}
+          title="Contact could not be saved"
+          tone="destructive"
+        />
       ) : null}
       <div className="flex flex-wrap justify-end gap-2">
         <Button
@@ -452,11 +453,11 @@ function ContactSuppressionSection({
           </div>
         ) : null}
         {suppress.error || unsuppress.error ? (
-          <Alert variant="destructive">
-            <AlertCircle aria-hidden="true" />
-            <AlertTitle>Suppression could not be updated</AlertTitle>
-            <AlertDescription>{suppress.error ?? unsuppress.error}</AlertDescription>
-          </Alert>
+          <ItemNotice
+            description={suppress.error ?? unsuppress.error}
+            title="Suppression could not be updated"
+            tone="destructive"
+          />
         ) : null}
       </section>
     </AppPageItem>
@@ -479,7 +480,7 @@ function SuppressionRow({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
       <div className="grid min-w-0 gap-1">
-        <p className="text-sm font-medium">{method}</p>
+        <ItemTitle>{method}</ItemTitle>
         <p className="break-all text-sm">{suppression.value}</p>
         <p className="text-xs text-muted-foreground">
           {formatSuppressionReason(suppression.reason)},{' '}
@@ -541,11 +542,11 @@ function DeleteContactSection({ contact }: { contact: ContactDetail }) {
           </ItemActions>
         </ItemHeader>
         {deleteContact.error ? (
-          <Alert variant="destructive">
-            <AlertCircle aria-hidden="true" />
-            <AlertTitle>Contact could not be deleted</AlertTitle>
-            <AlertDescription>{deleteContact.error}</AlertDescription>
-          </Alert>
+          <ItemNotice
+            description={deleteContact.error}
+            title="Contact could not be deleted"
+            tone="destructive"
+          />
         ) : null}
       </section>
     </AppPageItem>

@@ -296,7 +296,24 @@ function invoicePaidEvent() {
         object: 'invoice',
         billing_reason: 'subscription_cycle',
         period_start: 1778803200,
-        period_end: 1781481600,
+        period_end: 1778803200,
+        lines: {
+          data: [
+            {
+              parent: {
+                type: 'subscription_item_details',
+                subscription_item_details: {
+                  proration: false,
+                  subscription: 'sub_123',
+                },
+              },
+              period: {
+                start: 1778803200,
+                end: 1781481600,
+              },
+            },
+          ],
+        },
         metadata: {},
         parent: {
           type: 'subscription_details',
