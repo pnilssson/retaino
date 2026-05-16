@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { serve } from 'inngest/hono';
 import { billingRoutes } from './features/billing/billing.routes';
 import { billingWebhookRoutes } from './features/billing/billing.webhook-routes';
+import { campaignsRoutes } from './features/campaigns/campaigns.routes';
 import { contactsRoutes } from './features/contacts/contacts.routes';
 import {
   inngest,
@@ -35,6 +36,7 @@ app.use('/v1/*', authMiddleware);
 app.route('/v1/organization', organizationRoutes);
 app.route('/v1/billing', billingRoutes);
 app.route('/v1/contacts', contactsRoutes);
+app.route('/v1/campaigns', campaignsRoutes);
 
 app.notFound((c) => {
   return c.json(apiError('internal_error', 'Route not found.'), 404);

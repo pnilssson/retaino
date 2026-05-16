@@ -1,4 +1,5 @@
 export * from './billing';
+export * from './campaigns';
 export * from './contacts';
 export * from './legal';
 export * from './organizations';

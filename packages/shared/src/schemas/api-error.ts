@@ -4,6 +4,7 @@ import { nonEmptyStringSchema } from './primitives';
 
 export const apiErrorCodeSchema = z.enum([
   'active_organization_required',
+  'conflict',
   'forbidden',
   'internal_error',
   'not_found',
