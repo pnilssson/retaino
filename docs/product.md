@@ -57,7 +57,7 @@ Required:
   organization
 - SMS editor with GSM-7 and Unicode segment counter plus cost preview
 - per-recipient short links
-- campaign code or offer code for manual attribution
+- campaign code, offer code, or campaign reference for manual attribution
 - STOP handling, suppression lists, and retention of other inbound replies for
   future inbox support
 - booking CSV upload and reconciliation
@@ -109,7 +109,8 @@ Campaign:
 1. User creates a campaign and chooses the eligible lapsed audience.
 2. User writes SMS copy.
 3. Retaino counts segments and warns when Unicode increases cost.
-4. User chooses a booking URL and optional campaign code.
+4. User chooses a booking URL and optional campaign code or reference that may
+   appear in later booking exports.
 5. Admin chooses the sender country based on recipient market and selects an
    available SMS-capable number or accepts Retaino's recommendation.
 6. Retaino provisions the organization's dedicated sender if it does not exist.

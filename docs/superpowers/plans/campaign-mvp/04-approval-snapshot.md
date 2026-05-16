@@ -81,7 +81,8 @@ Approval service responsibilities:
 5. Reject empty audiences.
 6. Insert recipient snapshots.
 7. Mark campaign `approved`.
-8. Write an audit log with audience rule, campaign code, and recipient count.
+8. Write an audit log with audience rule, campaign code or reference, and
+   recipient count.
 
 ### API
 

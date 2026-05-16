@@ -15,7 +15,7 @@ Tenant-owned tracking and attribution entities:
 | Import | Customer CSV upload, mapping, validation, and dedupe summary. |
 | SmsSender | Dedicated organization sender number and provider configuration. |
 | SmsMessage | Durable inbound and outbound SMS message ledger. |
-| Campaign | Offer, audience, target URL, attribution window, SMS copy, code, status, and spend. |
+| Campaign | Offer, audience, target URL, attribution window, SMS copy, optional code or reference, status, and spend. |
 | CampaignRecipient | Snapshot of one contact inside one campaign. |
 | MessageEvent | Provider event normalized to Retaino states. |
 | TrackingLink | Unique short link for one campaign recipient. |
@@ -89,14 +89,14 @@ Possible matching inputs:
 - booking date
 - service name
 - booking created time after sent time or click time
-- campaign code or offer code
+- campaign code, offer code, or campaign reference
 
 Never match across organizations. Internal `organizationId` is required in
 every query.
 
 Deterministic MVP order:
 
-1. Exact campaign code or offer code.
+1. Exact campaign code, offer code, or campaign reference.
 2. Exact normalized phone.
 3. Exact normalized email.
 4. Name plus phone suffix.

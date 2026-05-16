@@ -74,10 +74,15 @@ The preview helper should return:
 Rendering rule:
 
 1. Start with the campaign SMS body.
-2. Append the booking URL or test tracking URL.
-3. Append the forced opt-out text.
+2. Replace supported personalization tokens.
+3. Append the booking URL or test tracking URL.
+4. Append the forced opt-out text.
 
-Do not support user-authored template variables in MVP.
+Support only `{first_name}` and `{last_booking_date}` in MVP. Unknown
+`{...}` tokens and system-owned tokens such as `{link}`, `{unsubscribe}`, and
+`{opt_out}` must be rejected before preview or send. If a recipient is missing a
+token value, render a clean empty fallback and avoid awkward doubled spaces or
+punctuation where practical.
 The preview helper must use the same SMS encoding policy as live sending. If
 Twilio Smart Encoding is enabled in the Messaging Service, Retaino must mirror
 those substitutions before estimating segments. Otherwise, keep provider-side
@@ -208,7 +213,7 @@ Minimum coverage:
 - rendered SMS identifies the customer organization
 - rendered preview includes the booking URL or test tracking URL
 - rendered preview and provider sends use the same SMS encoding policy
-- unsupported template syntax is rejected before send
+- unsupported personalization syntax is rejected before send
 - GSM-7 and Unicode segment counts are stable
 - sender provisioning requires admin, active billing, and current legal
   acceptance

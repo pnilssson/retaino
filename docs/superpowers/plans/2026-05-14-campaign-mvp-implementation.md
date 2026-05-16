@@ -61,7 +61,7 @@ Build only what helps a user create and send a clear reactivation campaign:
 - audience preview
 - one SMS message
 - one booking URL
-- optional campaign code
+- optional campaign code or reference for booking-export matching
 - required opt-out text
 - dedicated organization sender provisioning
 - approval with recipient snapshot
@@ -73,9 +73,11 @@ Build only what helps a user create and send a clear reactivation campaign:
 
 Do not build saved segments, variants, journeys, A/B tests, copy generation,
 scheduled recurring sends, or booking attribution in this campaign plan.
-Do not build SMS template variables in MVP. Users write offer copy, then
-Retaino appends the tracked booking link and required opt-out text in the final
-rendered SMS.
+Support only `{first_name}` and `{last_booking_date}` personalization tokens in
+MVP SMS copy. Retaino replaces those tokens when rendering each recipient SMS,
+then appends the tracked booking link and required opt-out text. Retaino owns
+system tokens and must reject user-authored link, unsubscribe, opt-out, or
+unknown `{...}` tokens.
 
 ## Sender Provisioning Direction
 
@@ -201,8 +203,10 @@ send retries can happen after the event-level idempotency window.
 - Twilio inbound and status webhooks use
   `https://api.retaino.com/v1/webhooks/twilio/messaging/inbound` and
   `https://api.retaino.com/v1/webhooks/twilio/messaging/status`.
-- Campaign codes are optional attribution hints, not unique identifiers. Store a
-  normalized value, but do not rely on campaign codes alone for attribution.
+- Campaign codes are optional attribution hints, not unique identifiers and not
+  only discount codes. They may contain a campaign reference, offer code, source
+  tag, or booking-export value. Store a normalized value, but do not rely on
+  campaign codes alone for attribution.
 
 ## Quality Bar
 

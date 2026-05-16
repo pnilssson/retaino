@@ -129,8 +129,8 @@ Job rules:
 10. Mark campaign `sending`.
 11. Load selected recipients by `organizationId` and campaign ID.
 12. Create or reuse one tracking link per recipient.
-13. Render the SMS body by appending the recipient tracking link and required
-   opt-out text.
+13. Render the SMS body by replacing supported personalization tokens, then
+    appending the recipient tracking link and required opt-out text.
 14. For each recipient, re-check phone suppression.
 15. Create or reuse the message row before provider send.
 16. Send through the SMS provider adapter using the organization's Messaging
@@ -206,6 +206,7 @@ Minimum coverage:
 - outbound sends are recorded in the canonical `sms_messages` ledger
 - job blocks when another campaign for the same organization is already sending
 - job creates or reuses one tracking link per recipient
+- rendered SMS body replaces `{first_name}` and `{last_booking_date}`
 - rendered SMS body includes the recipient tracking link and opt-out text
 - sender configuration supports the rendered opt-out path
 - provider sends use the organization's Messaging Service ID

@@ -20,13 +20,14 @@ Draft campaigns store intent:
 - audience rule
 - SMS body
 - booking URL
-- optional campaign code
+- optional campaign code or reference for booking-export matching
 - attribution window
 - status
 
-The stored SMS body is offer copy only. Do not support template variables in
-MVP. Later phases render the final SMS by appending the tracked booking link and
-required opt-out text.
+The stored SMS body is offer copy with limited personalization. Support only
+`{first_name}` and `{last_booking_date}` in MVP. Later phases render the final
+SMS by replacing those tokens per recipient, then appending the tracked booking
+link and required opt-out text.
 
 ## Backend Shape
 
@@ -49,11 +50,14 @@ Core schemas:
 - `CampaignListResponse`
 
 Booking URLs must be `http` or `https`. Campaign codes should be trimmed,
-uppercased, and stored as nullable values. Do not treat the campaign code as a
-unique campaign identifier.
+uppercased, and stored as nullable values. A campaign code is not only a
+discount code. It can be a campaign reference, offer code, source tag, or
+booking-export value. Do not treat the campaign code as a unique campaign
+identifier.
 
-Reject SMS bodies that contain unsupported template syntax such as `{{link}}`.
-The system owns link and opt-out rendering.
+Reject SMS bodies that contain unsupported personalization syntax such as
+`{{link}}`, `{link}`, `{unsubscribe}`, or unknown `{...}` tokens. The system owns
+link and opt-out rendering.
 
 Initial audience rule:
 
@@ -147,7 +151,8 @@ Minimum coverage:
 - shared schemas accept valid drafts and reject invalid audience rules
 - shared schemas reject non-HTTP booking URLs
 - shared schemas normalize campaign codes
-- shared schemas reject unsupported SMS template syntax
+- shared schemas allow `{first_name}` and `{last_booking_date}`
+- shared schemas reject unsupported SMS personalization syntax
 - campaign table exposes `organizationId`
 - query helpers include tenant filters
 - non-draft campaigns cannot be updated or deleted

@@ -65,13 +65,14 @@ Start with a single screen:
 - checkbox for including contacts without a booking date
 - SMS body field
 - booking URL field
-- optional campaign code field
+- optional campaign code or reference field
 - audience preview count and small sample
 - save action
 
-The SMS field is offer copy only. The UI should show that Retaino appends the
-tracked booking link and required opt-out text automatically. Do not expose
-template variables or ask the user to place a link token.
+The SMS field supports only `{first_name}` and `{last_booking_date}` as
+personalization tokens. The UI should show that Retaino appends the tracked
+booking link and required opt-out text automatically. Do not ask the user to
+place a link, unsubscribe, or opt-out token.
 
 Default the audience controls to 90 lapsed days and leave contacts without a
 booking date excluded until the user checks the option.
@@ -114,7 +115,8 @@ Manual UI checks for the user:
 
 - Hand-rolling form state instead of using TanStack Form.
 - Creating UI for variants, saved segments, or journeys too early.
-- Asking users to manage link placeholders or SMS template variables.
+- Asking users to manage link placeholders or unsupported SMS personalization
+  tokens.
 - Making the page depend on Twilio before live sending exists.
 - Hiding audience eligibility reasons from the user.
 - Keying campaign queries without organization ID and leaking cached data across
