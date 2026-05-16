@@ -28,6 +28,12 @@ Internally drafted campaigns store intent:
 - attribution window
 - status
 
+Draft campaigns may be incomplete. As soon as an admin completes the audience
+step and moves forward, Retaino creates a draft row with the campaign name and
+audience rule. `smsBody` and `bookingUrl` remain nullable until the user reaches
+and saves those steps. Later test-send and launch phases must validate that
+message and booking fields are complete before send readiness.
+
 The stored SMS body is offer copy with limited personalization. Support only
 `{first_name}` and `{last_booking_date}` in MVP. Later phases render the final
 SMS by replacing those tokens per recipient, then appending the tracked booking
@@ -58,6 +64,10 @@ uppercased, and stored as nullable values. A campaign code is not only a
 discount code. It can be a campaign reference, offer code, source tag, or
 booking-export value. Do not treat the campaign code as a unique campaign
 identifier.
+
+Create requests only require campaign name and audience rule. Message and
+booking URL are optional nullable draft fields, but when either field is
+provided it must pass the same validation used before test send and launch.
 
 Reject SMS bodies that contain unsupported personalization syntax such as
 `{{link}}`, `{link}`, `{unsubscribe}`, or unknown `{...}` tokens. The system owns
@@ -94,6 +104,9 @@ Start with a `campaigns` table only:
 
 Do not add launch, sending, provider, recipient, tracking, or report fields in
 this phase. Add those fields in the phase that first uses them.
+
+`smsBody` and `bookingUrl` are nullable because campaign drafts are persisted
+before those steps are complete.
 
 Indexes:
 

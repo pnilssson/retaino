@@ -42,8 +42,9 @@ launch action.
 Research across SMS and email campaign tools points to the same pattern:
 campaigns are built through audience, content, preview, review, test, and final
 send or schedule. Drafts are treated as recoverable in-progress work, not as the
-main success state. Retaino should follow that expectation while staying
-narrower than general-purpose marketing tools.
+main success state. Retaino should persist the draft as soon as the user moves
+past the audience step, then patch the same campaign as later steps are
+completed.
 
 Campaign implementation should build from the smallest useful workflow toward
 safe live sending:

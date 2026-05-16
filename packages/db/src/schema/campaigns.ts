@@ -19,8 +19,8 @@ export const campaigns = pgTable(
     audienceRule: jsonb('audience_rule')
       .$type<CampaignAudienceRule>()
       .notNull(),
-    smsBody: text('sms_body').notNull(),
-    bookingUrl: text('booking_url').notNull(),
+    smsBody: text('sms_body'),
+    bookingUrl: text('booking_url'),
     campaignCode: text('campaign_code'),
     attributionWindowDays: integer('attribution_window_days')
       .notNull()

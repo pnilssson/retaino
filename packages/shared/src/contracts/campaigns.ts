@@ -55,6 +55,16 @@ const smsBodySchema = z
       'Only {first_name} and {last_booking_date} personalization tokens are supported.',
   });
 
+const draftSmsBodySchema = smsBodySchema
+  .optional()
+  .nullable()
+  .transform((value) => value ?? null);
+
+const draftBookingUrlSchema = bookingUrlSchema
+  .optional()
+  .nullable()
+  .transform((value) => value ?? null);
+
 function hasUnsupportedSmsPersonalizationToken(value: string) {
   const withoutAllowedTokens = value.replace(
     /\{(first_name|last_booking_date)\}/g,
@@ -68,8 +78,8 @@ export const createCampaignDraftSchema = z
   .object({
     name: z.string().trim().min(1),
     audienceRule: campaignAudienceRuleSchema,
-    smsBody: smsBodySchema,
-    bookingUrl: bookingUrlSchema,
+    smsBody: draftSmsBodySchema,
+    bookingUrl: draftBookingUrlSchema,
     campaignCode: createCampaignCodeSchema,
     attributionWindowDays: z.number().int().min(1).max(30).default(7),
   })
@@ -79,8 +89,8 @@ export const updateCampaignDraftSchema = z
   .object({
     name: z.string().trim().min(1).optional(),
     audienceRule: campaignAudienceRuleSchema.optional(),
-    smsBody: smsBodySchema.optional(),
-    bookingUrl: bookingUrlSchema.optional(),
+    smsBody: smsBodySchema.nullable().optional(),
+    bookingUrl: bookingUrlSchema.nullable().optional(),
     campaignCode: campaignCodeValueSchema.optional(),
     attributionWindowDays: z.number().int().min(1).max(30).optional(),
   })
@@ -93,8 +103,8 @@ export const campaignSchema = z.object({
   name: nonEmptyStringSchema,
   status: campaignStatusSchema,
   audienceRule: campaignAudienceRuleSchema,
-  smsBody: nonEmptyStringSchema,
-  bookingUrl: bookingUrlSchema,
+  smsBody: nonEmptyStringSchema.nullable(),
+  bookingUrl: bookingUrlSchema.nullable(),
   campaignCode: nonEmptyStringSchema.nullable(),
   attributionWindowDays: z.number().int().min(1).max(30),
   createdAt: timestampSchema,

@@ -32,6 +32,17 @@ describe('campaign query helpers', () => {
       createdAt: '2026-05-16T00:00:00.000Z',
       updatedAt: '2026-05-16T00:00:00.000Z',
     });
+
+    expect(
+      campaignToContract({
+        ...campaignRow,
+        bookingUrl: null,
+        smsBody: null,
+      }),
+    ).toMatchObject({
+      bookingUrl: null,
+      smsBody: null,
+    });
   });
 
   it('rejects non-draft campaign mutations', () => {

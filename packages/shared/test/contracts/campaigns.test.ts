@@ -47,6 +47,42 @@ describe('campaign contracts', () => {
     ).toBe(true);
   });
 
+  it('allows draft campaigns to be created before message and booking are complete', () => {
+    expect(
+      createCampaignDraftSchema.parse({
+        name: 'June reactivation',
+        audienceRule: {
+          lapsedDays: 90,
+          includeNoBookingDate: false,
+        },
+      }),
+    ).toMatchObject({
+      bookingUrl: null,
+      campaignCode: null,
+      smsBody: null,
+    });
+
+    expect(
+      campaignSchema.safeParse({
+        id: '11111111-1111-4111-8111-111111111111',
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        createdByUserId: '33333333-3333-4333-8333-333333333333',
+        name: 'June reactivation',
+        status: 'draft',
+        audienceRule: {
+          lapsedDays: 90,
+          includeNoBookingDate: false,
+        },
+        smsBody: null,
+        bookingUrl: null,
+        campaignCode: null,
+        attributionWindowDays: 7,
+        createdAt: '2026-05-16T00:00:00.000Z',
+        updatedAt: '2026-05-16T00:00:00.000Z',
+      }).success,
+    ).toBe(true);
+  });
+
   it('uses ready_to_send as the internal pre-send campaign status', () => {
     expect(
       campaignSchema.safeParse({

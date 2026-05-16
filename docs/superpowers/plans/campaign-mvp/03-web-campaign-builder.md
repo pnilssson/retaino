@@ -79,7 +79,8 @@ Start with a campaign index at `/app/campaigns`:
 
 Use dedicated builder routes:
 
-- `/app/campaigns/new` creates a campaign with internal draft persistence
+- `/app/campaigns/new` creates a campaign with internal draft persistence as
+  soon as the admin continues from the audience step
 - `/app/campaigns/[id]` edits an existing campaign while it is still editable
 
 The builder uses a guided flow instead of one long form:
@@ -91,6 +92,11 @@ The builder uses a guided flow instead of one long form:
    character count, estimated SMS per recipient, and a recipient preview.
 3. Booking: booking URL and optional campaign code or reference.
 4. Review: read-only summary and save campaign action.
+
+The campaign should be persisted as a recoverable draft when the user first
+continues from Audience to Message. Later step transitions patch the same draft.
+The final review save remains useful as an explicit last persistence action, but
+it should not be the first time the campaign exists in the database.
 
 Use the shared top progress tracker from the guided-flow baseline. Do not add a
 persistent summary beside the campaign form, because it narrows the active work

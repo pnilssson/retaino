@@ -6,6 +6,7 @@ import type {
   Campaign,
   CampaignAudienceRule,
   CreateCampaignDraftInput,
+  UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
 import { createCampaignSmsPreview } from '@retaino/shared';
 import { Save } from 'lucide-react';
@@ -72,7 +73,7 @@ export function CampaignForm({
   canManageCampaigns: boolean;
   campaign: Campaign | null;
   initialStep?: CampaignStepId;
-  onCreated: (campaignId: string) => void;
+  onCreated: (campaignId: string, initialStep: CampaignStepId) => void;
   organizationId: string | null;
 }) {
   const [activeStep, setActiveStep] = useState<CampaignStepId>(initialStep);
@@ -89,7 +90,7 @@ export function CampaignForm({
       ? campaignToFormValues(campaign)
       : defaultCampaignFormValues,
     onSubmit: async ({ value }) => {
-      const input = campaignFormValuesToInput(value);
+      const input = campaignFormValuesToCompleteInput(value);
 
       if (campaign) {
         await updateCampaign.mutateAsync(input);
@@ -98,9 +99,32 @@ export function CampaignForm({
 
       const response = await createCampaign.mutateAsync(input);
 
-      onCreated(response.campaign.id);
+      onCreated(response.campaign.id, 'review');
     },
   });
+
+  async function saveStepAndContinue(
+    values: CampaignFormValues,
+    stepInput: CreateCampaignDraftInput | UpdateCampaignDraftInput,
+    nextStep: CampaignStepId,
+  ) {
+    if (!canManageCampaigns) {
+      setActiveStep(nextStep);
+      return;
+    }
+
+    if (campaign) {
+      await updateCampaign.mutateAsync(stepInput);
+      setActiveStep(nextStep);
+      return;
+    }
+
+    const response = await createCampaign.mutateAsync(
+      campaignFormValuesToInitialDraftInput(values),
+    );
+
+    onCreated(response.campaign.id, nextStep);
+  }
 
   return (
     <form
@@ -116,6 +140,18 @@ export function CampaignForm({
         <ItemNotice
           description="You can inspect campaigns and audience previews, but only organization admins can save changes."
           title="Admin access required to save"
+        />
+      ) : null}
+
+      {saveError ? (
+        <ItemNotice
+          description={
+            saveError instanceof Error
+              ? saveError.message
+              : 'Try checking the campaign fields and saving again.'
+          }
+          title="Campaign could not be saved"
+          tone="destructive"
         />
       ) : null}
 
@@ -214,7 +250,14 @@ export function CampaignForm({
                           <GuidedFlowActions
                             canContinue={isAudienceStepComplete(values)}
                             continueLabel="Continue to message"
-                            onContinue={() => setActiveStep('message')}
+                            isPending={isSaving}
+                            onContinue={() => {
+                              void saveStepAndContinue(
+                                values,
+                                campaignFormValuesToAudienceInput(values),
+                                'message',
+                              );
+                            }}
                           />
                         </div>
                       </GuidedFlowSection>
@@ -286,7 +329,14 @@ export function CampaignForm({
                             canContinue={isMessageStepComplete(values)}
                             continueLabel="Continue to booking"
                             onBack={() => setActiveStep('audience')}
-                            onContinue={() => setActiveStep('booking')}
+                            isPending={isSaving}
+                            onContinue={() => {
+                              void saveStepAndContinue(
+                                values,
+                                campaignFormValuesToMessageInput(values),
+                                'booking',
+                              );
+                            }}
                           />
                         </div>
                       </GuidedFlowSection>
@@ -339,7 +389,14 @@ export function CampaignForm({
                             canContinue={isBookingStepComplete(values)}
                             continueLabel="Review campaign"
                             onBack={() => setActiveStep('message')}
-                            onContinue={() => setActiveStep('review')}
+                            isPending={isSaving}
+                            onContinue={() => {
+                              void saveStepAndContinue(
+                                values,
+                                campaignFormValuesToBookingInput(values),
+                                'review',
+                              );
+                            }}
                           />
                         </div>
                       </GuidedFlowSection>
@@ -354,18 +411,6 @@ export function CampaignForm({
                       organizationId={organizationId}
                       values={values}
                     />
-
-                    {saveError ? (
-                      <ItemNotice
-                        description={
-                          saveError instanceof Error
-                            ? saveError.message
-                            : 'Try checking the campaign fields and saving again.'
-                        }
-                        title="Campaign could not be saved"
-                        tone="destructive"
-                      />
-                    ) : null}
 
                           <GuidedFlowActions onBack={() => setActiveStep('booking')}>
                             <Button
@@ -469,8 +514,8 @@ function CampaignReview({
       </div>
 
       <div className="grid content-start gap-6">
-        <ReviewSection title="Message">
-          <MessagePreview smsBody={values.smsBody} />
+        <ReviewSection title="Recipient preview">
+          <MessagePreview showLabel={false} smsBody={values.smsBody} />
           <MessageEstimate smsBody={values.smsBody} />
         </ReviewSection>
 
@@ -517,13 +562,19 @@ function MessageEstimate({ smsBody }: { smsBody: string }) {
   );
 }
 
-function MessagePreview({ smsBody }: { smsBody: string }) {
+function MessagePreview({
+  showLabel = true,
+  smsBody,
+}: {
+  showLabel?: boolean;
+  smsBody: string;
+}) {
   const preview = createCampaignSmsPreview({ smsBody });
   const hasBody = Boolean(smsBody.trim());
 
   return (
     <div className="grid content-start gap-2">
-      <Label>Recipient preview</Label>
+      {showLabel ? <Label>Recipient preview</Label> : null}
       <div
         className={cn(
           'min-h-36 rounded-lg bg-muted px-3 py-2',
@@ -651,14 +702,54 @@ function campaignToFormValues(campaign: Campaign): CampaignFormValues {
   return {
     name: campaign.name,
     audienceRule: campaign.audienceRule,
-    smsBody: campaign.smsBody,
-    bookingUrl: campaign.bookingUrl,
+    smsBody: campaign.smsBody ?? '',
+    bookingUrl: campaign.bookingUrl ?? '',
     campaignCode: campaign.campaignCode ?? '',
     attributionWindowDays: campaign.attributionWindowDays,
   };
 }
 
-function campaignFormValuesToInput(
+function campaignFormValuesToInitialDraftInput(
+  values: CampaignFormValues,
+): CreateCampaignDraftInput {
+  return {
+    name: values.name,
+    audienceRule: values.audienceRule,
+    smsBody: null,
+    bookingUrl: null,
+    campaignCode: null,
+    attributionWindowDays: values.attributionWindowDays,
+  };
+}
+
+function campaignFormValuesToAudienceInput(
+  values: CampaignFormValues,
+): UpdateCampaignDraftInput {
+  return {
+    name: values.name,
+    audienceRule: values.audienceRule,
+    attributionWindowDays: values.attributionWindowDays,
+  };
+}
+
+function campaignFormValuesToMessageInput(
+  values: CampaignFormValues,
+): UpdateCampaignDraftInput {
+  return {
+    smsBody: values.smsBody,
+  };
+}
+
+function campaignFormValuesToBookingInput(
+  values: CampaignFormValues,
+): UpdateCampaignDraftInput {
+  return {
+    bookingUrl: values.bookingUrl,
+    campaignCode: values.campaignCode,
+  };
+}
+
+function campaignFormValuesToCompleteInput(
   values: CampaignFormValues,
 ): CreateCampaignDraftInput {
   return {

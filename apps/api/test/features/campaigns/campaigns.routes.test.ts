@@ -212,6 +212,37 @@ describe('campaignsRoutes', () => {
     });
   });
 
+  it('creates partial drafts before message and booking are complete', async () => {
+    vi.mocked(createCampaignDraft).mockResolvedValue({
+      ...campaign,
+      bookingUrl: null,
+      smsBody: null,
+    });
+
+    const response = await testApp().request('/v1/campaigns', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        name: campaign.name,
+        audienceRule: campaign.audienceRule,
+      }),
+    });
+
+    expect(response.status).toBe(201);
+    expect(createCampaignDraft).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      createdByUserId: user.id,
+      input: {
+        name: campaign.name,
+        audienceRule: campaign.audienceRule,
+        smsBody: null,
+        bookingUrl: null,
+        campaignCode: null,
+        attributionWindowDays: 7,
+      },
+    });
+  });
+
   it('previews unsaved audience rules for members using the active organization', async () => {
     vi.mocked(previewCampaignAudience).mockResolvedValue({
       eligibleCount: 12,

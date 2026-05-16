@@ -21,8 +21,8 @@ import { textStyles } from '@/lib/text-styles';
 import { CampaignForm, type CampaignStepId } from './campaign-form';
 import { useCampaign } from '../hooks/use-campaign';
 
-const CREATED_CAMPAIGN_REVIEW_STEP_STORAGE_KEY =
-  'retaino.createdCampaignReviewStep';
+const CREATED_CAMPAIGN_INITIAL_STEP_STORAGE_KEY =
+  'retaino.createdCampaignInitialStep';
 
 export function CampaignBuilderScreen({
   campaignId,
@@ -36,16 +36,18 @@ export function CampaignBuilderScreen({
         return undefined;
       }
 
-      const createdCampaignId = window.sessionStorage.getItem(
-        CREATED_CAMPAIGN_REVIEW_STEP_STORAGE_KEY,
+      const storedValue = window.sessionStorage.getItem(
+        CREATED_CAMPAIGN_INITIAL_STEP_STORAGE_KEY,
       );
+      const [createdCampaignId, initialStep] = storedValue?.split(':') ?? [];
 
       if (createdCampaignId !== campaignId) {
         return undefined;
       }
 
-      window.sessionStorage.removeItem(CREATED_CAMPAIGN_REVIEW_STEP_STORAGE_KEY);
-      return 'review';
+      window.sessionStorage.removeItem(CREATED_CAMPAIGN_INITIAL_STEP_STORAGE_KEY);
+
+      return isCampaignStepId(initialStep) ? initialStep : undefined;
     },
   );
   const session = useOrganizationSession();
@@ -128,10 +130,10 @@ export function CampaignBuilderScreen({
             campaign={latestCampaign}
             initialStep={createdCampaignInitialStep}
             key={latestCampaign?.id ?? 'new'}
-            onCreated={(createdCampaignId) => {
+            onCreated={(createdCampaignId, initialStep) => {
               window.sessionStorage.setItem(
-                CREATED_CAMPAIGN_REVIEW_STEP_STORAGE_KEY,
-                createdCampaignId,
+                CREATED_CAMPAIGN_INITIAL_STEP_STORAGE_KEY,
+                `${createdCampaignId}:${initialStep}`,
               );
               router.replace(routes.campaign(createdCampaignId));
             }}
@@ -140,6 +142,15 @@ export function CampaignBuilderScreen({
         )}
       </section>
     </main>
+  );
+}
+
+function isCampaignStepId(value: string | undefined): value is CampaignStepId {
+  return (
+    value === 'audience' ||
+    value === 'message' ||
+    value === 'booking' ||
+    value === 'review'
   );
 }
 
