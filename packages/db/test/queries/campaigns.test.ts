@@ -36,7 +36,7 @@ describe('campaign query helpers', () => {
 
   it('rejects non-draft campaign mutations', () => {
     expect(() =>
-      assertCampaignDraftStatus({ ...campaignRow, status: 'approved' }),
+      assertCampaignDraftStatus({ ...campaignRow, status: 'ready_to_send' }),
     ).toThrow('Campaign is not editable.');
   });
 

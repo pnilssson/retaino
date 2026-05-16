@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const send = vi.fn();
+const setEnvVars = vi.fn(function setEnvVars(this: unknown) {
+  return this;
+});
 const createDb = vi.fn(() => 'db');
 const processContactImport = vi.fn();
 let functionHandler: ((input: unknown) => Promise<void>) | undefined;
@@ -11,6 +14,7 @@ const createFunction = vi.fn((_config, handler) => {
 const instances: Array<{
   options: unknown;
   send: typeof send;
+  setEnvVars: typeof setEnvVars;
   createFunction: typeof createFunction;
 }> = [];
 
@@ -20,7 +24,7 @@ vi.mock('@retaino/db', () => ({
 
 vi.mock('inngest', () => ({
   Inngest: vi.fn(function Inngest(options: unknown) {
-    const instance = { options, send, createFunction };
+    const instance = { options, send, setEnvVars, createFunction };
     instances.push(instance);
     return instance;
   }),
@@ -37,6 +41,7 @@ describe('contacts jobs', () => {
   beforeEach(() => {
     vi.resetModules();
     send.mockReset();
+    setEnvVars.mockClear();
     createDb.mockClear();
     createFunction.mockClear();
     processContactImport.mockReset();
@@ -50,7 +55,7 @@ describe('contacts jobs', () => {
     );
 
     await enqueueContactImportProcessing(
-      { INNGEST_EVENT_KEY: 'worker-event-key' },
+      { INNGEST_DEV: '1', INNGEST_EVENT_KEY: 'worker-event-key' },
       {
         organizationId: '22222222-2222-4222-8222-222222222222',
         contactImportId: '44444444-4444-4444-8444-444444444444',
@@ -61,6 +66,10 @@ describe('contacts jobs', () => {
     expect(instances.at(-1)?.options).toMatchObject({
       id: 'retaino-api',
       eventKey: 'worker-event-key',
+    });
+    expect(instances.at(-1)?.setEnvVars).toHaveBeenCalledWith({
+      INNGEST_DEV: '1',
+      INNGEST_EVENT_KEY: 'worker-event-key',
     });
     expect(send).toHaveBeenCalledWith({
       name: 'contacts/import.process',

@@ -9,6 +9,11 @@ import { ItemNotice } from '@/components/item-notice';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
+  EmptyState,
+  PaginationControls,
+  TableLoading,
+} from '@/components/data-table';
+import {
   ItemContent,
   ItemDescription,
   ItemHeader,
@@ -27,11 +32,6 @@ import { BlockedContacts } from './blocked-contacts';
 import { ContactBulkActions } from './contact-bulk-actions';
 import { ContactFilters } from './contact-filters';
 import { ContactsTable } from './contacts-table';
-import {
-  EmptyState,
-  PaginationControls,
-  TableLoading,
-} from './data-table';
 
 export function ContactsScreen() {
   const session = useOrganizationSession();

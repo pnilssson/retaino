@@ -2,7 +2,7 @@
 
 ## Goal
 
-Let users preview how many contacts match a campaign audience before approval.
+Let users preview how many contacts match a campaign audience before launch.
 The preview should count eligible lapsed contacts and explain why other contacts
 are excluded.
 
@@ -60,9 +60,9 @@ Required functions:
 - `campaignAudienceWhere`
 - `previewCampaignAudience`
 
-Use `campaignAudienceWhere` again during approval and as the basis for pre-send
-suppression checks. Preview, approval, and send must not each invent their own
-eligibility logic.
+Use `campaignAudienceWhere` again during launch snapshot and as the basis for
+pre-send suppression checks. Preview, launch, and send must not each invent
+their own eligibility logic.
 
 Rules:
 
@@ -104,7 +104,7 @@ Minimum coverage:
 - eligible count excludes contacts without consent
 - `includeNoBookingDate` changes the query behavior
 - preview routes always use authenticated `organizationId`
-- approval tests can reuse the same helper so preview and approval cannot drift
+- launch tests can reuse the same helper so preview and launch cannot drift
 
 ## Verification
 
@@ -120,7 +120,7 @@ pnpm --filter @retaino/api typecheck
 ## Risks
 
 - Counting contacts that cannot legally receive SMS.
-- Making preview behavior differ from approval behavior.
+- Making preview behavior differ from launch behavior.
 - Loading too many contacts into memory.
 - Forgetting that suppressions can change between preview and send.
 - Caching audience eligibility and showing stale suppression or consent state.

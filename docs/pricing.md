@@ -27,7 +27,7 @@ All paid tiers include the same product workflow:
 - unlimited organizations per user
 - unlimited contacts
 - unlimited imports
-- unlimited campaign drafts
+- unlimited in-progress campaigns
 - campaign sending
 - tracking links
 - basic campaign reporting

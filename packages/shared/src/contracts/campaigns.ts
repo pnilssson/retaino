@@ -3,7 +3,7 @@ import { idSchema, nonEmptyStringSchema, timestampSchema } from '../schemas';
 
 export const CAMPAIGN_STATUSES = [
   'draft',
-  'approved',
+  'ready_to_send',
   'sending',
   'sent',
   'failed',

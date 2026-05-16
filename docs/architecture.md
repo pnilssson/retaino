@@ -65,9 +65,18 @@ Twilio is the MVP SMS provider. Keep provider code behind an adapter so product
 features depend on Retaino message contracts, not Twilio SDK types or webhook
 payloads.
 
-The adapter normalizes outbound IDs, provider states, error details, inbound
-STOP-style replies, segment counts, and estimated provider cost. Provider
-credentials stay in environment bindings, never tenant-owned tables.
+The adapter models Retaino's SMS domain, not Twilio's API shape. It normalizes
+sender provisioning, sender capabilities, outbound IDs, provider states, error
+details, inbound replies, STOP-style replies, segment counts, estimated and
+actual provider cost, webhook signature verification, and provider references.
+Provider credentials stay in environment bindings, never tenant-owned tables.
+
+SMS providers differ in how they represent sender groups, phone number
+capabilities, webhooks, delivery reports, delivery states, smart encoding,
+regulatory requirements, and error payloads. Retaino product code must call a
+provider-neutral interface and must not know whether the underlying provider
+uses a Twilio Messaging Service, Telnyx Messaging Profile, Vonage application,
+Sinch service plan, Bird channel, or another provider-specific object.
 
 Each organization gets its own SMS-capable Twilio number and its own Twilio
 Messaging Service before real sends. Do not use one shared Retaino sender
@@ -170,6 +179,18 @@ Application forms use TanStack Form unless an explicit exception is approved.
 - Use `ItemTitle` and `ItemDescription` for standard item title/subtitle text.
 - Use `ItemNotice` for inline item notices instead of `Alert` inside app items.
 - Use `textStyles` from `src/lib/text-styles.ts` for repeated text roles.
+  Available roles are:
+  - `pageTitle`
+  - `pageDescription`
+  - `sectionTitle`
+  - `itemTitle`
+  - `body`
+  - `mutedBody`
+  - `meta`
+  - `metaStrong`
+  - `numeric`
+  - `metric`
+  - `error`
 - Never design cards inside cards. Use sections, lists, tables, split layouts,
   or direct item content.
 - Use the plain shadcn Sonner wrapper with state-specific toast calls. Do not

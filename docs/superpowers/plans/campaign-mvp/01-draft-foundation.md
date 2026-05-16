@@ -1,20 +1,24 @@
-# Phase 1: Campaign Draft Foundation
+# Phase 1: Campaign Persistence Foundation
 
 ## Goal
 
-Create the backend foundation for campaign drafts. A user should be able to
-create, list, read, update, and delete draft campaigns for the active
-organization.
+Create the backend foundation for campaigns that are still being prepared. A
+user should be able to create, list, read, update, and delete internally drafted
+campaigns for the active organization.
 
-This phase does not send SMS, approve campaigns, snapshot recipients, or create
+This phase does not send SMS, launch campaigns, snapshot recipients, or create
 tracking links.
+
+Draft is a persistence status, not the main user-facing creation outcome. The
+web app may show `Draft` in the campaign list status, but campaign creation copy
+should say `New campaign`.
 
 ## Product Model
 
 One campaign has one audience rule and one SMS message. If a customer wants a
 30-day and 90-day lapsed campaign, they create two campaigns.
 
-Draft campaigns store intent:
+Internally drafted campaigns store intent:
 
 - name
 - audience rule
@@ -41,7 +45,7 @@ Create `packages/shared/src/contracts/campaigns.ts` and export it from
 
 Core schemas:
 
-- `campaignStatusSchema`: `draft`, `approved`, `sending`, `sent`, `failed`
+- `campaignStatusSchema`: `draft`, `ready_to_send`, `sending`, `sent`, `failed`
 - `campaignAudienceRuleSchema`: `{ lapsedDays, includeNoBookingDate }`
 - `createCampaignDraftSchema`
 - `updateCampaignDraftSchema`
@@ -88,7 +92,7 @@ Start with a `campaigns` table only:
 - `createdAt`
 - `updatedAt`
 
-Do not add approval, sending, provider, recipient, tracking, or report fields in
+Do not add launch, sending, provider, recipient, tracking, or report fields in
 this phase. Add those fields in the phase that first uses them.
 
 Indexes:
@@ -155,7 +159,7 @@ Minimum coverage:
 - shared schemas reject unsupported SMS personalization syntax
 - campaign table exposes `organizationId`
 - query helpers include tenant filters
-- non-draft campaigns cannot be updated or deleted
+- launched or sending campaigns cannot be updated or deleted
 - route handlers pass authenticated `organizationId`, never body org IDs
 - members can read campaigns but cannot create, update, or delete
 
@@ -174,7 +178,7 @@ pnpm --filter @retaino/api typecheck
 
 ## Risks
 
-- Accidentally allowing updates after approval.
+- Accidentally allowing updates after launch.
 - Storing organization IDs from the request body.
 - Putting business rules directly in Hono route handlers.
 - Overbuilding saved segments before campaign-owned rules exist.

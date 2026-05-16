@@ -33,10 +33,11 @@ this campaign?
 2. Billing setup with Stripe subscriptions, credit packs, and SMS balance.
 3. Contact import with permission attestation, validation, dedupe, and
    suppression checks.
-4. Campaign drafts with campaign-owned lapsed-customer audience rules.
+4. Campaign creation with internal draft persistence and campaign-owned
+   lapsed-customer audience rules.
 5. Dedicated organization SMS sender setup, SMS preview, segment counting, and
    test sends.
-6. Short links and campaign send execution.
+6. Campaign launch with recipient snapshots, short links, and send execution.
 7. Booking CSV upload and reconciliation.
 8. Campaign reporting with attribution confidence.
 
@@ -52,7 +53,8 @@ Required:
 - CSV contact import with field mapping, validation, dedupe, and suppression
   checks
 - contact permission attestation inside the import flow
-- campaign-owned lapsed-customer audience rules
+- campaign-owned lapsed-customer audience rules with internal draft
+  persistence
 - one dedicated SMS-capable sender number and Messaging Service per
   organization
 - SMS editor with GSM-7 and Unicode segment counter plus cost preview
@@ -108,14 +110,18 @@ Campaign:
 
 1. User creates a campaign and chooses the eligible lapsed audience.
 2. User writes SMS copy.
-3. Retaino counts segments and warns when Unicode increases cost.
+3. Retaino counts segments and shows the estimated SMS use in plain language.
 4. User chooses a booking URL and optional campaign code or reference that may
    appear in later booking exports.
 5. Admin chooses the sender country based on recipient market and selects an
    available SMS-capable number or accepts Retaino's recommendation.
 6. Retaino provisions the organization's dedicated sender if it does not exist.
-7. Retaino creates one tracked link per recipient.
-8. User sends a test SMS, then approves the live send.
+7. User reviews the final campaign, estimated credits, sender, and recipient
+   count.
+8. User sends a test SMS.
+9. User sends the campaign. Retaino then freezes the selected recipients,
+   creates one tracked link per recipient, reserves credits, and sends through a
+   background job.
 
 Reporting:
 
@@ -133,3 +139,6 @@ Reporting:
 - Use prepaid credits only in MVP. Do not create surprise usage invoices.
 - Keep long-running work in background jobs.
 - Keep the product narrow until import, campaign, and reporting work end to end.
+- Use draft as a persistence status, not as the main campaign creation outcome.
+  User-facing copy should say campaign, not campaign draft, except in list
+  status labels.

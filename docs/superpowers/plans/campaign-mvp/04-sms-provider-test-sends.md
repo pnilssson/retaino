@@ -1,4 +1,4 @@
-# Phase 5: SMS Provider And Test Sends
+# Phase 4: SMS Provider And Test Sends
 
 ## Goal
 
@@ -6,14 +6,14 @@ Add SMS preview, organization sender provisioning, and test-send support through
 a provider adapter. Twilio is the MVP provider, but campaign services should
 depend on Retaino adapter types, not Twilio SDK or webhook payload types.
 
-This phase sends only test messages. It does not send approved campaigns.
+This phase sends only test messages. It does not send live campaigns.
 
 ## Product Model
 
-Users need confidence before approval and live send:
+Users need confidence before launching a campaign:
 
 - preview the final message including forced opt-out text
-- see encoding and SMS segment count
+- see the estimated SMS per recipient in plain product language
 - set up the organization's dedicated SMS sender only when sending becomes real
 - choose the sender country and sender number for the recipient market
 - send a test SMS to a responsible user or explicit test phone
@@ -58,17 +58,24 @@ Extend `packages/shared/src/contracts/campaigns.ts` with:
 
 - forced opt-out text constant
 - SMS preview schema
-- SMS encoding and segment-count helper
 - test-send request and response schemas
 - sender provisioning status schema and response schema
 - available sender country and number selection schemas
+
+Reuse the existing shared SMS preview and estimate helper from
+`packages/shared/src/sms.ts`. Do not create a separate segment estimator in the
+API or web app. The helper must remain the single estimate source for the web
+composer, provider preview route, credit reservation, and test-send flow.
+Use `createCampaignSmsPreview` for sample web previews, `renderCampaignSms` for
+test sends and provider sends with exact recipient values, and
+`estimateSmsMessage` when a route or service needs provider-ready estimate
+metadata without rendering a campaign body.
 
 The preview helper should return:
 
 - rendered body
 - character count
-- segment count
-- encoding: `gsm7` or `unicode`
+- estimated SMS per recipient
 - forced opt-out text
 
 Rendering rule:
@@ -83,21 +90,95 @@ Support only `{first_name}` and `{last_booking_date}` in MVP. Unknown
 `{opt_out}` must be rejected before preview or send. If a recipient is missing a
 token value, render a clean empty fallback and avoid awkward doubled spaces or
 punctuation where practical.
-The preview helper must use the same SMS encoding policy as live sending. If
-Twilio Smart Encoding is enabled in the Messaging Service, Retaino must mirror
-those substitutions before estimating segments. Otherwise, keep provider-side
-Smart Encoding disabled for MVP so estimates match the submitted body.
+The preview helper must detect standard SMS character set limits and Unicode
+fallback internally so emoji and other non-standard characters are estimated
+correctly. Do not expose encoding names in user-facing UI. If Twilio Smart
+Encoding is enabled in the Messaging Service, Retaino must mirror those
+substitutions before estimating SMS usage. Otherwise, keep provider-side Smart
+Encoding disabled for MVP so estimates match the submitted body.
 
 ### Provider Adapter
 
 Create `apps/api/src/lib/sms-provider.ts`.
 
-Adapter interface:
+The adapter interface models Retaino SMS operations, not the chosen provider's
+API objects. Research across Twilio, Vonage, Sinch, Bird, MessageBird, and
+Telnyx shows the common provider responsibilities are:
 
+- search or expose SMS-capable sender options by country and number type
+- configure a sender group or profile with inbound and status webhook URLs
+- verify whether a phone number supports outbound SMS, inbound SMS, and status
+  callbacks
+- report regulatory or manual action requirements before a sender can be used
+- send an outbound SMS with a stable Retaino reference
+- return provider message IDs, initial provider status, segment counts, and
+  cost when available
+- receive delivery reports or status callbacks and normalize them
+- receive inbound messages and normalize them
+- verify webhook signatures or signing keys when the provider supports it
+- normalize provider errors without leaking provider payload shapes into product
+  services
+
+Define provider-neutral types in `apps/api/src/lib/sms-provider.ts`:
+
+- `SmsProviderName`: starts with `fake` and `twilio`
+- `SmsSenderCountry`: country code, label, supported number types, and whether
+  Retaino can self-serve the country in MVP
+- `SmsSenderOption`: E.164 phone number, country code, number type,
+  capabilities, regulatory requirement summary, provider reference, and
+  user-facing label
+- `SmsSenderCapability`: `outboundSms`, `inboundSms`, `statusCallbacks`,
+  `twoWaySms`, and optional `smartEncoding`
+- `SmsSenderProvisioningInput`: organization ID, selected sender option,
+  inbound callback URL, status callback URL, idempotency key, and actor user ID
+- `SmsSenderProvisioningResult`: normalized sender status, stored phone number,
+  provider references, capabilities, regulatory status, and failure reason
+- `OutboundSmsInput`: Retaino message ID, organization sender, recipient E.164
+  number, rendered body, estimated segments, callback URLs when needed, and a
+  Retaino idempotency/reference value
+- `OutboundSmsResult`: provider name, provider message ID, normalized status,
+  provider status, provider sender references, actual segment count when known,
+  cost when known, currency, and raw provider reference for support
+- `SmsStatusEvent`: provider message ID, Retaino message reference when present,
+  normalized status, provider status, timestamps, segment count, cost, currency,
+  and provider error details when present
+- `InboundSmsMessage`: provider message ID, from phone, to phone, body,
+  received timestamp, provider sender references, and raw provider reference
+- `SmsProviderError`: normalized error code, retryability, public-safe message,
+  internal provider message, and provider error code
+
+Recommended adapter methods:
+
+- `listSenderCountries(input)`
+- `searchSenderOptions(input)`
 - `ensureSender(input)`
-- `send(input)`
-- normalized result with provider, provider message ID, status, segment count,
-  cost, and currency
+- `sendSms(input)`
+- `parseStatusWebhook(input)`
+- `parseInboundWebhook(input)`
+- `verifyWebhook(input)`
+
+Normalized outbound statuses should start with: `queued`, `accepted`, `sent`,
+`delivered`, `failed`, `undelivered`, and `skipped`. Provider-specific states
+such as Bird `processing`, MessageBird `buffered`, Twilio `accepted`, or Sinch
+batch delivery states must map to Retaino statuses before reaching services or
+the database.
+
+Normalized provider error codes should include at least:
+
+- `configuration_missing`
+- `sender_not_ready`
+- `manual_action_required`
+- `regulatory_blocked`
+- `recipient_invalid`
+- `message_invalid`
+- `provider_rate_limited`
+- `provider_temporary_failure`
+- `provider_permanent_failure`
+- `provider_unavailable`
+
+Routes, services, jobs, and web UI must depend on these Retaino types only.
+They must not inspect Twilio SIDs, Telnyx profile IDs, Vonage webhook payloads,
+Sinch batch IDs, Bird channel IDs, or MessageBird status strings directly.
 
 Create `apps/api/src/lib/twilio-provider.ts` for Twilio-specific behavior.
 
@@ -106,10 +187,11 @@ unless a later compatibility spike proves it works cleanly in Cloudflare
 Workers. If the SDK is added later, keep it behind the same adapter interface.
 
 Production sends use the organization's stored Twilio Messaging Service SID.
-Support a direct `TWILIO_FROM_PHONE` fallback only for local development and
-Twilio test-credential mode. Twilio test credentials validate SMS request shape
-without sending real messages, but they do not support `MessagingServiceSid`
-and do not trigger status callbacks.
+Support a direct `TWILIO_FROM_PHONE` fallback only for optional Twilio
+test-credential request-shape checks. Normal local development and automated
+tests use the Retaino fake provider. Twilio test credentials validate SMS
+request shape without sending real messages, but they do not support
+`MessagingServiceSid` and do not trigger status callbacks.
 
 `ensureSender` should:
 
@@ -133,14 +215,21 @@ manually configure each customer in Twilio.
 
 Centralize sending mode in the provider factory. Routes, campaign services, and
 jobs should call the adapter and should not branch on sending mode themselves.
-Supported modes:
+Supported runtime modes:
 
 - `disabled`: block sends with a clear configuration error
-- `test`: call Twilio test credentials and magic numbers
-- `live`: call live Twilio credentials
+- `test`: use a deterministic Retaino fake provider that never calls Twilio or
+  another external provider
+- `live`: call the configured live provider adapter
 
 Declare any new dependency in `apps/api/package.json`. The direct REST approach
 should not require a Twilio dependency.
+
+The fake provider should implement the same interface as the live adapter. It
+should return deterministic sender options, sender readiness, message IDs,
+delivery states, segment counts, costs, temporary failures, permanent failures,
+and inbound replies for tests. Product code must not know it is using a fake
+provider.
 
 ### API
 
@@ -171,19 +260,24 @@ Retaino SMS credit balance used by live sends. Check enough credits for the
 estimated preview before sending, reserve those credits, then reconcile actual
 segment usage as Retaino credit transactions after the provider response.
 Test sends require a ready organization sender in live sending mode.
+Test sends do not lock the campaign. The user can edit audience, message, or
+booking details after a test and send another test before launching.
 
 ### Web
 
-Add test-send controls to the campaign review flow:
+Extend the campaign builder with sender setup and review/test controls:
 
 - show sender setup status
 - let admins choose sender country and number
 - let admins provision the sender when it is missing or failed
-- show rendered SMS preview with estimated segment count
+- show rendered SMS preview with estimated SMS per recipient
 - allow an explicit test phone input
 - default to the organization responsible phone when available
 - show provider success or failure feedback
 - keep live send unavailable in this phase
+
+User-facing copy should say `Send test SMS`. Test sending is a
+readiness step before the final launch action.
 
 ### Environment
 
@@ -191,7 +285,8 @@ Extend `apps/api/src/types.ts` with Twilio bindings:
 
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
-- `TWILIO_FROM_PHONE` for local and test-credential mode only
+- `TWILIO_FROM_PHONE` for optional Twilio test-credential request-shape checks
+  only
 - `TWILIO_INBOUND_CALLBACK_BASE_URL`
 - `TWILIO_STATUS_CALLBACK_BASE_URL`
 - `SMS_SENDING_MODE`
@@ -214,7 +309,7 @@ Minimum coverage:
 - rendered preview includes the booking URL or test tracking URL
 - rendered preview and provider sends use the same SMS encoding policy
 - unsupported personalization syntax is rejected before send
-- GSM-7 and Unicode segment counts are stable
+- standard SMS character set and emoji estimates are stable
 - sender provisioning requires admin, active billing, and current legal
   acceptance
 - sender provisioning uses the admin-selected sender country and number
@@ -228,13 +323,21 @@ Minimum coverage:
 - test-send route requires active billing and enough Retaino SMS credits
 - test-send route requires a ready organization sender in live mode
 - provider result is normalized
+- provider adapter exposes sender capabilities without provider-specific types
+- provider status webhooks normalize provider states to Retaino states
+- provider inbound webhooks normalize incoming SMS messages to Retaino messages
+- webhook verification is provider-owned and hidden behind the adapter
+- provider errors normalize to Retaino error codes and retryability
+- fake provider implements the same adapter interface as live providers
+- fake provider test mode never calls external SMS APIs
 - missing provider configuration fails clearly
 - test sends do not create campaign recipients
 - test-send estimated credits are reserved before provider send
 - actual test-send segment usage is reconciled as Retaino credit transactions
 - explicit test phone overrides organization responsible phone
 - organization responsible phone is used when no explicit test phone is provided
-- web UI shows rendered SMS preview before test send
+- web UI shows rendered SMS preview and estimated SMS per recipient before test
+  send
 - fake provider tests cover success, provider validation errors, temporary
   provider errors, and missing configuration
 - optional Twilio test-credential checks use magic numbers and are excluded from
@@ -254,12 +357,20 @@ pnpm --filter @retaino/api typecheck
 ## Risks
 
 - Allowing real sends from development or test environments by accident.
-- Using Twilio types outside the adapter.
+- Designing the adapter around Twilio's Messaging Service shape instead of
+  Retaino's SMS domain.
+- Using Twilio, Vonage, Sinch, Bird, MessageBird, Telnyx, or other provider
+  types outside the adapter.
 - Scattering sending-mode checks across routes, services, and jobs instead of
   centralizing them in the provider factory.
+- Letting product services inspect provider-specific delivery states or webhook
+  payloads directly.
 - Letting users remove opt-out text.
 - Letting users accidentally omit the booking link by requiring placeholders.
-- Segment estimates differing from provider billing.
+- SMS estimates differing from provider billing because the API, web composer,
+  and provider adapter use different logic.
 - Treating Twilio test credentials as end-to-end coverage even though they do
   not emit callbacks or support Messaging Services.
+- Building local test flows against Twilio test credentials instead of the
+  deterministic fake provider.
 - Hiding test-send provider failures behind generic UI errors.

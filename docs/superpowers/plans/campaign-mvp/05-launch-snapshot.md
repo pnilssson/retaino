@@ -1,22 +1,26 @@
-# Phase 4: Approval Snapshot
+# Phase 5: Launch Snapshot
 
 ## Goal
 
-Approve a draft campaign and snapshot its recipients. Approval freezes the
-campaign configuration and selected recipients so later reports can explain
-exactly who was selected and why.
+Add the internal launch snapshot that freezes campaign configuration and
+selected recipients behind the final send action. Reports must be able to
+explain exactly who was selected and why.
 
 This phase does not send live SMS.
 
 ## Product Model
 
-Approval is the boundary between editable planning and operational execution.
-After approval:
+Launch is the boundary between editable planning and operational execution.
+The user-facing action is `Send campaign`.
+
+When a campaign is launched:
 
 - campaign fields cannot be changed
 - selected recipients are stored as snapshots
-- approval is audit logged
+- the launch decision is audit logged
 - the campaign can later be sent by a background job
+
+The internal pre-send campaign status is `ready_to_send`.
 
 ## Backend Shape
 
@@ -26,8 +30,8 @@ Extend `packages/db/src/schema/campaigns.ts` with:
 
 Additional `campaigns` fields:
 
-- `approvedAt`
-- `approvedByUserId`
+- `readyToSendAt`
+- `readyToSendByUserId`
 
 `campaign_recipients`
 
@@ -68,11 +72,11 @@ Generate the migration from schema changes.
 
 Add:
 
-- `approveCampaign`
+- `launchCampaign`
 - `listCampaignRecipients`
 - `createAuditLog`
 
-Approval service responsibilities:
+Launch snapshot service responsibilities:
 
 1. Load campaign by `organizationId` and campaign ID.
 2. Reject missing campaigns.
@@ -80,7 +84,7 @@ Approval service responsibilities:
 4. Re-run the same audience logic used by preview.
 5. Reject empty audiences.
 6. Insert recipient snapshots.
-7. Mark campaign `approved`.
+7. Mark campaign internally ready for send.
 8. Write an audit log with audience rule, campaign code or reference, and
    recipient count.
 
@@ -88,22 +92,25 @@ Approval service responsibilities:
 
 Add:
 
-- `POST /v1/campaigns/:id/approve`
+- `POST /v1/campaigns/:id/launch`
 - `GET /v1/campaigns/:id/recipients`
 
-Approval requires admin campaign eligibility. Recipient listing can be read by
+Launch requires admin campaign eligibility. Recipient listing can be read by
 members with organization access.
 
 ### Web
 
-Extend the campaign builder with a review and approve state:
+Extend the campaign builder with launch readiness state:
 
-- show read-only campaign details before approval
+- show read-only campaign details before launch
 - show current audience count and estimated SMS segments
-- require an explicit approval action from an admin
-- after approval, disable draft editing and show recipient snapshot status
+- require an explicit `Send campaign` action from an admin
+- after launch snapshot, disable editing and show recipient snapshot status
 
 Do not add live send controls in this phase.
+The next phase wires the same user action to live send execution. If this phase
+is implemented separately, prefer keeping launch snapshot internal until live
+sending is ready.
 
 ## Tests
 
@@ -116,13 +123,13 @@ Add or extend tests in:
 
 Minimum coverage:
 
-- approving creates recipient snapshots
+- launching creates recipient snapshots
 - snapshots copy contact fields instead of relying only on current contacts
-- approving a non-draft campaign returns conflict
-- approving an empty audience returns validation failure
-- approval writes an audit event
-- update and delete reject approved campaigns
-- web UI disables editing after approval
+- launching a non-draft campaign returns conflict
+- launching an empty audience returns validation failure
+- launch writes an audit event
+- update and delete reject launched campaigns
+- web UI disables editing after launch
 
 ## Verification
 
@@ -139,7 +146,8 @@ pnpm --filter @retaino/api typecheck
 
 - Reports becoming inaccurate if they read mutable contact fields instead of
   recipient snapshots.
-- Approval and preview using different eligibility logic.
+- Launch snapshot and preview using different eligibility logic.
 - Missing audit records for sensitive send preparation.
-- Letting users edit SMS copy after recipients are approved.
-- Adding send controls before test-send and live-send phases exist.
+- Letting users edit SMS copy after recipients are launched.
+- Adding a separate pre-send decision step instead of making launch the final
+  action.

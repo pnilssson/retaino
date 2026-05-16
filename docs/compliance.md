@@ -66,7 +66,7 @@ STOP handling must detect STOP-style replies, add organization-level
 suppressions, prevent future sends to suppressed phone numbers, log the event,
 and show suppression counts during audience review.
 
-Suppression checks run before campaign approval and immediately before send
+Suppression checks run during launch readiness and immediately before send
 execution.
 
 ## Data Minimization
@@ -96,7 +96,7 @@ resource type, resource ID, timestamp, and relevant metadata.
 
 Log enough to prove sensitive actions: legal acceptance, import metadata,
 mapping, validation, dedupe, suppression removal, campaign rules, SMS copy,
-approvals, provider results, opt-outs, clicks, booking uploads,
+launch decisions, provider results, opt-outs, clicks, booking uploads,
 reconciliation, and manual attribution changes.
 
 ## Retention

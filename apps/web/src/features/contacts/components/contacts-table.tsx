@@ -6,9 +6,9 @@ import {
   type RowSelectionState,
 } from '@tanstack/react-table';
 import type { Contact } from '@retaino/shared/contracts';
+import { DataTable } from '@/components/data-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { contactColumns } from './contact-columns';
-import { DataTable } from './data-table';
 
 const selectionColumn: ColumnDef<Contact> = {
   id: 'select',

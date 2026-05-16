@@ -14,17 +14,46 @@ deferred until customers need advanced campaign operations.
 
 This is both backend and frontend work. The first two phases build stable
 backend APIs, phase 3 turns those APIs into a usable campaign builder, and the
-remaining phases add approval, sending, tracking, and reporting.
+remaining phases add sender setup, test sending, launch, tracking, and
+reporting.
+
+## Campaign UX Direction
+
+Users create campaigns. Retaino may store draft rows, but the campaign creation
+flow should not make "creating a draft" feel like the user's goal. Draft belongs
+as an internal persistence status and as a campaign list status label for work
+that has not launched yet.
+
+The final user-facing campaign flow is:
+
+1. Choose audience.
+2. Write the SMS.
+3. Add booking details.
+4. Set up or confirm the sender.
+5. Review the campaign and send a test SMS.
+6. Send the campaign.
+
+The final action is `Send campaign`. There is no separate user-facing `Approve`
+step. Internally, Retaino must still freeze the campaign configuration,
+snapshot selected recipients, audit the actor, reserve credits, create tracking
+links, and enqueue the send job. Those are system responsibilities behind the
+launch action.
+
+Research across SMS and email campaign tools points to the same pattern:
+campaigns are built through audience, content, preview, review, test, and final
+send or schedule. Drafts are treated as recoverable in-progress work, not as the
+main success state. Retaino should follow that expectation while staying
+narrower than general-purpose marketing tools.
 
 Campaign implementation should build from the smallest useful workflow toward
 safe live sending:
 
-1. Store draft campaign intent.
+1. Store in-progress campaign intent.
 2. Preview the eligible audience.
 3. Give users a simple campaign builder in the web app.
-4. Approve and snapshot recipients.
-5. Provision the organization sender and send test SMS through the provider
+4. Provision the organization sender and send test SMS through the provider
    adapter.
+5. Freeze recipients as part of campaign launch.
 6. Create tracking links and send live campaigns in background jobs.
 7. Ingest provider callbacks, STOP replies, clicks, and reports.
 
@@ -33,11 +62,20 @@ Twilio is the MVP provider because `docs/architecture.md` and
 Twilio behind an internal SMS provider adapter so campaign workflows do not
 depend on Twilio payloads or SDK types.
 
+The provider adapter must be provider-neutral. Retaino owns concepts such as
+organization sender, sender option, sender capability, rendered SMS, outbound
+message result, inbound message, provider status event, provider error, and
+webhook verification. Twilio-specific concepts such as Messaging Services,
+Message SIDs, phone number SIDs, and Twilio callback parameters stay inside the
+Twilio adapter. The same boundary should be able to support providers such as
+Vonage, Sinch, Bird, MessageBird, Telnyx, or another SMS provider later.
+
 Production sending uses one Twilio Messaging Service and one SMS-capable Twilio
 number per organization so sender configuration, routing, and opt-out behavior
-are tenant-local. Keep a direct `from` phone fallback only for local or
-test-credential mode, because Twilio test credentials do not support
-`MessagingServiceSid`.
+are tenant-local. If optional Twilio test-credential request-shape checks are
+added, they may use a direct `from` phone fallback because Twilio test
+credentials do not support `MessagingServiceSid`. Normal local development uses
+the Retaino fake provider instead.
 Live campaign senders must support the opt-out path Retaino shows in the final
 message. Do not use one-way alphanumeric sender IDs for live campaigns while
 reply-based STOP handling is the only opt-out mechanism.
@@ -48,15 +86,23 @@ works predictably in Cloudflare Workers. If the SDK is introduced later, it must
 stay behind the same provider adapter.
 
 SMS sending mode must be centralized in the SMS provider factory, not checked
-throughout routes, services, or jobs. The adapter should be the only place that
-decides whether sending is disabled, using Twilio test credentials, or using
-live Twilio credentials.
+throughout routes, services, or jobs. Supported runtime modes are:
+
+- `disabled`: block sends with a clear configuration error.
+- `test`: use a deterministic Retaino fake provider and never call an external
+  SMS provider. This mode supports local development, automated tests, and UI
+  verification before Twilio account approval.
+- `live`: use the configured live provider adapter.
+
+Optional Twilio test-credential checks are request-shape tests only. They are
+not the normal local runtime path because Twilio test credentials do not send
+real SMS, do not trigger callbacks, and do not support Messaging Services.
 
 ## MVP Scope
 
 Build only what helps a user create and send a clear reactivation campaign:
 
-- draft campaigns
+- internal draft persistence for in-progress campaigns
 - lapsed audience rules
 - audience preview
 - one SMS message
@@ -64,8 +110,8 @@ Build only what helps a user create and send a clear reactivation campaign:
 - optional campaign code or reference for booking-export matching
 - required opt-out text
 - dedicated organization sender provisioning
-- approval with recipient snapshot
 - test send
+- launch snapshot
 - per-recipient tracking links
 - live send
 - delivery, click, reply, opt-out, and basic campaign metrics
@@ -82,7 +128,7 @@ unknown `{...}` tokens.
 ## Sender Provisioning Direction
 
 Retaino provisions Twilio sender resources lazily. An organization may create
-draft campaigns and preview audiences without a sender. Before the first test
+campaigns and preview audiences without a sender. Before the first test
 send or live send, an admin must have an active paid subscription and current
 legal acceptance, then Retaino creates or reuses:
 
@@ -115,9 +161,9 @@ instead of treating the sender as ready.
 Do not provision Twilio numbers immediately after Stripe checkout. That creates
 recurring sender cost for organizations that have not yet reached campaign
 send-readiness. Do not wait until the live send button either, because users
-need the dedicated sender to send a realistic test SMS before approval.
+need the dedicated sender to send a realistic test SMS before launch.
 
-## Twilio Testing Strategy
+## Provider Testing Strategy
 
 Use three testing layers:
 
@@ -135,9 +181,9 @@ Use three testing layers:
 Do not rely on Twilio test credentials for callback or Messaging Service
 coverage. Use signed webhook fixture tests for callback handling.
 
-Store both estimated and actual SMS segment counts. Estimates power the draft
-and approval UI; actual provider values are stored from Twilio responses and
-callbacks so reporting can show drift over time.
+Store both estimated and actual SMS segment counts. Estimates power the campaign
+builder and launch UI; actual provider values are stored from Twilio responses
+and callbacks so reporting can show drift over time.
 Define one SMS encoding policy for MVP. Either disable provider-side Smart
 Encoding or mirror the same substitutions in Retaino's preview counter. The
 preview and send job must estimate the exact rendered body that will be sent.
@@ -156,7 +202,7 @@ append-only ledger, not stored as a separate mutable value.
 
 Campaign sends use a campaign-level credit check:
 
-1. Estimate required credits for the full approved campaign.
+1. Estimate required credits for the full campaign.
 2. Require an active subscription in the local Stripe-backed billing projection.
 3. Read the organization's Retaino SMS credit balance.
 4. Block live send if the available balance is lower than the estimate.
@@ -191,8 +237,8 @@ send retries can happen after the event-level idempotency window.
 - Database access comes from `packages/db`, not inline route SQL.
 - Web forms use TanStack Form. Do not hand-roll form state.
 - Campaign sends and reconciliation run in background jobs, not HTTP requests.
-- Suppression checks run during audience preview, approval, and immediately
-  before send.
+- Suppression checks run during audience preview, launch snapshot, and
+  immediately before send.
 - Twilio credentials stay in environment bindings. Organization sender
   configuration stores provider resource IDs only.
 - Drizzle migrations are generated from schema changes. Do not manually edit
@@ -217,18 +263,19 @@ MVP does not mean loose. Each phase should be small, testable, and complete:
 - avoid duplicate schemas, helpers, or status strings
 - prefer explicit lifecycle states over ambiguous booleans
 - keep provider and job idempotency risks visible in tests
-- make preview, approval, and send eligibility use the same underlying rules
+- make preview, launch snapshot, and send eligibility use the same underlying
+  rules
 - stop after each phase for review instead of blending future work into it
 
 ## Phase Documents
 
 | Phase | Outcome | Document |
 | --- | --- | --- |
-| 1. Draft Foundation | Create, read, update, and delete campaign drafts. | `docs/superpowers/plans/campaign-mvp/01-draft-foundation.md` |
-| 2. Audience Preview | Count and sample eligible lapsed contacts before approval. | `docs/superpowers/plans/campaign-mvp/02-audience-preview.md` |
+| 1. Campaign Persistence | Create, read, update, and delete internally drafted campaigns. | `docs/superpowers/plans/campaign-mvp/01-draft-foundation.md` |
+| 2. Audience Preview | Count and sample eligible lapsed contacts before launch. | `docs/superpowers/plans/campaign-mvp/02-audience-preview.md` |
 | 3. Web Campaign Builder | Let users create and edit one-audience, one-message campaigns. | `docs/superpowers/plans/campaign-mvp/03-web-campaign-builder.md` |
-| 4. Approval Snapshot | Freeze recipients and add the campaign approval UI. | `docs/superpowers/plans/campaign-mvp/04-approval-snapshot.md` |
-| 5. SMS Provider And Test Sends | Preview SMS cost and let admins send test messages. | `docs/superpowers/plans/campaign-mvp/05-sms-provider-test-sends.md` |
+| 4. SMS Provider And Test Sends | Preview SMS cost, provision sender resources, and let admins send test messages. | `docs/superpowers/plans/campaign-mvp/04-sms-provider-test-sends.md` |
+| 5. Launch Snapshot | Freeze recipients behind the final send action. | `docs/superpowers/plans/campaign-mvp/05-launch-snapshot.md` |
 | 6. Tracking Links And Live Send Jobs | Create recipient links, send campaigns, and show send state. | `docs/superpowers/plans/campaign-mvp/06-live-send-jobs.md` |
 | 7. Events, Tracking, Reporting | Handle callbacks, STOP replies, clicks, and show campaign metrics. | `docs/superpowers/plans/campaign-mvp/07-events-tracking-reporting.md` |
 
@@ -239,8 +286,10 @@ document if product or architecture decisions changed. After finishing a phase,
 run the package tests and typechecks named in the phase document, then stop for
 review before loading the next phase.
 
-The first user-visible milestone is phase 3: a campaign builder that saves a
-draft and previews the audience. Do not wait for Twilio to build that value.
+The first user-visible milestone is phase 3: a campaign builder that persists a
+new campaign and previews the audience. Until sender setup and test sends are
+implemented, the end of the flow may only save the campaign, but the UI copy
+should not present "creating a draft" as the final product goal.
 
 ## Deferred Decisions
 

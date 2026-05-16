@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -18,22 +19,25 @@ const toneClasses: Record<StatusBadgeTone, string> = {
 
 export function StatusBadge({
   className,
+  icon,
   label,
   tone,
 }: {
   className?: string;
+  icon?: ReactNode;
   label: string;
   tone: StatusBadgeTone;
 }) {
   return (
     <Badge
       className={cn(
-        'border px-2.5 font-medium shadow-none',
+        'inline-flex items-center gap-1.5 border px-2.5 font-medium shadow-none',
         toneClasses[tone],
         className,
       )}
       variant="outline"
     >
+      {icon}
       {label}
     </Badge>
   );

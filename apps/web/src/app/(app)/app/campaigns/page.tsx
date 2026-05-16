@@ -1,10 +1,5 @@
-import { PlaceholderPage } from '@/features/appshell/components/placeholder-page';
+import { CampaignsScreen } from '@/features/campaigns/components/campaigns-screen';
 
 export default function CampaignsPage() {
-  return (
-    <PlaceholderPage
-      description="Campaign drafts, SMS preview, tests, and approval will live here."
-      title="Campaigns"
-    />
-  );
+  return <CampaignsScreen />;
 }

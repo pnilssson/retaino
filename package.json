@@ -4,6 +4,7 @@
   "packageManager": "pnpm@10.0.0",
   "scripts": {
     "dev": "turbo dev",
+    "dev:inngest": "pnpm dlx inngest-cli@latest dev --no-discovery -u http://127.0.0.1:8787/v1/inngest",
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test",

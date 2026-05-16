@@ -2,7 +2,7 @@
 
 ## Goal
 
-Create per-recipient tracking links and send approved campaigns through Inngest
+Create per-recipient tracking links and send launched campaigns through Inngest
 background jobs. HTTP routes enqueue the send only. The job performs provider
 sends and records message state.
 
@@ -12,7 +12,7 @@ Live sends are irreversible operational actions. Sending must be deliberate,
 audited, idempotent, and safe under retries.
 
 Before each recipient is sent, Retaino must re-check suppression because a
-contact may opt out after approval but before send.
+contact may opt out after launch but before send.
 
 Every live campaign SMS should use a per-recipient tracking link. Do not send
 direct booking URLs in live campaign messages unless tracking links are
@@ -116,7 +116,7 @@ Job rules:
 
 1. Validate required identifiers.
 2. Load campaign by `organizationId` and campaign ID.
-3. Require status `approved` or `sending`.
+3. Require an internally launched or sending campaign status.
 4. Re-check campaign send eligibility, including setup, current legal
    acceptance, and sending configuration.
 5. Require a ready organization sender and load its Messaging Service ID.
@@ -163,14 +163,18 @@ Add:
 
 - `POST /v1/campaigns/:id/send`
 
-The route only validates permission and enqueues the job. It returns `202`.
+The user-facing action is `Send campaign`. Depending on where launch snapshot
+is implemented, this route may either require an already launched campaign or
+perform the launch snapshot before enqueueing. In either case, the HTTP request
+must not perform long-running sends. It validates permission, locks the campaign
+against further edits, and returns `202` after the send work is queued.
 
 Mount the campaign Inngest function in `apps/api/src/server.ts` alongside the
 existing contact import function.
 
 ### Web
 
-Add live-send controls only for approved campaigns:
+Add live-send controls only when the campaign is ready to launch:
 
 - show final recipient count
 - show estimated SMS segments and estimated cost
@@ -212,7 +216,7 @@ Minimum coverage:
 - provider sends use the organization's Messaging Service ID
 - rendered tracking links use `TRACKING_BASE_URL`
 - retry does not duplicate provider sends
-- recipients suppressed after approval are skipped
+- recipients suppressed after launch are skipped
 - initial provider response is stored before waiting for callbacks
 - estimated and actual segment counts are stored separately
 - actual sent segment usage is reconciled as Retaino credit transactions
@@ -243,7 +247,7 @@ pnpm --filter @retaino/api typecheck
   values for cost drift reporting.
 - Sending direct booking URLs before tracking links exist.
 - Rendering tracking links with an internal API URL that recipients cannot open.
-- Sending after a legal update becomes required between approval and the send
+- Sending after a legal update becomes required between launch and the send
   job.
 - Presenting an enqueued background send as completed before the job finishes.
 - Checking credits per SMS and creating confusing half-sent campaigns when credits

@@ -9,6 +9,7 @@ import {
   ItemHeader,
   ItemTitle,
 } from '@/components/ui/item';
+import { textStyles } from '@/lib/text-styles';
 
 type OnboardingItemProps = Omit<ComponentProps<'section'>, 'title'> & {
   description?: ReactNode;
@@ -31,9 +32,9 @@ export function OnboardingItem({
             <ItemHeader className="items-start">
               <ItemContent className="gap-2">
                 {eyebrow ? (
-                  <p className="text-sm text-muted-foreground">{eyebrow}</p>
+                  <p className={textStyles.meta}>{eyebrow}</p>
                 ) : null}
-                <ItemTitle className="flex-wrap text-base">{title}</ItemTitle>
+                <ItemTitle className="flex-wrap">{title}</ItemTitle>
                 {description ? (
                   <ItemDescription className="max-w-2xl">
                     {description}

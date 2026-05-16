@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { type Table as TanStackTable, flexRender } from '@tanstack/react-table';
 import { Loader2 } from 'lucide-react';
 import {
@@ -18,8 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ItemDescription, ItemTitle } from '@/components/ui/item';
 import { cn } from '@/lib/utils';
+export { EmptyState } from '@/components/empty-state';
 
 export function DataTable<TData>({
   cellClassName,
@@ -104,7 +103,9 @@ export function PaginationControls({
             <PaginationItem>
               <PaginationPrevious
                 aria-disabled={!hasPreviousPage}
-                className={!hasPreviousPage ? 'pointer-events-none opacity-50' : undefined}
+                className={
+                  !hasPreviousPage ? 'pointer-events-none opacity-50' : undefined
+                }
                 href="#"
                 onClick={(event) => {
                   event.preventDefault();
@@ -134,7 +135,9 @@ export function PaginationControls({
             <PaginationItem>
               <PaginationNext
                 aria-disabled={!hasNextPage}
-                className={!hasNextPage ? 'pointer-events-none opacity-50' : undefined}
+                className={
+                  !hasNextPage ? 'pointer-events-none opacity-50' : undefined
+                }
                 href="#"
                 onClick={(event) => {
                   event.preventDefault();
@@ -171,24 +174,6 @@ function paginationPages(page: number, totalPages: number) {
 
       return [item];
     });
-}
-
-export function EmptyState({
-  action,
-  description = 'No rows to show.',
-  title,
-}: {
-  action?: ReactNode;
-  description?: string;
-  title: string;
-}) {
-  return (
-    <div className="py-6">
-      <ItemTitle>{title}</ItemTitle>
-      <ItemDescription className="mt-1">{description}</ItemDescription>
-      {action ? <div className="mt-4">{action}</div> : null}
-    </div>
-  );
 }
 
 export function TableLoading({ label }: { label: string }) {

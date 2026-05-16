@@ -26,7 +26,6 @@ export function AgreementsStep({
 }) {
   return (
     <OnboardingItem
-      description="These documents apply to this Retaino workspace."
       eyebrow="Legal"
       title="Finish setup."
     >

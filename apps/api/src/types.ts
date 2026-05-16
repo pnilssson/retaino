@@ -9,7 +9,10 @@ type AppBindings = {
   CONTACT_IMPORTS_BUCKET: R2Bucket;
   DATABASE_URL: string;
   INNGEST_DEV?: string;
+  INNGEST_DEVSERVER_URL?: string;
   INNGEST_EVENT_KEY?: string;
+  INNGEST_SERVE_ORIGIN?: string;
+  INNGEST_SERVE_PATH?: string;
   INNGEST_SIGNING_KEY?: string;
   STRIPE_CANCEL_URL: string;
   STRIPE_CHECKOUT_DISPLAY_NAME?: string;

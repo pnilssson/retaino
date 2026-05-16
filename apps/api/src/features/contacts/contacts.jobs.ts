@@ -44,13 +44,20 @@ export const inngest = new Inngest({
 });
 
 export async function enqueueContactImportProcessing(
-  env: { INNGEST_EVENT_KEY?: string },
+  env: {
+    INNGEST_DEV?: string;
+    INNGEST_DEVSERVER_URL?: string;
+    INNGEST_EVENT_KEY?: string;
+    INNGEST_SERVE_ORIGIN?: string;
+    INNGEST_SERVE_PATH?: string;
+  },
   payload: ContactImportProcessPayload,
 ) {
   const eventKey = env.INNGEST_EVENT_KEY ?? '';
-  const sender = eventKey
-    ? new Inngest({ id: 'retaino-api', eventKey })
-    : inngest;
+  const sender = new Inngest({
+    id: 'retaino-api',
+    ...(eventKey ? { eventKey } : {}),
+  }).setEnvVars(env);
 
   await sender.send({
     name: 'contacts/import.process',

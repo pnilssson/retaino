@@ -15,7 +15,7 @@ describe('campaigns schema', () => {
     expect(campaigns.attributionWindowDays.name).toBe(
       'attribution_window_days',
     );
-    expect('approvedAt' in campaigns).toBe(false);
+    expect('readyToSendAt' in campaigns).toBe(false);
     expect('sendStartedAt' in campaigns).toBe(false);
     expect('providerMessageId' in campaigns).toBe(false);
   });
