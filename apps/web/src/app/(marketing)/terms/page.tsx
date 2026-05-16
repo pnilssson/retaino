@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function TermsPage() {
   const document = await fetchLatestLegalDocument('terms');
 
