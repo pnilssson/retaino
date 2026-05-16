@@ -11,6 +11,8 @@ type AppLegalDocumentPageProps = {
   }>;
 };
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({
   params,
 }: AppLegalDocumentPageProps): Promise<Metadata> {
