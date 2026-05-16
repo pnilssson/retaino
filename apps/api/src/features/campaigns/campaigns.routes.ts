@@ -3,9 +3,11 @@ import {
   deleteCampaignDraft,
   getCampaignById,
   listCampaigns,
+  previewCampaignAudience,
   updateCampaignDraft,
 } from '@retaino/db';
 import {
+  campaignAudiencePreviewRequestSchema,
   createCampaignDraftSchema,
   updateCampaignDraftSchema,
 } from '@retaino/shared/contracts';
@@ -13,7 +15,10 @@ import { Hono } from 'hono';
 import { apiError } from '../../lib/errors';
 import { parseJsonBody } from '../../lib/route-helpers';
 import type { AppEnv } from '../../types';
-import { requireCampaignEligibility } from '../organization/organization.gates';
+import {
+  requireCampaignEligibility,
+  requireCampaignPreviewEligibility,
+} from '../organization/organization.gates';
 
 export const campaignsRoutes = new Hono<AppEnv>()
   .get('/', async (c) => {
@@ -51,6 +56,53 @@ export const campaignsRoutes = new Hono<AppEnv>()
     }
 
     return c.json({ campaign }, 201);
+  })
+  .post('/audience-preview', async (c) => {
+    const gate = await requireCampaignPreviewEligibility(c);
+
+    if (!gate.ok) {
+      return gate.response;
+    }
+
+    const parsed = await parseJsonBody(
+      c,
+      campaignAudiencePreviewRequestSchema,
+      'Invalid audience preview request.',
+    );
+
+    if (!parsed.ok) {
+      return parsed.response;
+    }
+
+    return c.json(
+      await previewCampaignAudience(c.get('db'), {
+        organizationId: c.get('organization').id,
+        audienceRule: parsed.data.audienceRule,
+      }),
+    );
+  })
+  .get('/:id/audience-preview', async (c) => {
+    const gate = await requireCampaignPreviewEligibility(c);
+
+    if (!gate.ok) {
+      return gate.response;
+    }
+
+    const campaign = await getCampaignById(c.get('db'), {
+      organizationId: c.get('organization').id,
+      campaignId: c.req.param('id'),
+    });
+
+    if (!campaign) {
+      return c.json(apiError('not_found', 'Campaign was not found.'), 404);
+    }
+
+    return c.json(
+      await previewCampaignAudience(c.get('db'), {
+        organizationId: c.get('organization').id,
+        audienceRule: campaign.audienceRule,
+      }),
+    );
   })
   .get('/:id', async (c) => {
     const campaign = await getCampaignById(c.get('db'), {

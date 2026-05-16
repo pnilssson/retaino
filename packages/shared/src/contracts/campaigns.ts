@@ -18,6 +18,11 @@ export const CAMPAIGN_SMS_PERSONALIZATION_TOKENS = [
   'last_booking_date',
 ] as const;
 
+export const DEFAULT_CAMPAIGN_AUDIENCE_RULE = {
+  lapsedDays: 90,
+  includeNoBookingDate: false,
+} as const;
+
 export const campaignAudienceRuleSchema = z
   .object({
     lapsedDays: z.number().int().min(30).max(365),
@@ -96,6 +101,29 @@ export const campaignSchema = z.object({
   updatedAt: timestampSchema,
 });
 
+export const campaignAudiencePreviewRequestSchema = z
+  .object({
+    audienceRule: campaignAudienceRuleSchema.default(
+      DEFAULT_CAMPAIGN_AUDIENCE_RULE,
+    ),
+  })
+  .strict();
+
+export const campaignAudiencePreviewContactSchema = z.object({
+  id: idSchema,
+  name: nonEmptyStringSchema.nullable(),
+  phone: nonEmptyStringSchema.nullable(),
+  lastBookingAt: timestampSchema.nullable(),
+});
+
+export const campaignAudiencePreviewResponseSchema = z.object({
+  eligibleCount: z.number().int().nonnegative(),
+  suppressedCount: z.number().int().nonnegative(),
+  incompleteCount: z.number().int().nonnegative(),
+  missingConsentCount: z.number().int().nonnegative(),
+  sampleContacts: z.array(campaignAudiencePreviewContactSchema).max(10),
+});
+
 export type CampaignAudienceRule = z.infer<typeof campaignAudienceRuleSchema>;
 export type Campaign = z.infer<typeof campaignSchema>;
 export type CreateCampaignDraftInput = z.infer<
@@ -103,6 +131,15 @@ export type CreateCampaignDraftInput = z.infer<
 >;
 export type UpdateCampaignDraftInput = z.infer<
   typeof updateCampaignDraftSchema
+>;
+export type CampaignAudiencePreviewRequest = z.infer<
+  typeof campaignAudiencePreviewRequestSchema
+>;
+export type CampaignAudiencePreviewContact = z.infer<
+  typeof campaignAudiencePreviewContactSchema
+>;
+export type CampaignAudiencePreviewResponse = z.infer<
+  typeof campaignAudiencePreviewResponseSchema
 >;
 
 export type CampaignResponse = {

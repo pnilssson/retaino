@@ -29,6 +29,41 @@ export async function requireCampaignEligibility(c: Context<AppEnv>) {
   });
 }
 
+export async function requireCampaignPreviewEligibility(c: Context<AppEnv>) {
+  const state = await getOrganizationSessionState(
+    c.get('db'),
+    c.get('organization'),
+  );
+
+  if (!state.readiness.ready) {
+    return {
+      ok: false as const,
+      response: c.json(
+        apiError(
+          'forbidden',
+          'Organization setup must be complete before previewing campaigns.',
+        ),
+        403,
+      ),
+    };
+  }
+
+  if (state.readiness.legalUpdatesRequired || !state.readiness.legalCurrent) {
+    return {
+      ok: false as const,
+      response: c.json(
+        apiError(
+          'forbidden',
+          'Legal agreement must be current before previewing campaigns.',
+        ),
+        403,
+      ),
+    };
+  }
+
+  return { ok: true as const };
+}
+
 async function requireOrganizationEligibility(
   c: Context<AppEnv>,
   messages: GateMessages,

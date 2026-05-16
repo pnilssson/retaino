@@ -3,6 +3,7 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 import {
   assertCampaignDraftStatus,
+  campaignAudienceWhere,
   campaignToContract,
   deleteCampaignDraft,
   updateCampaignDraft,
@@ -114,5 +115,44 @@ describe('campaign query helpers', () => {
       campaignRow.id,
       'draft',
     ]);
+  });
+
+  it('builds eligible audience filters with SMS readiness and suppression checks', () => {
+    const condition = campaignAudienceWhere(
+      campaignRow.organizationId,
+      { lapsedDays: 90, includeNoBookingDate: false },
+      new Date('2026-05-16T00:00:00.000Z'),
+    );
+
+    if (!condition) {
+      throw new Error('Expected campaignAudienceWhere to build a condition.');
+    }
+
+    const query = new PgDialect().sqlToQuery(sql`select 1 where ${condition}`);
+
+    expect(query.sql).toContain('"contacts"."organization_id" = $');
+    expect(query.sql).toContain('"contacts"."normalized_phone" is not null');
+    expect(query.sql).toContain('"contacts"."consent_status" = $');
+    expect(query.sql).toContain('"contacts"."last_booking_at" <= $');
+    expect(query.sql).toContain('not exists');
+    expect(query.sql).toContain('"suppressions"."type" = $');
+    expect(query.sql).not.toContain('"contacts"."last_booking_at" is null');
+  });
+
+  it('includes missing booking dates only when explicitly requested', () => {
+    const condition = campaignAudienceWhere(
+      campaignRow.organizationId,
+      { lapsedDays: 90, includeNoBookingDate: true },
+      new Date('2026-05-16T00:00:00.000Z'),
+    );
+
+    if (!condition) {
+      throw new Error('Expected campaignAudienceWhere to build a condition.');
+    }
+
+    const query = new PgDialect().sqlToQuery(sql`select 1 where ${condition}`);
+
+    expect(query.sql).toContain('"contacts"."last_booking_at" <= $');
+    expect(query.sql).toContain('"contacts"."last_booking_at" is null');
   });
 });

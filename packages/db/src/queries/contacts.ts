@@ -1099,7 +1099,7 @@ export function contactIssueFilter(
   return ne(contacts.consentStatus, 'granted');
 }
 
-function phoneSuppressionExistsFilter(organizationId: string) {
+export function phoneSuppressionExistsFilter(organizationId: string) {
   return sql`exists (
     select 1 from ${suppressions}
     where ${suppressions.organizationId} = ${organizationId}

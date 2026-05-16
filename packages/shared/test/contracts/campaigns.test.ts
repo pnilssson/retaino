@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  campaignAudiencePreviewRequestSchema,
+  campaignAudiencePreviewResponseSchema,
   campaignAudienceRuleSchema,
   campaignSchema,
   createCampaignDraftSchema,
@@ -64,6 +66,34 @@ describe('campaign contracts', () => {
         includeNoBookingDate: false,
       }).success,
     ).toBe(false);
+  });
+
+  it('defaults audience preview to 90 lapsed days without missing booking dates', () => {
+    expect(campaignAudiencePreviewRequestSchema.parse({})).toEqual({
+      audienceRule: {
+        lapsedDays: 90,
+        includeNoBookingDate: false,
+      },
+    });
+  });
+
+  it('accepts audience preview responses', () => {
+    expect(
+      campaignAudiencePreviewResponseSchema.safeParse({
+        eligibleCount: 12,
+        suppressedCount: 2,
+        incompleteCount: 3,
+        missingConsentCount: 4,
+        sampleContacts: [
+          {
+            id: '11111111-1111-4111-8111-111111111111',
+            name: 'Ada Lovelace',
+            phone: '+46700000000',
+            lastBookingAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      }).success,
+    ).toBe(true);
   });
 
   it('rejects non-http booking URLs', () => {

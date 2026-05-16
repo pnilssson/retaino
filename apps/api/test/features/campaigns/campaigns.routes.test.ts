@@ -8,6 +8,7 @@ import {
   getCurrentOrganizationLegalAcceptance,
   getOrganizationProfileByOrganizationId,
   listCampaigns,
+  previewCampaignAudience,
   updateCampaignDraft,
 } from '@retaino/db';
 import type {
@@ -27,6 +28,7 @@ vi.mock('@retaino/db', () => ({
   getCurrentOrganizationLegalAcceptance: vi.fn(),
   getOrganizationProfileByOrganizationId: vi.fn(),
   listCampaigns: vi.fn(),
+  previewCampaignAudience: vi.fn(),
   updateCampaignDraft: vi.fn(),
 }));
 
@@ -154,6 +156,7 @@ describe('campaignsRoutes', () => {
     vi.mocked(getCurrentOrganizationLegalAcceptance).mockReset();
     vi.mocked(getOrganizationProfileByOrganizationId).mockReset();
     vi.mocked(listCampaigns).mockReset();
+    vi.mocked(previewCampaignAudience).mockReset();
     vi.mocked(updateCampaignDraft).mockReset();
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(profile);
     vi.mocked(getCurrentLegalBundle).mockResolvedValue(legalBundle);
@@ -206,6 +209,89 @@ describe('campaignsRoutes', () => {
         campaignCode: null,
         attributionWindowDays: 7,
       },
+    });
+  });
+
+  it('previews unsaved audience rules for members using the active organization', async () => {
+    vi.mocked(previewCampaignAudience).mockResolvedValue({
+      eligibleCount: 12,
+      suppressedCount: 2,
+      incompleteCount: 3,
+      missingConsentCount: 4,
+      sampleContacts: [],
+    });
+
+    const response = await testApp({ role: 'org:member' }).request(
+      '/v1/campaigns/audience-preview',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          audienceRule: {
+            lapsedDays: 60,
+            includeNoBookingDate: true,
+          },
+        }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(previewCampaignAudience).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      audienceRule: {
+        lapsedDays: 60,
+        includeNoBookingDate: true,
+      },
+    });
+  });
+
+  it('defaults unsaved audience preview rules', async () => {
+    vi.mocked(previewCampaignAudience).mockResolvedValue({
+      eligibleCount: 0,
+      suppressedCount: 0,
+      incompleteCount: 0,
+      missingConsentCount: 0,
+      sampleContacts: [],
+    });
+
+    const response = await testApp().request('/v1/campaigns/audience-preview', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+
+    expect(response.status).toBe(200);
+    expect(previewCampaignAudience).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      audienceRule: {
+        lapsedDays: 90,
+        includeNoBookingDate: false,
+      },
+    });
+  });
+
+  it('previews saved campaign audiences by campaign id', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue(campaign);
+    vi.mocked(previewCampaignAudience).mockResolvedValue({
+      eligibleCount: 5,
+      suppressedCount: 1,
+      incompleteCount: 0,
+      missingConsentCount: 2,
+      sampleContacts: [],
+    });
+
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/audience-preview`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(getCampaignById).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      campaignId: campaign.id,
+    });
+    expect(previewCampaignAudience).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      audienceRule: campaign.audienceRule,
     });
   });
 

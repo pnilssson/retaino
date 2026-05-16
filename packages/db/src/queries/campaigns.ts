@@ -1,14 +1,26 @@
-import { and, desc, eq } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  isNotNull,
+  isNull,
+  lte,
+  not,
+  or,
+  type SQL,
+} from 'drizzle-orm';
 import type {
   Campaign,
   CampaignAudienceRule,
+  CampaignAudiencePreviewResponse,
   CampaignStatus,
   CreateCampaignDraftInput,
   UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
 import type { DbClient } from '../client';
-import { campaigns } from '../schema';
-import { assertOrganizationId } from './contacts';
+import { campaigns, contacts } from '../schema';
+import { assertOrganizationId, phoneSuppressionExistsFilter } from './contacts';
 
 type CampaignRow = typeof campaigns.$inferSelect;
 
@@ -38,6 +50,98 @@ export function assertCampaignDraftStatus(row: Pick<CampaignRow, 'status'>) {
   if (row.status !== 'draft') {
     throw new Error('Campaign is not editable.');
   }
+}
+
+export function campaignAudienceWhere(
+  organizationId: string,
+  rule: CampaignAudienceRule,
+  now = new Date(),
+): SQL | undefined {
+  assertOrganizationId(organizationId);
+  const suppressionExists = phoneSuppressionExistsFilter(organizationId);
+
+  return and(
+    campaignAudienceDateWhere(rule, now),
+    eq(contacts.organizationId, organizationId),
+    isNotNull(contacts.normalizedPhone),
+    eq(contacts.consentStatus, 'granted'),
+    not(suppressionExists),
+  );
+}
+
+export async function previewCampaignAudience(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    audienceRule: CampaignAudienceRule;
+    now?: Date;
+  },
+): Promise<CampaignAudiencePreviewResponse> {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+  const eligibleWhere = campaignAudienceWhere(
+    input.organizationId,
+    input.audienceRule,
+    now,
+  );
+  const [eligibleRow] = await db
+    .select({ total: count() })
+    .from(contacts)
+    .where(eligibleWhere);
+  const [suppressedRow] = await db
+    .select({ total: count() })
+    .from(contacts)
+    .where(
+      campaignAudienceSuppressedWhere(
+        input.organizationId,
+        input.audienceRule,
+        now,
+      ),
+    );
+  const [incompleteRow] = await db
+    .select({ total: count() })
+    .from(contacts)
+    .where(
+      campaignAudienceIncompleteWhere(
+        input.organizationId,
+        input.audienceRule,
+        now,
+      ),
+    );
+  const [missingConsentRow] = await db
+    .select({ total: count() })
+    .from(contacts)
+    .where(
+      campaignAudienceMissingConsentWhere(
+        input.organizationId,
+        input.audienceRule,
+        now,
+      ),
+    );
+  const sampleRows = await db
+    .select({
+      id: contacts.id,
+      name: contacts.name,
+      phone: contacts.phone,
+      lastBookingAt: contacts.lastBookingAt,
+    })
+    .from(contacts)
+    .where(eligibleWhere)
+    .orderBy(desc(contacts.lastBookingAt))
+    .limit(10);
+
+  return {
+    eligibleCount: eligibleRow?.total ?? 0,
+    suppressedCount: suppressedRow?.total ?? 0,
+    incompleteCount: incompleteRow?.total ?? 0,
+    missingConsentCount: missingConsentRow?.total ?? 0,
+    sampleContacts: sampleRows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      phone: row.phone,
+      lastBookingAt: row.lastBookingAt?.toISOString() ?? null,
+    })),
+  };
 }
 
 export async function createCampaignDraft(
@@ -174,4 +278,55 @@ function campaignUpdateValues(input: UpdateCampaignDraftInput) {
       ? { attributionWindowDays: input.attributionWindowDays }
       : {}),
   };
+}
+
+function campaignAudienceDateWhere(rule: CampaignAudienceRule, now: Date) {
+  const lapsedBefore = new Date(now);
+
+  lapsedBefore.setUTCDate(lapsedBefore.getUTCDate() - rule.lapsedDays);
+
+  const lapsedBooking = lte(contacts.lastBookingAt, lapsedBefore);
+
+  return rule.includeNoBookingDate
+    ? or(lapsedBooking, isNull(contacts.lastBookingAt))
+    : lapsedBooking;
+}
+
+function campaignAudienceSuppressedWhere(
+  organizationId: string,
+  rule: CampaignAudienceRule,
+  now: Date,
+) {
+  return and(
+    campaignAudienceDateWhere(rule, now),
+    eq(contacts.organizationId, organizationId),
+    isNotNull(contacts.normalizedPhone),
+    eq(contacts.consentStatus, 'granted'),
+    phoneSuppressionExistsFilter(organizationId),
+  );
+}
+
+function campaignAudienceIncompleteWhere(
+  organizationId: string,
+  rule: CampaignAudienceRule,
+  now: Date,
+) {
+  return and(
+    campaignAudienceDateWhere(rule, now),
+    eq(contacts.organizationId, organizationId),
+    isNull(contacts.normalizedPhone),
+  );
+}
+
+function campaignAudienceMissingConsentWhere(
+  organizationId: string,
+  rule: CampaignAudienceRule,
+  now: Date,
+) {
+  return and(
+    campaignAudienceDateWhere(rule, now),
+    eq(contacts.organizationId, organizationId),
+    isNotNull(contacts.normalizedPhone),
+    not(eq(contacts.consentStatus, 'granted')),
+  );
 }
