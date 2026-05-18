@@ -43,6 +43,13 @@
       "when": 1778971745791,
       "tag": "0005_lethal_abomination",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779130047047,
+      "tag": "0006_peaceful_gabe_jones",
+      "breakpoints": true
     }
   ]
 }

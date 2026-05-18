@@ -3,3 +3,4 @@ export * from './campaigns';
 export * from './contacts';
 export * from './identity';
 export * from './legal-documents';
+export * from './sms-senders';

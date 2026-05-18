@@ -11,6 +11,7 @@ import {
 import { healthRoutes } from './features/health/health.routes';
 import { legalRoutes } from './features/legal/legal.routes';
 import { organizationRoutes } from './features/organization/organization.routes';
+import { smsRoutes } from './features/sms/sms.routes';
 import { apiError } from './lib/errors';
 import { authMiddleware } from './middleware/auth';
 import { corsMiddleware } from './middleware/cors';
@@ -37,6 +38,7 @@ app.route('/v1/organization', organizationRoutes);
 app.route('/v1/billing', billingRoutes);
 app.route('/v1/contacts', contactsRoutes);
 app.route('/v1/campaigns', campaignsRoutes);
+app.route('/v1/sms', smsRoutes);
 
 app.notFound((c) => {
   return c.json(apiError('internal_error', 'Route not found.'), 404);

@@ -235,12 +235,12 @@ provider.
 
 Add:
 
-- `GET /v1/organization/sms-sender/countries`
-- `GET /v1/organization/sms-sender/numbers`
-- `POST /v1/organization/sms-sender`
-- `GET /v1/organization/sms-sender`
-- `POST /v1/campaigns/:id/sms-preview`
-- `POST /v1/campaigns/:id/test-send`
+- `GET /v1/sms/countries`
+- `GET /v1/sms/numbers`
+- `POST /v1/sms`
+- `GET /v1/sms`
+- `POST /v1/campaigns/:id/sms/preview`
+- `POST /v1/campaigns/:id/sms/send`
 
 Sender provisioning requires admin campaign eligibility, active billing, and
 current legal acceptance. The route accepts the selected sender country and
@@ -285,11 +285,17 @@ Extend `apps/api/src/types.ts` with Twilio bindings:
 
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
+- `TWILIO_API_KEY_SID`
+- `TWILIO_API_KEY_SECRET`
 - `TWILIO_FROM_PHONE` for optional Twilio test-credential request-shape checks
   only
 - `TWILIO_INBOUND_CALLBACK_BASE_URL`
 - `TWILIO_STATUS_CALLBACK_BASE_URL`
 - `SMS_SENDING_MODE`
+
+Production should authenticate Twilio REST calls with `TWILIO_API_KEY_SID` and
+`TWILIO_API_KEY_SECRET` where possible. Keep `TWILIO_AUTH_TOKEN` available for
+local test credentials and Twilio webhook signature validation.
 
 Add matching examples to `apps/api/.dev.vars.example`.
 
@@ -299,6 +305,7 @@ Add or extend tests in:
 
 - `packages/shared/test/contracts/campaigns.test.ts`
 - `apps/api/test/lib/sms-provider.test.ts`
+- `apps/api/test/features/sms/sms.routes.test.ts`
 - `apps/api/test/features/campaigns/campaigns.routes.test.ts`
 - `apps/api/test/features/campaigns/campaigns.service.test.ts`
 
@@ -349,6 +356,8 @@ Run:
 
 ```bash
 pnpm --filter @retaino/shared test
+pnpm --filter @retaino/db test
+pnpm --filter @retaino/api test -- sms.routes
 pnpm --filter @retaino/api test -- campaigns
 pnpm --filter @retaino/api test -- sms-provider
 pnpm --filter @retaino/api typecheck

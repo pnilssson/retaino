@@ -1,6 +1,19 @@
 import { z } from 'zod';
 import { idSchema, nonEmptyStringSchema, timestampSchema } from '../schemas';
 
+export const SMS_SENDER_PROVIDERS = ['fake', 'twilio'] as const;
+export const SMS_SENDER_STATUSES = [
+  'pending',
+  'ready',
+  'failed',
+  'manual_action_required',
+] as const;
+export const SMS_SENDER_NUMBER_TYPES = [
+  'local',
+  'mobile',
+  'toll_free',
+] as const;
+
 export const CAMPAIGN_STATUSES = [
   'draft',
   'ready_to_send',
@@ -10,8 +23,14 @@ export const CAMPAIGN_STATUSES = [
 ] as const;
 
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
+export type SmsSenderProvider = (typeof SMS_SENDER_PROVIDERS)[number];
+export type SmsSenderStatus = (typeof SMS_SENDER_STATUSES)[number];
+export type SmsSenderNumberType = (typeof SMS_SENDER_NUMBER_TYPES)[number];
 
 export const campaignStatusSchema = z.enum(CAMPAIGN_STATUSES);
+export const smsSenderProviderSchema = z.enum(SMS_SENDER_PROVIDERS);
+export const smsSenderStatusSchema = z.enum(SMS_SENDER_STATUSES);
+export const smsSenderNumberTypeSchema = z.enum(SMS_SENDER_NUMBER_TYPES);
 
 export const CAMPAIGN_SMS_PERSONALIZATION_TOKENS = [
   'first_name',
@@ -134,6 +153,92 @@ export const campaignAudiencePreviewResponseSchema = z.object({
   sampleContacts: z.array(campaignAudiencePreviewContactSchema).max(10),
 });
 
+export const smsSenderCapabilitySchema = z
+  .object({
+    outboundSms: z.boolean(),
+    inboundSms: z.boolean(),
+    statusCallbacks: z.boolean(),
+    twoWaySms: z.boolean(),
+    smartEncoding: z.boolean().optional(),
+  })
+  .strict();
+
+export const smsSenderCountrySchema = z
+  .object({
+    countryCode: z
+      .string()
+      .trim()
+      .length(2)
+      .transform((value) => value.toUpperCase()),
+    label: nonEmptyStringSchema,
+    supportedNumberTypes: z.array(smsSenderNumberTypeSchema).min(1),
+    selfServeAvailable: z.boolean(),
+  })
+  .strict();
+
+export const smsSenderOptionSchema = z
+  .object({
+    phoneNumber: nonEmptyStringSchema,
+    countryCode: z
+      .string()
+      .trim()
+      .length(2)
+      .transform((value) => value.toUpperCase()),
+    numberType: smsSenderNumberTypeSchema,
+    capabilities: smsSenderCapabilitySchema,
+    regulatoryRequirementSummary: nonEmptyStringSchema.nullable(),
+    providerReference: nonEmptyStringSchema.nullable(),
+    label: nonEmptyStringSchema,
+  })
+  .strict();
+
+export const organizationSmsSenderSchema = z.object({
+  id: idSchema,
+  organizationId: idSchema,
+  provider: smsSenderProviderSchema,
+  status: smsSenderStatusSchema,
+  phoneNumber: nonEmptyStringSchema.nullable(),
+  countryCode: nonEmptyStringSchema.nullable(),
+  numberType: smsSenderNumberTypeSchema.nullable(),
+  providerMessagingServiceId: nonEmptyStringSchema.nullable(),
+  providerPhoneNumberId: nonEmptyStringSchema.nullable(),
+  regulatoryStatus: nonEmptyStringSchema.nullable(),
+  failureReason: nonEmptyStringSchema.nullable(),
+  provisionedAt: timestampSchema.nullable(),
+  lastVerifiedAt: timestampSchema.nullable(),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+});
+
+export const smsSenderCountriesResponseSchema = z.object({
+  countries: z.array(smsSenderCountrySchema),
+});
+
+export const smsSenderNumbersRequestSchema = z
+  .object({
+    countryCode: z
+      .string()
+      .trim()
+      .length(2)
+      .transform((value) => value.toUpperCase()),
+    numberType: smsSenderNumberTypeSchema.optional(),
+  })
+  .strict();
+
+export const smsSenderNumbersResponseSchema = z.object({
+  numbers: z.array(smsSenderOptionSchema),
+});
+
+export const provisionOrganizationSmsSenderSchema = z
+  .object({
+    selectedSender: smsSenderOptionSchema,
+  })
+  .strict();
+
+export const organizationSmsSenderResponseSchema = z.object({
+  sender: organizationSmsSenderSchema.nullable(),
+});
+
 export type CampaignAudienceRule = z.infer<typeof campaignAudienceRuleSchema>;
 export type Campaign = z.infer<typeof campaignSchema>;
 export type CreateCampaignDraftInput = z.infer<
@@ -150,6 +255,27 @@ export type CampaignAudiencePreviewContact = z.infer<
 >;
 export type CampaignAudiencePreviewResponse = z.infer<
   typeof campaignAudiencePreviewResponseSchema
+>;
+export type SmsSenderCapability = z.infer<typeof smsSenderCapabilitySchema>;
+export type SmsSenderCountry = z.infer<typeof smsSenderCountrySchema>;
+export type SmsSenderOption = z.infer<typeof smsSenderOptionSchema>;
+export type OrganizationSmsSender = z.infer<
+  typeof organizationSmsSenderSchema
+>;
+export type SmsSenderCountriesResponse = z.infer<
+  typeof smsSenderCountriesResponseSchema
+>;
+export type SmsSenderNumbersRequest = z.infer<
+  typeof smsSenderNumbersRequestSchema
+>;
+export type SmsSenderNumbersResponse = z.infer<
+  typeof smsSenderNumbersResponseSchema
+>;
+export type ProvisionOrganizationSmsSenderInput = z.infer<
+  typeof provisionOrganizationSmsSenderSchema
+>;
+export type OrganizationSmsSenderResponse = z.infer<
+  typeof organizationSmsSenderResponseSchema
 >;
 
 export type CampaignResponse = {

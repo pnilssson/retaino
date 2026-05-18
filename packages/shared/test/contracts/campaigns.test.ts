@@ -5,6 +5,9 @@ import {
   campaignAudienceRuleSchema,
   campaignSchema,
   createCampaignDraftSchema,
+  provisionOrganizationSmsSenderSchema,
+  smsSenderCountriesResponseSchema,
+  smsSenderNumbersRequestSchema,
   updateCampaignDraftSchema,
 } from '../../src/contracts';
 
@@ -225,5 +228,61 @@ describe('campaign contracts', () => {
         smsBody: 'Hi {customer_name}, we have openings this week.',
       }).success,
     ).toBe(false);
+  });
+
+  it('accepts provider-neutral SMS sender countries and number choices', () => {
+    expect(
+      smsSenderCountriesResponseSchema.parse({
+        countries: [
+          {
+            countryCode: 'se',
+            label: 'Sweden',
+            supportedNumberTypes: ['mobile'],
+            selfServeAvailable: true,
+          },
+        ],
+      }),
+    ).toEqual({
+      countries: [
+        {
+          countryCode: 'SE',
+          label: 'Sweden',
+          supportedNumberTypes: ['mobile'],
+          selfServeAvailable: true,
+        },
+      ],
+    });
+
+    expect(
+      smsSenderNumbersRequestSchema.parse({
+        countryCode: 'us',
+        numberType: 'toll_free',
+      }),
+    ).toEqual({
+      countryCode: 'US',
+      numberType: 'toll_free',
+    });
+  });
+
+  it('accepts the selected sender needed for provisioning', () => {
+    expect(
+      provisionOrganizationSmsSenderSchema.safeParse({
+        selectedSender: {
+          phoneNumber: '+46700000000',
+          countryCode: 'SE',
+          numberType: 'mobile',
+          capabilities: {
+            outboundSms: true,
+            inboundSms: true,
+            statusCallbacks: true,
+            twoWaySms: true,
+            smartEncoding: false,
+          },
+          regulatoryRequirementSummary: null,
+          providerReference: 'available-number-1',
+          label: '+46 70 000 00 00',
+        },
+      }).success,
+    ).toBe(true);
   });
 });

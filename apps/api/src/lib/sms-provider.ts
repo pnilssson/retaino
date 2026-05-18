@@ -1,0 +1,292 @@
+import type {
+  OrganizationSmsSender,
+  SmsSenderCapability,
+  SmsSenderCountry,
+  SmsSenderOption,
+  SmsSenderProvider,
+  SmsSenderStatus,
+} from '@retaino/shared/contracts';
+import type { AppEnv } from '../types';
+import { createTwilioSmsProvider } from './twilio-provider';
+
+export type SmsProviderName = SmsSenderProvider;
+
+export type SmsSenderProvisioningInput = {
+  organizationId: string;
+  actorUserId: string;
+  selectedSender: SmsSenderOption;
+  existingProviderPhoneNumberId: string | null;
+  inboundCallbackUrl: string | null;
+  statusCallbackUrl: string | null;
+  idempotencyKey: string;
+};
+
+export type SmsSenderProvisioningResult = {
+  provider: SmsProviderName;
+  status: SmsSenderStatus;
+  phoneNumber: string | null;
+  countryCode: string | null;
+  numberType: SmsSenderOption['numberType'] | null;
+  providerMessagingServiceId: string | null;
+  providerPhoneNumberId: string | null;
+  capabilities: SmsSenderCapability | null;
+  regulatoryStatus: string | null;
+  failureReason: string | null;
+  provisionedAt: Date | null;
+  lastVerifiedAt: Date | null;
+};
+
+export type OutboundSmsInput = {
+  retainoMessageId: string;
+  organizationSender: OrganizationSmsSender;
+  to: string;
+  renderedBody: string;
+  estimatedSegments: number;
+  statusCallbackUrl: string | null;
+  reference: string;
+};
+
+export type OutboundSmsResult = {
+  provider: SmsProviderName;
+  providerMessageId: string;
+  normalizedStatus: SmsOutboundStatus;
+  providerStatus: string | null;
+  providerSenderReference: string | null;
+  actualSegments: number | null;
+  cost: string | null;
+  currency: string | null;
+  rawProviderReference: string | null;
+};
+
+export type SmsOutboundStatus =
+  | 'queued'
+  | 'accepted'
+  | 'sent'
+  | 'delivered'
+  | 'failed'
+  | 'undelivered'
+  | 'skipped';
+
+export type SmsStatusEvent = {
+  providerMessageId: string;
+  retainoMessageReference: string | null;
+  normalizedStatus: SmsOutboundStatus;
+  providerStatus: string | null;
+  occurredAt: Date;
+  actualSegments: number | null;
+  cost: string | null;
+  currency: string | null;
+  providerErrorCode: string | null;
+  providerErrorMessage: string | null;
+  rawProviderReference: string | null;
+};
+
+export type InboundSmsMessage = {
+  providerMessageId: string;
+  from: string;
+  to: string;
+  body: string;
+  receivedAt: Date;
+  providerSenderReference: string | null;
+  rawProviderReference: string | null;
+};
+
+export type SmsProviderErrorCode =
+  | 'configuration_missing'
+  | 'sender_not_ready'
+  | 'manual_action_required'
+  | 'regulatory_blocked'
+  | 'recipient_invalid'
+  | 'message_invalid'
+  | 'provider_rate_limited'
+  | 'provider_temporary_failure'
+  | 'provider_permanent_failure'
+  | 'provider_unavailable';
+
+export class SmsProviderError extends Error {
+  readonly code: SmsProviderErrorCode;
+  readonly retryable: boolean;
+  readonly publicMessage: string;
+  readonly providerErrorCode: string | null;
+
+  constructor(input: {
+    code: SmsProviderErrorCode;
+    retryable: boolean;
+    publicMessage: string;
+    internalMessage?: string;
+    providerErrorCode?: string | null;
+  }) {
+    super(input.internalMessage ?? input.publicMessage);
+    this.name = 'SmsProviderError';
+    this.code = input.code;
+    this.retryable = input.retryable;
+    this.publicMessage = input.publicMessage;
+    this.providerErrorCode = input.providerErrorCode ?? null;
+  }
+}
+
+export type SmsProvider = {
+  name: SmsProviderName;
+  listSenderCountries: () => Promise<SmsSenderCountry[]>;
+  searchSenderOptions: (input: {
+    countryCode: string;
+    numberType?: SmsSenderOption['numberType'];
+  }) => Promise<SmsSenderOption[]>;
+  ensureSender: (
+    input: SmsSenderProvisioningInput,
+  ) => Promise<SmsSenderProvisioningResult>;
+  sendSms: (input: OutboundSmsInput) => Promise<OutboundSmsResult>;
+  parseStatusWebhook: (input: unknown) => Promise<SmsStatusEvent>;
+  parseInboundWebhook: (input: unknown) => Promise<InboundSmsMessage>;
+  verifyWebhook: (input: {
+    url: string;
+    headers: Headers;
+    body: string;
+  }) => Promise<boolean>;
+};
+
+type AppBindings = AppEnv['Bindings'];
+
+export function createSmsProvider(
+  env: AppBindings,
+  fetchImpl: typeof fetch = fetch,
+): SmsProvider {
+  const mode = env.SMS_SENDING_MODE ?? 'disabled';
+
+  if (mode === 'test') {
+    return createFakeSmsProvider();
+  }
+
+  if (mode === 'live') {
+    return createTwilioSmsProvider(env, fetchImpl);
+  }
+
+  return createDisabledSmsProvider();
+}
+
+export function createFakeSmsProvider(): SmsProvider {
+  const countries: SmsSenderCountry[] = [
+    {
+      countryCode: 'SE',
+      label: 'Sweden',
+      supportedNumberTypes: ['mobile'],
+      selfServeAvailable: true,
+    },
+    {
+      countryCode: 'US',
+      label: 'United States',
+      supportedNumberTypes: ['local', 'toll_free'],
+      selfServeAvailable: true,
+    },
+  ];
+  const capabilities: SmsSenderCapability = {
+    outboundSms: true,
+    inboundSms: true,
+    statusCallbacks: true,
+    twoWaySms: true,
+    smartEncoding: false,
+  };
+  const senderOptions: SmsSenderOption[] = [
+    {
+      phoneNumber: '+46700000000',
+      countryCode: 'SE',
+      numberType: 'mobile',
+      capabilities,
+      regulatoryRequirementSummary: null,
+      providerReference: 'fake-se-mobile-1',
+      label: '+46 70 000 00 00',
+    },
+    {
+      phoneNumber: '+15005550006',
+      countryCode: 'US',
+      numberType: 'local',
+      capabilities,
+      regulatoryRequirementSummary: null,
+      providerReference: 'fake-us-local-1',
+      label: '+1 500 555 0006',
+    },
+    {
+      phoneNumber: '+18885550123',
+      countryCode: 'US',
+      numberType: 'toll_free',
+      capabilities,
+      regulatoryRequirementSummary: null,
+      providerReference: 'fake-us-toll-free-1',
+      label: '+1 888 555 0123',
+    },
+  ];
+
+  return {
+    name: 'fake',
+    listSenderCountries: async () => countries,
+    searchSenderOptions: async (input) =>
+      senderOptions.filter(
+        (option) =>
+          option.countryCode === input.countryCode.toUpperCase() &&
+          (!input.numberType || option.numberType === input.numberType),
+      ),
+    ensureSender: async (input) => ({
+      provider: 'fake',
+      status: 'ready',
+      phoneNumber: input.selectedSender.phoneNumber,
+      countryCode: input.selectedSender.countryCode,
+      numberType: input.selectedSender.numberType,
+      providerMessagingServiceId: `fake-ms-${input.organizationId}`,
+      providerPhoneNumberId:
+        input.selectedSender.providerReference ??
+        `fake-pn-${input.selectedSender.phoneNumber.replace(/\D/g, '')}`,
+      capabilities: input.selectedSender.capabilities,
+      regulatoryStatus: 'not_required',
+      failureReason: null,
+      provisionedAt: new Date(),
+      lastVerifiedAt: new Date(),
+    }),
+    sendSms: async (input) => ({
+      provider: 'fake',
+      providerMessageId: `fake-message-${input.retainoMessageId}`,
+      normalizedStatus: 'queued',
+      providerStatus: 'queued',
+      providerSenderReference: input.organizationSender.providerMessagingServiceId,
+      actualSegments: input.estimatedSegments,
+      cost: '0',
+      currency: 'SEK',
+      rawProviderReference: `fake-message-${input.retainoMessageId}`,
+    }),
+    parseStatusWebhook: async () => {
+      throw new SmsProviderError({
+        code: 'message_invalid',
+        retryable: false,
+        publicMessage: 'The provider status callback could not be read.',
+      });
+    },
+    parseInboundWebhook: async () => {
+      throw new SmsProviderError({
+        code: 'message_invalid',
+        retryable: false,
+        publicMessage: 'The inbound message could not be read.',
+      });
+    },
+    verifyWebhook: async () => true,
+  };
+}
+
+function createDisabledSmsProvider(): SmsProvider {
+  const fail = async () => {
+    throw new SmsProviderError({
+      code: 'configuration_missing',
+      retryable: false,
+      publicMessage: 'SMS sending is not configured.',
+    });
+  };
+
+  return {
+    name: 'fake',
+    listSenderCountries: fail,
+    searchSenderOptions: fail,
+    ensureSender: fail,
+    sendSms: fail,
+    parseStatusWebhook: fail,
+    parseInboundWebhook: fail,
+    verifyWebhook: async () => false,
+  };
+}

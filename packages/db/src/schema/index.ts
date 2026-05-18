@@ -7,4 +7,5 @@ export * from './legal-document-versions';
 export * from './organization-acceptances';
 export * from './organization-profiles';
 export * from './organizations';
+export * from './sms-senders';
 export * from './users';
