@@ -3,6 +3,9 @@ import {
   campaignAudiencePreviewRequestSchema,
   campaignAudiencePreviewResponseSchema,
   campaignAudienceRuleSchema,
+  campaignSmsPreviewResponseSchema,
+  campaignSmsTestSendRequestSchema,
+  campaignSmsTestSendResponseSchema,
   campaignSchema,
   createCampaignDraftSchema,
   provisionOrganizationSmsSenderSchema,
@@ -281,6 +284,41 @@ describe('campaign contracts', () => {
           regulatoryRequirementSummary: null,
           providerReference: 'available-number-1',
           label: '+46 70 000 00 00',
+        },
+      }).success,
+    ).toBe(true);
+  });
+
+  it('accepts campaign SMS preview and test-send contracts', () => {
+    expect(
+      campaignSmsPreviewResponseSchema.safeParse({
+        preview: {
+          renderedBody:
+            'Hi Anna\n\nhttps://go.retaino.com/r/abc123\n\nReply STOP to opt out',
+          smsLength: 70,
+          estimatedSmsPerRecipient: 1,
+          optOutText: 'Reply STOP to opt out',
+        },
+      }).success,
+    ).toBe(true);
+
+    expect(
+      campaignSmsTestSendRequestSchema.parse({
+        testPhone: '0700000000',
+      }),
+    ).toEqual({
+      testPhone: '0700000000',
+    });
+
+    expect(
+      campaignSmsTestSendResponseSchema.safeParse({
+        testSend: {
+          to: '+46700000000',
+          renderedBody:
+            'Hi Anna\n\nhttps://go.retaino.com/r/abc123\n\nReply STOP to opt out',
+          estimatedSmsPerRecipient: 1,
+          chargedCredits: 1,
+          status: 'queued',
         },
       }).success,
     ).toBe(true);

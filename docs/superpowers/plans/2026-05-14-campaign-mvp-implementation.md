@@ -193,13 +193,11 @@ preview and send job must estimate the exact rendered body that will be sent.
 
 Stripe is the source of truth for payments, subscriptions, checkout sessions,
 and customer portal sessions. Retaino is the source of truth for operational SMS
-credit balance through SMS credit transactions funded by Stripe webhooks.
-Campaign work should consume the local billing projection and SMS credit ledger
-that the Stripe integration maintains. It should not introduce a second payment
-provider, a parallel checkout flow, or separate campaign-specific billing state.
-SMS credit transactions are the only source of truth for grants, reservations,
-releases, usage, and adjustments. Available balance is derived from the
-append-only ledger, not stored as a separate mutable value.
+credits through immutable SMS credit transaction rows funded by Stripe webhooks.
+Campaign work should consume the local billing projection for subscription
+status and derive SMS credit balance from the transaction ledger. It should not
+introduce a second payment provider, a parallel checkout flow, or separate
+campaign-specific billing state.
 
 Campaign sends use a campaign-level credit check:
 
@@ -207,11 +205,12 @@ Campaign sends use a campaign-level credit check:
 2. Require an active subscription in the local Stripe-backed billing projection.
 3. Read the organization's Retaino SMS credit balance.
 4. Block live send if the available balance is lower than the estimate.
-5. Reserve the estimated credits with an append-only Retaino credit transaction.
+5. Reserve the estimated credits by appending matching SMS credit transaction
+   rows.
 6. Send the campaign as a background job.
 7. Store actual provider segment counts.
-8. Reconcile reserved and actual SMS segment usage with append-only Retaino
-   credit transactions after sends.
+8. Reconcile reserved and actual SMS segment usage through SMS credit
+   transaction rows after sends.
 
 Use explicit credit transaction types:
 

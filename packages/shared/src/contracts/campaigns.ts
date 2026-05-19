@@ -239,6 +239,39 @@ export const organizationSmsSenderResponseSchema = z.object({
   sender: organizationSmsSenderSchema.nullable(),
 });
 
+export const campaignSmsPreviewRequestSchema = z
+  .object({
+    trackedBookingLink: z.url().optional(),
+  })
+  .strict();
+
+export const campaignSmsPreviewSchema = z.object({
+  renderedBody: nonEmptyStringSchema,
+  smsLength: z.number().int().nonnegative(),
+  estimatedSmsPerRecipient: z.number().int().nonnegative(),
+  optOutText: nonEmptyStringSchema,
+});
+
+export const campaignSmsPreviewResponseSchema = z.object({
+  preview: campaignSmsPreviewSchema,
+});
+
+export const campaignSmsTestSendRequestSchema = z
+  .object({
+    testPhone: z.string().trim().min(1).optional(),
+  })
+  .strict();
+
+export const campaignSmsTestSendResponseSchema = z.object({
+  testSend: z.object({
+    to: nonEmptyStringSchema,
+    renderedBody: nonEmptyStringSchema,
+    estimatedSmsPerRecipient: z.number().int().positive(),
+    chargedCredits: z.number().int().positive(),
+    status: nonEmptyStringSchema,
+  }),
+});
+
 export type CampaignAudienceRule = z.infer<typeof campaignAudienceRuleSchema>;
 export type Campaign = z.infer<typeof campaignSchema>;
 export type CreateCampaignDraftInput = z.infer<
@@ -276,6 +309,18 @@ export type ProvisionOrganizationSmsSenderInput = z.infer<
 >;
 export type OrganizationSmsSenderResponse = z.infer<
   typeof organizationSmsSenderResponseSchema
+>;
+export type CampaignSmsPreviewRequest = z.infer<
+  typeof campaignSmsPreviewRequestSchema
+>;
+export type CampaignSmsPreviewResponse = z.infer<
+  typeof campaignSmsPreviewResponseSchema
+>;
+export type CampaignSmsTestSendRequest = z.infer<
+  typeof campaignSmsTestSendRequestSchema
+>;
+export type CampaignSmsTestSendResponse = z.infer<
+  typeof campaignSmsTestSendResponseSchema
 >;
 
 export type CampaignResponse = {

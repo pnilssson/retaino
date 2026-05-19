@@ -14,9 +14,9 @@ SMS segment credits, not product feature gates.
 - Test sends consume credits.
 - Live sends reserve estimated credits before provider cost is incurred, then
   reconcile actual segment usage after send completion.
-- SMS credit transactions are the source of truth for grants, reservations,
-  releases, usage, and adjustments. Available balance is derived from the
-  append-only ledger.
+- `organization_billing_profiles` stores the local Stripe subscription
+  projection. SMS credit transactions are the immutable source of truth for
+  grants, reservations, releases, usage, and adjustments.
 - Use credits-only spending. Do not create automatic overage invoices in MVP.
 
 ## Subscription Tiers
@@ -78,7 +78,8 @@ pricing structure.
   authenticated API routes.
 - Stripe webhooks are mounted before Clerk auth and protected by Stripe
   signature validation.
-- Stripe webhooks fund Retaino SMS credit transactions.
+- Stripe webhooks update Retaino SMS credit balances and write matching SMS
+  credit transactions.
 - Do not use Stripe metered overage billing in MVP.
 - Do not use Stripe Billing Credits for MVP credit enforcement.
 

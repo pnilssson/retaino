@@ -150,6 +150,7 @@ function isCampaignStepId(value: string | undefined): value is CampaignStepId {
     value === 'audience' ||
     value === 'message' ||
     value === 'booking' ||
+    value === 'sender' ||
     value === 'review'
   );
 }

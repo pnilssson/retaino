@@ -8,6 +8,7 @@ import {
   getSmsCreditBalance,
   getSmsCreditBalanceBreakdown,
   recordBillingWebhookEvent,
+  reserveSmsCreditsIfSufficient,
   smsCreditTransactionToContract,
   upsertOrganizationBillingProfile,
 } from '../../src/queries/billing';
@@ -176,57 +177,50 @@ describe('billing query helpers', () => {
     expect(query.params).toEqual(['evt_123']);
   });
 
-  it('creates credit transactions idempotently by source and source id', async () => {
-    let insertedValues: unknown;
+  it('creates credit transactions idempotently by source and bucket', async () => {
     let conflictTarget: unknown;
     const db = {
       insert: () => ({
-        values: (values: unknown) => {
-          insertedValues = values;
+        values: (values: unknown) => ({
+          onConflictDoNothing: (config: { target: unknown }) => {
+            conflictTarget = config.target;
 
-          return {
-            onConflictDoNothing: (config: { target: unknown }) => {
-              conflictTarget = config.target;
-
-              return {
-                returning: () => [
-                  {
-                    ...(values as Record<string, unknown>),
-                    id: '11111111-1111-4111-8111-111111111111',
-                    createdAt: new Date('2026-05-14T00:00:00.000Z'),
-                  },
-                ],
-              };
-            },
-          };
-        },
+            return {
+              returning: () => [
+                {
+                  ...(values as object),
+                  createdAt: new Date('2026-05-14T00:00:00.000Z'),
+                },
+              ],
+            };
+          },
+        }),
       }),
     };
 
-    await createSmsCreditTransaction(db as never, {
+    const transaction = await createSmsCreditTransaction(db as never, {
       organizationId: '22222222-2222-4222-8222-222222222222',
-      transactionType: 'debit',
-      credits: -12,
+      transactionType: 'grant',
+      credits: 500,
       creditBucket: 'purchased',
       periodStart: null,
       periodEnd: null,
-      source: 'campaign_send',
-      sourceId: 'campaign-send-123',
-      description: 'Campaign send usage',
+      source: 'stripe_checkout_session',
+      sourceId: 'cs_123',
+      description: '500 credits purchase',
     });
 
-    expect(insertedValues).toMatchObject({
-      organizationId: '22222222-2222-4222-8222-222222222222',
-      transactionType: 'debit',
-      credits: -12,
-      creditBucket: 'purchased',
-      source: 'campaign_send',
-      sourceId: 'campaign-send-123',
-    });
     expect(conflictTarget).toBeDefined();
+    expect(transaction).toMatchObject({
+      transactionType: 'grant',
+      credits: 500,
+      creditBucket: 'purchased',
+      source: 'stripe_checkout_session',
+      sourceId: 'cs_123',
+    });
   });
 
-  it('reads spendable SMS credit balance by bucket for one organization', async () => {
+  it('reads SMS credit balance from spendable ledger rows', async () => {
     let whereCondition: SQL | undefined;
     const db = {
       select: () => ({
@@ -261,14 +255,72 @@ describe('billing query helpers', () => {
     );
 
     expect(query.sql).toContain('"sms_credit_transactions"."organization_id"');
-    expect(query.sql).toContain('"sms_credit_transactions"."credit_bucket"');
-    expect(query.sql).toContain('"sms_credit_transactions"."period_start"');
-    expect(query.sql).toContain('"sms_credit_transactions"."period_end"');
     expect(query.params).toEqual([
       '22222222-2222-4222-8222-222222222222',
       'purchased',
       'subscription_period',
     ]);
+  });
+
+  it('reserves credits with a locked ledger allocation', async () => {
+    let statement: SQL | undefined;
+    const db = {
+      execute: (query: SQL) => {
+        statement = query;
+
+        return {
+          rows: [
+            {
+              transaction_type: 'debit',
+              credits: -1,
+              source: 'campaign_test_send',
+              source_id: 'campaign-test-123',
+              credit_bucket: 'subscription_period',
+              period_start: '2026-05-14T00:00:00.000Z',
+              period_end: '2026-06-14T00:00:00.000Z',
+              description: 'Campaign test SMS usage',
+              created_at: '2026-05-14T00:00:00.000Z',
+            },
+          ],
+        };
+      },
+    };
+
+    const result = await reserveSmsCreditsIfSufficient(db as never, {
+      organizationId: '22222222-2222-4222-8222-222222222222',
+      credits: 1,
+      source: 'campaign_test_send',
+      sourceId: 'campaign-test-123',
+      description: 'Campaign test SMS usage',
+    });
+
+    expect(result.debitedCredits).toBe(1);
+    expect(result.transactions).toEqual([
+      {
+        transactionType: 'debit',
+        credits: -1,
+        source: 'campaign_test_send',
+        sourceId: 'campaign-test-123',
+        creditBucket: 'subscription_period',
+        periodStart: '2026-05-14T00:00:00.000Z',
+        periodEnd: '2026-06-14T00:00:00.000Z',
+        description: 'Campaign test SMS usage',
+        createdAt: '2026-05-14T00:00:00.000Z',
+      },
+    ]);
+
+    if (!statement) {
+      throw new Error('Expected atomic debit to execute a SQL statement.');
+    }
+
+    const query = new PgDialect().sqlToQuery(statement);
+
+    expect(query.sql).toContain(
+      '(balances.subscription_period + balances.purchased) >=',
+    );
+    expect(query.sql).toContain('pg_advisory_xact_lock');
+    expect(query.sql).not.toContain('update "organization_billing_profiles"');
+    expect(query.sql).toContain('insert into "sms_credit_transactions"');
   });
 
   it('returns SMS credit balance breakdown by purchased and current period credits', async () => {
@@ -296,4 +348,5 @@ describe('billing query helpers', () => {
       total: 800,
     });
   });
+
 });

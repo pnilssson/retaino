@@ -123,7 +123,8 @@ Job rules:
 6. Require an active subscription in the local Stripe-backed billing projection.
 7. Check the organization's Retaino SMS credit balance and require enough
    available credits for the estimated full campaign.
-8. Reserve estimated credits with an append-only Retaino credit transaction.
+8. Reserve estimated credits from `organization_billing_profiles` and write
+   matching SMS credit transaction audit rows.
 9. Prevent starting this send if another campaign for the same organization is
    already `sending`.
 10. Mark campaign `sending`.
@@ -139,8 +140,8 @@ Job rules:
    status, and actual segment
    count from the provider response immediately when Twilio returns it.
 18. Mark skipped recipients with an exclusion reason.
-19. Reconcile reserved and actual SMS segment usage with append-only Retaino
-   credit transactions.
+19. Reconcile reserved and actual SMS segment usage through the billing profile
+   balance and SMS credit transaction audit rows.
 20. Write a send audit event.
 21. Mark the campaign `sent` after all selected recipients have been attempted.
 
@@ -156,6 +157,8 @@ Billing rule:
 - do not check credits per recipient
 - do not start a second live send while one campaign for the organization is
   already `sending`
+- active billing status gates spending; SMS credit transactions are the
+  immutable source of truth for available balance and audit history
 
 ### API
 
@@ -206,7 +209,8 @@ Minimum coverage:
 - job blocks when Retaino SMS credit balance is lower than the estimated full
   campaign
 - job reserves estimated credits before provider sends
-- job reconciles reserved and actual credits after provider sends
+- job reserves and reconciles credits through billing helpers that append
+  immutable SMS credit transaction rows
 - outbound sends are recorded in the canonical `sms_messages` ledger
 - job blocks when another campaign for the same organization is already sending
 - job creates or reuses one tracking link per recipient
@@ -219,7 +223,7 @@ Minimum coverage:
 - recipients suppressed after launch are skipped
 - initial provider response is stored before waiting for callbacks
 - estimated and actual segment counts are stored separately
-- actual sent segment usage is reconciled as Retaino credit transactions
+- actual sent segment usage is reconciled through SMS credit transaction rows
 - send action is audit logged
 - campaign is marked sent after attempts complete
 - web UI shows background send state instead of pretending the send is instant

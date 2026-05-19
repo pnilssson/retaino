@@ -14,7 +14,7 @@ describe('billing schema', () => {
     expect(smsCreditTransactions.organizationId.name).toBe('organization_id');
   });
 
-  it('stores Stripe billing projection without SMS credit balances', () => {
+  it('stores Stripe billing projection', () => {
     expect(organizationBillingProfiles.stripeCustomerId.name).toBe(
       'stripe_customer_id',
     );
@@ -24,8 +24,6 @@ describe('billing schema', () => {
     expect(organizationBillingProfiles.subscriptionStatus.name).toBe(
       'subscription_status',
     );
-    expect('smsCreditBalance' in organizationBillingProfiles).toBe(false);
-    expect('credits' in organizationBillingProfiles).toBe(false);
   });
 
   it('stores webhooks idempotently and keeps full payloads for audit', () => {

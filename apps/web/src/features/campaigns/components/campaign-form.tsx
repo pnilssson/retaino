@@ -9,7 +9,8 @@ import type {
   UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
 import { createCampaignSmsPreview } from '@retaino/shared';
-import { Save } from 'lucide-react';
+import { Save, Send } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   GuidedFlowActions,
   GuidedFlowFrame,
@@ -31,7 +32,10 @@ import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 import { AudiencePreview } from './audience-preview';
 import { AudienceRuleFields } from './audience-rule-fields';
+import { SenderSetup } from './sender-setup';
 import { useCampaignAudiencePreview } from '../hooks/use-campaign-audience-preview';
+import { useSendCampaignTestSms } from '../hooks/use-send-campaign-test-sms';
+import { useSmsSender } from '../hooks/use-sms-sender';
 
 type CampaignFormValues = {
   name: string;
@@ -42,12 +46,18 @@ type CampaignFormValues = {
   attributionWindowDays: number;
 };
 
-export type CampaignStepId = 'audience' | 'message' | 'booking' | 'review';
+export type CampaignStepId =
+  | 'audience'
+  | 'message'
+  | 'booking'
+  | 'sender'
+  | 'review';
 
 const campaignSteps: GuidedFlowStep<CampaignStepId>[] = [
   { id: 'audience', title: 'Audience' },
   { id: 'message', title: 'Message' },
   { id: 'booking', title: 'Booking' },
+  { id: 'sender', title: 'Sender' },
   { id: 'review', title: 'Review' },
 ];
 
@@ -79,6 +89,7 @@ export function CampaignForm({
   const [activeStep, setActiveStep] = useState<CampaignStepId>(initialStep);
   const messageTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const createCampaign = useCreateCampaign(organizationId);
+  const sender = useSmsSender(organizationId);
   const updateCampaign = useUpdateCampaign({
     campaignId: campaign?.id ?? null,
     organizationId,
@@ -163,7 +174,8 @@ export function CampaignForm({
         })}
       >
         {({ canSubmit, isSubmitting, values }) => {
-          const completedStepIds = completedCampaignSteps(values);
+          const senderReady = sender.data?.sender?.status === 'ready';
+          const completedStepIds = completedCampaignSteps(values, senderReady);
 
           return (
             <GuidedFlowFrame
@@ -387,16 +399,36 @@ export function CampaignForm({
 
                           <GuidedFlowActions
                             canContinue={isBookingStepComplete(values)}
-                            continueLabel="Review campaign"
+                            continueLabel="Continue to sender"
                             onBack={() => setActiveStep('message')}
                             isPending={isSaving}
                             onContinue={() => {
                               void saveStepAndContinue(
                                 values,
                                 campaignFormValuesToBookingInput(values),
-                                'review',
+                                'sender',
                               );
                             }}
+                          />
+                        </div>
+                      </GuidedFlowSection>
+                    ) : null}
+
+                    {activeStep === 'sender' ? (
+                      <GuidedFlowSection title="Set up the sender">
+                        <div className="grid gap-5">
+                          <SenderSetup
+                            canManageCampaigns={canManageCampaigns}
+                            organizationId={organizationId}
+                            sender={sender.data?.sender ?? null}
+                          />
+
+                          <GuidedFlowActions
+                            canContinue={senderReady}
+                            continueLabel="Review campaign"
+                            isPending={sender.isLoading}
+                            onBack={() => setActiveStep('booking')}
+                            onContinue={() => setActiveStep('review')}
                           />
                         </div>
                       </GuidedFlowSection>
@@ -408,11 +440,14 @@ export function CampaignForm({
                       >
                         <div className="grid gap-5">
                     <CampaignReview
+                      canManageCampaigns={canManageCampaigns}
+                      campaignId={campaign?.id ?? null}
                       organizationId={organizationId}
+                      senderReady={senderReady}
                       values={values}
                     />
 
-                          <GuidedFlowActions onBack={() => setActiveStep('booking')}>
+                          <GuidedFlowActions onBack={() => setActiveStep('sender')}>
                             <Button
                               disabled={
                                 !canManageCampaigns ||
@@ -441,10 +476,16 @@ export function CampaignForm({
 }
 
 function CampaignReview({
+  canManageCampaigns,
+  campaignId,
   organizationId,
+  senderReady,
   values,
 }: {
+  canManageCampaigns: boolean;
+  campaignId: string | null;
   organizationId: string | null;
+  senderReady: boolean;
   values: CampaignFormValues;
 }) {
   const audiencePreview = useCampaignAudiencePreview({
@@ -511,6 +552,12 @@ function CampaignReview({
             <p className={textStyles.body}>Not added</p>
           )}
         </ReviewSection>
+
+        <ReviewSection title="Sender">
+          <p className={textStyles.body}>
+            {senderReady ? 'Ready for test SMS.' : 'Set up the sender first.'}
+          </p>
+        </ReviewSection>
       </div>
 
       <div className="grid content-start gap-6">
@@ -526,6 +573,85 @@ function CampaignReview({
               : `Up to ${estimatedCredits} SMS ${estimatedCredits === 1 ? 'credit' : 'credits'}`}
           </p>
         </ReviewSection>
+
+        <ReviewSection title="Test SMS">
+          <CampaignTestSend
+            canManageCampaigns={canManageCampaigns}
+            campaignId={campaignId}
+            senderReady={senderReady}
+          />
+        </ReviewSection>
+      </div>
+    </div>
+  );
+}
+
+function CampaignTestSend({
+  canManageCampaigns,
+  campaignId,
+  senderReady,
+}: {
+  canManageCampaigns: boolean;
+  campaignId: string | null;
+  senderReady: boolean;
+}) {
+  const testSend = useSendCampaignTestSms(campaignId);
+  const form = useForm({
+    defaultValues: {
+      testPhone: '',
+    },
+    onSubmit: async ({ value }) => {
+      const response = await testSend.mutateAsync({
+        testPhone: value.testPhone.trim() || undefined,
+      });
+
+      toast.success('Test SMS sent.', {
+        description: `${response.testSend.chargedCredits} SMS ${
+          response.testSend.chargedCredits === 1 ? 'credit' : 'credits'
+        } used.`,
+      });
+    },
+  });
+
+  return (
+    <div className="grid gap-3">
+      <form.Field name="testPhone">
+        {(field) => (
+          <TextInput
+            disabled={!canManageCampaigns || !senderReady || testSend.isPending}
+            error={null}
+            label="Test phone"
+            name={field.name}
+            onBlur={field.handleBlur}
+            onChange={field.handleChange}
+            placeholder="Use responsible phone"
+            value={field.state.value}
+          />
+        )}
+      </form.Field>
+
+      {testSend.isError ? (
+        <p className={textStyles.error}>
+          {testSend.error instanceof Error
+            ? testSend.error.message
+            : 'Test SMS could not be sent.'}
+        </p>
+      ) : null}
+
+      <div className="flex justify-end">
+        <Button
+          disabled={
+            !canManageCampaigns ||
+            !campaignId ||
+            !senderReady ||
+            testSend.isPending
+          }
+          onClick={() => void form.handleSubmit()}
+          type="button"
+        >
+          <Send aria-hidden="true" data-icon="inline-start" />
+          {testSend.isPending ? 'Sending test SMS' : 'Send test SMS'}
+        </Button>
       </div>
     </div>
   );
@@ -762,7 +888,10 @@ function campaignFormValuesToCompleteInput(
   };
 }
 
-function completedCampaignSteps(values: CampaignFormValues): CampaignStepId[] {
+function completedCampaignSteps(
+  values: CampaignFormValues,
+  senderReady: boolean,
+): CampaignStepId[] {
   const completed: CampaignStepId[] = [];
 
   if (isAudienceStepComplete(values)) {
@@ -777,10 +906,15 @@ function completedCampaignSteps(values: CampaignFormValues): CampaignStepId[] {
     completed.push('booking');
   }
 
+  if (senderReady) {
+    completed.push('sender');
+  }
+
   if (
     isAudienceStepComplete(values) &&
     isMessageStepComplete(values) &&
-    isBookingStepComplete(values)
+    isBookingStepComplete(values) &&
+    senderReady
   ) {
     completed.push('review');
   }

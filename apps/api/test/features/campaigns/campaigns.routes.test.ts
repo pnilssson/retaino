@@ -6,9 +6,14 @@ import {
   getCampaignById,
   getCurrentLegalBundle,
   getCurrentOrganizationLegalAcceptance,
+  getOrganizationBillingProfile,
   getOrganizationProfileByOrganizationId,
+  getOrganizationSmsSender,
+  getSmsCreditBalance,
+  getSmsCreditBalanceBreakdown,
   listCampaigns,
   previewCampaignAudience,
+  reserveSmsCreditsIfSufficient,
   updateCampaignDraft,
 } from '@retaino/db';
 import type {
@@ -26,9 +31,14 @@ vi.mock('@retaino/db', () => ({
   getCampaignById: vi.fn(),
   getCurrentLegalBundle: vi.fn(),
   getCurrentOrganizationLegalAcceptance: vi.fn(),
+  getOrganizationBillingProfile: vi.fn(),
   getOrganizationProfileByOrganizationId: vi.fn(),
+  getOrganizationSmsSender: vi.fn(),
+  getSmsCreditBalance: vi.fn(),
+  getSmsCreditBalanceBreakdown: vi.fn(),
   listCampaigns: vi.fn(),
   previewCampaignAudience: vi.fn(),
+  reserveSmsCreditsIfSufficient: vi.fn(),
   updateCampaignDraft: vi.fn(),
 }));
 
@@ -150,11 +160,16 @@ function testApp(input: { role?: string } = {}) {
 describe('campaignsRoutes', () => {
   beforeEach(() => {
     vi.mocked(createCampaignDraft).mockReset();
+    vi.mocked(reserveSmsCreditsIfSufficient).mockReset();
     vi.mocked(deleteCampaignDraft).mockReset();
     vi.mocked(getCampaignById).mockReset();
     vi.mocked(getCurrentLegalBundle).mockReset();
     vi.mocked(getCurrentOrganizationLegalAcceptance).mockReset();
+    vi.mocked(getOrganizationBillingProfile).mockReset();
     vi.mocked(getOrganizationProfileByOrganizationId).mockReset();
+    vi.mocked(getOrganizationSmsSender).mockReset();
+    vi.mocked(getSmsCreditBalance).mockReset();
+    vi.mocked(getSmsCreditBalanceBreakdown).mockReset();
     vi.mocked(listCampaigns).mockReset();
     vi.mocked(previewCampaignAudience).mockReset();
     vi.mocked(updateCampaignDraft).mockReset();
@@ -326,6 +341,137 @@ describe('campaignsRoutes', () => {
     });
   });
 
+  it('previews the final SMS for a campaign', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue({
+      ...campaign,
+      smsBody: 'Hi {first_name}, we have openings this week.',
+    });
+
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/sms/preview`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      preview: {
+        renderedBody: string;
+        estimatedSmsPerRecipient: number;
+      };
+    };
+
+    expect(body.preview.renderedBody).toContain('Hi Anna');
+    expect(body.preview.renderedBody).toContain('https://go.retaino.com/r/');
+    expect(body.preview.renderedBody).toContain('Reply STOP to opt out');
+    expect(body.preview.estimatedSmsPerRecipient).toBeGreaterThan(0);
+  });
+
+  it('sends a test SMS without creating campaign recipients', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue(campaign);
+    vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
+    vi.mocked(getSmsCreditBalance).mockResolvedValue(10);
+    vi.mocked(getSmsCreditBalanceBreakdown).mockResolvedValue({
+      purchased: 0,
+      subscriptionPeriod: 10,
+      total: 10,
+    });
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue(readySender());
+    vi.mocked(reserveSmsCreditsIfSufficient).mockResolvedValue({
+      debitedCredits: 1,
+      transactions: [
+        {
+          transactionType: 'debit',
+          source: 'campaign_test_send',
+          sourceId: 'campaign-test-123',
+          credits: -1,
+          creditBucket: 'subscription_period',
+          periodStart: '2026-05-01T00:00:00.000Z',
+          periodEnd: '2026-06-01T00:00:00.000Z',
+          description: 'Campaign test SMS usage',
+          createdAt: '2026-05-18T00:00:00.000Z',
+        },
+      ],
+    });
+
+    const response = await testApp().request(
+      `/v1/campaigns/${campaign.id}/sms/send`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ testPhone: '0700000000' }),
+      },
+      { SMS_SENDING_MODE: 'test' },
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      testSend: {
+        to: string;
+        chargedCredits: number;
+        status: string;
+      };
+    };
+
+    expect(body.testSend).toMatchObject({
+      to: '+46700000000',
+      chargedCredits: 1,
+      status: 'queued',
+    });
+    expect(getOrganizationSmsSender).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      provider: 'fake',
+    });
+    expect(reserveSmsCreditsIfSufficient).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        organizationId: organization.id,
+        source: 'campaign_test_send',
+        credits: 1,
+        sourceId: expect.stringMatching(
+          /^campaign-test:44444444-4444-4444-8444-444444444444:/,
+        ),
+        description: 'Campaign test SMS usage',
+      },
+    );
+  });
+
+  it('uses the responsible phone when no explicit test phone is provided', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue(campaign);
+    vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
+    vi.mocked(getSmsCreditBalance).mockResolvedValue(10);
+    vi.mocked(getSmsCreditBalanceBreakdown).mockResolvedValue({
+      purchased: 0,
+      subscriptionPeriod: 10,
+      total: 10,
+    });
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue(readySender());
+    vi.mocked(reserveSmsCreditsIfSufficient).mockResolvedValue({
+      debitedCredits: 1,
+      transactions: [],
+    });
+
+    const response = await testApp().request(
+      `/v1/campaigns/${campaign.id}/sms/send`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      },
+      { SMS_SENDING_MODE: 'test' },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      testSend: {
+        to: profile.responsiblePhone,
+      },
+    });
+  });
+
   it('rejects organization ids in campaign create bodies', async () => {
     const response = await testApp().request('/v1/campaigns', {
       method: 'POST',
@@ -423,3 +569,41 @@ describe('campaignsRoutes', () => {
     expect(response.status).toBe(409);
   });
 });
+
+function activeBilling() {
+  return {
+    id: '55555555-5555-4555-8555-555555555555',
+    organizationId: organization.id,
+    stripeCustomerId: 'cus_123',
+    stripeSubscriptionId: 'sub_123',
+    stripePriceId: 'price_123',
+    planKey: 'starter',
+    subscriptionStatus: 'active',
+    currentPeriodStart: new Date('2026-05-01T00:00:00.000Z'),
+    currentPeriodEnd: new Date('2026-06-01T00:00:00.000Z'),
+    cancelAtPeriodEnd: false,
+    syncedAt: new Date('2026-05-18T00:00:00.000Z'),
+    createdAt: new Date('2026-05-18T00:00:00.000Z'),
+    updatedAt: new Date('2026-05-18T00:00:00.000Z'),
+  };
+}
+
+function readySender() {
+  return {
+    id: '66666666-6666-4666-8666-666666666666',
+    organizationId: organization.id,
+    provider: 'fake',
+    status: 'ready',
+    phoneNumber: '+46700000000',
+    countryCode: 'SE',
+    numberType: 'mobile',
+    providerMessagingServiceId: `fake-ms-${organization.id}`,
+    providerPhoneNumberId: 'fake-se-mobile-1',
+    regulatoryStatus: 'not_required',
+    failureReason: null,
+    provisionedAt: '2026-05-18T00:00:00.000Z',
+    lastVerifiedAt: '2026-05-18T00:00:00.000Z',
+    createdAt: '2026-05-18T00:00:00.000Z',
+    updatedAt: '2026-05-18T00:00:00.000Z',
+  } as const;
+}

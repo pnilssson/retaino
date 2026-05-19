@@ -130,9 +130,11 @@ system of record.
 - Accepted webhook events are stored idempotently before side effects.
 - Webhooks grant subscription-period credits, grant purchased credits, update
   local subscription projection, and record relevant refund adjustments.
-- SMS credit transactions are append-only and are the only source of truth for
-  credit grants, reservations, releases, usage, and adjustments. Do not maintain
-  a separate mutable balance that must be synchronized with the ledger.
+- `organization_billing_profiles` stores the local Stripe subscription
+  projection used to check whether an organization can spend SMS credits.
+- SMS credit transactions are the immutable source of truth for credit grants,
+  reservations, releases, usage, and adjustments. Available balance is derived
+  from spendable ledger rows.
 - Sends must reserve enough credits before provider cost is incurred, then
   reconcile estimated and actual usage after send completion.
 - Do not use Stripe metered overage billing or Stripe Billing Credits for MVP

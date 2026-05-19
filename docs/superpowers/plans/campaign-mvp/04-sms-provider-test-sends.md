@@ -8,6 +8,15 @@ depend on Retaino adapter types, not Twilio SDK or webhook payload types.
 
 This phase sends only test messages. It does not send live campaigns.
 
+Current implementation status:
+
+- organization sender provisioning foundation exists behind `/v1/sms`
+- campaign SMS preview exists at `/v1/campaigns/:id/sms/preview`
+- test SMS sending exists at `/v1/campaigns/:id/sms/send`
+- campaign builder includes a sender setup step before review
+- review includes a test phone input and `Send test SMS`
+- live campaign launch remains out of scope for this phase
+
 ## Product Model
 
 Users need confidence before launching a campaign:
@@ -252,14 +261,14 @@ The countries and number search endpoints expose only SMS-capable options that
 Retaino can self-serve for MVP. If a selected country or number type needs more
 regulatory information, the organization admin provides it in Retaino.
 
-Test sends require admin campaign eligibility. They should audit the action but
-must not create campaign recipients. The request may include an explicit test
-phone. If it does not, use the organization's responsible phone when present.
-Test sends require the same local Stripe-backed subscription projection and
-Retaino SMS credit balance used by live sends. Check enough credits for the
-estimated preview before sending, reserve those credits, then reconcile actual
-segment usage as Retaino credit transactions after the provider response.
-Test sends require a ready organization sender in live sending mode.
+Test sends require admin campaign eligibility. They must not create campaign
+recipients. The request may include an explicit test phone. If it does not, use
+the organization's responsible phone when present. Test sends require the same
+local Stripe-backed subscription projection and Retaino SMS credit balance used
+by live sends. Reserve enough credits from `organization_billing_profiles`
+before calling the provider, write matching SMS credit transaction audit rows,
+and release the reserved credits if provider sending fails. Test sends require
+a ready organization sender.
 Test sends do not lock the campaign. The user can edit audience, message, or
 booking details after a test and send another test before launching.
 
@@ -340,7 +349,9 @@ Minimum coverage:
 - missing provider configuration fails clearly
 - test sends do not create campaign recipients
 - test-send estimated credits are reserved before provider send
-- actual test-send segment usage is reconciled as Retaino credit transactions
+- test-send reservations append immutable SMS credit transaction rows before
+  provider send
+- provider send failure releases the same reserved credit buckets
 - explicit test phone overrides organization responsible phone
 - organization responsible phone is used when no explicit test phone is provided
 - web UI shows rendered SMS preview and estimated SMS per recipient before test
@@ -361,6 +372,10 @@ pnpm --filter @retaino/api test -- sms.routes
 pnpm --filter @retaino/api test -- campaigns
 pnpm --filter @retaino/api test -- sms-provider
 pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/web typecheck
+pnpm --filter @retaino/web lint
+pnpm --filter @retaino/web ui:audit
+pnpm --filter @retaino/web contrast:check
 ```
 
 ## Risks
