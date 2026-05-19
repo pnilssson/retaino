@@ -1,5 +1,6 @@
 import {
   and,
+  asc,
   count,
   desc,
   eq,
@@ -14,20 +15,33 @@ import type {
   Campaign,
   CampaignAudienceRule,
   CampaignAudiencePreviewResponse,
+  CampaignRecipient,
+  CampaignRecipientStatus,
   CampaignStatus,
   CreateCampaignDraftInput,
   UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
 import type { DbClient } from '../client';
-import { campaigns, contacts } from '../schema';
+import { auditLogs, campaignRecipients, campaigns, contacts } from '../schema';
 import { assertOrganizationId, phoneSuppressionExistsFilter } from './contacts';
 
 type CampaignRow = typeof campaigns.$inferSelect;
+type CampaignRecipientRow = typeof campaignRecipients.$inferSelect;
+type CampaignRecipientInsert = typeof campaignRecipients.$inferInsert;
+
+const RECIPIENT_SNAPSHOT_INSERT_BATCH_SIZE = 1000;
 
 export type UpdateCampaignDraftResult =
   | { status: 'updated'; campaign: Campaign }
   | { status: 'not_found' }
   | { status: 'not_editable' };
+
+export type LaunchCampaignResult =
+  | { status: 'launched'; campaign: Campaign; recipientCount: number }
+  | { status: 'not_found' }
+  | { status: 'not_editable' }
+  | { status: 'incomplete' }
+  | { status: 'empty_audience' };
 
 export function campaignToContract(row: CampaignRow): Campaign {
   return {
@@ -41,6 +55,30 @@ export function campaignToContract(row: CampaignRow): Campaign {
     bookingUrl: row.bookingUrl,
     campaignCode: row.campaignCode,
     attributionWindowDays: row.attributionWindowDays,
+    readyToSendAt: row.readyToSendAt?.toISOString() ?? null,
+    readyToSendByUserId: row.readyToSendByUserId,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export function recipientToContract(row: CampaignRecipientRow): CampaignRecipient {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    campaignId: row.campaignId,
+    contactId: row.contactId,
+    status: row.status as CampaignRecipientStatus,
+    exclusionReason: row.exclusionReason,
+    name: row.name,
+    phone: row.phone,
+    email: row.email,
+    lastBookingAt: row.lastBookingAt?.toISOString() ?? null,
+    lastContactedAt: row.lastContactedAt?.toISOString() ?? null,
+    selectedAt: row.selectedAt?.toISOString() ?? null,
+    queuedAt: row.queuedAt?.toISOString() ?? null,
+    sentAt: row.sentAt?.toISOString() ?? null,
+    failedAt: row.failedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -263,6 +301,248 @@ export async function deleteCampaignDraft(
     .returning({ id: campaigns.id });
 
   return Boolean(deleted);
+}
+
+export async function listCampaignRecipients(
+  db: DbClient,
+  input: { organizationId: string; campaignId: string },
+): Promise<{ recipients: CampaignRecipient[] }> {
+  assertOrganizationId(input.organizationId);
+
+  const rows = await db
+    .select()
+    .from(campaignRecipients)
+    .where(
+      and(
+        eq(campaignRecipients.organizationId, input.organizationId),
+        eq(campaignRecipients.campaignId, input.campaignId),
+      ),
+    )
+    .orderBy(asc(campaignRecipients.createdAt));
+
+  return { recipients: rows.map(recipientToContract) };
+}
+
+export async function countCampaignRecipients(
+  db: DbClient,
+  input: { organizationId: string; campaignId: string },
+): Promise<{ recipientCount: number }> {
+  assertOrganizationId(input.organizationId);
+
+  const [row] = await db
+    .select({ total: count() })
+    .from(campaignRecipients)
+    .where(
+      and(
+        eq(campaignRecipients.organizationId, input.organizationId),
+        eq(campaignRecipients.campaignId, input.campaignId),
+      ),
+    );
+
+  return { recipientCount: row?.total ?? 0 };
+}
+
+export async function launchCampaign(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    campaignId: string;
+    actorUserId: string;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+    now?: Date;
+  },
+): Promise<LaunchCampaignResult> {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+
+  return db.transaction(async (tx) => {
+    const [campaign] = await tx
+      .select()
+      .from(campaigns)
+      .where(
+        and(
+          eq(campaigns.organizationId, input.organizationId),
+          eq(campaigns.id, input.campaignId),
+        ),
+      )
+      .limit(1);
+
+    if (!campaign) {
+      return { status: 'not_found' };
+    }
+
+    if (campaign.status !== 'draft') {
+      return { status: 'not_editable' };
+    }
+
+    if (!campaign.smsBody || !campaign.bookingUrl) {
+      return { status: 'incomplete' };
+    }
+
+    const eligibleContacts = await tx
+      .select({
+        contactId: contacts.id,
+        name: contacts.name,
+        phone: contacts.phone,
+        email: contacts.email,
+        normalizedPhone: contacts.normalizedPhone,
+        normalizedEmail: contacts.normalizedEmail,
+        phoneHash: contacts.phoneHash,
+        emailHash: contacts.emailHash,
+        lastBookingAt: contacts.lastBookingAt,
+        lastContactedAt: contacts.lastContactedAt,
+      })
+      .from(contacts)
+      .where(
+        campaignAudienceWhere(
+          input.organizationId,
+          campaign.audienceRule as CampaignAudienceRule,
+          now,
+        ),
+      )
+      .orderBy(asc(contacts.id));
+
+    if (eligibleContacts.length === 0) {
+      return { status: 'empty_audience' };
+    }
+
+    const [updatedCampaign] = await tx
+      .update(campaigns)
+      .set({
+        status: 'ready_to_send',
+        readyToSendAt: now,
+        readyToSendByUserId: input.actorUserId,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(campaigns.organizationId, input.organizationId),
+          eq(campaigns.id, input.campaignId),
+          eq(campaigns.status, 'draft'),
+          eq(campaigns.updatedAt, campaign.updatedAt),
+        ),
+      )
+      .returning();
+
+    if (!updatedCampaign) {
+      return { status: 'not_editable' };
+    }
+
+    let recipientCount = 0;
+    const recipientSnapshots = eligibleContacts.map(
+      (contact): CampaignRecipientInsert => ({
+        organizationId: input.organizationId,
+        campaignId: campaign.id,
+        contactId: contact.contactId,
+        status: 'selected',
+        exclusionReason: null,
+        name: contact.name,
+        phone: contact.phone,
+        email: contact.email,
+        normalizedPhone: contact.normalizedPhone,
+        normalizedEmail: contact.normalizedEmail,
+        phoneHash: contact.phoneHash,
+        emailHash: contact.emailHash,
+        lastBookingAt: contact.lastBookingAt,
+        lastContactedAt: contact.lastContactedAt,
+        selectedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    );
+
+    for (const batch of chunkArray(
+      recipientSnapshots,
+      RECIPIENT_SNAPSHOT_INSERT_BATCH_SIZE,
+    )) {
+      const insertedRecipients = await tx
+        .insert(campaignRecipients)
+        .values(batch)
+        .returning();
+
+      recipientCount += insertedRecipients.length;
+    }
+
+    await tx
+      .insert(auditLogs)
+      .values(
+        auditLogValues({
+          organizationId: input.organizationId,
+          actorUserId: input.actorUserId,
+          eventType: 'campaign.ready_to_send',
+          resourceType: 'campaign',
+          resourceId: campaign.id,
+          metadata: {
+            audienceRule: campaign.audienceRule,
+            campaignCode: campaign.campaignCode,
+            recipientCount,
+          },
+          ipAddress: input.ipAddress ?? null,
+          userAgent: input.userAgent ?? null,
+        }),
+      )
+      .returning();
+
+    return {
+      status: 'launched',
+      campaign: campaignToContract(updatedCampaign),
+      recipientCount,
+    };
+  });
+}
+
+export async function createAuditLog(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    actorUserId: string;
+    eventType: string;
+    resourceType: string;
+    resourceId: string;
+    metadata: Record<string, unknown>;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+
+  await db
+    .insert(auditLogs)
+    .values(auditLogValues(input))
+    .returning();
+}
+
+function auditLogValues(input: {
+  organizationId: string;
+  actorUserId: string;
+  eventType: string;
+  resourceType: string;
+  resourceId: string;
+  metadata: Record<string, unknown>;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}) {
+  return {
+    organizationId: input.organizationId,
+    actorUserId: input.actorUserId,
+    eventType: input.eventType,
+    resourceType: input.resourceType,
+    resourceId: input.resourceId,
+    metadata: input.metadata,
+    ipAddress: input.ipAddress ?? null,
+    userAgent: input.userAgent ?? null,
+  };
+}
+
+function chunkArray<T>(values: T[], chunkSize: number): T[][] {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < values.length; index += chunkSize) {
+    chunks.push(values.slice(index, index + chunkSize));
+  }
+
+  return chunks;
 }
 
 function campaignUpdateValues(input: UpdateCampaignDraftInput) {

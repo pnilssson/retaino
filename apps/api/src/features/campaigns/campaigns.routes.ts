@@ -1,9 +1,12 @@
 import {
+  countCampaignRecipients,
   createCampaignDraft,
   deleteCampaignDraft,
   getCampaignById,
   getOrganizationProfileByOrganizationId,
   getOrganizationSmsSender,
+  launchCampaign,
+  listCampaignRecipients,
   listCampaigns,
   previewCampaignAudience,
   updateCampaignDraft,
@@ -282,6 +285,85 @@ export const campaignsRoutes = new Hono<AppEnv>()
       return campaignSmsSendErrorResponse(c, error);
     }
   })
+  .get('/:id/recipients', async (c) => {
+    return c.json(
+      await listCampaignRecipients(c.get('db'), {
+        organizationId: c.get('organization').id,
+        campaignId: c.req.param('id'),
+      }),
+    );
+  })
+  .get('/:id/recipients/summary', async (c) => {
+    return c.json(
+      await countCampaignRecipients(c.get('db'), {
+        organizationId: c.get('organization').id,
+        campaignId: c.req.param('id'),
+      }),
+    );
+  })
+  .post('/:id/launch', async (c) => {
+    const gate = await requireCampaignEligibility(c);
+
+    if (!gate.ok) {
+      return gate.response;
+    }
+
+    const db = c.get('db');
+    const organization = c.get('organization');
+    const provider = createSmsProvider(c.env);
+    const sender = await getOrganizationSmsSender(db, {
+      organizationId: organization.id,
+      provider: provider.name,
+    });
+
+    if (!sender || sender.status !== 'ready') {
+      return c.json(
+        apiError('conflict', 'Set up the SMS sender before sending a campaign.'),
+        409,
+      );
+    }
+
+    const result = await launchCampaign(db, {
+      organizationId: organization.id,
+      campaignId: c.req.param('id'),
+      actorUserId: c.get('user').id,
+      ipAddress:
+        c.req.header('cf-connecting-ip') ??
+        c.req.header('x-forwarded-for') ??
+        null,
+      userAgent: c.req.header('user-agent') ?? null,
+    });
+
+    if (result.status === 'not_found') {
+      return c.json(apiError('not_found', 'Campaign was not found.'), 404);
+    }
+
+    if (result.status === 'not_editable') {
+      return c.json(
+        apiError('conflict', 'Only draft campaigns can be sent.'),
+        409,
+      );
+    }
+
+    if (result.status === 'incomplete') {
+      return c.json(
+        apiError('conflict', 'Complete the campaign before sending it.'),
+        409,
+      );
+    }
+
+    if (result.status === 'empty_audience') {
+      return c.json(
+        apiError('validation_failed', 'Choose an audience with eligible contacts.'),
+        400,
+      );
+    }
+
+    return c.json({
+      campaign: result.campaign,
+      recipientCount: result.recipientCount,
+    });
+  })
   .get('/:id', async (c) => {
     const campaign = await getCampaignById(c.get('db'), {
       organizationId: c.get('organization').id,
@@ -343,6 +425,18 @@ export const campaignsRoutes = new Hono<AppEnv>()
     });
 
     if (!deleted) {
+      const existing = await getCampaignById(c.get('db'), {
+        organizationId: c.get('organization').id,
+        campaignId: c.req.param('id'),
+      });
+
+      if (existing) {
+        return c.json(
+          apiError('conflict', 'Only draft campaigns can be deleted.'),
+          409,
+        );
+      }
+
       return c.json(apiError('not_found', 'Campaign was not found.'), 404);
     }
 

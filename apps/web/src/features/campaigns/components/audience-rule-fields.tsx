@@ -14,11 +14,13 @@ function isPresetLapsedDays(value: number) {
 }
 
 export function AudienceRuleFields({
+  disabled = false,
   includeNoBookingDate,
   lapsedDays,
   onIncludeNoBookingDateChange,
   onLapsedDaysChange,
 }: {
+  disabled?: boolean;
   includeNoBookingDate: boolean;
   lapsedDays: number;
   onIncludeNoBookingDateChange: (value: boolean) => void;
@@ -36,6 +38,7 @@ export function AudienceRuleFields({
           {lapsedDayPresets.map((days) => (
             <Button
               aria-pressed={!showCustomInput && lapsedDays === days}
+              disabled={disabled}
               key={days}
               onClick={() => {
                 setCustomSelected(false);
@@ -52,6 +55,7 @@ export function AudienceRuleFields({
           ))}
           <Button
             aria-pressed={showCustomInput}
+            disabled={disabled}
             onClick={() => setCustomSelected(true)}
             size="sm"
             type="button"
@@ -66,6 +70,7 @@ export function AudienceRuleFields({
         <div className="grid max-w-48 gap-2">
           <Label htmlFor="campaign-lapsed-days">Days since last booking</Label>
           <Input
+            disabled={disabled}
             id="campaign-lapsed-days"
             max={365}
             min={30}
@@ -89,6 +94,7 @@ export function AudienceRuleFields({
         <Checkbox
           checked={includeNoBookingDate}
           className="mt-1"
+          disabled={disabled}
           onCheckedChange={(value) =>
             onIncludeNoBookingDateChange(value === true)
           }

@@ -8,6 +8,19 @@ export const campaignsQueryKeys = {
     [...campaignsQueryKeys.all, organizationId] as const,
   detail: (organizationId: string, campaignId: string) =>
     [...campaignsQueryKeys.organization(organizationId), campaignId] as const,
+  recipients: (organizationId: string, campaignId: string) =>
+    [
+      ...campaignsQueryKeys.organization(organizationId),
+      campaignId,
+      'recipients',
+    ] as const,
+  recipientSummary: (organizationId: string, campaignId: string) =>
+    [
+      ...campaignsQueryKeys.organization(organizationId),
+      campaignId,
+      'recipients',
+      'summary',
+    ] as const,
   list: (organizationId: string) =>
     [...campaignsQueryKeys.organization(organizationId), 'list'] as const,
   audiencePreview: (

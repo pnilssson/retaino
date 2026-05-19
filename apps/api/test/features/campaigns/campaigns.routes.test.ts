@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createCampaignDraft,
+  countCampaignRecipients,
   deleteCampaignDraft,
   getCampaignById,
   getCurrentLegalBundle,
@@ -11,6 +12,8 @@ import {
   getOrganizationSmsSender,
   getSmsCreditBalance,
   getSmsCreditBalanceBreakdown,
+  launchCampaign,
+  listCampaignRecipients,
   listCampaigns,
   previewCampaignAudience,
   reserveSmsCreditsIfSufficient,
@@ -27,6 +30,7 @@ import type { AppEnv } from '../../../src/types';
 
 vi.mock('@retaino/db', () => ({
   createCampaignDraft: vi.fn(),
+  countCampaignRecipients: vi.fn(),
   deleteCampaignDraft: vi.fn(),
   getCampaignById: vi.fn(),
   getCurrentLegalBundle: vi.fn(),
@@ -36,6 +40,8 @@ vi.mock('@retaino/db', () => ({
   getOrganizationSmsSender: vi.fn(),
   getSmsCreditBalance: vi.fn(),
   getSmsCreditBalanceBreakdown: vi.fn(),
+  launchCampaign: vi.fn(),
+  listCampaignRecipients: vi.fn(),
   listCampaigns: vi.fn(),
   previewCampaignAudience: vi.fn(),
   reserveSmsCreditsIfSufficient: vi.fn(),
@@ -136,9 +142,31 @@ const campaign: Campaign = {
   bookingUrl: 'https://booking.example.com/studio',
   campaignCode: null,
   attributionWindowDays: 7,
+  readyToSendAt: null,
+  readyToSendByUserId: null,
   createdAt: '2026-05-16T00:00:00.000Z',
   updatedAt: '2026-05-16T00:00:00.000Z',
 };
+
+const recipient = {
+  id: '77777777-7777-4777-8777-777777777777',
+  organizationId: organization.id,
+  campaignId: campaign.id,
+  contactId: '88888888-8888-4888-8888-888888888888',
+  status: 'selected',
+  exclusionReason: null,
+  name: 'Ada Lovelace',
+  phone: '+46700000000',
+  email: 'ada@example.com',
+  lastBookingAt: '2026-01-01T00:00:00.000Z',
+  lastContactedAt: null,
+  selectedAt: '2026-05-16T10:00:00.000Z',
+  queuedAt: null,
+  sentAt: null,
+  failedAt: null,
+  createdAt: '2026-05-16T10:00:00.000Z',
+  updatedAt: '2026-05-16T10:00:00.000Z',
+} as const;
 
 function testApp(input: { role?: string } = {}) {
   const app = new Hono<AppEnv>();
@@ -160,6 +188,7 @@ function testApp(input: { role?: string } = {}) {
 describe('campaignsRoutes', () => {
   beforeEach(() => {
     vi.mocked(createCampaignDraft).mockReset();
+    vi.mocked(countCampaignRecipients).mockReset();
     vi.mocked(reserveSmsCreditsIfSufficient).mockReset();
     vi.mocked(deleteCampaignDraft).mockReset();
     vi.mocked(getCampaignById).mockReset();
@@ -170,6 +199,8 @@ describe('campaignsRoutes', () => {
     vi.mocked(getOrganizationSmsSender).mockReset();
     vi.mocked(getSmsCreditBalance).mockReset();
     vi.mocked(getSmsCreditBalanceBreakdown).mockReset();
+    vi.mocked(launchCampaign).mockReset();
+    vi.mocked(listCampaignRecipients).mockReset();
     vi.mocked(listCampaigns).mockReset();
     vi.mocked(previewCampaignAudience).mockReset();
     vi.mocked(updateCampaignDraft).mockReset();
@@ -370,6 +401,103 @@ describe('campaignsRoutes', () => {
     expect(body.preview.estimatedSmsPerRecipient).toBeGreaterThan(0);
   });
 
+  it('launches a draft campaign after the sender is ready', async () => {
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue(readySender());
+    vi.mocked(launchCampaign).mockResolvedValue({
+      status: 'launched',
+      campaign: {
+        ...campaign,
+        status: 'ready_to_send',
+        readyToSendAt: '2026-05-16T10:00:00.000Z',
+        readyToSendByUserId: user.id,
+      },
+      recipientCount: 3,
+    });
+
+    const response = await testApp().request(
+      `/v1/campaigns/${campaign.id}/launch`,
+      {
+        method: 'POST',
+        headers: {
+          'user-agent': 'vitest',
+          'cf-connecting-ip': '203.0.113.1',
+        },
+      },
+      { SMS_SENDING_MODE: 'test' },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      campaign: {
+        status: 'ready_to_send',
+      },
+      recipientCount: 3,
+    });
+    expect(getOrganizationSmsSender).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      provider: 'fake',
+    });
+    expect(launchCampaign).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      campaignId: campaign.id,
+      actorUserId: user.id,
+      ipAddress: '203.0.113.1',
+      userAgent: 'vitest',
+    });
+  });
+
+  it('rejects launch when the sender is not ready', async () => {
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue(null);
+
+    const response = await testApp().request(
+      `/v1/campaigns/${campaign.id}/launch`,
+      { method: 'POST' },
+      { SMS_SENDING_MODE: 'test' },
+    );
+
+    expect(response.status).toBe(409);
+    expect(launchCampaign).not.toHaveBeenCalled();
+  });
+
+  it('lets members list campaign recipient snapshots', async () => {
+    vi.mocked(listCampaignRecipients).mockResolvedValue({
+      recipients: [recipient],
+    });
+
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/recipients`,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      recipients: [recipient],
+    });
+    expect(listCampaignRecipients).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      campaignId: campaign.id,
+    });
+  });
+
+  it('lets members read campaign recipient counts without snapshots', async () => {
+    vi.mocked(countCampaignRecipients).mockResolvedValue({
+      recipientCount: 12,
+    });
+
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/recipients/summary`,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      recipientCount: 12,
+    });
+    expect(countCampaignRecipients).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      campaignId: campaign.id,
+    });
+    expect(listCampaignRecipients).not.toHaveBeenCalled();
+  });
+
   it('sends a test SMS without creating campaign recipients', async () => {
     vi.mocked(getCampaignById).mockResolvedValue(campaign);
     vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
@@ -564,6 +692,22 @@ describe('campaignsRoutes', () => {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ name: 'Updated campaign' }),
+    });
+
+    expect(response.status).toBe(409);
+  });
+
+  it('returns conflict when deleting a launched campaign', async () => {
+    vi.mocked(deleteCampaignDraft).mockResolvedValue(false);
+    vi.mocked(getCampaignById).mockResolvedValue({
+      ...campaign,
+      status: 'ready_to_send',
+      readyToSendAt: '2026-05-16T10:00:00.000Z',
+      readyToSendByUserId: user.id,
+    });
+
+    const response = await testApp().request(`/v1/campaigns/${campaign.id}`, {
+      method: 'DELETE',
     });
 
     expect(response.status).toBe(409);

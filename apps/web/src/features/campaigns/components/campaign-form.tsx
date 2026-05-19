@@ -9,7 +9,7 @@ import type {
   UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
 import { createCampaignSmsPreview } from '@retaino/shared';
-import { Save, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   GuidedFlowActions,
@@ -34,6 +34,8 @@ import { AudiencePreview } from './audience-preview';
 import { AudienceRuleFields } from './audience-rule-fields';
 import { SenderSetup } from './sender-setup';
 import { useCampaignAudiencePreview } from '../hooks/use-campaign-audience-preview';
+import { useCampaignRecipientSummary } from '../hooks/use-campaign-recipient-summary';
+import { useLaunchCampaign } from '../hooks/use-launch-campaign';
 import { useSendCampaignTestSms } from '../hooks/use-send-campaign-test-sms';
 import { useSmsSender } from '../hooks/use-sms-sender';
 
@@ -76,7 +78,7 @@ const defaultCampaignFormValues: CampaignFormValues = {
 export function CampaignForm({
   canManageCampaigns,
   campaign,
-  initialStep = 'audience',
+  initialStep,
   onCreated,
   organizationId,
 }: {
@@ -86,21 +88,35 @@ export function CampaignForm({
   onCreated: (campaignId: string, initialStep: CampaignStepId) => void;
   organizationId: string | null;
 }) {
-  const [activeStep, setActiveStep] = useState<CampaignStepId>(initialStep);
+  const campaignIsDraft = !campaign || campaign.status === 'draft';
+  const canEditCampaign = canManageCampaigns && campaignIsDraft;
+  const [activeStep, setActiveStep] = useState<CampaignStepId>(
+    initialStep ?? (campaignIsDraft ? 'audience' : 'review'),
+  );
   const messageTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const createCampaign = useCreateCampaign(organizationId);
   const sender = useSmsSender(organizationId);
+  const launchCampaign = useLaunchCampaign({
+    campaignId: campaign?.id ?? null,
+    organizationId,
+  });
   const updateCampaign = useUpdateCampaign({
     campaignId: campaign?.id ?? null,
     organizationId,
   });
-  const saveError = createCampaign.error ?? updateCampaign.error;
+  const actionError =
+    createCampaign.error ?? updateCampaign.error ?? launchCampaign.error;
   const isSaving = createCampaign.isPending || updateCampaign.isPending;
+  const isLaunching = launchCampaign.isPending;
   const form = useForm({
     defaultValues: campaign
       ? campaignToFormValues(campaign)
       : defaultCampaignFormValues,
     onSubmit: async ({ value }) => {
+      if (!canEditCampaign) {
+        return;
+      }
+
       const input = campaignFormValuesToCompleteInput(value);
 
       if (campaign) {
@@ -119,7 +135,7 @@ export function CampaignForm({
     stepInput: CreateCampaignDraftInput | UpdateCampaignDraftInput,
     nextStep: CampaignStepId,
   ) {
-    if (!canManageCampaigns) {
+    if (!canEditCampaign) {
       setActiveStep(nextStep);
       return;
     }
@@ -154,14 +170,25 @@ export function CampaignForm({
         />
       ) : null}
 
-      {saveError ? (
+      {!campaignIsDraft ? (
+        <ItemNotice
+          description="Recipients have been selected for this campaign. Campaign details are locked so reporting can use the original send decision."
+          title="Campaign is ready to send"
+        />
+      ) : null}
+
+      {actionError ? (
         <ItemNotice
           description={
-            saveError instanceof Error
-              ? saveError.message
+            actionError instanceof Error
+              ? actionError.message
               : 'Try checking the campaign fields and saving again.'
           }
-          title="Campaign could not be saved"
+          title={
+            launchCampaign.error
+              ? 'Campaign could not be sent'
+              : 'Campaign could not be saved'
+          }
           tone="destructive"
         />
       ) : null}
@@ -203,7 +230,7 @@ export function CampaignForm({
                     >
                       {(field) => (
                         <TextInput
-                          disabled={!canManageCampaigns}
+                          disabled={!canEditCampaign}
                           error={getFieldError(field.state.meta.errors)}
                           label="Campaign name"
                           name={field.name}
@@ -237,6 +264,7 @@ export function CampaignForm({
                                 onLapsedDaysChange={
                                   lapsedDaysField.handleChange
                                 }
+                                disabled={!canEditCampaign}
                               />
                               {getFieldError(
                                 lapsedDaysField.state.meta.errors,
@@ -291,7 +319,7 @@ export function CampaignForm({
                         <div className="grid gap-6 lg:grid-cols-2">
                           <div className="grid content-start gap-5">
                             <TextAreaInput
-                              disabled={!canManageCampaigns}
+                              disabled={!canEditCampaign}
                               error={getFieldError(field.state.meta.errors)}
                               label="Message body"
                               name={field.name}
@@ -310,7 +338,7 @@ export function CampaignForm({
                                 {['{first_name}', '{last_booking_date}'].map(
                                   (token) => (
                                     <Button
-                                      disabled={!canManageCampaigns}
+                                      disabled={!canEditCampaign}
                                       key={token}
                                       onClick={() => {
                                         field.handleChange(
@@ -369,7 +397,7 @@ export function CampaignForm({
                       >
                         {(field) => (
                           <TextInput
-                            disabled={!canManageCampaigns}
+                            disabled={!canEditCampaign}
                             error={getFieldError(field.state.meta.errors)}
                             label="Booking URL"
                             name={field.name}
@@ -384,7 +412,7 @@ export function CampaignForm({
                       <form.Field name="campaignCode">
                         {(field) => (
                           <TextInput
-                            disabled={!canManageCampaigns}
+                            disabled={!canEditCampaign}
                             error={getFieldError(field.state.meta.errors)}
                             label="Campaign code or reference"
                             name={field.name}
@@ -418,7 +446,7 @@ export function CampaignForm({
                       <GuidedFlowSection title="Set up the sender">
                         <div className="grid gap-5">
                           <SenderSetup
-                            canManageCampaigns={canManageCampaigns}
+                            canManageCampaigns={canEditCampaign}
                             organizationId={organizationId}
                             sender={sender.data?.sender ?? null}
                           />
@@ -441,6 +469,7 @@ export function CampaignForm({
                         <div className="grid gap-5">
                     <CampaignReview
                       canManageCampaigns={canManageCampaigns}
+                      campaign={campaign}
                       campaignId={campaign?.id ?? null}
                       organizationId={organizationId}
                       senderReady={senderReady}
@@ -451,14 +480,31 @@ export function CampaignForm({
                             <Button
                               disabled={
                                 !canManageCampaigns ||
+                                !canEditCampaign ||
                                 !canSubmit ||
+                                !senderReady ||
+                                !campaign ||
                                 isSaving ||
-                                isSubmitting
+                                isSubmitting ||
+                                isLaunching
                               }
-                              type="submit"
+                              onClick={() => {
+                                launchCampaign.mutate(undefined, {
+                                  onSuccess: (response) => {
+                                    toast.success('Campaign is ready to send.', {
+                                      description: `${response.recipientCount} ${
+                                        response.recipientCount === 1
+                                          ? 'recipient'
+                                          : 'recipients'
+                                      } selected.`,
+                                    });
+                                  },
+                                });
+                              }}
+                              type="button"
                             >
-                              <Save aria-hidden="true" data-icon="inline-start" />
-                              {isSaving || isSubmitting ? 'Saving campaign' : 'Save campaign'}
+                              <Send aria-hidden="true" data-icon="inline-start" />
+                              {isLaunching ? 'Sending campaign' : 'Send campaign'}
                             </Button>
                           </GuidedFlowActions>
                         </div>
@@ -477,12 +523,14 @@ export function CampaignForm({
 
 function CampaignReview({
   canManageCampaigns,
+  campaign,
   campaignId,
   organizationId,
   senderReady,
   values,
 }: {
   canManageCampaigns: boolean;
+  campaign: Campaign | null;
   campaignId: string | null;
   organizationId: string | null;
   senderReady: boolean;
@@ -490,15 +538,25 @@ function CampaignReview({
 }) {
   const audiencePreview = useCampaignAudiencePreview({
     audienceRule: values.audienceRule,
-    enabled: isPreviewableAudienceRule(values.audienceRule),
+    enabled:
+      campaign?.status !== 'ready_to_send' &&
+      isPreviewableAudienceRule(values.audienceRule),
+    organizationId,
+  });
+  const recipientSummary = useCampaignRecipientSummary({
+    campaignId,
+    enabled: campaign?.status === 'ready_to_send',
     organizationId,
   });
   const smsPreview = createCampaignSmsPreview({ smsBody: values.smsBody });
+  const frozenRecipientCount = recipientSummary.data?.recipientCount ?? null;
   const eligibleCount = audiencePreview.data?.eligibleCount ?? null;
+  const usageRecipientCount =
+    campaign?.status === 'ready_to_send' ? frozenRecipientCount : eligibleCount;
   const estimatedCredits =
-    eligibleCount === null
+    usageRecipientCount === null
       ? null
-      : eligibleCount * smsPreview.estimatedSmsPerRecipient;
+      : usageRecipientCount * smsPreview.estimatedSmsPerRecipient;
   const campaignReference = values.campaignCode.trim();
   const shouldShowReference =
     campaignReference &&
@@ -519,7 +577,13 @@ function CampaignReview({
 
         <ReviewSection title="Audience">
           <p className={textStyles.body}>
-            {audiencePreview.isLoading
+            {campaign?.status === 'ready_to_send'
+              ? frozenRecipientCount === null
+                ? recipientSummary.isLoading
+                  ? 'Loading selected recipients.'
+                  : 'Selected recipients unavailable.'
+                : `${frozenRecipientCount} selected ${frozenRecipientCount === 1 ? 'recipient' : 'recipients'}.`
+              : audiencePreview.isLoading
               ? 'Checking eligible contacts.'
               : eligibleCount === null
                 ? 'Eligible contacts unavailable.'
@@ -534,6 +598,16 @@ function CampaignReview({
                   }`}
           </p>
         </ReviewSection>
+
+        {campaign?.status === 'ready_to_send' ? (
+          <ReviewSection title="Send status">
+            <p className={textStyles.body}>
+              {campaign.readyToSendAt
+                ? `Ready to send since ${formatDateTime(campaign.readyToSendAt)}.`
+                : 'Ready to send.'}
+            </p>
+          </ReviewSection>
+        ) : null}
 
         <ReviewSection title="Booking">
           {values.bookingUrl ? (
@@ -934,6 +1008,13 @@ function isMessageStepComplete(values: CampaignFormValues) {
 
 function isBookingStepComplete(values: CampaignFormValues) {
   return !validateBookingUrl(values.bookingUrl);
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
 }
 
 function validateRequired(value: string, message: string) {

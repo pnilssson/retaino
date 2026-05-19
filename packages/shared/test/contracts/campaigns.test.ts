@@ -3,6 +3,10 @@ import {
   campaignAudiencePreviewRequestSchema,
   campaignAudiencePreviewResponseSchema,
   campaignAudienceRuleSchema,
+  campaignLaunchResponseSchema,
+  campaignRecipientListResponseSchema,
+  campaignRecipientSummaryResponseSchema,
+  campaignRecipientSchema,
   campaignSmsPreviewResponseSchema,
   campaignSmsTestSendRequestSchema,
   campaignSmsTestSendResponseSchema,
@@ -47,6 +51,8 @@ describe('campaign contracts', () => {
         bookingUrl: 'https://booking.example.com/studio',
         campaignCode: null,
         attributionWindowDays: 7,
+        readyToSendAt: null,
+        readyToSendByUserId: null,
         createdAt: '2026-05-16T00:00:00.000Z',
         updatedAt: '2026-05-16T00:00:00.000Z',
       }).success,
@@ -83,6 +89,8 @@ describe('campaign contracts', () => {
         bookingUrl: null,
         campaignCode: null,
         attributionWindowDays: 7,
+        readyToSendAt: null,
+        readyToSendByUserId: null,
         createdAt: '2026-05-16T00:00:00.000Z',
         updatedAt: '2026-05-16T00:00:00.000Z',
       }).success,
@@ -105,6 +113,8 @@ describe('campaign contracts', () => {
         bookingUrl: 'https://booking.example.com/studio',
         campaignCode: null,
         attributionWindowDays: 7,
+        readyToSendAt: '2026-05-16T10:00:00.000Z',
+        readyToSendByUserId: '33333333-3333-4333-8333-333333333333',
         createdAt: '2026-05-16T00:00:00.000Z',
         updatedAt: '2026-05-16T00:00:00.000Z',
       }).success,
@@ -285,6 +295,66 @@ describe('campaign contracts', () => {
           providerReference: 'available-number-1',
           label: '+46 70 000 00 00',
         },
+      }).success,
+    ).toBe(true);
+  });
+
+  it('accepts launch and recipient snapshot contracts', () => {
+    const recipient = {
+      id: '44444444-4444-4444-8444-444444444444',
+      organizationId: '22222222-2222-4222-8222-222222222222',
+      campaignId: '55555555-5555-4555-8555-555555555555',
+      contactId: null,
+      status: 'selected',
+      exclusionReason: null,
+      name: 'Ada Lovelace',
+      phone: '+46700000000',
+      email: 'ada@example.com',
+      lastBookingAt: '2026-01-01T00:00:00.000Z',
+      lastContactedAt: null,
+      selectedAt: '2026-05-16T10:00:00.000Z',
+      queuedAt: null,
+      sentAt: null,
+      failedAt: null,
+      createdAt: '2026-05-16T10:00:00.000Z',
+      updatedAt: '2026-05-16T10:00:00.000Z',
+    };
+
+    const campaign = {
+      id: '55555555-5555-4555-8555-555555555555',
+      organizationId: '22222222-2222-4222-8222-222222222222',
+      createdByUserId: '33333333-3333-4333-8333-333333333333',
+      name: 'June reactivation',
+      status: 'ready_to_send',
+      audienceRule: {
+        lapsedDays: 90,
+        includeNoBookingDate: false,
+      },
+      smsBody: 'We have openings this week.',
+      bookingUrl: 'https://booking.example.com/studio',
+      campaignCode: null,
+      attributionWindowDays: 7,
+      readyToSendAt: '2026-05-16T10:00:00.000Z',
+      readyToSendByUserId: '33333333-3333-4333-8333-333333333333',
+      createdAt: '2026-05-16T00:00:00.000Z',
+      updatedAt: '2026-05-16T10:00:00.000Z',
+    };
+
+    expect(campaignRecipientSchema.safeParse(recipient).success).toBe(true);
+    expect(
+      campaignRecipientListResponseSchema.safeParse({
+        recipients: [recipient],
+      }).success,
+    ).toBe(true);
+    expect(
+      campaignLaunchResponseSchema.safeParse({
+        campaign,
+        recipientCount: 1,
+      }).success,
+    ).toBe(true);
+    expect(
+      campaignRecipientSummaryResponseSchema.safeParse({
+        recipientCount: 1,
       }).success,
     ).toBe(true);
   });

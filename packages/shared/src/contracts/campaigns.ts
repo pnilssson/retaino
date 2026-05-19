@@ -21,13 +21,25 @@ export const CAMPAIGN_STATUSES = [
   'sent',
   'failed',
 ] as const;
+export const CAMPAIGN_RECIPIENT_STATUSES = [
+  'selected',
+  'queued',
+  'sent',
+  'failed',
+  'skipped',
+] as const;
 
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
+export type CampaignRecipientStatus =
+  (typeof CAMPAIGN_RECIPIENT_STATUSES)[number];
 export type SmsSenderProvider = (typeof SMS_SENDER_PROVIDERS)[number];
 export type SmsSenderStatus = (typeof SMS_SENDER_STATUSES)[number];
 export type SmsSenderNumberType = (typeof SMS_SENDER_NUMBER_TYPES)[number];
 
 export const campaignStatusSchema = z.enum(CAMPAIGN_STATUSES);
+export const campaignRecipientStatusSchema = z.enum(
+  CAMPAIGN_RECIPIENT_STATUSES,
+);
 export const smsSenderProviderSchema = z.enum(SMS_SENDER_PROVIDERS);
 export const smsSenderStatusSchema = z.enum(SMS_SENDER_STATUSES);
 export const smsSenderNumberTypeSchema = z.enum(SMS_SENDER_NUMBER_TYPES);
@@ -126,6 +138,28 @@ export const campaignSchema = z.object({
   bookingUrl: bookingUrlSchema.nullable(),
   campaignCode: nonEmptyStringSchema.nullable(),
   attributionWindowDays: z.number().int().min(1).max(30),
+  readyToSendAt: timestampSchema.nullable(),
+  readyToSendByUserId: idSchema.nullable(),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+});
+
+export const campaignRecipientSchema = z.object({
+  id: idSchema,
+  organizationId: idSchema,
+  campaignId: idSchema,
+  contactId: idSchema.nullable(),
+  status: campaignRecipientStatusSchema,
+  exclusionReason: nonEmptyStringSchema.nullable(),
+  name: nonEmptyStringSchema.nullable(),
+  phone: nonEmptyStringSchema.nullable(),
+  email: nonEmptyStringSchema.nullable(),
+  lastBookingAt: timestampSchema.nullable(),
+  lastContactedAt: timestampSchema.nullable(),
+  selectedAt: timestampSchema.nullable(),
+  queuedAt: timestampSchema.nullable(),
+  sentAt: timestampSchema.nullable(),
+  failedAt: timestampSchema.nullable(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
 });
@@ -272,8 +306,22 @@ export const campaignSmsTestSendResponseSchema = z.object({
   }),
 });
 
+export const campaignRecipientListResponseSchema = z.object({
+  recipients: z.array(campaignRecipientSchema),
+});
+
+export const campaignRecipientSummaryResponseSchema = z.object({
+  recipientCount: z.number().int().nonnegative(),
+});
+
+export const campaignLaunchResponseSchema = z.object({
+  campaign: campaignSchema,
+  recipientCount: z.number().int().nonnegative(),
+});
+
 export type CampaignAudienceRule = z.infer<typeof campaignAudienceRuleSchema>;
 export type Campaign = z.infer<typeof campaignSchema>;
+export type CampaignRecipient = z.infer<typeof campaignRecipientSchema>;
 export type CreateCampaignDraftInput = z.infer<
   typeof createCampaignDraftSchema
 >;
@@ -321,6 +369,15 @@ export type CampaignSmsTestSendRequest = z.infer<
 >;
 export type CampaignSmsTestSendResponse = z.infer<
   typeof campaignSmsTestSendResponseSchema
+>;
+export type CampaignRecipientListResponse = z.infer<
+  typeof campaignRecipientListResponseSchema
+>;
+export type CampaignRecipientSummaryResponse = z.infer<
+  typeof campaignRecipientSummaryResponseSchema
+>;
+export type CampaignLaunchResponse = z.infer<
+  typeof campaignLaunchResponseSchema
 >;
 
 export type CampaignResponse = {

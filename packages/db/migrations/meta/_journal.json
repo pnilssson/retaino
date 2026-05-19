@@ -50,6 +50,20 @@
       "when": 1779130047047,
       "tag": "0006_peaceful_gabe_jones",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779216238747,
+      "tag": "0007_jittery_blockbuster",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779218385160,
+      "tag": "0008_rare_doomsday",
+      "breakpoints": true
     }
   ]
 }
