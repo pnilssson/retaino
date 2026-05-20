@@ -44,6 +44,7 @@ export const smsMessages = pgTable(
     currency: text('currency'),
     queuedAt: timestamp('queued_at', { withTimezone: true }),
     sentAt: timestamp('sent_at', { withTimezone: true }),
+    receivedAt: timestamp('received_at', { withTimezone: true }),
     deliveredAt: timestamp('delivered_at', { withTimezone: true }),
     failedAt: timestamp('failed_at', { withTimezone: true }),
     createdAt,
@@ -53,6 +54,18 @@ export const smsMessages = pgTable(
     index('sms_messages_organization_campaign_idx').on(
       table.organizationId,
       table.campaignId,
+    ),
+    index('sms_messages_organization_received_idx').on(
+      table.organizationId,
+      table.receivedAt,
+    ),
+    index('sms_messages_organization_contact_idx').on(
+      table.organizationId,
+      table.contactId,
+    ),
+    index('sms_messages_organization_recipient_idx').on(
+      table.organizationId,
+      table.recipientId,
     ),
     uniqueIndex('sms_messages_provider_message_idx').on(
       table.provider,

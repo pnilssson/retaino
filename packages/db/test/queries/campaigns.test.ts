@@ -7,16 +7,25 @@ import {
   campaignToContract,
   countCampaignRecipients,
   createAuditLog,
+  createInboundSmsMessage,
   createOutboundSmsMessage,
   deleteCampaignDraft,
+  getCampaignReport,
+  getLatestCampaignRecipientByPhoneHash,
+  getSmsMessageByProviderMessageId,
+  getTrackingLinkByCode,
   listSelectedCampaignRecipientsForSend,
   launchCampaign,
   listCampaignRecipients,
   markCampaignRecipientSkipped,
   markCampaignRecipientSent,
   markCampaignSendCompleted,
+  recordCampaignMessageEvent,
+  recordTrackingClick,
   recordSmsMessageProviderResult,
   recipientToContract,
+  campaignMessageEventToContract,
+  clickEventToContract,
   smsMessageToContract,
   startCampaignSend,
   trackingLinkToContract,
@@ -71,6 +80,33 @@ const recipientRow = {
   updatedAt: new Date('2026-05-16T10:00:00.000Z'),
 };
 
+const messageEventRow = {
+  id: '88888888-8888-4888-8888-888888888888',
+  organizationId: campaignRow.organizationId,
+  campaignId: campaignRow.id,
+  messageId: '77777777-7777-4777-8777-777777777777',
+  recipientId: recipientRow.id,
+  provider: 'fake',
+  providerMessageId: 'fake-message-1',
+  eventType: 'delivered',
+  rawStatus: 'delivered',
+  rawPayload: { MessageStatus: 'delivered' },
+  occurredAt: new Date('2026-05-16T10:01:00.000Z'),
+  createdAt: new Date('2026-05-16T10:01:00.000Z'),
+};
+
+const clickEventRow = {
+  id: '99999999-9999-4999-8999-999999999999',
+  organizationId: campaignRow.organizationId,
+  campaignId: campaignRow.id,
+  recipientId: recipientRow.id,
+  trackingLinkId: '66666666-6666-4666-8666-666666666666',
+  userAgent: 'Mozilla/5.0',
+  ipAddress: '203.0.113.10',
+  occurredAt: new Date('2026-05-16T10:02:00.000Z'),
+  createdAt: new Date('2026-05-16T10:02:00.000Z'),
+};
+
 const trackingLinkRow = {
   id: '66666666-6666-4666-8666-666666666666',
   organizationId: campaignRow.organizationId,
@@ -109,6 +145,7 @@ const smsMessageRow = {
   currency: 'SEK',
   queuedAt: new Date('2026-05-16T10:00:00.000Z'),
   sentAt: null,
+  receivedAt: null,
   deliveredAt: null,
   failedAt: null,
   createdAt: new Date('2026-05-16T10:00:00.000Z'),
@@ -196,10 +233,37 @@ describe('campaign query helpers', () => {
       currency: 'SEK',
       queuedAt: '2026-05-16T10:00:00.000Z',
       sentAt: null,
+      receivedAt: null,
       deliveredAt: null,
       failedAt: null,
       createdAt: '2026-05-16T10:00:00.000Z',
       updatedAt: '2026-05-16T10:00:00.000Z',
+    });
+
+    expect(campaignMessageEventToContract(messageEventRow)).toEqual({
+      id: messageEventRow.id,
+      organizationId: messageEventRow.organizationId,
+      campaignId: messageEventRow.campaignId,
+      messageId: messageEventRow.messageId,
+      recipientId: messageEventRow.recipientId,
+      provider: 'fake',
+      providerMessageId: messageEventRow.providerMessageId,
+      eventType: messageEventRow.eventType,
+      rawStatus: messageEventRow.rawStatus,
+      occurredAt: '2026-05-16T10:01:00.000Z',
+      createdAt: '2026-05-16T10:01:00.000Z',
+    });
+
+    expect(clickEventToContract(clickEventRow)).toEqual({
+      id: clickEventRow.id,
+      organizationId: clickEventRow.organizationId,
+      campaignId: clickEventRow.campaignId,
+      recipientId: clickEventRow.recipientId,
+      trackingLinkId: clickEventRow.trackingLinkId,
+      userAgent: clickEventRow.userAgent,
+      ipAddress: clickEventRow.ipAddress,
+      occurredAt: '2026-05-16T10:02:00.000Z',
+      createdAt: '2026-05-16T10:02:00.000Z',
     });
   });
 
@@ -780,6 +844,138 @@ describe('campaign query helpers', () => {
     ]);
   });
 
+  it('loads tracking links by public code without tenant input', async () => {
+    let whereCondition: SQL | undefined;
+    const db = {
+      select: () => ({
+        from: () => ({
+          where: (condition: SQL | undefined) => {
+            whereCondition = condition;
+
+            return {
+              limit: () => [trackingLinkRow],
+            };
+          },
+        }),
+      }),
+    };
+
+    await expect(getTrackingLinkByCode(db as never, 'abc123')).resolves.toEqual(
+      expect.objectContaining({
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        recipientId: recipientRow.id,
+      }),
+    );
+
+    if (!whereCondition) {
+      throw new Error('Expected getTrackingLinkByCode to build a condition.');
+    }
+
+    const query = new PgDialect().sqlToQuery(
+      sql`select 1 where ${whereCondition}`,
+    );
+
+    expect(query.sql).toContain('"tracking_links"."code" = $1');
+    expect(query.params).toEqual(['abc123']);
+  });
+
+  it('records click events and updates tracking link counters', async () => {
+    const insertValues: unknown[] = [];
+    const updateSets: unknown[] = [];
+    const db = {
+      insert: () => ({
+        values: (value: unknown) => {
+          insertValues.push(value);
+
+          return {
+            returning: () => [clickEventRow],
+          };
+        },
+      }),
+      update: () => ({
+        set: (value: unknown) => {
+          updateSets.push(value);
+
+          return {
+            where: () => ({
+              returning: () => [trackingLinkRow],
+            }),
+          };
+        },
+      }),
+    };
+
+    await expect(
+      recordTrackingClick(db as never, {
+        trackingLink: trackingLinkToContract(trackingLinkRow),
+        userAgent: 'Mozilla/5.0',
+        ipAddress: '203.0.113.10',
+        now: new Date('2026-05-16T10:02:00.000Z'),
+      }),
+    ).resolves.toEqual(expect.objectContaining({ id: clickEventRow.id }));
+
+    expect(insertValues[0]).toMatchObject({
+      organizationId: campaignRow.organizationId,
+      campaignId: campaignRow.id,
+      recipientId: recipientRow.id,
+      trackingLinkId: trackingLinkRow.id,
+      userAgent: 'Mozilla/5.0',
+      ipAddress: '203.0.113.10',
+    });
+    expect(updateSets[0]).toHaveProperty('lastClickedAt');
+    expect(updateSets[0]).toHaveProperty('clickCount');
+  });
+
+  it('finds the latest sent campaign recipient by phone hash', async () => {
+    let whereCondition: SQL | undefined;
+    const sentRecipient = {
+      ...recipientRow,
+      status: 'sent',
+      sentAt: new Date('2026-05-16T10:01:00.000Z'),
+    };
+    const db = {
+      select: () => ({
+        from: () => ({
+          where: (condition: SQL | undefined) => {
+            whereCondition = condition;
+
+            return {
+              orderBy: () => ({
+                limit: () => [sentRecipient],
+              }),
+            };
+          },
+        }),
+      }),
+    };
+
+    await expect(
+      getLatestCampaignRecipientByPhoneHash(db as never, {
+        organizationId: campaignRow.organizationId,
+        phoneHash: 'phone-hash-1',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        id: recipientRow.id,
+        campaignId: campaignRow.id,
+        contactId: recipientRow.contactId,
+      }),
+    );
+
+    if (!whereCondition) {
+      throw new Error('Expected getLatestCampaignRecipientByPhoneHash condition.');
+    }
+
+    const query = new PgDialect().sqlToQuery(
+      sql`select 1 where ${whereCondition}`,
+    );
+    expect(query.sql).toContain('"campaign_recipients"."organization_id" = $1');
+    expect(query.sql).toContain('"campaign_recipients"."phone_hash" = $2');
+    expect(query.sql).toContain('"campaign_recipients"."sent_at" is not null');
+    expect(query.params).toEqual([campaignRow.organizationId, 'phone-hash-1']);
+  });
+
   it('creates outbound SMS messages idempotently per campaign recipient', async () => {
     const db = {
       insert: () => ({
@@ -816,6 +1012,133 @@ describe('campaign query helpers', () => {
       status: 'existing',
       message: smsMessageToContract(smsMessageRow),
     });
+  });
+
+  it('loads SMS messages by provider message id for callbacks', async () => {
+    let whereCondition: SQL | undefined;
+    const db = {
+      select: () => ({
+        from: () => ({
+          where: (condition: SQL | undefined) => {
+            whereCondition = condition;
+
+            return {
+              limit: () => [{ ...smsMessageRow, providerMessageId: 'fake-1' }],
+            };
+          },
+        }),
+      }),
+    };
+
+    await getSmsMessageByProviderMessageId(db as never, {
+      provider: 'fake',
+      providerMessageId: 'fake-1',
+    });
+
+    if (!whereCondition) {
+      throw new Error(
+        'Expected getSmsMessageByProviderMessageId to build a condition.',
+      );
+    }
+
+    const query = new PgDialect().sqlToQuery(
+      sql`select 1 where ${whereCondition}`,
+    );
+
+    expect(query.sql).toContain('"sms_messages"."provider" = $1');
+    expect(query.sql).toContain('"sms_messages"."provider_message_id" = $2');
+    expect(query.params).toEqual(['fake', 'fake-1']);
+  });
+
+  it('records provider message events', async () => {
+    const db = {
+      insert: () => ({
+        values: (value: unknown) => {
+          expect(value).toMatchObject({
+            organizationId: campaignRow.organizationId,
+            campaignId: campaignRow.id,
+            messageId: smsMessageRow.id,
+            recipientId: recipientRow.id,
+            provider: 'fake',
+            providerMessageId: 'fake-message-1',
+            eventType: 'delivered',
+            rawStatus: 'delivered',
+          });
+
+          return {
+            returning: () => [messageEventRow],
+          };
+        },
+      }),
+    };
+
+    await expect(
+      recordCampaignMessageEvent(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        messageId: smsMessageRow.id,
+        recipientId: recipientRow.id,
+        provider: 'fake',
+        providerMessageId: 'fake-message-1',
+        eventType: 'delivered',
+        rawStatus: 'delivered',
+        rawPayload: { MessageStatus: 'delivered' },
+        occurredAt: new Date('2026-05-16T10:01:00.000Z'),
+      }),
+    ).resolves.toEqual(expect.objectContaining({ eventType: 'delivered' }));
+  });
+
+  it('creates inbound SMS message rows in the canonical ledger', async () => {
+    const db = {
+      insert: () => ({
+        values: (value: unknown) => {
+          expect(value).toMatchObject({
+            organizationId: campaignRow.organizationId,
+            direction: 'inbound',
+            provider: 'fake',
+            providerMessageId: 'inbound-1',
+            fromPhone: '+46701111111',
+            toPhone: '+46700000000',
+            body: 'STOP',
+            status: 'received',
+          });
+
+          return {
+            onConflictDoNothing: () => ({
+              returning: () => [
+                {
+                  ...smsMessageRow,
+                  direction: 'inbound',
+                  providerMessageId: 'inbound-1',
+                  fromPhone: '+46701111111',
+                  toPhone: '+46700000000',
+                  body: 'STOP',
+                  status: 'received',
+                  receivedAt: new Date('2026-05-16T10:03:00.000Z'),
+                },
+              ],
+            }),
+          };
+        },
+      }),
+    };
+
+    await expect(
+      createInboundSmsMessage(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        recipientId: recipientRow.id,
+        contactId: recipientRow.contactId,
+        provider: 'fake',
+        providerMessageId: 'inbound-1',
+        providerMessagingServiceId: 'fake-ms-1',
+        providerPhoneNumberId: null,
+        fromPhone: '+46701111111',
+        toPhone: '+46700000000',
+        body: 'STOP',
+        receivedAt: new Date('2026-05-16T10:03:00.000Z'),
+      }),
+    ).resolves.toEqual(expect.objectContaining({ direction: 'inbound' }));
   });
 
   it('marks campaigns sending with reserved credit counts', async () => {
@@ -1024,6 +1347,63 @@ describe('campaign query helpers', () => {
         resourceId: campaignRow.id,
         metadata: { recipientCount: 1 },
       }),
+    ]);
+  });
+
+  it('builds tenant-scoped campaign report aggregate queries', async () => {
+    let statement: SQL | undefined;
+    const db = {
+      execute: (query: SQL) => {
+        statement = query;
+
+        return {
+          rows: [
+            {
+              selected_count: 10,
+              queued_count: 0,
+              sent_count: 9,
+              delivered_count: 8,
+              failed_count: 1,
+              skipped_count: 1,
+              opt_out_count: 1,
+              inbound_reply_count: 2,
+              click_count: 4,
+              unique_clicker_count: 3,
+              estimated_sms_segments: 10,
+              actual_sms_segments: 9,
+              estimated_cost_minor: null,
+              actual_cost_minor: null,
+              currency: 'SEK',
+            },
+          ],
+        };
+      },
+    };
+
+    await expect(
+      getCampaignReport(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+      }),
+    ).resolves.toMatchObject({
+      selectedCount: 10,
+      deliveredCount: 8,
+      segmentEstimateDrift: -1,
+    });
+
+    if (!statement) {
+      throw new Error('Expected getCampaignReport to execute a SQL statement.');
+    }
+
+    const query = new PgDialect().sqlToQuery(statement);
+    expect(query.sql).toContain('$1::uuid as campaign_id');
+    expect(query.sql).toContain('$2::uuid as organization_id');
+    expect(query.sql).toContain('"campaign_recipients"."organization_id"');
+    expect(query.sql).toContain('"sms_messages"."organization_id"');
+    expect(query.sql).toContain('"click_events"."organization_id"');
+    expect(query.params.slice(0, 2)).toEqual([
+      campaignRow.id,
+      campaignRow.organizationId,
     ]);
   });
 

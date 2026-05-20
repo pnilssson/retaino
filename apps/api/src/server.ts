@@ -10,6 +10,8 @@ import { healthRoutes } from './features/health/health.routes';
 import { legalRoutes } from './features/legal/legal.routes';
 import { organizationRoutes } from './features/organization/organization.routes';
 import { smsRoutes } from './features/sms/sms.routes';
+import { twilioMessagingWebhookRoutes } from './features/sms/sms.webhook-routes';
+import { trackingRoutes } from './features/tracking/tracking.routes';
 import { apiError } from './lib/errors';
 import { inngest } from './lib/inngest';
 import { authMiddleware } from './middleware/auth';
@@ -26,11 +28,14 @@ const inngestHandler = serve({
 app.route('/health', healthRoutes);
 app.get('/', (c) => c.redirect('/health'));
 app.all('/v1/inngest', (c) => inngestHandler(c));
+app.use('/r/*', dbMiddleware);
+app.route('/r', trackingRoutes);
 
 app.use('/v1/*', corsMiddleware);
 app.route('/v1/billing', billingWebhookRoutes);
 app.use('/v1/*', dbMiddleware);
 app.route('/v1/legal', legalRoutes);
+app.route('/v1/webhooks/twilio/messaging', twilioMessagingWebhookRoutes);
 app.use('/v1/*', authMiddleware);
 
 app.route('/v1/organization', organizationRoutes);

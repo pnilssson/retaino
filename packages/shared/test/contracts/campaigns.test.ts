@@ -4,6 +4,8 @@ import {
   campaignAudiencePreviewResponseSchema,
   campaignAudienceRuleSchema,
   campaignLaunchResponseSchema,
+  campaignMessageEventSchema,
+  campaignReportResponseSchema,
   campaignRecipientListResponseSchema,
   campaignRecipientSummaryResponseSchema,
   campaignRecipientSchema,
@@ -12,6 +14,7 @@ import {
   campaignSmsTestSendRequestSchema,
   campaignSmsTestSendResponseSchema,
   campaignSchema,
+  clickEventSchema,
   createCampaignDraftSchema,
   provisionOrganizationSmsSenderSchema,
   smsMessageSchema,
@@ -470,10 +473,66 @@ describe('campaign contracts', () => {
         currency: 'SEK',
         queuedAt: '2026-05-16T10:00:00.000Z',
         sentAt: null,
+        receivedAt: null,
         deliveredAt: null,
         failedAt: null,
         createdAt: '2026-05-16T10:00:00.000Z',
         updatedAt: '2026-05-16T10:00:00.000Z',
+      }).success,
+    ).toBe(true);
+
+    expect(
+      campaignMessageEventSchema.safeParse({
+        id: '77777777-7777-4777-8777-777777777777',
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        campaignId: '33333333-3333-4333-8333-333333333333',
+        messageId: '55555555-5555-4555-8555-555555555555',
+        recipientId: '44444444-4444-4444-8444-444444444444',
+        provider: 'fake',
+        providerMessageId: 'fake-message-1',
+        eventType: 'delivered',
+        rawStatus: 'delivered',
+        occurredAt: '2026-05-16T10:01:00.000Z',
+        createdAt: '2026-05-16T10:01:00.000Z',
+      }).success,
+    ).toBe(true);
+
+    expect(
+      clickEventSchema.safeParse({
+        id: '88888888-8888-4888-8888-888888888888',
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        campaignId: '33333333-3333-4333-8333-333333333333',
+        recipientId: '44444444-4444-4444-8444-444444444444',
+        trackingLinkId: '11111111-1111-4111-8111-111111111111',
+        userAgent: 'Mozilla/5.0',
+        ipAddress: '203.0.113.10',
+        occurredAt: '2026-05-16T10:02:00.000Z',
+        createdAt: '2026-05-16T10:02:00.000Z',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('accepts campaign report responses', () => {
+    expect(
+      campaignReportResponseSchema.safeParse({
+        report: {
+          selectedCount: 10,
+          queuedCount: 0,
+          sentCount: 9,
+          deliveredCount: 8,
+          failedCount: 1,
+          skippedCount: 1,
+          optOutCount: 1,
+          inboundReplyCount: 2,
+          clickCount: 4,
+          uniqueClickerCount: 3,
+          estimatedSmsSegments: 10,
+          actualSmsSegments: 9,
+          segmentEstimateDrift: -1,
+          estimatedCostMinor: null,
+          actualCostMinor: null,
+          currency: 'SEK',
+        },
       }).success,
     ).toBe(true);
   });

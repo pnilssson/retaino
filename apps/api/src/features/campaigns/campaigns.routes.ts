@@ -3,6 +3,7 @@ import {
   createCampaignDraft,
   deleteCampaignDraft,
   getCampaignById,
+  getCampaignReport,
   getOrganizationProfileByOrganizationId,
   getOrganizationSmsSender,
   launchCampaign,
@@ -302,6 +303,14 @@ export const campaignsRoutes = new Hono<AppEnv>()
         campaignId: c.req.param('id'),
       }),
     );
+  })
+  .get('/:id/report', async (c) => {
+    return c.json({
+      report: await getCampaignReport(c.get('db'), {
+        organizationId: c.get('organization').id,
+        campaignId: c.req.param('id'),
+      }),
+    });
   })
   .post('/:id/launch', async (c) => {
     const gate = await requireCampaignEligibility(c);

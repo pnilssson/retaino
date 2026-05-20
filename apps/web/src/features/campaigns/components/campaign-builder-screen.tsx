@@ -19,6 +19,7 @@ import { useOrganizationSession } from '@/features/onboarding/hooks/use-organiza
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
 import { CampaignForm, type CampaignStepId } from './campaign-form';
+import { CampaignReportPanel } from './campaign-report-panel';
 import { useCampaign } from '../hooks/use-campaign';
 
 const CREATED_CAMPAIGN_INITIAL_STEP_STORAGE_KEY =
@@ -125,20 +126,28 @@ export function CampaignBuilderScreen({
         ) : campaignId && campaign.isLoading ? (
           <p className={textStyles.mutedBody}>Loading campaign.</p>
         ) : (
-          <CampaignForm
-            canManageCampaigns={canManageCampaigns}
-            campaign={latestCampaign}
-            initialStep={createdCampaignInitialStep}
-            key={latestCampaign?.id ?? 'new'}
-            onCreated={(createdCampaignId, initialStep) => {
-              window.sessionStorage.setItem(
-                CREATED_CAMPAIGN_INITIAL_STEP_STORAGE_KEY,
-                `${createdCampaignId}:${initialStep}`,
-              );
-              router.replace(routes.campaign(createdCampaignId));
-            }}
-            organizationId={organizationId}
-          />
+          <>
+            <CampaignForm
+              canManageCampaigns={canManageCampaigns}
+              campaign={latestCampaign}
+              initialStep={createdCampaignInitialStep}
+              key={latestCampaign?.id ?? 'new'}
+              onCreated={(createdCampaignId, initialStep) => {
+                window.sessionStorage.setItem(
+                  CREATED_CAMPAIGN_INITIAL_STEP_STORAGE_KEY,
+                  `${createdCampaignId}:${initialStep}`,
+                );
+                router.replace(routes.campaign(createdCampaignId));
+              }}
+              organizationId={organizationId}
+            />
+            {latestCampaign && hasReportStatus(latestCampaign.status) ? (
+              <CampaignReportPanel
+                campaign={latestCampaign}
+                organizationId={organizationId}
+              />
+            ) : null}
+          </>
         )}
       </section>
     </main>
@@ -207,4 +216,8 @@ function campaignsAllowed(session: OrganizationSession) {
     session.readiness.legalCurrent &&
     !session.readiness.legalUpdatesRequired
   );
+}
+
+function hasReportStatus(status: string) {
+  return status === 'sending' || status === 'sent' || status === 'failed';
 }

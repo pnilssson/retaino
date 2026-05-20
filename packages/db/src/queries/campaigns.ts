@@ -11,15 +11,19 @@ import {
   ne,
   not,
   or,
+  sql,
   type SQL,
 } from 'drizzle-orm';
 import type {
   Campaign,
   CampaignAudienceRule,
   CampaignAudiencePreviewResponse,
+  CampaignMessageEvent,
+  CampaignReport,
   CampaignRecipient,
   CampaignRecipientStatus,
   CampaignStatus,
+  ClickEvent,
   CreateCampaignDraftInput,
   SmsMessage,
   SmsMessageDirection,
@@ -30,8 +34,10 @@ import type {
 import type { DbClient } from '../client';
 import {
   auditLogs,
+  campaignMessageEvents,
   campaignRecipients,
   campaigns,
+  clickEvents,
   contacts,
   smsMessages,
   trackingLinks,
@@ -43,6 +49,8 @@ type CampaignRecipientRow = typeof campaignRecipients.$inferSelect;
 type CampaignRecipientInsert = typeof campaignRecipients.$inferInsert;
 type SmsMessageRow = typeof smsMessages.$inferSelect;
 type TrackingLinkRow = typeof trackingLinks.$inferSelect;
+type CampaignMessageEventRow = typeof campaignMessageEvents.$inferSelect;
+type ClickEventRow = typeof clickEvents.$inferSelect;
 
 const RECIPIENT_SNAPSHOT_INSERT_BATCH_SIZE = 1000;
 
@@ -171,10 +179,43 @@ export function smsMessageToContract(row: SmsMessageRow): SmsMessage {
     currency: row.currency,
     queuedAt: row.queuedAt?.toISOString() ?? null,
     sentAt: row.sentAt?.toISOString() ?? null,
+    receivedAt: row.receivedAt?.toISOString() ?? null,
     deliveredAt: row.deliveredAt?.toISOString() ?? null,
     failedAt: row.failedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export function campaignMessageEventToContract(
+  row: CampaignMessageEventRow,
+): CampaignMessageEvent {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    campaignId: row.campaignId,
+    messageId: row.messageId,
+    recipientId: row.recipientId,
+    provider: row.provider as SmsSenderProvider,
+    providerMessageId: row.providerMessageId,
+    eventType: row.eventType,
+    rawStatus: row.rawStatus,
+    occurredAt: row.occurredAt.toISOString(),
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+export function clickEventToContract(row: ClickEventRow): ClickEvent {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    campaignId: row.campaignId,
+    recipientId: row.recipientId,
+    trackingLinkId: row.trackingLinkId,
+    userAgent: row.userAgent,
+    ipAddress: row.ipAddress,
+    occurredAt: row.occurredAt.toISOString(),
+    createdAt: row.createdAt.toISOString(),
   };
 }
 
@@ -497,6 +538,81 @@ export async function upsertTrackingLink(
   return row ? trackingLinkToContract(row) : null;
 }
 
+export async function getTrackingLinkByCode(db: DbClient, code: string) {
+  const [row] = await db
+    .select()
+    .from(trackingLinks)
+    .where(eq(trackingLinks.code, code))
+    .limit(1);
+
+  return row ? trackingLinkToContract(row) : null;
+}
+
+export async function recordTrackingClick(
+  db: DbClient,
+  input: {
+    trackingLink: TrackingLink;
+    userAgent: string | null;
+    ipAddress: string | null;
+    now?: Date;
+  },
+) {
+  assertOrganizationId(input.trackingLink.organizationId);
+  const now = input.now ?? new Date();
+  const updateValues = {
+    ...(input.trackingLink.firstClickedAt ? {} : { firstClickedAt: now }),
+    lastClickedAt: now,
+    clickCount: sql`${trackingLinks.clickCount} + 1`,
+    updatedAt: now,
+  };
+  const [row] = await db
+    .insert(clickEvents)
+    .values({
+      organizationId: input.trackingLink.organizationId,
+      campaignId: input.trackingLink.campaignId,
+      recipientId: input.trackingLink.recipientId,
+      trackingLinkId: input.trackingLink.id,
+      userAgent: input.userAgent,
+      ipAddress: input.ipAddress,
+      occurredAt: now,
+    })
+    .returning();
+
+  await db
+    .update(trackingLinks)
+    .set(updateValues)
+    .where(
+      and(
+        eq(trackingLinks.organizationId, input.trackingLink.organizationId),
+        eq(trackingLinks.id, input.trackingLink.id),
+      ),
+    )
+    .returning();
+
+  return row ? clickEventToContract(row) : null;
+}
+
+export async function getLatestCampaignRecipientByPhoneHash(
+  db: DbClient,
+  input: { organizationId: string; phoneHash: string },
+) {
+  assertOrganizationId(input.organizationId);
+  const [row] = await db
+    .select()
+    .from(campaignRecipients)
+    .where(
+      and(
+        eq(campaignRecipients.organizationId, input.organizationId),
+        eq(campaignRecipients.phoneHash, input.phoneHash),
+        isNotNull(campaignRecipients.sentAt),
+      ),
+    )
+    .orderBy(desc(campaignRecipients.sentAt), desc(campaignRecipients.createdAt))
+    .limit(1);
+
+  return row ? recipientToContract(row) : null;
+}
+
 export async function createOutboundSmsMessage(
   db: DbClient,
   input: {
@@ -569,6 +685,116 @@ export async function createOutboundSmsMessage(
   }
 
   return { status: 'existing', message: smsMessageToContract(existing) };
+}
+
+export async function getSmsMessageByProviderMessageId(
+  db: DbClient,
+  input: { provider: SmsSenderProvider; providerMessageId: string },
+) {
+  const [row] = await db
+    .select()
+    .from(smsMessages)
+    .where(
+      and(
+        eq(smsMessages.provider, input.provider),
+        eq(smsMessages.providerMessageId, input.providerMessageId),
+      ),
+    )
+    .limit(1);
+
+  return row ? smsMessageToContract(row) : null;
+}
+
+export async function createInboundSmsMessage(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    campaignId: string | null;
+    recipientId: string | null;
+    contactId: string | null;
+    provider: SmsSenderProvider;
+    providerMessageId: string;
+    providerMessagingServiceId: string | null;
+    providerPhoneNumberId: string | null;
+    fromPhone: string;
+    toPhone: string;
+    body: string;
+    receivedAt: Date;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+  const now = new Date();
+  const [row] = await db
+    .insert(smsMessages)
+    .values({
+      organizationId: input.organizationId,
+      direction: 'inbound',
+      campaignId: input.campaignId,
+      recipientId: input.recipientId,
+      contactId: input.contactId,
+      provider: input.provider,
+      providerMessageId: input.providerMessageId,
+      providerMessagingServiceId: input.providerMessagingServiceId,
+      providerPhoneNumberId: input.providerPhoneNumberId,
+      fromPhone: input.fromPhone,
+      toPhone: input.toPhone,
+      body: input.body,
+      status: 'received',
+      estimatedSegmentCount: 0,
+      actualSegmentCount: null,
+      currency: null,
+      receivedAt: input.receivedAt,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoNothing({
+      target: [smsMessages.provider, smsMessages.providerMessageId],
+    })
+    .returning();
+
+  if (row) {
+    return smsMessageToContract(row);
+  }
+
+  return getSmsMessageByProviderMessageId(db, {
+    provider: input.provider,
+    providerMessageId: input.providerMessageId,
+  });
+}
+
+export async function recordCampaignMessageEvent(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    campaignId: string | null;
+    messageId: string | null;
+    recipientId: string | null;
+    provider: SmsSenderProvider;
+    providerMessageId: string;
+    eventType: string;
+    rawStatus: string | null;
+    rawPayload: Record<string, unknown>;
+    occurredAt: Date;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+  const [row] = await db
+    .insert(campaignMessageEvents)
+    .values({
+      organizationId: input.organizationId,
+      campaignId: input.campaignId,
+      messageId: input.messageId,
+      recipientId: input.recipientId,
+      provider: input.provider,
+      providerMessageId: input.providerMessageId,
+      eventType: input.eventType,
+      rawStatus: input.rawStatus,
+      rawPayload: input.rawPayload,
+      occurredAt: input.occurredAt,
+    })
+    .returning();
+
+  return row ? campaignMessageEventToContract(row) : null;
 }
 
 export async function startCampaignSend(
@@ -779,6 +1005,120 @@ export async function markCampaignSendCompleted(
     .returning();
 
   return row ? campaignToContract(row) : null;
+}
+
+export async function getCampaignReport(
+  db: DbClient,
+  input: { organizationId: string; campaignId: string },
+): Promise<CampaignReport> {
+  assertOrganizationId(input.organizationId);
+  const result = await db.execute(sql`
+    with input as (
+      select
+        ${input.campaignId}::uuid as campaign_id,
+        ${input.organizationId}::uuid as organization_id
+    ),
+    recipient_counts as (
+      select
+        count(*)::integer as selected_count,
+        count(*) filter (where status = ${'queued'})::integer as queued_count,
+        count(*) filter (where status = ${'sent'})::integer as sent_count,
+        count(*) filter (where status = ${'failed'})::integer as failed_count,
+        count(*) filter (where status = ${'skipped'})::integer as skipped_count
+      from ${campaignRecipients}, input
+      where ${campaignRecipients.campaignId} = input.campaign_id
+        and ${campaignRecipients.organizationId} = input.organization_id
+    ),
+    message_counts as (
+      select
+        count(*) filter (where direction = ${'outbound'})::integer as sent_count,
+        count(*) filter (
+          where direction = ${'outbound'} and status in (${'queued'}, ${'accepted'})
+        )::integer as queued_count,
+        count(*) filter (
+          where direction = ${'outbound'} and status = ${'delivered'}
+        )::integer as delivered_count,
+        count(*) filter (
+          where direction = ${'outbound'} and status in (${'failed'}, ${'undelivered'})
+        )::integer as failed_count,
+        count(*) filter (where direction = ${'inbound'})::integer
+          as inbound_reply_count,
+        coalesce(sum(estimated_segment_count) filter (
+          where direction = ${'outbound'}
+        ), 0)::integer as estimated_sms_segments,
+        coalesce(sum(coalesce(actual_segment_count, 0)) filter (
+          where direction = ${'outbound'}
+        ), 0)::integer as actual_sms_segments,
+        sum(estimated_cost_minor) filter (
+          where direction = ${'outbound'}
+        )::integer as estimated_cost_minor,
+        sum(actual_cost_minor) filter (
+          where direction = ${'outbound'}
+        )::integer as actual_cost_minor,
+        max(currency) filter (where currency is not null) as currency
+      from ${smsMessages}, input
+      where ${smsMessages.campaignId} = input.campaign_id
+        and ${smsMessages.organizationId} = input.organization_id
+    ),
+    event_counts as (
+      select count(*) filter (where event_type = ${'opt_out'})::integer
+        as opt_out_count
+      from ${campaignMessageEvents}, input
+      where ${campaignMessageEvents.campaignId} = input.campaign_id
+        and ${campaignMessageEvents.organizationId} = input.organization_id
+    ),
+    click_counts as (
+      select
+        count(*)::integer as click_count,
+        count(distinct ${clickEvents.recipientId})::integer as unique_clicker_count
+      from ${clickEvents}, input
+      where ${clickEvents.campaignId} = input.campaign_id
+        and ${clickEvents.organizationId} = input.organization_id
+    )
+    select
+      recipient_counts.selected_count,
+      message_counts.queued_count,
+      message_counts.sent_count,
+      message_counts.delivered_count,
+      message_counts.failed_count,
+      recipient_counts.skipped_count,
+      event_counts.opt_out_count,
+      message_counts.inbound_reply_count,
+      click_counts.click_count,
+      click_counts.unique_clicker_count,
+      message_counts.estimated_sms_segments,
+      message_counts.actual_sms_segments,
+      message_counts.estimated_cost_minor,
+      message_counts.actual_cost_minor,
+      message_counts.currency
+    from recipient_counts, message_counts, event_counts, click_counts
+  `);
+  const [row = {}] = Array.from(result.rows ?? []) as Array<
+    Record<string, unknown>
+  >;
+  const report = {
+    selectedCount: intValue(row.selected_count),
+    queuedCount: intValue(row.queued_count),
+    sentCount: intValue(row.sent_count),
+    deliveredCount: intValue(row.delivered_count),
+    failedCount: intValue(row.failed_count),
+    skippedCount: intValue(row.skipped_count),
+    optOutCount: intValue(row.opt_out_count),
+    inboundReplyCount: intValue(row.inbound_reply_count),
+    clickCount: intValue(row.click_count),
+    uniqueClickerCount: intValue(row.unique_clicker_count),
+    estimatedSmsSegments: intValue(row.estimated_sms_segments),
+    actualSmsSegments: intValue(row.actual_sms_segments),
+    segmentEstimateDrift:
+      intValue(row.actual_sms_segments) - intValue(row.estimated_sms_segments),
+    estimatedCostMinor:
+      row.estimated_cost_minor === null ? null : intValue(row.estimated_cost_minor),
+    actualCostMinor:
+      row.actual_cost_minor === null ? null : intValue(row.actual_cost_minor),
+    currency: typeof row.currency === 'string' ? row.currency : null,
+  };
+
+  return report;
 }
 
 export async function launchCampaign(
@@ -1005,6 +1345,22 @@ function chunkArray<T>(values: T[], chunkSize: number): T[][] {
   }
 
   return chunks;
+}
+
+function intValue(value: unknown) {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'bigint') {
+    return Number(value);
+  }
+
+  if (typeof value === 'string') {
+    return Number(value);
+  }
+
+  return 0;
 }
 
 function campaignUpdateValues(input: UpdateCampaignDraftInput) {

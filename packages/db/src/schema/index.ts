@@ -2,6 +2,8 @@ export * from './billing';
 export * from './campaigns';
 export * from './common';
 export * from './contacts';
+export * from './click-events';
+export * from './campaign-message-events';
 export * from './legal-documents';
 export * from './legal-document-versions';
 export * from './organization-acceptances';

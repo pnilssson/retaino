@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
 import type {
   OrganizationSmsSender,
   SmsSenderNumberType,
@@ -63,6 +63,46 @@ export async function getOrganizationSmsSender(
         eq(organizationSmsSenders.provider, input.provider ?? 'twilio'),
       ),
     )
+    .limit(1);
+
+  return row ? organizationSmsSenderToContract(row) : null;
+}
+
+export async function getOrganizationSmsSenderByProviderReference(
+  db: DbClient,
+  input: {
+    provider: SmsSenderProvider;
+    providerMessagingServiceId?: string | null;
+    providerPhoneNumberId?: string | null;
+    phoneNumber?: string | null;
+  },
+) {
+  const filters = [
+    input.providerMessagingServiceId
+      ? eq(
+          organizationSmsSenders.providerMessagingServiceId,
+          input.providerMessagingServiceId,
+        )
+      : undefined,
+    input.providerPhoneNumberId
+      ? eq(
+          organizationSmsSenders.providerPhoneNumberId,
+          input.providerPhoneNumberId,
+        )
+      : undefined,
+    input.phoneNumber
+      ? eq(organizationSmsSenders.phoneNumber, input.phoneNumber)
+      : undefined,
+  ].filter(Boolean);
+
+  if (filters.length === 0) {
+    return null;
+  }
+
+  const [row] = await db
+    .select()
+    .from(organizationSmsSenders)
+    .where(and(eq(organizationSmsSenders.provider, input.provider), or(...filters)))
     .limit(1);
 
   return row ? organizationSmsSenderToContract(row) : null;

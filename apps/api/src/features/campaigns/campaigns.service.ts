@@ -25,6 +25,7 @@ import {
 } from '../billing/billing.service';
 import { callbackUrl } from '../../lib/callback-url';
 import { createSmsProvider } from '../../lib/sms-provider';
+import { providerCostMinor } from '../../lib/sms-cost';
 import type { AppEnv } from '../../types';
 
 type CampaignSendResult = {
@@ -377,18 +378,4 @@ function bookingDateLabel(value: string | null) {
     day: 'numeric',
     year: 'numeric',
   }).format(new Date(value));
-}
-
-function providerCostMinor(cost: string | null) {
-  if (!cost) {
-    return null;
-  }
-
-  const numeric = Number(cost);
-
-  if (!Number.isFinite(numeric)) {
-    return null;
-  }
-
-  return Math.round(numeric * 100);
 }

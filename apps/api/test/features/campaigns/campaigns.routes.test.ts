@@ -5,6 +5,7 @@ import {
   countCampaignRecipients,
   deleteCampaignDraft,
   getCampaignById,
+  getCampaignReport,
   getCurrentLegalBundle,
   getCurrentOrganizationLegalAcceptance,
   getOrganizationBillingProfile,
@@ -34,6 +35,7 @@ vi.mock('@retaino/db', () => ({
   countCampaignRecipients: vi.fn(),
   deleteCampaignDraft: vi.fn(),
   getCampaignById: vi.fn(),
+  getCampaignReport: vi.fn(),
   getCurrentLegalBundle: vi.fn(),
   getCurrentOrganizationLegalAcceptance: vi.fn(),
   getOrganizationBillingProfile: vi.fn(),
@@ -203,6 +205,7 @@ describe('campaignsRoutes', () => {
     vi.mocked(reserveSmsCreditsIfSufficient).mockReset();
     vi.mocked(deleteCampaignDraft).mockReset();
     vi.mocked(getCampaignById).mockReset();
+    vi.mocked(getCampaignReport).mockReset();
     vi.mocked(getCurrentLegalBundle).mockReset();
     vi.mocked(getCurrentOrganizationLegalAcceptance).mockReset();
     vi.mocked(getOrganizationBillingProfile).mockReset();
@@ -623,6 +626,43 @@ describe('campaignsRoutes', () => {
       campaignId: campaign.id,
     });
     expect(listCampaignRecipients).not.toHaveBeenCalled();
+  });
+
+  it('lets members read tenant-scoped campaign reports', async () => {
+    vi.mocked(getCampaignReport).mockResolvedValue({
+      selectedCount: 10,
+      queuedCount: 0,
+      sentCount: 9,
+      deliveredCount: 8,
+      failedCount: 1,
+      skippedCount: 1,
+      optOutCount: 1,
+      inboundReplyCount: 2,
+      clickCount: 4,
+      uniqueClickerCount: 3,
+      estimatedSmsSegments: 10,
+      actualSmsSegments: 9,
+      segmentEstimateDrift: -1,
+      estimatedCostMinor: null,
+      actualCostMinor: null,
+      currency: 'SEK',
+    });
+
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/report`,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      report: {
+        selectedCount: 10,
+        deliveredCount: 8,
+      },
+    });
+    expect(getCampaignReport).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      campaignId: campaign.id,
+    });
   });
 
   it('sends a test SMS without creating campaign recipients', async () => {

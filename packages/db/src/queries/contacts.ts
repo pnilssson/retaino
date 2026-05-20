@@ -865,6 +865,45 @@ export async function findSuppressionByHash(
   return row ?? null;
 }
 
+export async function upsertSuppressionByHash(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    type: SuppressionType;
+    value: string;
+    normalizedValue: string;
+    valueHash: string;
+    reason: string;
+    source: string | null;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+
+  const [created] = await db
+    .insert(suppressions)
+    .values(input)
+    .onConflictDoNothing({
+      target: [
+        suppressions.organizationId,
+        suppressions.type,
+        suppressions.valueHash,
+      ],
+    })
+    .returning();
+
+  if (created) {
+    return suppressionToContract(created);
+  }
+
+  const existing = await findSuppressionByHash(db, {
+    organizationId: input.organizationId,
+    type: input.type,
+    valueHash: input.valueHash,
+  });
+
+  return existing ? suppressionToContract(existing) : null;
+}
+
 export async function upsertImportedContact(
   db: DbClient,
   input: {

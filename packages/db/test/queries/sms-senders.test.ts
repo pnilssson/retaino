@@ -3,6 +3,7 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 import {
   getOrganizationSmsSender,
+  getOrganizationSmsSenderByProviderReference,
   organizationSmsSenderToContract,
   upsertOrganizationSmsSender,
 } from '../../src/queries/sms-senders';
@@ -72,6 +73,51 @@ describe('organization SMS sender query helpers', () => {
     );
     expect(query.sql).toContain('"organization_sms_senders"."provider" = $2');
     expect(query.params).toEqual([senderRow.organizationId, 'twilio']);
+  });
+
+  it('resolves a sender from provider callback references', async () => {
+    let whereCondition: SQL | undefined;
+    const db = {
+      select: () => ({
+        from: () => ({
+          where: (condition: SQL | undefined) => {
+            whereCondition = condition;
+
+            return {
+              limit: () => [senderRow],
+            };
+          },
+        }),
+      }),
+    };
+
+    await getOrganizationSmsSenderByProviderReference(db as never, {
+      provider: 'twilio',
+      providerMessagingServiceId: senderRow.providerMessagingServiceId,
+      providerPhoneNumberId: null,
+      phoneNumber: senderRow.phoneNumber,
+    });
+
+    if (!whereCondition) {
+      throw new Error(
+        'Expected getOrganizationSmsSenderByProviderReference to build a condition.',
+      );
+    }
+
+    const query = new PgDialect().sqlToQuery(
+      sql`select 1 where ${whereCondition}`,
+    );
+
+    expect(query.sql).toContain('"organization_sms_senders"."provider" = $1');
+    expect(query.sql).toContain(
+      '"organization_sms_senders"."provider_messaging_service_id" = $2',
+    );
+    expect(query.sql).toContain('"organization_sms_senders"."phone_number" = $3');
+    expect(query.params).toEqual([
+      'twilio',
+      senderRow.providerMessagingServiceId,
+      senderRow.phoneNumber,
+    ]);
   });
 
   it('upserts one provider sender per organization', async () => {

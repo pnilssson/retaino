@@ -29,6 +29,7 @@ describe('sms messages schema', () => {
     expect(smsMessages.currency.name).toBe('currency');
     expect(smsMessages.queuedAt.name).toBe('queued_at');
     expect(smsMessages.sentAt.name).toBe('sent_at');
+    expect(smsMessages.receivedAt.name).toBe('received_at');
     expect(smsMessages.deliveredAt.name).toBe('delivered_at');
     expect(smsMessages.failedAt.name).toBe('failed_at');
   });
