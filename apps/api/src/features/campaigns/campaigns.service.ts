@@ -20,7 +20,7 @@ import {
 } from '@retaino/db';
 import { renderCampaignSms } from '@retaino/shared';
 import { normalizePhoneNumber } from '@retaino/shared/contracts';
-import type { Campaign } from '@retaino/shared/contracts';
+import type { Campaign, SmsCreditTransaction } from '@retaino/shared/contracts';
 import {
   debitSmsCreditUsage,
   releaseSmsCreditUsage,
@@ -61,6 +61,14 @@ type PreparedRecipient = {
 };
 
 export const TEST_TRACKED_BOOKING_LINK = 'https://go.retaino.com/r/test';
+const TRACKING_CODE_LENGTH = 16;
+const TRACKING_CODE_ESTIMATE = '0'.repeat(TRACKING_CODE_LENGTH);
+
+type CampaignSendCreditReservation = {
+  reservedCreditCount: number;
+  reservedTransactions: SmsCreditTransaction[];
+  sourceId: string;
+};
 
 export async function sendCampaignTestSms(input: {
   db: DbClient;
@@ -234,40 +242,43 @@ export async function processCampaignSend(input: {
     (sum, prepared) => sum + prepared.estimatedSegments,
     0,
   );
-  const reservedCreditCount =
+  const requestedReservedCreditCount =
     campaign.reservedCreditCount ?? estimatedCreditCount;
-  const sourceId = `campaign-send:${input.campaignId}`;
-  const reservedTransactions =
-    reservedCreditCount > 0
-      ? await debitSmsCreditUsage({
-          db: input.db,
-          organizationId: input.organizationId,
-          actualSegments: reservedCreditCount,
-          source: 'campaign_send',
-          sourceId,
-          description: 'Campaign SMS reservation',
-        })
-      : [];
+  const reservation = await debitCampaignSendCredits({
+    db: input.db,
+    organizationId: input.organizationId,
+    campaignId: input.campaignId,
+    reservedCreditCount: requestedReservedCreditCount,
+  });
+  const reservedCreditCount = reservation.reservedCreditCount;
+  const reservedTransactions = reservation.reservedTransactions;
 
   const startResult = await startCampaignSend(input.db, {
-      organizationId: input.organizationId,
-      campaignId: input.campaignId,
-      reservedCreditCount,
+    organizationId: input.organizationId,
+    campaignId: input.campaignId,
+    reservedCreditCount,
   });
 
   if (startResult.status !== 'started') {
-    if (reservedTransactions.length > 0) {
+    if (
+      startResult.status !== 'active_send_exists' &&
+      reservedTransactions.length > 0
+    ) {
       await releaseSmsCreditUsage({
         db: input.db,
         organizationId: input.organizationId,
         reservedTransactions,
         source: 'campaign_send',
-        sourceId: `${sourceId}:release`,
+        sourceId: `${reservation.sourceId}:release`,
         description: 'Campaign SMS reservation release',
       });
     }
 
-    throw new Error('Campaign send could not be started.');
+    throw new Error(
+      startResult.status === 'active_send_exists'
+        ? 'Another campaign send is already active.'
+        : 'Campaign send could not be started.',
+    );
   }
 
   let sentCount = 0;
@@ -365,7 +376,7 @@ export async function processCampaignSend(input: {
         credits: reservedCreditCount - actualCreditCount,
         reservedTransactions,
         source: 'campaign_send',
-        sourceId: `${sourceId}:release`,
+        sourceId: `${reservation.sourceId}:release`,
         description: 'Campaign SMS reservation release',
       });
     }
@@ -406,7 +417,7 @@ export async function processCampaignSend(input: {
       credits: reservedCreditCount - actualCreditCount,
       reservedTransactions,
       source: 'campaign_send',
-      sourceId: `${sourceId}:release`,
+      sourceId: `${reservation.sourceId}:release`,
       description: 'Campaign SMS reservation release',
     });
   }
@@ -438,6 +449,89 @@ export async function processCampaignSend(input: {
     skippedCount,
     reservedCreditCount,
     actualCreditCount,
+  };
+}
+
+export async function reserveCampaignSendCredits(input: {
+  db: DbClient;
+  organizationId: string;
+  campaign: Campaign;
+  trackingBaseUrl: string | undefined;
+}): Promise<CampaignSendCreditReservation> {
+  if (!input.trackingBaseUrl) {
+    throw new Error('Campaign send processing is missing TRACKING_BASE_URL.');
+  }
+
+  if (!input.campaign.smsBody || !input.campaign.bookingUrl) {
+    throw new Error('Campaign message and booking link are required.');
+  }
+
+  const { recipients } = await listSelectedCampaignRecipientsForSend(input.db, {
+    organizationId: input.organizationId,
+    campaignId: input.campaign.id,
+  });
+  let estimatedCreditCount = 0;
+
+  for (const recipient of recipients) {
+    if (!recipient.normalizedPhone || !recipient.phoneHash) {
+      continue;
+    }
+
+    if (await isPhoneSuppressed(input.db, recipient)) {
+      continue;
+    }
+
+    const rendered = renderCampaignSms({
+      smsBody: input.campaign.smsBody,
+      trackedBookingLink: trackingUrl(
+        input.trackingBaseUrl,
+        TRACKING_CODE_ESTIMATE,
+      ),
+      recipient: {
+        firstName: firstName(recipient.name),
+        lastBookingDate: bookingDateLabel(recipient.lastBookingAt),
+      },
+    });
+
+    estimatedCreditCount += rendered.estimatedSmsPerRecipient;
+  }
+
+  return debitCampaignSendCredits({
+    db: input.db,
+    organizationId: input.organizationId,
+    campaignId: input.campaign.id,
+    reservedCreditCount: estimatedCreditCount,
+  });
+}
+
+async function debitCampaignSendCredits(input: {
+  db: DbClient;
+  organizationId: string;
+  campaignId: string;
+  reservedCreditCount: number;
+}): Promise<CampaignSendCreditReservation> {
+  const sourceId = `campaign-send:${input.campaignId}`;
+  const reservedTransactions =
+    input.reservedCreditCount > 0
+      ? await debitSmsCreditUsage({
+          db: input.db,
+          organizationId: input.organizationId,
+          actualSegments: input.reservedCreditCount,
+          source: 'campaign_send',
+          sourceId,
+          description: 'Campaign SMS reservation',
+        })
+      : [];
+  const debitedCreditCount = reservedTransactions.reduce(
+    (total, transaction) =>
+      transaction.credits < 0 ? total + Math.abs(transaction.credits) : total,
+    0,
+  );
+
+  return {
+    reservedCreditCount: debitedCreditCount || input.reservedCreditCount,
+    reservedTransactions,
+    sourceId,
   };
 }
 
@@ -541,7 +635,7 @@ async function isPhoneSuppressed(
 }
 
 function trackingCode() {
-  return crypto.randomUUID().replaceAll('-', '').slice(0, 16);
+  return crypto.randomUUID().replaceAll('-', '').slice(0, TRACKING_CODE_LENGTH);
 }
 
 function trackingUrl(baseUrl: string, code: string) {

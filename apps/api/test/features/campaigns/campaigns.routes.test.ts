@@ -4,6 +4,7 @@ import {
   createCampaignDraft,
   countCampaignRecipients,
   deleteCampaignDraft,
+  findSuppressionByHash,
   getCampaignById,
   getCampaignReport,
   getCurrentLegalBundle,
@@ -14,6 +15,7 @@ import {
   getSmsCreditBalance,
   getSmsCreditBalanceBreakdown,
   launchCampaign,
+  listSelectedCampaignRecipientsForSend,
   listCampaigns,
   previewCampaignAudience,
   reserveSmsCreditsIfSufficient,
@@ -33,6 +35,7 @@ vi.mock('@retaino/db', () => ({
   createCampaignDraft: vi.fn(),
   countCampaignRecipients: vi.fn(),
   deleteCampaignDraft: vi.fn(),
+  findSuppressionByHash: vi.fn(),
   getCampaignById: vi.fn(),
   getCampaignReport: vi.fn(),
   getCurrentLegalBundle: vi.fn(),
@@ -43,6 +46,7 @@ vi.mock('@retaino/db', () => ({
   getSmsCreditBalance: vi.fn(),
   getSmsCreditBalanceBreakdown: vi.fn(),
   launchCampaign: vi.fn(),
+  listSelectedCampaignRecipientsForSend: vi.fn(),
   listCampaigns: vi.fn(),
   previewCampaignAudience: vi.fn(),
   reserveSmsCreditsIfSufficient: vi.fn(),
@@ -159,6 +163,25 @@ const campaign: Campaign = {
   updatedAt: '2026-05-16T00:00:00.000Z',
 };
 
+const campaignRecipientForSend = {
+  id: '77777777-7777-4777-8777-777777777777',
+  organizationId: organization.id,
+  campaignId: campaign.id,
+  contactId: '88888888-8888-4888-8888-888888888888',
+  status: 'selected',
+  exclusionReason: null,
+  name: 'Ada Lovelace',
+  phone: '+46700000000',
+  email: 'ada@example.com',
+  normalizedPhone: '+46700000000',
+  normalizedEmail: 'ada@example.com',
+  phoneHash: 'phone-hash',
+  emailHash: 'email-hash',
+  lastBookingAt: '2026-01-01T00:00:00.000Z',
+  lastContactedAt: null,
+  selectedAt: '2026-05-16T10:00:00.000Z',
+} as const;
+
 function testApp(input: { role?: string } = {}) {
   const app = new Hono<AppEnv>();
 
@@ -182,6 +205,7 @@ describe('campaignsRoutes', () => {
     vi.mocked(countCampaignRecipients).mockReset();
     vi.mocked(reserveSmsCreditsIfSufficient).mockReset();
     vi.mocked(deleteCampaignDraft).mockReset();
+    vi.mocked(findSuppressionByHash).mockReset();
     vi.mocked(getCampaignById).mockReset();
     vi.mocked(getCampaignReport).mockReset();
     vi.mocked(getCurrentLegalBundle).mockReset();
@@ -193,12 +217,33 @@ describe('campaignsRoutes', () => {
     vi.mocked(getSmsCreditBalanceBreakdown).mockReset();
     vi.mocked(launchCampaign).mockReset();
     vi.mocked(enqueueCampaignSendProcessing).mockReset();
+    vi.mocked(listSelectedCampaignRecipientsForSend).mockReset();
     vi.mocked(listCampaigns).mockReset();
     vi.mocked(previewCampaignAudience).mockReset();
     vi.mocked(updateCampaignDraft).mockReset();
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(profile);
     vi.mocked(getCurrentLegalBundle).mockResolvedValue(legalBundle);
     vi.mocked(getCurrentOrganizationLegalAcceptance).mockResolvedValue(legalAcceptance);
+    vi.mocked(findSuppressionByHash).mockResolvedValue(null);
+    vi.mocked(listSelectedCampaignRecipientsForSend).mockResolvedValue({
+      recipients: [campaignRecipientForSend],
+    });
+    vi.mocked(reserveSmsCreditsIfSufficient).mockResolvedValue({
+      debitedCredits: 1,
+      transactions: [
+        {
+          transactionType: 'debit',
+          source: 'campaign_send',
+          sourceId: `campaign-send:${campaign.id}`,
+          credits: -1,
+          creditBucket: 'subscription_period',
+          periodStart: '2026-05-01T00:00:00.000Z',
+          periodEnd: '2026-06-01T00:00:00.000Z',
+          description: 'Campaign SMS reservation',
+          createdAt: '2026-05-18T00:00:00.000Z',
+        },
+      ],
+    });
   });
 
   it('lets members list and read campaigns for the active organization', async () => {
@@ -411,7 +456,10 @@ describe('campaignsRoutes', () => {
     const response = await testApp().request(
       `/v1/campaigns/${campaign.id}/send`,
       { method: 'POST' },
-      { SMS_SENDING_MODE: 'test' },
+      {
+        SMS_SENDING_MODE: 'test',
+        TRACKING_BASE_URL: 'https://go.retaino.test',
+      },
     );
 
     expect(response.status).toBe(202);
@@ -438,6 +486,15 @@ describe('campaignsRoutes', () => {
         userId: user.id,
       },
     );
+    expect(reserveSmsCreditsIfSufficient).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        organizationId: organization.id,
+        credits: 1,
+        source: 'campaign_send',
+        sourceId: `campaign-send:${campaign.id}`,
+      }),
+    );
   });
 
   it('enqueues ready campaigns without launching again', async () => {
@@ -458,7 +515,10 @@ describe('campaignsRoutes', () => {
     const response = await testApp().request(
       `/v1/campaigns/${campaign.id}/send`,
       { method: 'POST' },
-      { SMS_SENDING_MODE: 'test' },
+      {
+        SMS_SENDING_MODE: 'test',
+        TRACKING_BASE_URL: 'https://go.retaino.test',
+      },
     );
 
     expect(response.status).toBe(202);
@@ -477,6 +537,14 @@ describe('campaignsRoutes', () => {
         userId: user.id,
       },
     );
+    expect(reserveSmsCreditsIfSufficient).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        organizationId: organization.id,
+        source: 'campaign_send',
+        sourceId: `campaign-send:${campaign.id}`,
+      }),
+    );
   });
 
   it('rejects ready campaign sends when the sender is not ready', async () => {
@@ -492,6 +560,37 @@ describe('campaignsRoutes', () => {
       `/v1/campaigns/${campaign.id}/send`,
       { method: 'POST' },
       { SMS_SENDING_MODE: 'test' },
+    );
+
+    expect(response.status).toBe(409);
+    expect(enqueueCampaignSendProcessing).not.toHaveBeenCalled();
+  });
+
+  it('blocks live send before enqueue when credits are insufficient', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue({
+      ...campaign,
+      status: 'ready_to_send',
+      readyToSendAt: '2026-05-16T10:00:00.000Z',
+      readyToSendByUserId: user.id,
+    });
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue(readySender());
+    vi.mocked(countCampaignRecipients).mockResolvedValue({
+      recipientCount: 3,
+    });
+    vi.mocked(reserveSmsCreditsIfSufficient).mockResolvedValue({
+      debitedCredits: 0,
+      transactions: [],
+    });
+    vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
+    vi.mocked(getSmsCreditBalance).mockResolvedValue(0);
+
+    const response = await testApp().request(
+      `/v1/campaigns/${campaign.id}/send`,
+      { method: 'POST' },
+      {
+        SMS_SENDING_MODE: 'test',
+        TRACKING_BASE_URL: 'https://go.retaino.test',
+      },
     );
 
     expect(response.status).toBe(409);

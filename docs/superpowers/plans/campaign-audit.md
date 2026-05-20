@@ -21,6 +21,8 @@
 | RM-02 | Provider failures needed clear campaign recovery and diagnosis behavior. | `processCampaignSend` marks campaigns `failed`, releases unused credits, writes a failure audit event, and rethrows for Inngest visibility. |
 | LC-01 | Background retries could duplicate provider sends for unresolved message rows. | Existing outbound rows without a provider message ID are treated as unresolved attempts and fail the campaign instead of sending again. |
 | LC-02 | Terminal campaign states could happen before credit release and audit writes. | Success and failure paths release unused credits and write audit data before marking terminal campaign states. |
+| LC-03 | Final send could return queued before SMS credits were reserved. | The send route now reserves campaign credits before enqueueing the Inngest job, so insufficient credits block the request before the campaign appears queued. |
+| LC-04 | Retryable start failures could release a reservation and burn the campaign reservation source ID. | Active-send conflicts now keep the existing reservation for the next retry, and send processing reconciles against the actual ledger reservation amount. |
 
 ## Important Findings Fixed
 

@@ -640,7 +640,50 @@ describe('campaign send service', () => {
     );
   });
 
-  it('releases reserved credits when the campaign send cannot start', async () => {
+  it('reconciles against the existing reserved ledger amount on retries', async () => {
+    vi.mocked(debitSmsCreditUsage).mockResolvedValue([
+      {
+        transactionType: 'debit',
+        credits: -2,
+        source: 'campaign_send',
+        sourceId: `campaign-send:${campaignId}`,
+        creditBucket: 'subscription_period',
+        periodStart: '2026-05-01T00:00:00.000Z',
+        periodEnd: '2026-06-01T00:00:00.000Z',
+        description: 'Campaign SMS reservation',
+        createdAt: '2026-05-16T10:00:00.000Z',
+      },
+    ]);
+
+    await processCampaignSend({
+      db,
+      env: {
+        DATABASE_URL: 'postgres://retaino.test/db',
+        SMS_SENDING_MODE: 'test',
+        TRACKING_BASE_URL: 'https://go.retaino.test',
+      } as never,
+      organizationId,
+      campaignId,
+      userId,
+    });
+
+    expect(startCampaignSend).toHaveBeenCalledWith(db, {
+      organizationId,
+      campaignId,
+      reservedCreditCount: 2,
+    });
+    expect(releaseSmsCreditUsage).toHaveBeenCalledWith({
+      db,
+      organizationId,
+      credits: 1,
+      reservedTransactions: expect.any(Array),
+      source: 'campaign_send',
+      sourceId: `campaign-send:${campaignId}:release`,
+      description: 'Campaign SMS reservation release',
+    });
+  });
+
+  it('keeps reserved credits when another send is active so retry can continue', async () => {
     vi.mocked(startCampaignSend).mockResolvedValue({
       status: 'active_send_exists',
     });
@@ -657,16 +700,9 @@ describe('campaign send service', () => {
         campaignId,
         userId,
       }),
-    ).rejects.toThrow('Campaign send could not be started.');
+    ).rejects.toThrow('Another campaign send is already active.');
 
-    expect(releaseSmsCreditUsage).toHaveBeenCalledWith({
-      db,
-      organizationId,
-      reservedTransactions: expect.any(Array),
-      source: 'campaign_send',
-      sourceId: `campaign-send:${campaignId}:release`,
-      description: 'Campaign SMS reservation release',
-    });
+    expect(releaseSmsCreditUsage).not.toHaveBeenCalled();
     expect(createOutboundSmsMessage).not.toHaveBeenCalled();
     const provider = vi.mocked(createSmsProvider).mock.results[0]?.value;
     expect(provider.sendSms).not.toHaveBeenCalled();

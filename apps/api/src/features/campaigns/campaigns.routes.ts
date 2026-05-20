@@ -33,6 +33,7 @@ import {
 } from '../organization/organization.gates';
 import { enqueueCampaignSendProcessing } from './campaigns.jobs';
 import {
+  reserveCampaignSendCredits,
   sendCampaignTestSms,
   TEST_TRACKED_BOOKING_LINK,
 } from './campaigns.service';
@@ -326,11 +327,22 @@ export const campaignsRoutes = new Hono<AppEnv>()
       recipientCount = summary.recipientCount;
     }
 
-    await enqueueCampaignSendProcessing(c.env, {
-      organizationId: organization.id,
-      campaignId,
-      userId: c.get('user').id,
-    });
+    try {
+      await reserveCampaignSendCredits({
+        db,
+        organizationId: organization.id,
+        campaign: sendCampaign,
+        trackingBaseUrl: c.env.TRACKING_BASE_URL,
+      });
+
+      await enqueueCampaignSendProcessing(c.env, {
+        organizationId: organization.id,
+        campaignId,
+        userId: c.get('user').id,
+      });
+    } catch (error) {
+      return campaignSmsSendErrorResponse(c, error);
+    }
 
     return c.json(
       {
@@ -452,7 +464,7 @@ function campaignSmsSendErrorResponse(
     return c.json(
       apiError(
         'forbidden',
-        'An active subscription is required before sending a test SMS.',
+        'An active subscription is required before sending SMS.',
       ),
       403,
     );
@@ -462,7 +474,7 @@ function campaignSmsSendErrorResponse(
     return c.json(
       apiError(
         'conflict',
-        'SMS credit balance is too low for this test SMS.',
+        'SMS credit balance is too low.',
         {
           balance: error.balance,
           requiredCredits: error.requiredCredits,
