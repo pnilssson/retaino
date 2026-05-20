@@ -476,7 +476,7 @@ export function CampaignForm({
                       <GuidedFlowSection title="Set up the sender">
                         <div className="grid gap-5">
                           <SenderSetup
-                            canManageCampaigns={canEditCampaign}
+                            canManageCampaigns={canManageCampaigns}
                             organizationId={organizationId}
                             sender={sender.data?.sender ?? null}
                           />

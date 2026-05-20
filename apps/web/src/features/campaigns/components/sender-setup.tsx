@@ -33,30 +33,49 @@ export function SenderSetup({
   organizationId: string | null;
   sender: PublicOrganizationSmsSender | null;
 }) {
-  const countries = useSmsSenderCountries(organizationId);
+  const senderReady = sender?.status === 'ready';
+  const setupOrganizationId =
+    canManageCampaigns && !senderReady ? organizationId : null;
+  const countries = useSmsSenderCountries(setupOrganizationId);
   const [countryCode, setCountryCode] = useState('');
   const effectiveCountryCode =
-    countryCode || countries.data?.countries[0]?.countryCode || '';
+    countryCode ||
+    sender?.countryCode ||
+    countries.data?.countries[0]?.countryCode ||
+    '';
   const selectedCountry = countries.data?.countries.find(
     (country) => country.countryCode === effectiveCountryCode,
   );
   const [numberType, setNumberType] = useState<SmsSenderNumberType | null>(null);
+  const senderNumberType =
+    sender?.numberType &&
+    selectedCountry?.supportedNumberTypes.includes(sender.numberType)
+      ? sender.numberType
+      : null;
   const effectiveNumberType =
     numberType && selectedCountry?.supportedNumberTypes.includes(numberType)
       ? numberType
-      : selectedCountry?.supportedNumberTypes[0] ?? null;
+      : senderNumberType ?? selectedCountry?.supportedNumberTypes[0] ?? null;
   const numbers = useSmsSenderNumbers({
     countryCode: effectiveCountryCode,
     numberType: effectiveNumberType,
-    organizationId,
+    organizationId: setupOrganizationId,
   });
   const [selectedPhoneNumber, setSelectedPhoneNumber] = useState('');
+  const senderPhoneNumberIsAvailable = Boolean(
+    sender?.phoneNumber &&
+      numbers.data?.numbers.some(
+        (number) => number.phoneNumber === sender.phoneNumber,
+      ),
+  );
   const effectiveSelectedPhoneNumber =
     selectedPhoneNumber &&
     numbers.data?.numbers.some(
       (number) => number.phoneNumber === selectedPhoneNumber,
     )
       ? selectedPhoneNumber
+      : senderPhoneNumberIsAvailable
+        ? (sender?.phoneNumber ?? '')
       : numbers.data?.numbers[0]?.phoneNumber ?? '';
   const selectedSender = useMemo(
     () =>
@@ -65,9 +84,7 @@ export function SenderSetup({
       ) ?? null,
     [effectiveSelectedPhoneNumber, numbers.data?.numbers],
   );
-  const provisionSender = useProvisionSmsSender(organizationId);
-
-  const senderReady = sender?.status === 'ready';
+  const provisionSender = useProvisionSmsSender(setupOrganizationId);
 
   return (
     <div className="grid gap-6">
@@ -76,7 +93,7 @@ export function SenderSetup({
           <div className="grid gap-1">
             <h3 className={textStyles.itemTitle}>Sender</h3>
             <p className={textStyles.mutedBody}>
-              {senderReady && sender.phoneNumber
+              {sender?.phoneNumber
                 ? sender.phoneNumber
                 : 'Choose the number recipients will see.'}
             </p>
@@ -96,11 +113,18 @@ export function SenderSetup({
         ) : null}
       </section>
 
-      {!senderReady ? (
+      {!senderReady && !canManageCampaigns ? (
+        <ItemNotice
+          description="An organization admin needs to set up the sender before campaign tests or sends can run."
+          title="Sender setup needs admin access"
+        />
+      ) : null}
+
+      {!senderReady && canManageCampaigns ? (
         <section className="grid gap-5">
           <div className="grid gap-4 sm:grid-cols-3">
             <SenderSelect
-              disabled={!canManageCampaigns || countries.isLoading}
+              disabled={countries.isLoading}
               id="campaign-sender-country"
               label="Country"
               onValueChange={(value) => {
@@ -118,7 +142,7 @@ export function SenderSetup({
             </SenderSelect>
 
             <SenderSelect
-              disabled={!canManageCampaigns || !selectedCountry}
+              disabled={!selectedCountry}
               id="campaign-sender-number-type"
               label="Number type"
               onValueChange={(value) => {
@@ -137,7 +161,6 @@ export function SenderSetup({
 
             <SenderSelect
               disabled={
-                !canManageCampaigns ||
                 !effectiveNumberType ||
                 numbers.isLoading ||
                 !numbers.data?.numbers.length
@@ -169,7 +192,6 @@ export function SenderSetup({
           <div className="flex justify-end">
             <Button
               disabled={
-                !canManageCampaigns ||
                 !selectedSender ||
                 provisionSender.isPending
               }
