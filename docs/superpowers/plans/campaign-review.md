@@ -8,9 +8,10 @@
 merge, including Phase 1 even though it was committed before this branch.
 
 **Review Method:** Review from requirements outward: product and compliance docs,
-phase docs, database model, shared contracts, API behavior, background jobs, and
-web UI. Use official provider and framework docs during review for SMS,
-webhooks, idempotency, migrations, and billing-adjacent behavior.
+canonical campaign plan, database model, shared contracts, API behavior,
+background jobs, tests, and web UI. Use official provider and framework docs
+during review for SMS, webhooks, idempotency, rate limiting, migrations, and
+billing-adjacent behavior.
 
 **Tech Stack:** Next.js, Hono on Cloudflare Workers, Clerk, Neon Postgres,
 Drizzle, Stripe, Inngest, Twilio, TanStack Query/Form.
@@ -58,8 +59,14 @@ Official/current external references to check during review:
   `https://www.twilio.com/docs/messaging/guides/webhook-request`
 - Twilio Messaging Services:
   `https://www.twilio.com/docs/messaging/services`
+- Twilio STOP keyword support:
+  `https://help.twilio.com/hc/en-us/articles/223134027-Twilio-support-for-STOP-BLOCK-and-CANCEL-SMS-STOP-filtering-`
+- Twilio Advanced Opt-Out:
+  `https://www.twilio.com/docs/messaging/services/tutorials/advanced-opt-out`
 - Inngest idempotency:
   `https://www.inngest.com/docs/guides/handling-idempotency`
+- Cloudflare Worker rate-limit bindings:
+  `https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/`
 - Stripe webhooks and duplicate-event guidance:
   `https://docs.stripe.com/webhooks`
 - Drizzle migrations:
@@ -236,3 +243,100 @@ Completed review summary is captured in the audit trail:
 Critical and important findings from this first review pass have been fixed.
 Manual UI review remains owner-led by request. Agent-created browser
 walkthroughs and screenshots were intentionally not performed.
+
+## Pass 10: External Reference And Deletion Review
+
+Purpose: validate the current implementation against primary provider and
+platform docs, then remove implementation that is speculative, stale, duplicated,
+or not valuable for the campaign MVP.
+
+- [ ] Refresh the official references listed above and note any changed
+  requirements that affect campaign sending, Twilio callbacks, STOP handling,
+  Cloudflare redirect rate limiting, Inngest retries, Stripe-backed credit
+  idempotency, or Drizzle migrations.
+- [ ] Compare Twilio webhook validation code with the current webhook security
+  docs, including form parameter sorting, exact callback URL handling, and JSON
+  `bodySHA256` behavior.
+- [ ] Compare Twilio inbound reply handling with current STOP, START, HELP,
+  REVOKE, and OPTOUT behavior. Confirm Retaino suppresses only true STOP-style
+  opt-outs and preserves non-STOP replies.
+- [ ] Compare tracking redirect protection with Cloudflare Worker rate-limit
+  binding behavior, including the per-location nature of rate limits.
+- [ ] Compare campaign send retry behavior with Inngest retry and idempotency
+  guidance. Treat database state as the durable source of truth, not event
+  dedupe alone.
+- [ ] Compare credit reservation and release behavior with Stripe duplicate
+  event guidance and Retaino's local SMS credit ledger model.
+- [ ] Confirm Drizzle schema and generated migrations still match. Do not edit
+  generated migration SQL or metadata by hand.
+- [ ] Run a deletion review over new modules, helpers, routes, types, and UI
+  pieces. Remove code when it is only speculative future scaffolding, a
+  pass-through wrapper, duplicated logic, or a preserved remnant of a removed
+  concept.
+- [ ] For every finding, either fix it immediately or record it in
+  `docs/superpowers/plans/campaign-audit.md` with a concrete file reference and
+  proposed fix.
+
+Primary files:
+
+- `apps/api/src/features/campaigns/campaigns.routes.ts`
+- `apps/api/src/features/campaigns/campaigns.service.ts`
+- `apps/api/src/features/campaigns/campaigns.jobs.ts`
+- `apps/api/src/features/sms/sms.webhook-routes.ts`
+- `apps/api/src/features/tracking/tracking.routes.ts`
+- `apps/api/src/lib/twilio-provider.ts`
+- `apps/api/src/lib/sms-provider.ts`
+- `packages/db/src/queries/campaigns.ts`
+- `packages/db/src/schema`
+- `packages/shared/src/contracts/campaigns.ts`
+- `apps/web/src/features/campaigns`
+
+## Pass 11: Test Relevance Audit
+
+Purpose: keep tests focused on current product behavior and production risks.
+Negative tests are useful when they protect current behavior. Tests for concepts
+that Retaino removed are noise and should be deleted with the removed concept.
+
+- [ ] Inventory campaign-related tests by package:
+  `packages/shared/test`, `packages/db/test`, and `apps/api/test`.
+- [ ] For each test, classify it as one of:
+  `current behavior`, `production guardrail`, `regression for fixed finding`,
+  `implementation-shape only`, `stale removed concept`, or `duplicate coverage`.
+- [ ] Keep negative tests that protect active contracts, tenant scoping, auth,
+  send safety, idempotency, privacy, suppression behavior, provider validation,
+  billing ledger behavior, or URL validation.
+- [ ] Delete tests for removed concepts such as a public launch endpoint,
+  persisted click IP data, exposed provider references, recipient hashes in API
+  responses, or any other behavior that no longer exists in the product.
+- [ ] Delete or rewrite tests that only assert private implementation shape when
+  the same risk is better tested through a public package interface.
+- [ ] Remove duplicate tests when one clear package-level test already protects
+  the behavior and additional copies only make future refactors harder.
+- [ ] After each cleanup batch, run the smallest relevant package command, then
+  run full verification before committing.
+
+Test files to inspect first:
+
+- `packages/shared/test/contracts/campaigns.test.ts`
+- `packages/db/test/queries/campaigns.test.ts`
+- `packages/db/test/schema/campaigns.test.ts`
+- `packages/db/test/schema/click-events.test.ts`
+- `packages/db/test/schema/sms-senders.test.ts`
+- `apps/api/test/features/campaigns/campaigns.routes.test.ts`
+- `apps/api/test/features/campaigns/campaigns.service.test.ts`
+- `apps/api/test/features/sms/sms.routes.test.ts`
+- `apps/api/test/features/sms/sms.webhook-routes.test.ts`
+- `apps/api/test/features/tracking/tracking.routes.test.ts`
+- `apps/api/test/lib/sms-provider.test.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/shared test
+pnpm --filter @retaino/db test
+pnpm --filter @retaino/api test
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm build
+```
