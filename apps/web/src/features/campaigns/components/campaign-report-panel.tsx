@@ -154,6 +154,13 @@ function reportMetrics(report: CampaignReport): ReportMetric[] {
     {
       detail: `${formatNumber(report.queuedCount)} queued`,
       icon: Send,
+      label: 'In progress',
+      tone: report.failedCount > 0 ? 'warning' : 'default',
+      value: formatNumber(report.queuedCount),
+    },
+    {
+      detail: `${formatPercent(report.failedCount, report.sentCount)} of sent`,
+      icon: AlertCircle,
       label: 'Failed',
       tone: report.failedCount > 0 ? 'warning' : 'default',
       value: formatNumber(report.failedCount),

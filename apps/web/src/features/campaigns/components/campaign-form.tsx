@@ -103,6 +103,9 @@ export function CampaignForm({
   const [activeStep, setActiveStep] = useState<CampaignStepId>(
     initialStep ?? (campaignIsDraft ? 'audience' : 'review'),
   );
+  const [queuedRecipientCount, setQueuedRecipientCount] = useState<number | null>(
+    null,
+  );
   const messageTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const createCampaign = useCreateCampaign(organizationId);
   const sender = useSmsSender(organizationId);
@@ -119,6 +122,11 @@ export function CampaignForm({
     createCampaign.error ?? updateCampaign.error ?? sendCampaign.error;
   const isSaving = createCampaign.isPending || updateCampaign.isPending;
   const isSending = sendCampaign.isPending;
+  const sendQueued =
+    queuedRecipientCount !== null &&
+    campaign?.status !== 'sending' &&
+    campaign?.status !== 'sent' &&
+    campaign?.status !== 'failed';
   const form = useForm({
     defaultValues: campaign
       ? campaignToFormValues(campaign)
@@ -185,6 +193,15 @@ export function CampaignForm({
         <ItemNotice
           description={campaignNotice.description}
           title={campaignNotice.title}
+        />
+      ) : null}
+
+      {sendQueued ? (
+        <ItemNotice
+          description={`${queuedRecipientCount} ${
+            queuedRecipientCount === 1 ? 'recipient is' : 'recipients are'
+          } queued for sending.`}
+          title="Campaign send queued"
         />
       ) : null}
 
@@ -499,11 +516,13 @@ export function CampaignForm({
                                 !campaign ||
                                 isSaving ||
                                 isSubmitting ||
-                                isSending
+                                isSending ||
+                                sendQueued
                               }
                               onClick={() => {
                                 sendCampaign.mutate(undefined, {
                                   onSuccess: (response) => {
+                                    setQueuedRecipientCount(response.recipientCount);
                                     toast.success('Campaign send queued.', {
                                       description: `${response.recipientCount} ${
                                         response.recipientCount === 1
