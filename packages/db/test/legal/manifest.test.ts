@@ -1,9 +1,17 @@
+import { readdirSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   LEGAL_BUNDLE_VERSION,
   REQUIRED_LEGAL_BUNDLE_DOCUMENT_TYPES,
 } from '@retaino/shared/contracts';
 import { legalDocuments } from '../../legal/manifest';
+
+const legalRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../legal',
+);
 
 describe('legal document manifest', () => {
   it('bumps the acceptance bundle when required legal documents change', () => {
@@ -25,4 +33,32 @@ describe('legal document manifest', () => {
       ),
     ).toBe(true);
   });
+
+  it('keeps only the current manifest legal document files', () => {
+    const manifestPaths = legalDocuments
+      .map((document) => document.path)
+      .sort();
+
+    expect(readLegalDocumentPaths(legalRoot)).toEqual(manifestPaths);
+  });
 });
+
+function readLegalDocumentPaths(directory: string) {
+  return readdirSync(directory, { withFileTypes: true })
+    .flatMap((entry) => {
+      const absolutePath = path.join(directory, entry.name);
+
+      if (entry.isDirectory()) {
+        return readLegalDocumentPaths(absolutePath).map((relativePath) =>
+          path.join(entry.name, relativePath).replaceAll(path.sep, '/'),
+        );
+      }
+
+      if (entry.isFile() && entry.name.endsWith('.mdx')) {
+        return [entry.name];
+      }
+
+      return [];
+    })
+    .sort();
+}
