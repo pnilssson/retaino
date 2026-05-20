@@ -95,6 +95,9 @@ Review focus:
 - Suppression checks run during preview, launch snapshot, and before send.
 - Tracking URLs use public `/r/:code` links.
 - Reporting does not imply bookings or revenue attribution.
+- Operational campaign and contact workflows are member-accessible after
+  action-specific readiness gates pass. Organization setup, legal acceptance,
+  billing, and team administration remain role-gated.
 
 ## Pass 2: Data Model And Migrations
 
@@ -205,6 +208,8 @@ Files to inspect first:
   clear.
 - [x] Confirm the report UI labels activity honestly and avoids booking or
   revenue attribution claims.
+- [x] Confirm campaign and contact operational actions are not hidden behind
+  owner or admin roles in the MVP.
 
 Files to inspect first:
 

@@ -2,8 +2,13 @@
 
 import type { CampaignAudienceRule } from '@retaino/shared/contracts';
 import { ItemNotice } from '@/components/item-notice';
+import {
+  SankeyBreakdown,
+  type SankeyBreakdownLink,
+  type SankeyBreakdownNode,
+  type SankeyBreakdownSummaryItem,
+} from '@/components/sankey-breakdown';
 import { textStyles } from '@/lib/text-styles';
-import { cn } from '@/lib/utils';
 import { useCampaignAudiencePreview } from '../hooks/use-campaign-audience-preview';
 
 export function AudiencePreview({
@@ -48,30 +53,19 @@ export function AudiencePreview({
     return <p className={textStyles.mutedBody}>Loading audience preview…</p>;
   }
 
+  const audienceNodes = createAudienceNodes();
+  const audienceLinks = createAudienceLinks(preview.data);
+  const audienceSummary = createAudienceSummary(preview.data);
+
   return (
     <div className="grid gap-5">
-      <dl className="grid gap-2 sm:grid-cols-4">
-        <PreviewMetric
-          label="Eligible"
-          tone="green"
-          value={preview.data.eligibleCount}
-        />
-        <PreviewMetric
-          label="Suppressed"
-          tone="slate"
-          value={preview.data.suppressedCount}
-        />
-        <PreviewMetric
-          label="Missing phone"
-          tone="amber"
-          value={preview.data.incompleteCount}
-        />
-        <PreviewMetric
-          label="Missing consent"
-          tone="red"
-          value={preview.data.missingConsentCount}
-        />
-      </dl>
+      <SankeyBreakdown
+        description="Contacts that match this audience grouped by send readiness."
+        links={audienceLinks}
+        nodes={audienceNodes}
+        summary={audienceSummary}
+        title="Audience breakdown"
+      />
 
       {preview.data.eligibleCount === 0 ? (
         <ItemNotice
@@ -83,56 +77,79 @@ export function AudiencePreview({
   );
 }
 
-type PreviewMetricTone = 'amber' | 'green' | 'red' | 'slate';
-
-const previewMetricToneClasses: Record<
-  PreviewMetricTone,
-  { accent: string; label: string; value: string }
-> = {
-  amber: {
-    accent: 'border-amber-300 dark:border-amber-700',
-    label: 'text-amber-800 dark:text-amber-200',
-    value: 'text-amber-800 dark:text-amber-200',
-  },
-  green: {
-    accent: 'border-emerald-300 dark:border-emerald-700',
-    label: 'text-emerald-800 dark:text-emerald-200',
-    value: 'text-emerald-800 dark:text-emerald-200',
-  },
-  red: {
-    accent: 'border-rose-300 dark:border-rose-700',
-    label: 'text-rose-800 dark:text-rose-200',
-    value: 'text-rose-800 dark:text-rose-200',
-  },
-  slate: {
-    accent: 'border-border',
-    label: 'text-slate-800 dark:text-slate-200',
-    value: 'text-slate-800 dark:text-slate-200',
-  },
+type AudiencePreviewData = {
+  eligibleCount: number;
+  incompleteCount: number;
+  missingConsentCount: number;
+  suppressedCount: number;
 };
 
-function PreviewMetric({
-  label,
-  tone,
-  value,
-}: {
-  label: string;
-  tone: PreviewMetricTone;
-  value: number;
-}) {
-  const toneClasses = previewMetricToneClasses[tone];
+function createAudienceNodes(): SankeyBreakdownNode[] {
+  return [
+    {
+      color: 'var(--chart-3)',
+      name: 'Matching contacts',
+    },
+    {
+      color: 'var(--chart-2)',
+      name: 'Ready',
+    },
+    {
+      color: 'var(--chart-4)',
+      name: 'Needs attention',
+    },
+    {
+      color: 'var(--chart-2)',
+      name: 'Eligible',
+    },
+    {
+      color: 'var(--muted-foreground)',
+      name: 'Suppressed',
+    },
+    {
+      color: 'var(--chart-1)',
+      name: 'Missing phone',
+    },
+    {
+      color: 'var(--destructive)',
+      name: 'Missing consent',
+    },
+  ];
+}
 
-  return (
-    <div
-      className={cn(
-        'grid min-h-16 content-center gap-1 border-l pl-3',
-        toneClasses.accent,
-      )}
-    >
-      <dt className={cn(textStyles.meta, toneClasses.label)}>{label}</dt>
-      <dd className={cn(textStyles.metric, toneClasses.value)}>
-        {value}
-      </dd>
-    </div>
-  );
+function createAudienceLinks(data: AudiencePreviewData): SankeyBreakdownLink[] {
+  const attentionCount =
+    data.suppressedCount + data.incompleteCount + data.missingConsentCount;
+
+  return [
+    { source: 0, target: 1, value: data.eligibleCount },
+    { source: 0, target: 2, value: attentionCount },
+    { source: 1, target: 3, value: data.eligibleCount },
+    { source: 2, target: 4, value: data.suppressedCount },
+    { source: 2, target: 5, value: data.incompleteCount },
+    { source: 2, target: 6, value: data.missingConsentCount },
+  ];
+}
+
+function createAudienceSummary(
+  data: AudiencePreviewData,
+): SankeyBreakdownSummaryItem[] {
+  return [
+    {
+      label: 'Eligible',
+      value: data.eligibleCount,
+    },
+    {
+      label: 'Suppressed',
+      value: data.suppressedCount,
+    },
+    {
+      label: 'Missing phone',
+      value: data.incompleteCount,
+    },
+    {
+      label: 'Missing consent',
+      value: data.missingConsentCount,
+    },
+  ];
 }

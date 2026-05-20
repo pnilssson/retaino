@@ -22,6 +22,12 @@ import {
   type CsvMapping,
 } from '@retaino/shared/contracts';
 import { ItemNotice } from '@/components/item-notice';
+import {
+  SankeyBreakdown,
+  type SankeyBreakdownLink,
+  type SankeyBreakdownNode,
+  type SankeyBreakdownSummaryItem,
+} from '@/components/sankey-breakdown';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -200,27 +206,22 @@ function ImportForm({
       >
       <AppPageContent>
         <AppPageItem asChild>
-          <section>
-            <GuidedFlowSection
-              description="You can leave this page while the import runs."
-              title="Import status"
-            >
-                <ImportProgress
-                  fileName={activeFileName}
-                  importId={currentImportId}
-                  onImportAnother={() => {
-                    form.reset();
-                    upload.mutation.reset();
-                    setActiveFileName(null);
-                    setParseError(null);
-                    setPreview(null);
-                    setActiveStep('upload');
-                    onCurrentImportChange(null);
-                  }}
-                  organizationId={organizationId}
-                />
-              </GuidedFlowSection>
-            </section>
+          <section className="grid gap-5">
+            <ImportProgress
+              fileName={activeFileName}
+              importId={currentImportId}
+              onImportAnother={() => {
+                form.reset();
+                upload.mutation.reset();
+                setActiveFileName(null);
+                setParseError(null);
+                setPreview(null);
+                setActiveStep('upload');
+                onCurrentImportChange(null);
+              }}
+              organizationId={organizationId}
+            />
+          </section>
           </AppPageItem>
         </AppPageContent>
       </GuidedFlowFrame>
@@ -668,7 +669,7 @@ function ImportProgress({
           description:
             issueCount > 0
               ? `${latestImport.processedRows} rows processed, ${issueCount} need attention.`
-              : `${latestImport.processedRows} contacts are ready.`,
+              : `${importedContactCount(latestImport)} contacts imported.`,
           id: `contact-import-${latestImport.id}-completed`,
         },
       );
@@ -764,7 +765,7 @@ function ImportProgressHeader({
         ? 'The contacts were not imported. Review the issue below and try again.'
         : issueCount > 0
           ? 'Contacts were imported, but some rows need attention.'
-          : 'Contacts are ready to use for segmentation and campaigns.';
+          : 'Contacts were imported.';
 
   return (
     <div className="flex flex-wrap items-start justify-between gap-4">
@@ -792,15 +793,18 @@ function ImportProgressHeader({
 }
 
 function ImportMetrics({ importRow }: { importRow: ContactImportDetail }) {
+  const importNodes = createImportNodes();
+  const importLinks = createImportLinks(importRow);
+  const importSummary = createImportSummary(importRow);
+
   return (
-    <dl className="grid gap-3 text-sm sm:grid-cols-4">
-      <Metric label="Created" tone="green" value={importRow.createdCount} />
-      <Metric label="Updated" tone="blue" value={importRow.updatedCount} />
-      <Metric label="Skipped" tone="amber" value={importRow.skippedCount} />
-      <Metric label="Invalid" tone="red" value={importRow.invalidCount} />
-      <Metric label="Duplicate" tone="violet" value={importRow.duplicateCount} />
-      <Metric label="Suppressed" tone="slate" value={importRow.suppressedCount} />
-    </dl>
+    <SankeyBreakdown
+      links={importLinks}
+      nodes={importNodes}
+      showHeader={false}
+      summary={importSummary}
+      title="Import results"
+    />
   );
 }
 
@@ -840,89 +844,102 @@ function ImportIssues({ importRow }: { importRow: ContactImportDetail }) {
   );
 }
 
-type MetricTone =
-  | 'amber'
-  | 'blue'
-  | 'green'
-  | 'neutral'
-  | 'red'
-  | 'slate'
-  | 'violet';
-
-const metricToneClasses: Record<
-  MetricTone,
-  { label: string; panel: string; value: string }
-> = {
-  amber: {
-    label: 'text-amber-800 dark:text-amber-200',
-    panel: 'border-amber-200 bg-amber-50/55 dark:border-amber-900/60 dark:bg-amber-950/25',
-    value: 'text-amber-800 dark:text-amber-200',
-  },
-  blue: {
-    label: 'text-sky-800 dark:text-sky-200',
-    panel: 'border-sky-200 bg-sky-50/55 dark:border-sky-900/60 dark:bg-sky-950/25',
-    value: 'text-sky-800 dark:text-sky-200',
-  },
-  green: {
-    label: 'text-emerald-800 dark:text-emerald-200',
-    panel: 'border-emerald-200 bg-emerald-50/55 dark:border-emerald-900/60 dark:bg-emerald-950/25',
-    value: 'text-emerald-800 dark:text-emerald-200',
-  },
-  neutral: {
-    label: 'text-foreground',
-    panel: 'border-border bg-muted/20',
-    value: 'text-foreground',
-  },
-  red: {
-    label: 'text-rose-800 dark:text-rose-200',
-    panel: 'border-rose-200 bg-rose-50/55 dark:border-rose-900/60 dark:bg-rose-950/25',
-    value: 'text-rose-800 dark:text-rose-200',
-  },
-  slate: {
-    label: 'text-slate-800 dark:text-slate-200',
-    panel: 'border-slate-200 bg-slate-50/70 dark:border-slate-800/70 dark:bg-slate-950/30',
-    value: 'text-slate-800 dark:text-slate-200',
-  },
-  violet: {
-    label: 'text-violet-800 dark:text-violet-200',
-    panel: 'border-violet-200 bg-violet-50/55 dark:border-violet-900/60 dark:bg-violet-950/25',
-    value: 'text-violet-800 dark:text-violet-200',
-  },
-};
-
-function Metric({
-  label,
-  tone,
-  value,
-}: {
-  label: string;
-  tone: MetricTone;
-  value: number | string;
-}) {
-  const toneClasses = metricToneClasses[tone];
-
-  return (
-    <div
-      className={cn(
-        'grid min-h-16 gap-1 rounded-md border px-3 py-2',
-        toneClasses.panel,
-      )}
-    >
-      <dt className={cn('text-xs', toneClasses.label)}>{label}</dt>
-      <dd className={cn('font-medium tabular-nums', toneClasses.value)}>
-        {value}
-      </dd>
-    </div>
-  );
+function importIssueCount(importRow: ContactImportDetail) {
+  return importRow.skippedCount + importRow.invalidCount + importRow.duplicateCount;
 }
 
-function importIssueCount(importRow: ContactImportDetail) {
-  return (
-    importRow.skippedCount +
-    importRow.invalidCount +
-    importRow.duplicateCount +
-    importRow.suppressedCount
+function importedContactCount(importRow: ContactImportDetail) {
+  return importRow.createdCount + importRow.updatedCount;
+}
+
+function createImportNodes(): SankeyBreakdownNode[] {
+  return [
+    {
+      color: 'var(--chart-3)',
+      name: 'Rows processed',
+    },
+    {
+      color: 'var(--chart-2)',
+      name: 'Imported',
+    },
+    {
+      color: 'var(--chart-4)',
+      name: 'Needs attention',
+    },
+    {
+      color: 'var(--chart-2)',
+      name: 'Ready',
+    },
+    {
+      color: 'var(--muted-foreground)',
+      name: 'Suppressed',
+    },
+    {
+      color: 'var(--chart-4)',
+      name: 'Skipped',
+    },
+    {
+      color: 'var(--destructive)',
+      name: 'Invalid',
+    },
+    {
+      color: 'var(--chart-5)',
+      name: 'Duplicate',
+    },
+  ];
+}
+
+function createImportLinks(
+  importRow: ContactImportDetail,
+): SankeyBreakdownLink[] {
+  const importedCount = importedContactCount(importRow);
+  const suppressedImportedCount = Math.min(
+    importRow.suppressedCount,
+    importedCount,
   );
+  const readyImportedCount = Math.max(importedCount - suppressedImportedCount, 0);
+  const attentionCount = importIssueCount(importRow);
+
+  return [
+    { source: 0, target: 1, value: importedCount },
+    { source: 0, target: 2, value: attentionCount },
+    { source: 1, target: 3, value: readyImportedCount },
+    { source: 1, target: 4, value: suppressedImportedCount },
+    { source: 2, target: 5, value: importRow.skippedCount },
+    { source: 2, target: 6, value: importRow.invalidCount },
+    { source: 2, target: 7, value: importRow.duplicateCount },
+  ];
+}
+
+function createImportSummary(
+  importRow: ContactImportDetail,
+): SankeyBreakdownSummaryItem[] {
+  return [
+    {
+      label: 'Created',
+      value: importRow.createdCount,
+    },
+    {
+      label: 'Updated',
+      value: importRow.updatedCount,
+    },
+    {
+      label: 'Suppressed',
+      value: importRow.suppressedCount,
+    },
+    {
+      label: 'Skipped',
+      value: importRow.skippedCount,
+    },
+    {
+      label: 'Invalid',
+      value: importRow.invalidCount,
+    },
+    {
+      label: 'Duplicate',
+      value: importRow.duplicateCount,
+    },
+  ];
 }
 
 async function updatePreview(

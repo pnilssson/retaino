@@ -48,6 +48,7 @@
 | DR-02 | Campaign audit logs stored request IP data without a current product or compliance need. | Removed campaign audit IP storage from schema, queries, routes, tests, and generated a Drizzle migration. |
 | DR-03 | The no-IP decision was applied too broadly to legal acceptance evidence. | Legal acceptances store the Cloudflare client IP for the acceptance audit trail. Campaign audit logs and click tracking still do not store IP data. |
 | TA-01 | Shared campaign contracts included internal operational row schemas for recipients, tracking links, SMS messages, message events, and clicks. | Removed those schemas from the shared public contract surface. Operational return types now live in the database query layer. |
+| AC-01 | Campaign and contact operational workflows were still tied to owner or admin roles after the MVP direction changed to member-accessible operations. | Organization members can now import and manage contacts, create and edit draft campaigns, set up senders, send test SMS, send live campaigns, and review reports after action-specific readiness gates pass. Organization setup, legal acceptance, billing, and team administration remain role-gated. |
 
 ## Minor Findings Fixed
 

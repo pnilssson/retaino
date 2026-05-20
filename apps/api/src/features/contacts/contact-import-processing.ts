@@ -18,11 +18,12 @@ export type PreparedContactImportRow = {
   phoneHash: string | null;
   emailHash: string | null;
   lastBookingAt: Date | null;
+  suppressed: boolean;
 };
 
 export type ContactImportRowOutcome =
   | { action: 'ready'; row: PreparedContactImportRow }
-  | { action: 'invalid' | 'duplicate' | 'suppressed'; errors: string[] };
+  | { action: 'invalid' | 'duplicate'; errors: string[] };
 
 export type ContactImportAccumulator = {
   counts: ContactImportCounts;
@@ -34,7 +35,6 @@ type CountedImportOutcome =
   | 'updated'
   | 'duplicate'
   | 'invalid'
-  | 'suppressed'
   | 'skipped';
 
 export function createContactImportAccumulator(): ContactImportAccumulator {
@@ -84,11 +84,7 @@ export async function classifyContactImportRow(input: {
     input.accumulator.seenContactMethods.add(key),
   );
 
-  if (await isSuppressed(input.db, input.organizationId, prepared)) {
-    const errors = ['suppressed_contact_method'];
-    recordContactImportOutcome(input.accumulator, 'suppressed', errors);
-    return { action: 'suppressed', errors };
-  }
+  const suppressed = await isSuppressed(input.db, input.organizationId, prepared);
 
   return {
     action: 'ready',
@@ -102,6 +98,7 @@ export async function classifyContactImportRow(input: {
       phoneHash: prepared.phoneHash,
       emailHash: prepared.emailHash,
       lastBookingAt: prepared.lastBookingAt,
+      suppressed,
     },
   };
 }
@@ -110,6 +107,7 @@ export function recordContactImportOutcome(
   accumulator: ContactImportAccumulator,
   outcome: CountedImportOutcome,
   errors: string[] = [],
+  options: { suppressed?: boolean } = {},
 ) {
   accumulator.counts.totalRows += 1;
   accumulator.counts.processedRows += 1;
@@ -119,7 +117,9 @@ export function recordContactImportOutcome(
   if (outcome === 'skipped') accumulator.counts.skippedCount += 1;
   if (outcome === 'invalid') accumulator.counts.invalidCount += 1;
   if (outcome === 'duplicate') accumulator.counts.duplicateCount += 1;
-  if (outcome === 'suppressed') accumulator.counts.suppressedCount += 1;
+  if (options.suppressed) {
+    accumulator.counts.suppressedCount += 1;
+  }
 
   for (const error of errors) {
     if (!accumulator.counts.errorSummary.includes(error)) {

@@ -118,7 +118,7 @@ describe('processContactImport', () => {
     expect(r2.delete).toHaveBeenCalledWith('source.csv');
   });
 
-  it('counts invalid, duplicate, suppressed, and conflicting rows without row persistence', async () => {
+  it('imports suppressed rows and counts remaining attention rows', async () => {
     const suppression = {
       id: '66666666-6666-4666-8666-666666666666',
       organizationId,
@@ -136,6 +136,7 @@ describe('processContactImport', () => {
       .mockResolvedValue(null);
     vi.mocked(upsertImportedContact)
       .mockResolvedValueOnce({ action: 'created', contact: null })
+      .mockResolvedValueOnce({ action: 'created', contact: null })
       .mockResolvedValueOnce({ action: 'conflict', contact: null });
 
     await processContactImport({
@@ -147,13 +148,22 @@ describe('processContactImport', () => {
       contactImportId,
     });
 
+    expect(upsertImportedContact).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        name: 'Suppressed',
+        phone: '0700000000',
+        normalizedPhone: '+46700000000',
+        consentStatus: 'granted',
+      }),
+    );
     expect(completeContactImport).toHaveBeenCalledWith(expect.anything(), {
       organizationId,
       contactImportId,
       counts: expect.objectContaining({
         totalRows: 5,
         processedRows: 5,
-        createdCount: 1,
+        createdCount: 2,
         skippedCount: 1,
         invalidCount: 1,
         duplicateCount: 1,
@@ -161,7 +171,6 @@ describe('processContactImport', () => {
         errorSummary: [
           'invalid_phone',
           'duplicate_contact_method',
-          'suppressed_contact_method',
           'conflicting_contact_methods',
         ],
       }),

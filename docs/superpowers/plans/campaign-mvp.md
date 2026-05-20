@@ -12,11 +12,11 @@ Different lapsed windows, offers, or copy variants are separate campaigns.
 Reusable saved segments, branching journeys, and multi-message variants are
 deferred until customers need advanced campaign operations.
 
-This is both backend and frontend work. The first two phases build stable
-backend APIs, phase 3 turns those APIs into a usable campaign builder, and the
-remaining phases add sender setup, test sending, launch, tracking, and
-reporting. Phases 1 through 7 are implemented. This document is the canonical
-state for the campaign MVP after the first deep branch review.
+Campaign MVP phases 1 through 7 are implemented and consolidated here. The
+current implementation includes backend campaign APIs, the web campaign
+builder, organization sender setup, test sends, final-send launch snapshots,
+tracking links, live send jobs, provider events, and reports. This document is
+the canonical campaign MVP state after the first deep branch review.
 
 ## Campaign UX Direction
 
@@ -58,6 +58,12 @@ safe live sending:
 5. Freeze recipients as part of the final send action.
 6. Create tracking links and send live campaigns in background jobs.
 7. Ingest provider callbacks, STOP replies, clicks, and reports.
+
+Operational campaign and contact workflows are member-accessible in the MVP
+after the readiness gates for that action pass. Any organization member may
+import and manage contacts, create or edit draft campaigns, set up the sender,
+send test SMS, send live campaigns, and review reports. Organization setup,
+legal acceptance, billing, and team administration remain role-gated.
 
 Twilio is the MVP provider because `docs/architecture.md` and
 `docs/product.md` already choose it. The implementation should still hide
@@ -131,8 +137,8 @@ unknown `{...}` tokens.
 
 Retaino provisions Twilio sender resources lazily. An organization may create
 campaigns and preview audiences without a sender. Before the first test
-send or live send, the organization must have an active paid subscription and current
-legal acceptance, then Retaino creates or reuses:
+send or live send, the organization must have an active paid subscription and
+current legal acceptance, then Retaino creates or reuses:
 
 1. One organization-selected SMS-capable Twilio phone number.
 2. One Twilio Messaging Service for the organization.
@@ -269,16 +275,17 @@ send retries can happen after the event-level idempotency window.
 
 ## Quality Bar
 
-MVP does not mean loose. Each phase should be small, testable, and complete:
+MVP does not mean loose. Future campaign changes should stay small, testable,
+and complete:
 
-- implement only the data and behavior the phase uses
+- implement only the data and behavior the product uses
 - write package-level tests for non-web logic
 - avoid duplicate schemas, helpers, or status strings
 - prefer explicit lifecycle states over ambiguous booleans
 - keep provider and job idempotency risks visible in tests
 - make preview, launch snapshot, and send eligibility use the same underlying
   rules
-- stop after each phase for review instead of blending future work into it
+- review each coherent change before blending future work into it
 
 ## Implemented Scope Summary
 
@@ -290,6 +297,7 @@ Phases 1 through 7 are implemented and consolidated into this canonical plan:
 | Audience preview | Count and sample eligible lapsed contacts with consent, normalized phone, and suppression filtering. Preview and send paths share eligibility rules. |
 | Web campaign builder | Campaign list, campaign filters, draft creation, campaign editing, audience preview, message writing, booking details, sender setup, review, test send, and final send. |
 | Sender setup and test sends | Organization sender provisioning, sender readiness checks, provider-neutral SMS adapter, deterministic fake provider, and user-triggered test sends. |
+| Access model | Organization members can run operational contact and campaign workflows after action-specific readiness gates pass. Organization setup, legal acceptance, billing, and team administration remain role-gated. |
 | Launch snapshot | Recipient snapshots are created by the final send action. There is no separate public launch endpoint in the MVP. |
 | Live send jobs | Final send freezes recipients, reserves credits, creates tracking links, and enqueues the Inngest background job. The job re-checks suppressions before provider send and reconciles unused credits. |
 | Events, tracking, and reporting | Provider status callbacks, inbound replies, STOP suppressions, public tracking redirects, click recording without persisted IP data, and campaign activity reports. |

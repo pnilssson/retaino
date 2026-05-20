@@ -96,7 +96,9 @@ export async function processContactImport(input: ProcessContactImportInput) {
           'conflicting_contact_methods',
         ]);
       } else {
-        recordContactImportOutcome(accumulator, result.action);
+        recordContactImportOutcome(accumulator, result.action, [], {
+          suppressed: row.suppressed,
+        });
       }
     }
 
