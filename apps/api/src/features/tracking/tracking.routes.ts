@@ -1,4 +1,5 @@
 import { getTrackingLinkByCode, recordTrackingClick } from '@retaino/db';
+import { isTrackingCode } from '@retaino/shared';
 import { Hono } from 'hono';
 import { apiError } from '../../lib/errors';
 import type { AppEnv } from '../../types';
@@ -13,6 +14,10 @@ export const trackingRoutes = new Hono<AppEnv>().get('/:code', async (c) => {
     ))
   ) {
     return c.json(apiError('validation_failed', 'Too many link requests.'), 429);
+  }
+
+  if (!isTrackingCode(code)) {
+    return c.json(apiError('not_found', 'Link was not found.'), 404);
   }
 
   if (
@@ -30,10 +35,14 @@ export const trackingRoutes = new Hono<AppEnv>().get('/:code', async (c) => {
     return c.json(apiError('not_found', 'Link was not found.'), 404);
   }
 
-  await recordTrackingClick(c.get('db'), {
-    trackingLink,
-    userAgent: c.req.header('user-agent') ?? null,
-  });
+  try {
+    await recordTrackingClick(c.get('db'), {
+      trackingLink,
+      userAgent: c.req.header('user-agent') ?? null,
+    });
+  } catch (error) {
+    console.error(error);
+  }
 
   return c.redirect(trackingLink.targetUrl, 302);
 });

@@ -190,11 +190,6 @@ describe('campaign send service', () => {
       recipientId: recipient.id,
       code: 'abc123',
       targetUrl: campaign.bookingUrl,
-      phoneHash: recipient.phoneHash,
-      emailHash: recipient.emailHash,
-      firstClickedAt: null,
-      lastClickedAt: null,
-      clickCount: 0,
       createdAt: '2026-05-16T10:00:00.000Z',
       updatedAt: '2026-05-16T10:00:00.000Z',
     });
@@ -388,7 +383,6 @@ describe('campaign send service', () => {
         campaignId,
         recipientId: recipient.id,
         targetUrl: campaign.bookingUrl,
-        phoneHash: recipient.phoneHash,
       }),
     );
     expect(createOutboundSmsMessage).toHaveBeenCalledWith(

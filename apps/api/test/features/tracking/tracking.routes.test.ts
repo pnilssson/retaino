@@ -14,13 +14,8 @@ const trackingLink = {
   organizationId: '22222222-2222-4222-8222-222222222222',
   campaignId: '33333333-3333-4333-8333-333333333333',
   recipientId: '44444444-4444-4444-8444-444444444444',
-  code: 'abc123',
+  code: '0123456789abcdef',
   targetUrl: 'https://booking.example.com/studio',
-  phoneHash: 'phone-hash',
-  emailHash: null,
-  firstClickedAt: null,
-  lastClickedAt: null,
-  clickCount: 0,
   createdAt: '2026-05-16T10:00:00.000Z',
   updatedAt: '2026-05-16T10:00:00.000Z',
 };
@@ -55,7 +50,7 @@ describe('trackingRoutes', () => {
       createdAt: '2026-05-16T10:02:00.000Z',
     });
 
-    const response = await testApp().request('/r/abc123', {
+    const response = await testApp().request('/r/0123456789abcdef', {
       headers: {
         'user-agent': 'Mozilla/5.0',
       },
@@ -63,7 +58,10 @@ describe('trackingRoutes', () => {
 
     expect(response.status).toBe(302);
     expect(response.headers.get('location')).toBe(trackingLink.targetUrl);
-    expect(getTrackingLinkByCode).toHaveBeenCalledWith(expect.anything(), 'abc123');
+    expect(getTrackingLinkByCode).toHaveBeenCalledWith(
+      expect.anything(),
+      '0123456789abcdef',
+    );
     expect(recordTrackingClick).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -73,12 +71,34 @@ describe('trackingRoutes', () => {
     );
   });
 
+  it('redirects when click tracking fails', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      vi.mocked(getTrackingLinkByCode).mockResolvedValue(trackingLink);
+      vi.mocked(recordTrackingClick).mockRejectedValue(
+        new Error('Tracking write failed.'),
+      );
+
+      const response = await testApp().request('/r/0123456789abcdef');
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get('location')).toBe(trackingLink.targetUrl);
+      expect(errorSpy).toHaveBeenCalledOnce();
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
   it('returns not found for unknown tracking codes', async () => {
     vi.mocked(getTrackingLinkByCode).mockResolvedValue(null);
 
-    const response = await testApp().request('/r/missing');
+    const response = await testApp().request('/r/fedcba9876543210');
 
     expect(response.status).toBe(404);
+    expect(getTrackingLinkByCode).toHaveBeenCalledWith(
+      expect.anything(),
+      'fedcba9876543210',
+    );
     expect(recordTrackingClick).not.toHaveBeenCalled();
   });
 
@@ -101,12 +121,25 @@ describe('trackingRoutes', () => {
   it('returns rate limited before lookup when the tracking limiter blocks', async () => {
     const limit = vi.fn().mockResolvedValue({ success: false });
 
-    const response = await testApp().request('/r/abc123', undefined, {
+    const response = await testApp().request('/r/0123456789abcdef', undefined, {
       TRACKING_REDIRECT_RATE_LIMITER: { limit },
     } as never);
 
     expect(response.status).toBe(429);
-    expect(limit).toHaveBeenCalledWith({ key: 'tracking:abc123' });
+    expect(limit).toHaveBeenCalledWith({ key: 'tracking:0123456789abcdef' });
+    expect(getTrackingLinkByCode).not.toHaveBeenCalled();
+    expect(recordTrackingClick).not.toHaveBeenCalled();
+  });
+
+  it('returns not found for invalid tracking code shapes before lookup', async () => {
+    const limit = vi.fn().mockResolvedValue({ success: true });
+
+    const response = await testApp().request('/r/abc123', undefined, {
+      TRACKING_REDIRECT_RATE_LIMITER: { limit },
+    } as never);
+
+    expect(response.status).toBe(404);
+    expect(limit).not.toHaveBeenCalled();
     expect(getTrackingLinkByCode).not.toHaveBeenCalled();
     expect(recordTrackingClick).not.toHaveBeenCalled();
   });
@@ -117,7 +150,7 @@ describe('trackingRoutes', () => {
       targetUrl: 'javascript:alert(1)',
     });
 
-    const response = await testApp().request('/r/abc123');
+    const response = await testApp().request('/r/0123456789abcdef');
 
     expect(response.status).toBe(404);
     expect(response.headers.get('location')).toBeNull();

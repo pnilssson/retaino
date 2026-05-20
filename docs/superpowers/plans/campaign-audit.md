@@ -41,6 +41,9 @@
 | WH-02 | Body-based STOP fallback missed current STOP-style keywords. | STOP-style detection now covers the current standard keyword set used by the MVP. |
 | WH-03 | Duplicate Twilio webhook deliveries could insert duplicate campaign message events and inflate reply, opt-out, or event counts. | Campaign message events now have a provider/message/event unique index, and event inserts ignore duplicate retries. |
 | TR-02 | Public redirects trusted stored target URLs at response time. | The redirect route rejects stored targets unless they parse as `http` or `https`, before recording the click. |
+| TR-03 | A click-storage failure could block the recipient from reaching the booking page. | Public redirects now log click-write failures but still redirect after the stored target URL is validated. |
+| TR-04 | Tracking links duplicated recipient hashes and unused click counters. | Tracking links now store only link ownership, code, target URL, and timestamps. Reports count `click_events` directly. |
+| TR-05 | Public redirects accepted arbitrary path values until the database lookup. | Redirects now validate the Retaino short-code shape before the tracking-code limiter and database lookup. |
 | DR-01 | A full recipient snapshot endpoint exposed more campaign recipient data than the MVP UI needed. | Removed the public recipient-list endpoint, response contract, query, tests, and web query key. The UI uses the count-only summary endpoint. |
 | DR-02 | Campaign audit logs stored request IP data without a current product or compliance need. | Removed campaign audit IP storage from schema, queries, routes, tests, and generated a Drizzle migration. |
 | TA-01 | Shared campaign contracts included internal operational row schemas for recipients, tracking links, SMS messages, message events, and clicks. | Removed those schemas from the shared public contract surface. Operational return types now live in the database query layer. |

@@ -49,11 +49,11 @@ backfills.
 ## Short Links
 
 Every SMS contains a unique short link for one campaign recipient, for example
-`https://go.retaino.com/r/a8x91`.
+`https://go.retaino.com/r/0123456789abcdef`.
 
 The short link record stores organization ID, campaign ID, recipient ID, phone
-hash, email hash, target booking URL, sent time, first click time, last click
-time, click count, and timestamps.
+target booking URL, short code, and timestamps. Recipient hashes stay on the
+campaign recipient snapshot and are not duplicated on tracking links.
 
 The short code is only a lookup key. Attribution resolves through campaign and
 recipient IDs.
@@ -62,11 +62,15 @@ recipient IDs.
 
 1. Recipient opens `/r/:code`.
 2. API looks up the link by short code.
-3. API records a click event with timestamp, user agent, and organization ID.
-4. API redirects to the stored booking URL.
+3. API verifies the stored booking URL still uses an allowed `http` or `https`
+   scheme.
+4. API records a click event with timestamp, user agent, and organization ID.
+5. API redirects to the stored booking URL.
 
-Redirects must stay fast. Enrichment and aggregation run outside the HTTP
-request.
+Redirects must favor the recipient reaching the booking page. If click storage
+fails after the target URL has been validated, the redirect still succeeds and
+the write failure is logged. Reports count click events directly instead of
+depending on denormalized counters.
 
 MVP click tracking does not persist IP addresses or IP-derived metadata.
 Redirect abuse protection uses Cloudflare Worker rate-limiting bindings keyed

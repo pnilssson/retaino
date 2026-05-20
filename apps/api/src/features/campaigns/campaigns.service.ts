@@ -18,7 +18,7 @@ import {
   type CampaignRecipientForSend,
   type DbClient,
 } from '@retaino/db';
-import { renderCampaignSms } from '@retaino/shared';
+import { renderCampaignSms, TRACKING_CODE_LENGTH } from '@retaino/shared';
 import { normalizePhoneNumber } from '@retaino/shared/contracts';
 import type { Campaign, SmsCreditTransaction } from '@retaino/shared/contracts';
 import {
@@ -61,7 +61,6 @@ type PreparedRecipient = {
 };
 
 export const TEST_TRACKED_BOOKING_LINK = 'https://go.retaino.com/r/test';
-const TRACKING_CODE_LENGTH = 16;
 const TRACKING_CODE_ESTIMATE = '0'.repeat(TRACKING_CODE_LENGTH);
 
 type CampaignSendCreditReservation = {
@@ -579,8 +578,6 @@ async function prepareRecipients(input: {
       recipientId: recipient.id,
       code: trackingCode(),
       targetUrl: input.campaign.bookingUrl as string,
-      phoneHash: recipient.phoneHash,
-      emailHash: recipient.emailHash,
     });
 
     if (!trackingLink) {

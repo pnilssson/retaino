@@ -1,9 +1,7 @@
 import {
   index,
-  integer,
   pgTable,
   text,
-  timestamp,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
@@ -26,11 +24,6 @@ export const trackingLinks = pgTable(
       .references(() => campaignRecipients.id, { onDelete: 'cascade' }),
     code: text('code').notNull(),
     targetUrl: text('target_url').notNull(),
-    phoneHash: text('phone_hash'),
-    emailHash: text('email_hash'),
-    firstClickedAt: timestamp('first_clicked_at', { withTimezone: true }),
-    lastClickedAt: timestamp('last_clicked_at', { withTimezone: true }),
-    clickCount: integer('click_count').notNull().default(0),
     createdAt,
     updatedAt,
   },

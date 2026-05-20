@@ -8,10 +8,5 @@ describe('tracking links schema', () => {
     expect(trackingLinks.recipientId.name).toBe('recipient_id');
     expect(trackingLinks.code.name).toBe('code');
     expect(trackingLinks.targetUrl.name).toBe('target_url');
-    expect(trackingLinks.phoneHash.name).toBe('phone_hash');
-    expect(trackingLinks.emailHash.name).toBe('email_hash');
-    expect(trackingLinks.firstClickedAt.name).toBe('first_clicked_at');
-    expect(trackingLinks.lastClickedAt.name).toBe('last_clicked_at');
-    expect(trackingLinks.clickCount.name).toBe('click_count');
   });
 });

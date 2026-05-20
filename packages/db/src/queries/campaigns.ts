@@ -141,11 +141,6 @@ export function trackingLinkToContract(row: TrackingLinkRow) {
     recipientId: row.recipientId,
     code: row.code,
     targetUrl: row.targetUrl,
-    phoneHash: row.phoneHash,
-    emailHash: row.emailHash,
-    firstClickedAt: row.firstClickedAt?.toISOString() ?? null,
-    lastClickedAt: row.lastClickedAt?.toISOString() ?? null,
-    clickCount: row.clickCount,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -488,8 +483,6 @@ export async function upsertTrackingLink(
     recipientId: string;
     code: string;
     targetUrl: string;
-    phoneHash: string | null;
-    emailHash: string | null;
   },
 ) {
   assertOrganizationId(input.organizationId);
@@ -502,16 +495,12 @@ export async function upsertTrackingLink(
       recipientId: input.recipientId,
       code: input.code,
       targetUrl: input.targetUrl,
-      phoneHash: input.phoneHash,
-      emailHash: input.emailHash,
       updatedAt: now,
     })
     .onConflictDoUpdate({
       target: [trackingLinks.organizationId, trackingLinks.recipientId],
       set: {
         targetUrl: input.targetUrl,
-        phoneHash: input.phoneHash,
-        emailHash: input.emailHash,
         updatedAt: now,
       },
     })
@@ -540,12 +529,6 @@ export async function recordTrackingClick(
 ) {
   assertOrganizationId(input.trackingLink.organizationId);
   const now = input.now ?? new Date();
-  const updateValues = {
-    ...(input.trackingLink.firstClickedAt ? {} : { firstClickedAt: now }),
-    lastClickedAt: now,
-    clickCount: sql`${trackingLinks.clickCount} + 1`,
-    updatedAt: now,
-  };
   const [row] = await db
     .insert(clickEvents)
     .values({
@@ -556,17 +539,6 @@ export async function recordTrackingClick(
       userAgent: input.userAgent,
       occurredAt: now,
     })
-    .returning();
-
-  await db
-    .update(trackingLinks)
-    .set(updateValues)
-    .where(
-      and(
-        eq(trackingLinks.organizationId, input.trackingLink.organizationId),
-        eq(trackingLinks.id, input.trackingLink.id),
-      ),
-    )
     .returning();
 
   return row ? clickEventToContract(row) : null;

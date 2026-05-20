@@ -114,11 +114,6 @@ const trackingLinkRow = {
   recipientId: recipientRow.id,
   code: 'abc123',
   targetUrl: 'https://booking.example.com/studio',
-  phoneHash: recipientRow.phoneHash,
-  emailHash: recipientRow.emailHash,
-  firstClickedAt: null,
-  lastClickedAt: null,
-  clickCount: 0,
   createdAt: new Date('2026-05-16T10:00:00.000Z'),
   updatedAt: new Date('2026-05-16T10:00:00.000Z'),
 };
@@ -203,11 +198,6 @@ describe('campaign query helpers', () => {
       recipientId: trackingLinkRow.recipientId,
       code: trackingLinkRow.code,
       targetUrl: trackingLinkRow.targetUrl,
-      phoneHash: trackingLinkRow.phoneHash,
-      emailHash: trackingLinkRow.emailHash,
-      firstClickedAt: null,
-      lastClickedAt: null,
-      clickCount: 0,
       createdAt: '2026-05-16T10:00:00.000Z',
       updatedAt: '2026-05-16T10:00:00.000Z',
     });
@@ -791,8 +781,6 @@ describe('campaign query helpers', () => {
         recipientId: recipientRow.id,
         code: trackingLinkRow.code,
         targetUrl: trackingLinkRow.targetUrl,
-        phoneHash: recipientRow.phoneHash,
-        emailHash: recipientRow.emailHash,
       }),
     ).resolves.toEqual(trackingLinkToContract(trackingLinkRow));
     expect(upsertValues).toEqual([
@@ -841,9 +829,8 @@ describe('campaign query helpers', () => {
     expect(query.params).toEqual(['abc123']);
   });
 
-  it('records click events and updates tracking link counters', async () => {
+  it('records click events', async () => {
     const insertValues: unknown[] = [];
-    const updateSets: unknown[] = [];
     const db = {
       insert: () => ({
         values: (value: unknown) => {
@@ -851,17 +838,6 @@ describe('campaign query helpers', () => {
 
           return {
             returning: () => [clickEventRow],
-          };
-        },
-      }),
-      update: () => ({
-        set: (value: unknown) => {
-          updateSets.push(value);
-
-          return {
-            where: () => ({
-              returning: () => [trackingLinkRow],
-            }),
           };
         },
       }),
@@ -882,8 +858,6 @@ describe('campaign query helpers', () => {
       trackingLinkId: trackingLinkRow.id,
       userAgent: 'Mozilla/5.0',
     });
-    expect(updateSets[0]).toHaveProperty('lastClickedAt');
-    expect(updateSets[0]).toHaveProperty('clickCount');
   });
 
   it('finds the latest sent campaign recipient by phone hash', async () => {
