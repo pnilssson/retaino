@@ -1,4 +1,12 @@
-import { index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { campaignRecipients, campaigns } from './campaigns';
 import { createdAt } from './common';
 import { organizations } from './organizations';
@@ -36,6 +44,11 @@ export const campaignMessageEvents = pgTable(
     index('campaign_message_events_organization_campaign_idx').on(
       table.organizationId,
       table.campaignId,
+    ),
+    uniqueIndex('campaign_message_events_provider_message_event_idx').on(
+      table.provider,
+      table.providerMessageId,
+      table.eventType,
     ),
   ],
 );

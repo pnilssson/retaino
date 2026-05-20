@@ -32,6 +32,7 @@ import {
   upsertTrackingLink,
   updateCampaignDraft,
 } from '../../src/queries/campaigns';
+import { campaignMessageEvents } from '../../src/schema/campaign-message-events';
 
 const campaignRow = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -1024,7 +1025,19 @@ describe('campaign query helpers', () => {
           });
 
           return {
-            returning: () => [messageEventRow],
+            onConflictDoNothing: (config: unknown) => {
+              expect(config).toMatchObject({
+                target: [
+                  campaignMessageEvents.provider,
+                  campaignMessageEvents.providerMessageId,
+                  campaignMessageEvents.eventType,
+                ],
+              });
+
+              return {
+                returning: () => [messageEventRow],
+              };
+            },
           };
         },
       }),

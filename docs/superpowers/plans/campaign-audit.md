@@ -39,6 +39,7 @@
 | SC-02 | Sender number selection exposed provider-only references to the browser. | Public sender options no longer include provider references. The server re-verifies selected numbers before provisioning. |
 | WH-01 | Twilio `START` and `HELP` advanced opt-out events were treated as suppressions. | Only `OptOutType=STOP` creates suppressions. `START` and `HELP` are stored as replies. |
 | WH-02 | Body-based STOP fallback missed current STOP-style keywords. | STOP-style detection now covers the current standard keyword set used by the MVP. |
+| WH-03 | Duplicate Twilio webhook deliveries could insert duplicate campaign message events and inflate reply, opt-out, or event counts. | Campaign message events now have a provider/message/event unique index, and event inserts ignore duplicate retries. |
 | TR-02 | Public redirects trusted stored target URLs at response time. | The redirect route rejects stored targets unless they parse as `http` or `https`, before recording the click. |
 | DR-01 | A full recipient snapshot endpoint exposed more campaign recipient data than the MVP UI needed. | Removed the public recipient-list endpoint, response contract, query, tests, and web query key. The UI uses the count-only summary endpoint. |
 | DR-02 | Campaign audit logs stored request IP data without a current product or compliance need. | Removed campaign audit IP storage from schema, queries, routes, tests, and generated a Drizzle migration. |

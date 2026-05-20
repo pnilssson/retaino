@@ -1,3 +1,4 @@
+import { getTableConfig } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 import { campaignMessageEvents } from '../../src/schema/campaign-message-events';
 
@@ -15,5 +16,22 @@ describe('campaign message events schema', () => {
     expect(campaignMessageEvents.rawStatus.name).toBe('raw_status');
     expect(campaignMessageEvents.rawPayload.name).toBe('raw_payload');
     expect(campaignMessageEvents.occurredAt.name).toBe('occurred_at');
+  });
+
+  it('deduplicates provider retries for the same message event type', () => {
+    const indexes = getTableConfig(campaignMessageEvents).indexes.map(
+      (index) => index.config,
+    );
+    const uniqueIndex = indexes.find(
+      (index) =>
+        index.name === 'campaign_message_events_provider_message_event_idx',
+    );
+
+    expect(uniqueIndex?.unique).toBe(true);
+    expect(uniqueIndex?.columns.map((column) => column.name)).toEqual([
+      'provider',
+      'provider_message_id',
+      'event_type',
+    ]);
   });
 });

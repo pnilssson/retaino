@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "campaign_message_events_provider_message_event_idx" ON "campaign_message_events" USING btree ("provider","provider_message_id","event_type");

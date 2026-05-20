@@ -772,6 +772,13 @@ export async function recordCampaignMessageEvent(
       rawPayload: input.rawPayload,
       occurredAt: input.occurredAt,
     })
+    .onConflictDoNothing({
+      target: [
+        campaignMessageEvents.provider,
+        campaignMessageEvents.providerMessageId,
+        campaignMessageEvents.eventType,
+      ],
+    })
     .returning();
 
   return row ? campaignMessageEventToContract(row) : null;
