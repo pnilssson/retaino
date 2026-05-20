@@ -38,6 +38,7 @@ export const organizationLegalAcceptanceSchema = z.object({
   bundleVersion: nonEmptyStringSchema,
   bundleHash: z.string().regex(/^[a-f0-9]{64}$/),
   documentsSnapshot: z.array(legalBundleDocumentSnapshotSchema),
+  ipAddress: nonEmptyStringSchema.nullable(),
   userAgent: nonEmptyStringSchema.nullable(),
   acceptedAt: timestampSchema,
   acceptedByEmail: z.email().nullable(),

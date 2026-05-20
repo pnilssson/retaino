@@ -113,12 +113,14 @@ export const organizationRoutes = new Hono<AppEnv>()
       );
     }
 
+    const ipAddress = c.req.header('cf-connecting-ip') ?? null;
     const userAgent = c.req.header('user-agent') ?? null;
 
     const legalAcceptance = await createOrganizationLegalAcceptance(db, {
       organizationId: organization.id,
       userId: user.id,
       legalBundle,
+      ipAddress,
       userAgent,
     });
 

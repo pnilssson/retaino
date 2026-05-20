@@ -96,6 +96,11 @@ type, resource ID, timestamp, and relevant metadata. Actor user ID is required
 for user-driven actions and nullable for provider callbacks, public tracking
 redirects, and background jobs.
 
+IP addresses are stored only for legal acceptance evidence. Do not store request
+IP data on campaign audit logs, public tracking clicks, provider callbacks, or
+campaign operational events unless a later legal review creates a specific
+retention requirement.
+
 Use `audit_logs` for user-driven decisions and administrative actions: legal
 acceptance, import metadata, mapping, validation, dedupe, suppression removal,
 campaign rules, SMS copy, launch decisions, booking uploads, reconciliation,

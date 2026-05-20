@@ -133,6 +133,7 @@ const legalAcceptance = {
   bundleVersion: legalBundle.version,
   bundleHash: legalBundle.hash,
   documentsSnapshot: [],
+  ipAddress: null,
   userAgent: null,
   acceptedAt: '2026-05-08T00:00:00.000Z',
   acceptedByEmail: 'ada@retaino.test',

@@ -72,6 +72,7 @@ function toOrganizationLegalAcceptance(
     bundleVersion: row.bundleVersion,
     bundleHash: row.bundleHash,
     documentsSnapshot: toDocumentSnapshots(row.documentsSnapshot),
+    ipAddress: row.ipAddress,
     userAgent: row.userAgent,
     acceptedAt: row.acceptedAt.toISOString(),
     acceptedByEmail,
@@ -219,6 +220,7 @@ export async function createOrganizationLegalAcceptance(
     organizationId: string;
     userId: string;
     legalBundle: LegalBundle;
+    ipAddress: string | null;
     userAgent: string | null;
   },
 ) {
@@ -230,6 +232,7 @@ export async function createOrganizationLegalAcceptance(
       bundleVersion: input.legalBundle.version,
       bundleHash: input.legalBundle.hash,
       documentsSnapshot: input.legalBundle.documents,
+      ipAddress: input.ipAddress,
       userAgent: input.userAgent,
     })
     .onConflictDoNothing({

@@ -253,6 +253,10 @@ send retries can happen after the event-level idempotency window.
 - Click events store the tracking link, campaign, recipient, timestamp, and
   user agent. Do not add persisted IP addresses or IP-derived metadata to MVP
   click tracking.
+- Legal acceptances are the exception to the no-IP campaign decision. Store the
+  Cloudflare client IP with legal acceptance records as evidence of the
+  acceptance event, alongside authenticated user, organization, document bundle,
+  timestamp, and user agent.
 - Twilio inbound and status webhooks use
   `https://api.retaino.com/v1/webhooks/twilio/messaging/inbound` and
   `https://api.retaino.com/v1/webhooks/twilio/messaging/status`.
