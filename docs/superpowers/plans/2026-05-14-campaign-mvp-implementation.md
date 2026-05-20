@@ -1,7 +1,7 @@
 # Campaign MVP Implementation
 
-> **For agentic workers:** Use this document as the campaign MVP index. Load
-> only the phase document you are implementing, plus the required project docs:
+> **For agentic workers:** Use this document as the canonical campaign MVP
+> state. Load this document plus the required project docs:
 > `docs/architecture.md`, `docs/product.md`, `docs/compliance.md`, and
 > `docs/tracking.md`.
 
@@ -276,17 +276,19 @@ MVP does not mean loose. Each phase should be small, testable, and complete:
   rules
 - stop after each phase for review instead of blending future work into it
 
-## Phase Documents
+## Implemented Scope Summary
 
-| Phase | Outcome | Document |
-| --- | --- | --- |
-| 1. Campaign Persistence | Implemented. Create, read, update, and delete internally drafted campaigns. | `docs/superpowers/plans/campaign-mvp/01-draft-foundation.md` |
-| 2. Audience Preview | Implemented. Count and sample eligible lapsed contacts before launch. | `docs/superpowers/plans/campaign-mvp/02-audience-preview.md` |
-| 3. Web Campaign Builder | Implemented. Let users create and edit one-audience, one-message campaigns. | `docs/superpowers/plans/campaign-mvp/03-web-campaign-builder.md` |
-| 4. SMS Provider And Test Sends | Implemented. Preview SMS cost, provision sender resources, and let admins send test messages. | `docs/superpowers/plans/campaign-mvp/04-sms-provider-test-sends.md` |
-| 5. Launch Snapshot | Implemented. Freeze recipients behind the final send action. | `docs/superpowers/plans/campaign-mvp/05-launch-snapshot.md` |
-| 6. Tracking Links And Live Send Jobs | Implemented. Create recipient links, send campaigns, and show send state. | `docs/superpowers/plans/campaign-mvp/06-live-send-jobs.md` |
-| 7. Events, Tracking, Reporting | Implemented. Handle callbacks, STOP replies, clicks, and show campaign metrics. | `docs/superpowers/plans/campaign-mvp/07-events-tracking-reporting.md` |
+Phases 1 through 7 are implemented and consolidated into this canonical plan:
+
+| Area | Implemented outcome |
+| --- | --- |
+| Campaign persistence | Create, list, read, update, and delete internally drafted campaigns. Only draft campaigns are editable or deletable. |
+| Audience preview | Count and sample eligible lapsed contacts with consent, normalized phone, and suppression filtering. Preview and send paths share eligibility rules. |
+| Web campaign builder | Campaign list, campaign filters, draft creation, campaign editing, audience preview, message writing, booking details, sender setup, review, test send, and final send. |
+| Sender setup and test sends | Organization sender provisioning, sender readiness checks, provider-neutral SMS adapter, deterministic fake provider, and admin test sends. |
+| Launch snapshot | Recipient snapshots are created by the final send action. There is no separate public launch endpoint in the MVP. |
+| Live send jobs | Final send freezes recipients, reserves credits, creates tracking links, and enqueues the Inngest background job. The job re-checks suppressions before provider send and reconciles unused credits. |
+| Events, tracking, and reporting | Provider status callbacks, inbound replies, STOP suppressions, public tracking redirects, click recording without persisted IP data, and campaign activity reports. |
 
 ## Review Status
 

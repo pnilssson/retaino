@@ -74,5 +74,5 @@
 Manual UI review remains owner-led by request. Agent-created browser
 walkthroughs and screenshots were intentionally not performed.
 
-Before PR, commit the reviewed implementation, migration, test, and
-documentation changes in an intentional split.
+The reviewed implementation, migration, test, and documentation changes were
+committed in an intentional split after verification.

@@ -46,13 +46,9 @@ Project docs:
 - `docs/compliance.md`
 - `docs/tracking.md`
 - `docs/superpowers/plans/2026-05-14-campaign-mvp-implementation.md`
-- `docs/superpowers/plans/campaign-mvp/01-draft-foundation.md`
-- `docs/superpowers/plans/campaign-mvp/02-audience-preview.md`
-- `docs/superpowers/plans/campaign-mvp/03-web-campaign-builder.md`
-- `docs/superpowers/plans/campaign-mvp/04-sms-provider-test-sends.md`
-- `docs/superpowers/plans/campaign-mvp/05-launch-snapshot.md`
-- `docs/superpowers/plans/campaign-mvp/06-live-send-jobs.md`
-- `docs/superpowers/plans/campaign-mvp/07-events-tracking-reporting.md`
+
+The original Phase 1 through Phase 7 implementation notes were reviewed during
+the first pass and then consolidated into the canonical implementation plan.
 
 Official/current external references to check during review:
 
@@ -75,7 +71,8 @@ Official/current external references to check during review:
 
 - [x] Build a checklist from every non-negotiable in
   `2026-05-14-campaign-mvp-implementation.md`.
-- [x] Build a checklist from every phase document, Phase 1 through Phase 7.
+- [x] Build a checklist from the Phase 1 through Phase 7 implementation
+  requirements that existed during the first review pass.
 - [x] Mark each item as implemented, intentionally deferred, unclear, or
   missing.
 - [x] Convert every missing or unclear production requirement into a concrete
