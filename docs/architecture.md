@@ -37,8 +37,8 @@ MVP roles:
 
 | Role | Meaning |
 | --- | --- |
-| `org:admin` | Manages setup, team access, billing, imports, campaigns, and reports. |
-| `org:member` | Works inside the organization without billing or destructive actions. |
+| `org:admin` | Manages setup, team access, billing, and organization settings. |
+| `org:member` | Builds, tests, sends, and reviews campaigns after organization setup is complete. |
 
 ## Data Rules
 
@@ -88,7 +88,7 @@ selected country, provisioning status, failure reason, and timestamps in
 Retaino. Do not store Twilio account credentials in tenant-owned tables.
 
 Provision sender resources lazily after the organization has an active paid
-subscription and current legal acceptance, when an admin first prepares a
+subscription and current legal acceptance, when a user first prepares a
 campaign for test or live sending. Do not buy a Twilio number immediately after
 checkout and do not require a sender for draft creation or audience preview.
 Provisioning runs idempotently and must not create a second sender for the same
@@ -97,12 +97,12 @@ organization on retries.
 Onboarding should collect organization identity and address fields that are
 likely to be required for phone-number compliance so sender setup does not ask
 for the same company details again. If a selected sender country or number type
-requires additional regulatory data, the organization admin supplies it through
+requires additional regulatory data, the user supplies it through
 Retaino. Retaino staff must not need to manually configure each customer.
 Countries or number types that cannot be self-served through Retaino are not
 available in MVP.
 
-Sender setup is organization-controlled. Admins choose the target sender country
+Sender setup is organization-controlled. Users choose the target sender country
 based on where their recipients are, then select an available SMS-capable number
 or accept a recommended number. The organization's legal address is only a
 default, not the source of truth for sender country.

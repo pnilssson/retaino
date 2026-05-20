@@ -82,22 +82,19 @@ const defaultCampaignFormValues: CampaignFormValues = {
 };
 
 export function CampaignForm({
-  canManageCampaigns,
   campaign,
   initialStep,
   onCreated,
   organizationId,
 }: {
-  canManageCampaigns: boolean;
   campaign: Campaign | null;
   initialStep?: CampaignStepId;
   onCreated: (campaignId: string, initialStep: CampaignStepId) => void;
   organizationId: string | null;
 }) {
   const campaignIsDraft = !campaign || campaign.status === 'draft';
-  const canEditCampaign = canManageCampaigns && campaignIsDraft;
+  const canEditCampaign = campaignIsDraft;
   const canSendCampaign =
-    canManageCampaigns &&
     Boolean(campaign) &&
     (campaign?.status === 'draft' || campaign?.status === 'ready_to_send');
   const [activeStep, setActiveStep] = useState<CampaignStepId>(
@@ -182,13 +179,6 @@ export function CampaignForm({
         void form.handleSubmit();
       }}
     >
-      {!canManageCampaigns ? (
-        <ItemNotice
-          description="You can inspect campaigns and audience previews, but only organization admins can save changes."
-          title="Admin access required to save"
-        />
-      ) : null}
-
       {campaignNotice ? (
         <ItemNotice
           description={campaignNotice.description}
@@ -476,7 +466,6 @@ export function CampaignForm({
                       <GuidedFlowSection title="Set up the sender">
                         <div className="grid gap-5">
                           <SenderSetup
-                            canManageCampaigns={canManageCampaigns}
                             organizationId={organizationId}
                             sender={sender.data?.sender ?? null}
                           />
@@ -498,7 +487,6 @@ export function CampaignForm({
                       >
                         <div className="grid gap-5">
                     <CampaignReview
-                      canManageCampaigns={canManageCampaigns}
                       campaign={campaign}
                       campaignId={campaign?.id ?? null}
                       organizationId={organizationId}
@@ -509,7 +497,6 @@ export function CampaignForm({
                           <GuidedFlowActions onBack={() => setActiveStep('sender')}>
                             <Button
                               disabled={
-                                !canManageCampaigns ||
                                 !canSendCampaign ||
                                 !canSubmit ||
                                 !senderReady ||
@@ -554,14 +541,12 @@ export function CampaignForm({
 }
 
 function CampaignReview({
-  canManageCampaigns,
   campaign,
   campaignId,
   organizationId,
   senderReady,
   values,
 }: {
-  canManageCampaigns: boolean;
   campaign: Campaign | null;
   campaignId: string | null;
   organizationId: string | null;
@@ -680,7 +665,6 @@ function CampaignReview({
 
         <ReviewSection title="Test SMS">
           <CampaignTestSend
-            canManageCampaigns={canManageCampaigns}
             campaignId={campaignId}
             senderReady={senderReady}
           />
@@ -691,11 +675,9 @@ function CampaignReview({
 }
 
 function CampaignTestSend({
-  canManageCampaigns,
   campaignId,
   senderReady,
 }: {
-  canManageCampaigns: boolean;
   campaignId: string | null;
   senderReady: boolean;
 }) {
@@ -722,7 +704,7 @@ function CampaignTestSend({
       <form.Field name="testPhone">
         {(field) => (
           <TextInput
-            disabled={!canManageCampaigns || !senderReady || testSend.isPending}
+            disabled={!senderReady || testSend.isPending}
             error={null}
             label="Test phone"
             name={field.name}
@@ -747,7 +729,6 @@ function CampaignTestSend({
       <div className="flex justify-end">
         <Button
           disabled={
-            !canManageCampaigns ||
             !campaignId ||
             !senderReady ||
             testSend.isPending

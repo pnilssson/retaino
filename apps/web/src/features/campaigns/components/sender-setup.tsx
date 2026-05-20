@@ -25,17 +25,14 @@ import { useSmsSenderCountries } from '../hooks/use-sms-sender-countries';
 import { useSmsSenderNumbers } from '../hooks/use-sms-sender-numbers';
 
 export function SenderSetup({
-  canManageCampaigns,
   organizationId,
   sender,
 }: {
-  canManageCampaigns: boolean;
   organizationId: string | null;
   sender: PublicOrganizationSmsSender | null;
 }) {
   const senderReady = sender?.status === 'ready';
-  const setupOrganizationId =
-    canManageCampaigns && !senderReady ? organizationId : null;
+  const setupOrganizationId = !senderReady ? organizationId : null;
   const countries = useSmsSenderCountries(setupOrganizationId);
   const [countryCode, setCountryCode] = useState('');
   const effectiveCountryCode =
@@ -113,14 +110,7 @@ export function SenderSetup({
         ) : null}
       </section>
 
-      {!senderReady && !canManageCampaigns ? (
-        <ItemNotice
-          description="An organization admin needs to set up the sender before campaign tests or sends can run."
-          title="Sender setup needs admin access"
-        />
-      ) : null}
-
-      {!senderReady && canManageCampaigns ? (
+      {!senderReady ? (
         <section className="grid gap-5">
           <div className="grid gap-4 sm:grid-cols-3">
             <SenderSelect

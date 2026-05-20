@@ -1,6 +1,5 @@
 "use client";
 
-import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import type { OrganizationSession } from '@retaino/shared/contracts';
 import { AlertCircle, ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
@@ -93,9 +92,6 @@ export function CampaignBuilderScreen({
     return <BlockedCampaignBuilder session={session.data} />;
   }
 
-  const canManageCampaigns = canManageOrganizationSetup(
-    session.data.organization.role,
-  );
   const latestCampaign = campaign.data?.campaign ?? null;
   const title = campaignId
     ? latestCampaign?.name ?? 'Campaign'
@@ -132,7 +128,6 @@ export function CampaignBuilderScreen({
         ) : (
           <>
             <CampaignForm
-              canManageCampaigns={canManageCampaigns}
               campaign={latestCampaign}
               initialStep={createdCampaignInitialStep}
               key={latestCampaign?.id ?? 'new'}

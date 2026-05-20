@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, FileText } from 'lucide-react';
+import { CheckCircle2, FileText } from 'lucide-react';
 import Link from 'next/link';
 import {
   canManageOrganizationSetup,
@@ -17,41 +17,28 @@ import { routes } from '@/lib/routes';
 export function BlockedContacts({ session }: { session: OrganizationSession }) {
   const canManageSetup = canManageOrganizationSetup(session.organization.role);
   const blocker = session.eligibility.contactImports.blocker;
-  const adminRequired = blocker === 'admin_required';
   const legalUpdateRequired = blocker === 'legal_update_required';
-  const title = adminRequired
-    ? 'Admin access required for contact imports'
-    : legalUpdateRequired
-      ? 'Legal updates required before importing contacts'
-      : 'Finish setup before importing contacts';
-  const description = adminRequired
-    ? 'Only organization admins can upload and process customer contact data.'
-    : legalUpdateRequired
-      ? 'Updated legal terms must be accepted before contact data can be imported.'
-      : 'Company profile and legal agreement acceptance are required before contact data can be imported.';
-  const alertTitle = adminRequired
-    ? 'Contact imports require admin access'
-    : legalUpdateRequired
-      ? 'Contact imports are paused'
-      : 'Contacts are blocked';
-  const alertDescription = adminRequired
-    ? 'Ask an organization admin to upload the CSV or update your organization role before importing contacts.'
-    : legalUpdateRequired
-      ? canManageSetup
-        ? 'Review and accept the updated legal terms to resume CSV uploads and imports.'
-        : 'An organization admin needs to accept the updated legal terms before CSV uploads and imports can continue.'
-      : 'Complete organization setup to unlock CSV uploads, validation, dedupe, suppression checks, and contact status.';
-  const actionHref = adminRequired
-    ? routes.contacts
-    : legalUpdateRequired
-      ? routes.legal
-      : routes.organizationSetup;
-  const actionLabel = adminRequired
-    ? 'Back to contacts'
-    : legalUpdateRequired
-      ? canManageSetup
-        ? 'Review legal updates'
-        : 'View legal'
+  const title = legalUpdateRequired
+    ? 'Legal updates required before importing contacts'
+    : 'Finish setup before importing contacts';
+  const description = legalUpdateRequired
+    ? 'Updated legal terms must be accepted before contact data can be imported.'
+    : 'Company profile and legal agreement acceptance are required before contact data can be imported.';
+  const alertTitle = legalUpdateRequired
+    ? 'Contact imports are paused'
+    : 'Contacts are blocked';
+  const alertDescription = legalUpdateRequired
+    ? canManageSetup
+      ? 'Review and accept the updated legal terms to resume CSV uploads and imports.'
+      : 'An organization admin needs to accept the updated legal terms before CSV uploads and imports can continue.'
+    : 'Complete organization setup to unlock CSV uploads, validation, dedupe, suppression checks, and contact status.';
+  const actionHref = legalUpdateRequired
+    ? routes.legal
+    : routes.organizationSetup;
+  const actionLabel = legalUpdateRequired
+    ? canManageSetup
+      ? 'Review legal updates'
+      : 'View legal'
     : 'Finish setup';
 
   return (
@@ -61,11 +48,9 @@ export function BlockedContacts({ session }: { session: OrganizationSession }) {
           badge={
             <StatusBadge
               label={
-                adminRequired
-                  ? 'Admin required'
-                  : legalUpdateRequired
-                    ? 'Legal updates required'
-                    : 'Setup required'
+                legalUpdateRequired
+                  ? 'Legal updates required'
+                  : 'Setup required'
               }
               tone="amber"
             />
@@ -81,9 +66,7 @@ export function BlockedContacts({ session }: { session: OrganizationSession }) {
               <div className="flex justify-end">
                 <Button asChild>
                   <Link href={actionHref}>
-                    {adminRequired ? (
-                      <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-                    ) : legalUpdateRequired ? (
+                    {legalUpdateRequired ? (
                       <FileText aria-hidden="true" data-icon="inline-start" />
                     ) : (
                       <CheckCircle2

@@ -266,19 +266,22 @@ describe('campaignsRoutes', () => {
     });
   });
 
-  it('creates campaigns with authenticated organization and user ids', async () => {
+  it('lets members create campaigns with authenticated organization and user ids', async () => {
     vi.mocked(createCampaignDraft).mockResolvedValue(campaign);
 
-    const response = await testApp().request('/v1/campaigns', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        name: campaign.name,
-        audienceRule: campaign.audienceRule,
-        smsBody: campaign.smsBody,
-        bookingUrl: campaign.bookingUrl,
-      }),
-    });
+    const response = await testApp({ role: 'org:member' }).request(
+      '/v1/campaigns',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: campaign.name,
+          audienceRule: campaign.audienceRule,
+          smsBody: campaign.smsBody,
+          bookingUrl: campaign.bookingUrl,
+        }),
+      },
+    );
 
     expect(response.status).toBe(201);
     expect(createCampaignDraft).toHaveBeenCalledWith(expect.anything(), {
@@ -597,16 +600,6 @@ describe('campaignsRoutes', () => {
     expect(enqueueCampaignSendProcessing).not.toHaveBeenCalled();
   });
 
-  it('rejects live send enqueue for organization members', async () => {
-    const response = await testApp({ role: 'org:member' }).request(
-      `/v1/campaigns/${campaign.id}/send`,
-      { method: 'POST' },
-    );
-
-    expect(response.status).toBe(403);
-    expect(enqueueCampaignSendProcessing).not.toHaveBeenCalled();
-  });
-
   it('lets members read campaign recipient counts without snapshots', async () => {
     vi.mocked(countCampaignRecipients).mockResolvedValue({
       recipientCount: 12,
@@ -782,21 +775,27 @@ describe('campaignsRoutes', () => {
     expect(createCampaignDraft).not.toHaveBeenCalled();
   });
 
-  it('updates and deletes draft campaigns for organization admins', async () => {
+  it('lets members update and delete draft campaigns', async () => {
     vi.mocked(updateCampaignDraft).mockResolvedValue({
       status: 'updated',
       campaign: { ...campaign, name: 'Updated campaign' },
     });
     vi.mocked(deleteCampaignDraft).mockResolvedValue(true);
 
-    const update = await testApp().request(`/v1/campaigns/${campaign.id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: 'Updated campaign' }),
-    });
-    const deleted = await testApp().request(`/v1/campaigns/${campaign.id}`, {
-      method: 'DELETE',
-    });
+    const update = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}`,
+      {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'Updated campaign' }),
+      },
+    );
+    const deleted = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}`,
+      {
+        method: 'DELETE',
+      },
+    );
 
     expect(update.status).toBe(200);
     expect(deleted.status).toBe(204);
@@ -809,45 +808,6 @@ describe('campaignsRoutes', () => {
       organizationId: organization.id,
       campaignId: campaign.id,
     });
-  });
-
-  it('rejects campaign mutations for organization members', async () => {
-    const response = await testApp({ role: 'org:member' }).request(
-      '/v1/campaigns',
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          name: campaign.name,
-          audienceRule: campaign.audienceRule,
-          smsBody: campaign.smsBody,
-          bookingUrl: campaign.bookingUrl,
-        }),
-      },
-    );
-
-    expect(response.status).toBe(403);
-    expect(createCampaignDraft).not.toHaveBeenCalled();
-  });
-
-  it('rejects campaign updates and deletes for organization members', async () => {
-    const update = await testApp({ role: 'org:member' }).request(
-      `/v1/campaigns/${campaign.id}`,
-      {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name: 'Updated campaign' }),
-      },
-    );
-    const deleted = await testApp({ role: 'org:member' }).request(
-      `/v1/campaigns/${campaign.id}`,
-      { method: 'DELETE' },
-    );
-
-    expect(update.status).toBe(403);
-    expect(deleted.status).toBe(403);
-    expect(updateCampaignDraft).not.toHaveBeenCalled();
-    expect(deleteCampaignDraft).not.toHaveBeenCalled();
   });
 
   it('returns conflict when updating a non-draft campaign', async () => {

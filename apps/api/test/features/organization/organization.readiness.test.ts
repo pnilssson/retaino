@@ -119,7 +119,6 @@ describe('getOrganizationReadiness', () => {
     expect(
       getOrganizationEligibility({
         readiness,
-        role: 'org:admin',
       }),
     ).toEqual({
       contactImports: {
@@ -129,7 +128,7 @@ describe('getOrganizationReadiness', () => {
     });
   });
 
-  it('blocks contact imports for non-admin organization members', () => {
+  it('allows contact imports for members when setup and legal are current', () => {
     const readiness = getOrganizationReadiness({
       hasProfile: true,
       onboardingStatus: 'complete',
@@ -143,12 +142,11 @@ describe('getOrganizationReadiness', () => {
     expect(
       getOrganizationEligibility({
         readiness,
-        role: 'org:member',
       }),
     ).toEqual({
       contactImports: {
-        allowed: false,
-        blocker: 'admin_required',
+        allowed: true,
+        blocker: null,
       },
     });
   });

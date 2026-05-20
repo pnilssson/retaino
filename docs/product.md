@@ -96,7 +96,7 @@ Billing:
 4. Billing shows subscription status, SMS balance, renewal timing, plans, credit
    packs, and portal access.
 5. Retaino does not provision a Twilio sender during checkout. Sender setup
-   happens later when an admin prepares the first campaign for sending.
+   happens later when a user prepares the first campaign for sending.
 
 Contact import:
 
@@ -113,7 +113,7 @@ Campaign:
 3. Retaino counts segments and shows the estimated SMS use in plain language.
 4. User chooses a booking URL and optional campaign code or reference that may
    appear in later booking exports.
-5. Admin chooses the sender country based on recipient market and selects an
+5. User chooses the sender country based on recipient market and selects an
    available SMS-capable number or accepts Retaino's recommendation.
 6. Retaino provisions the organization's dedicated sender if it does not exist.
 7. User reviews the final campaign, estimated credits, sender, and recipient

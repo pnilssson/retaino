@@ -50,9 +50,6 @@ export async function getOrganizationSessionState(
     legalBundle,
     legalAcceptance,
     readiness,
-    eligibility: getOrganizationEligibility({
-      readiness,
-      role: organization.role,
-    }),
+    eligibility: getOrganizationEligibility({ readiness }),
   };
 }

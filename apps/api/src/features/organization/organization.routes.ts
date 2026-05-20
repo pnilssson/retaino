@@ -146,10 +146,7 @@ export const organizationRoutes = new Hono<AppEnv>()
     return c.json(
       {
         legalAcceptance,
-        eligibility: getOrganizationEligibility({
-          readiness,
-          role: organization.role,
-        }),
+        eligibility: getOrganizationEligibility({ readiness }),
         readiness,
       },
       201,

@@ -131,7 +131,7 @@ unknown `{...}` tokens.
 
 Retaino provisions Twilio sender resources lazily. An organization may create
 campaigns and preview audiences without a sender. Before the first test
-send or live send, an admin must have an active paid subscription and current
+send or live send, the organization must have an active paid subscription and current
 legal acceptance, then Retaino creates or reuses:
 
 1. One organization-selected SMS-capable Twilio phone number.
@@ -147,11 +147,11 @@ environment bindings.
 Onboarding collects the organization identity and address fields Retaino can
 know upfront for sender compliance. Sender setup should not ask for those same
 company details again. If the selected sender country or number type requires
-additional regulatory data, the organization admin completes that in Retaino.
+additional regulatory data, a user completes that in Retaino.
 Retaino staff must not manually configure each customer. Countries or number
 types that cannot be self-served through Retaino are unavailable in MVP.
 
-The admin chooses the sender country based on the recipient market, then selects
+The user chooses the sender country based on the recipient market, then selects
 an available SMS-capable number or accepts a recommended number. Do not infer
 sender country only from the organization's legal address.
 
@@ -289,7 +289,7 @@ Phases 1 through 7 are implemented and consolidated into this canonical plan:
 | Campaign persistence | Create, list, read, update, and delete internally drafted campaigns. Only draft campaigns are editable or deletable. |
 | Audience preview | Count and sample eligible lapsed contacts with consent, normalized phone, and suppression filtering. Preview and send paths share eligibility rules. |
 | Web campaign builder | Campaign list, campaign filters, draft creation, campaign editing, audience preview, message writing, booking details, sender setup, review, test send, and final send. |
-| Sender setup and test sends | Organization sender provisioning, sender readiness checks, provider-neutral SMS adapter, deterministic fake provider, and admin test sends. |
+| Sender setup and test sends | Organization sender provisioning, sender readiness checks, provider-neutral SMS adapter, deterministic fake provider, and user-triggered test sends. |
 | Launch snapshot | Recipient snapshots are created by the final send action. There is no separate public launch endpoint in the MVP. |
 | Live send jobs | Final send freezes recipients, reserves credits, creates tracking links, and enqueues the Inngest background job. The job re-checks suppressions before provider send and reconciles unused credits. |
 | Events, tracking, and reporting | Provider status callbacks, inbound replies, STOP suppressions, public tracking redirects, click recording without persisted IP data, and campaign activity reports. |

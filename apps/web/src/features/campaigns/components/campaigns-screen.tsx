@@ -1,6 +1,5 @@
 "use client";
 
-import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import type { Campaign, OrganizationSession } from '@retaino/shared/contracts';
 import { AlertCircle, FileText, Plus, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
@@ -88,24 +87,18 @@ export function CampaignsScreen() {
     return <BlockedCampaigns session={session.data} />;
   }
 
-  const canManageCampaigns = canManageOrganizationSetup(
-    session.data.organization.role,
-  );
-
   return (
     <main className="flex flex-1 items-start bg-background">
       <section className="mx-auto grid w-full max-w-7xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={
             <>
-              {canManageCampaigns ? (
-                <Button asChild>
-                  <Link href={routes.campaignNew}>
-                    <Plus aria-hidden="true" data-icon="inline-start" />
-                    New campaign
-                  </Link>
-                </Button>
-              ) : null}
+              <Button asChild>
+                <Link href={routes.campaignNew}>
+                  <Plus aria-hidden="true" data-icon="inline-start" />
+                  New campaign
+                </Link>
+              </Button>
               <Button
                 onClick={() => {
                   void campaigns.refetch();
@@ -166,11 +159,7 @@ export function CampaignsScreen() {
                 />
               ) : (
                 <EmptyState
-                  description={
-                    canManageCampaigns
-                      ? 'Create a campaign to choose a lapsed audience and write the SMS copy.'
-                      : 'Campaigns will appear here after an organization admin creates one.'
-                  }
+                  description="Create a campaign to choose a lapsed audience and write the SMS copy."
                   title="No campaigns yet"
                 />
               )}
