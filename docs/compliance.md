@@ -91,13 +91,19 @@ lists as the safety control.
 
 ## Audit
 
-Tenant-scoped audit logs must record organization ID, actor user ID, event type,
-resource type, resource ID, timestamp, and relevant metadata.
+Tenant-scoped audit trails must record organization ID, event type, resource
+type, resource ID, timestamp, and relevant metadata. Actor user ID is required
+for user-driven actions and nullable for provider callbacks, public tracking
+redirects, and background jobs.
 
-Log enough to prove sensitive actions: legal acceptance, import metadata,
-mapping, validation, dedupe, suppression removal, campaign rules, SMS copy,
-launch decisions, provider results, opt-outs, clicks, booking uploads,
-reconciliation, and manual attribution changes.
+Use `audit_logs` for user-driven decisions and administrative actions: legal
+acceptance, import metadata, mapping, validation, dedupe, suppression removal,
+campaign rules, SMS copy, launch decisions, booking uploads, reconciliation,
+and manual attribution changes.
+
+Use event tables as the audit trail for operational campaign activity:
+provider results in `campaign_message_events`, opt-outs and replies through
+message events plus suppressions, and clicks in `click_events`.
 
 ## Retention
 

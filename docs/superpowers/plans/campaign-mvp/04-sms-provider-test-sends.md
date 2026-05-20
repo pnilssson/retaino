@@ -6,7 +6,8 @@ Add SMS preview, organization sender provisioning, and test-send support through
 a provider adapter. Twilio is the MVP provider, but campaign services should
 depend on Retaino adapter types, not Twilio SDK or webhook payload types.
 
-This phase sends only test messages. It does not send live campaigns.
+Phase 4 added only test messages. Live campaign sending is implemented in
+Phase 6 and uses the same provider adapter.
 
 Current implementation status:
 
@@ -15,7 +16,8 @@ Current implementation status:
 - test SMS sending exists at `/v1/campaigns/:id/sms/send`
 - campaign builder includes a sender setup step before review
 - review includes a test phone input and `Send test SMS`
-- live campaign launch remains out of scope for this phase
+- live campaign sends are handled by `POST /v1/campaigns/:id/send` and the
+  Inngest job from Phase 6
 
 ## Product Model
 
@@ -134,14 +136,15 @@ Define provider-neutral types in `apps/api/src/lib/sms-provider.ts`:
 - `SmsSenderCountry`: country code, label, supported number types, and whether
   Retaino can self-serve the country in MVP
 - `SmsSenderOption`: E.164 phone number, country code, number type,
-  capabilities, regulatory requirement summary, provider reference, and
-  user-facing label
+  capabilities, regulatory requirement summary, and user-facing label. Do not
+  expose provider resource identifiers in browser-facing sender options.
 - `SmsSenderCapability`: `outboundSms`, `inboundSms`, `statusCallbacks`,
   `twoWaySms`, and optional `smartEncoding`
 - `SmsSenderProvisioningInput`: organization ID, selected sender option,
   inbound callback URL, status callback URL, idempotency key, and actor user ID
 - `SmsSenderProvisioningResult`: normalized sender status, stored phone number,
-  provider references, capabilities, regulatory status, and failure reason
+  provider resource identifiers, capabilities, regulatory status, and failure
+  reason
 - `OutboundSmsInput`: Retaino message ID, organization sender, recipient E.164
   number, rendered body, estimated segments, callback URLs when needed, and a
   Retaino idempotency/reference value
@@ -152,7 +155,7 @@ Define provider-neutral types in `apps/api/src/lib/sms-provider.ts`:
   normalized status, provider status, timestamps, segment count, cost, currency,
   and provider error details when present
 - `InboundSmsMessage`: provider message ID, from phone, to phone, body,
-  received timestamp, provider sender references, and raw provider reference
+  received timestamp, provider sender reference, and raw provider reference
 - `SmsProviderError`: normalized error code, retryability, public-safe message,
   internal provider message, and provider error code
 
@@ -269,6 +272,9 @@ by live sends. Reserve enough credits from `organization_billing_profiles`
 before calling the provider, write matching SMS credit transaction audit rows,
 and release the reserved credits if provider sending fails. Test sends require
 a ready organization sender.
+Use the shared SMS credit ledger model for test sends: reserve with
+`transactionType: "debit"` and `source: "campaign_test_send"`, then release
+failed reservations with `transactionType: "adjustment"` and the same source.
 Test sends do not lock the campaign. The user can edit audience, message, or
 booking details after a test and send another test before launching.
 

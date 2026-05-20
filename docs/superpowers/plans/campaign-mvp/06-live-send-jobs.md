@@ -6,6 +6,10 @@ Create per-recipient tracking links and send launched campaigns through Inngest
 background jobs. HTTP routes enqueue the send only. The job performs provider
 sends and records message state.
 
+The user-facing action is `Send campaign`. For draft campaigns, the send route
+first performs the internal launch snapshot, then queues the Inngest send job.
+There is no separate public launch endpoint.
+
 ## Product Model
 
 Live sends are irreversible operational actions. Sending must be deliberate,
@@ -21,8 +25,8 @@ explicitly disabled in a later product decision.
 Live campaign senders must support the opt-out path shown in the SMS. Do not use
 one-way alphanumeric sender IDs while reply-based STOP handling is the only
 opt-out mechanism.
-Live sends must use the organization's ready Messaging Service created in phase
-5. Do not use a global sender for production campaign sends.
+Live sends must use the organization's ready Messaging Service created by the
+sender setup flow. Do not use a global sender for production campaign sends.
 
 ## Backend Shape
 
@@ -116,7 +120,7 @@ Job rules:
 
 1. Validate required identifiers.
 2. Load campaign by `organizationId` and campaign ID.
-3. Require an internally launched or sending campaign status.
+3. Require a campaign status that is ready to send or already sending.
 4. Re-check campaign send eligibility, including setup, current legal
    acceptance, and sending configuration.
 5. Require a ready organization sender and load its Messaging Service ID.
@@ -124,7 +128,8 @@ Job rules:
 7. Check the organization's Retaino SMS credit balance and require enough
    available credits for the estimated full campaign.
 8. Reserve estimated credits from `organization_billing_profiles` and write
-   matching SMS credit transaction audit rows.
+   matching SMS credit transaction audit rows with `transactionType: "debit"`,
+   `source: "campaign_send"`, and an idempotent campaign send `sourceId`.
 9. Prevent starting this send if another campaign for the same organization is
    already `sending`.
 10. Mark campaign `sending`.
@@ -145,15 +150,21 @@ Job rules:
 20. Write a send audit event.
 21. Mark the campaign `sent` after all selected recipients have been attempted.
 
-Idempotency rule:
+Idempotency rules:
 
 - if a recipient already has an outbound `sms_messages` row with a provider
   message ID, do not send that recipient again on job retry
+- if a recipient already has an outbound `sms_messages` row without a provider
+  message ID, treat the attempt as unresolved and fail the campaign instead of
+  sending again
 
 Billing rule:
 
-- reserve estimated credits once for the whole campaign before sending
-- reconcile actual usage after sending
+- reserve estimated credits once for the whole campaign before sending through
+  `transactionType: "debit"` and `source: "campaign_send"` ledger rows
+- reconcile actual usage after sending through `transactionType: "adjustment"`
+  and `source: "campaign_send"` release rows when reserved credits exceed
+  actual provider usage
 - do not check credits per recipient
 - do not start a second live send while one campaign for the organization is
   already `sending`
@@ -166,11 +177,10 @@ Add:
 
 - `POST /v1/campaigns/:id/send`
 
-The user-facing action is `Send campaign`. Depending on where launch snapshot
-is implemented, this route may either require an already launched campaign or
-perform the launch snapshot before enqueueing. In either case, the HTTP request
-must not perform long-running sends. It validates permission, locks the campaign
-against further edits, and returns `202` after the send work is queued.
+The user-facing action is `Send campaign`. For draft campaigns, this route
+performs the launch snapshot before enqueueing. The HTTP request must not
+perform long-running sends. It validates permission, locks the campaign against
+further edits, and returns `202` after the send work is queued.
 
 Mount the campaign Inngest function in `apps/api/src/server.ts` alongside the
 existing contact import function.

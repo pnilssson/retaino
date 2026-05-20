@@ -15,8 +15,8 @@ deferred until customers need advanced campaign operations.
 This is both backend and frontend work. The first two phases build stable
 backend APIs, phase 3 turns those APIs into a usable campaign builder, and the
 remaining phases add sender setup, test sending, launch, tracking, and
-reporting. Phases 1 through 7 have now been implemented and are awaiting deep
-branch review before PR or merge.
+reporting. Phases 1 through 7 are implemented. This document is the canonical
+state for the campaign MVP after the first deep branch review.
 
 ## Campaign UX Direction
 
@@ -38,7 +38,7 @@ The final action is `Send campaign`. There is no separate user-facing `Approve`
 step. Internally, Retaino must still freeze the campaign configuration,
 snapshot selected recipients, audit the actor, reserve credits, create tracking
 links, and enqueue the send job. Those are system responsibilities behind the
-launch action.
+send action.
 
 Research across SMS and email campaign tools points to the same pattern:
 campaigns are built through audience, content, preview, review, test, and final
@@ -55,7 +55,7 @@ safe live sending:
 3. Give users a simple campaign builder in the web app.
 4. Provision the organization sender and send test SMS through the provider
    adapter.
-5. Freeze recipients as part of campaign launch.
+5. Freeze recipients as part of the final send action.
 6. Create tracking links and send live campaigns in background jobs.
 7. Ingest provider callbacks, STOP replies, clicks, and reports.
 
@@ -113,7 +113,7 @@ Build only what helps a user create and send a clear reactivation campaign:
 - required opt-out text
 - dedicated organization sender provisioning
 - test send
-- launch snapshot
+- launch snapshot owned by the final send action
 - per-recipient tracking links
 - live send
 - delivery, click, reply, opt-out, and basic campaign metrics
@@ -213,13 +213,13 @@ Campaign sends use a campaign-level credit check:
 8. Reconcile reserved and actual SMS segment usage through SMS credit
    transaction rows after sends.
 
-Use explicit credit transaction types:
-
-- `campaign_send_reservation`
-- `campaign_send_release`
-- `campaign_send_adjustment`
-- `test_send_reservation`
-- `test_send_release`
+Use the shared SMS credit ledger model instead of campaign-specific
+transaction types. `transactionType` describes the financial action and remains
+one of the shared billing values, such as `debit` or `adjustment`. Campaign
+intent is recorded through `source`, using `campaign_send` for live sends and
+`campaign_test_send` for test sends. `sourceId` must identify the operation
+idempotently, for example `campaign-send:<campaignId>` for the reservation and
+`campaign-send:<campaignId>:release` for release rows.
 
 Do not check credits before every individual SMS. That creates partial
 campaign-send behavior that is worse for users. To avoid two campaign jobs
@@ -247,9 +247,17 @@ send retries can happen after the event-level idempotency window.
 - Campaign booking URLs must be validated as `http` or `https` URLs. Do not
   allow arbitrary schemes in campaign links.
 - Public tracking links use `https://go.retaino.com/r/:code`.
+- Public tracking redirects use Cloudflare Worker rate-limiting bindings before
+  database lookup. The MVP uses one route-level limiter and one tracking-code
+  limiter.
+- Click events store the tracking link, campaign, recipient, timestamp, and
+  user agent. Do not add persisted IP addresses or IP-derived metadata to MVP
+  click tracking.
 - Twilio inbound and status webhooks use
   `https://api.retaino.com/v1/webhooks/twilio/messaging/inbound` and
   `https://api.retaino.com/v1/webhooks/twilio/messaging/status`.
+- Twilio `OptOutType=STOP` creates a suppression. Twilio `START` and `HELP`
+  events are stored as replies and must not suppress the phone number.
 - Campaign codes are optional attribution hints, not unique identifiers and not
   only discount codes. They may contain a campaign reference, offer code, source
   tag, or booking-export value. Store a normalized value, but do not rely on
@@ -280,17 +288,16 @@ MVP does not mean loose. Each phase should be small, testable, and complete:
 | 6. Tracking Links And Live Send Jobs | Implemented. Create recipient links, send campaigns, and show send state. | `docs/superpowers/plans/campaign-mvp/06-live-send-jobs.md` |
 | 7. Events, Tracking, Reporting | Implemented. Handle callbacks, STOP replies, clicks, and show campaign metrics. | `docs/superpowers/plans/campaign-mvp/07-events-tracking-reporting.md` |
 
-## Suggested Execution
+## Review Status
 
-Phases 1 through 7 have been implemented. Before merge, follow
-`docs/superpowers/plans/2026-05-20-campaign-mvp-branch-review.md` to review the
-entire campaign MVP branch, including Phase 1, which was committed before this
-branch split from main.
+Phases 1 through 7 have been implemented and completed one deep branch review.
+The review log is
+`docs/superpowers/plans/2026-05-20-campaign-mvp-branch-review.md`.
+The condensed finding audit trail is
+`docs/superpowers/plans/2026-05-20-campaign-mvp-requirements-matrix.md`.
 
-The first user-visible milestone is phase 3: a campaign builder that persists a
-new campaign and previews the audience. Until sender setup and test sends are
-implemented, the end of the flow may only save the campaign, but the UI copy
-should not present "creating a draft" as the final product goal.
+Manual UI review remains owner-led. Agent-created browser walkthroughs and
+screenshots are intentionally out of scope for the review log.
 
 ## Deferred Decisions
 

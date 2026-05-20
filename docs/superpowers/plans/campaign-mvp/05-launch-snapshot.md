@@ -6,7 +6,8 @@ Add the internal launch snapshot that freezes campaign configuration and
 selected recipients behind the final send action. Reports must be able to
 explain exactly who was selected and why.
 
-This phase does not send live SMS.
+There is no public launch endpoint in the current MVP. The Phase 6 send route
+owns this snapshot for draft campaigns before it enqueues the background send.
 
 ## Product Model
 
@@ -18,7 +19,8 @@ When a campaign is launched:
 - campaign fields cannot be changed
 - selected recipients are stored as snapshots
 - the launch decision is audit logged
-- the campaign can later be sent by a background job
+- the campaign can be sent by the background job queued from the same final
+  send request
 
 The internal pre-send campaign status is `ready_to_send`.
 
@@ -92,11 +94,13 @@ Launch snapshot service responsibilities:
 
 Add:
 
-- `POST /v1/campaigns/:id/launch`
 - `GET /v1/campaigns/:id/recipients`
+- `GET /v1/campaigns/:id/recipients/summary`
 
-Launch requires admin campaign eligibility. Recipient listing can be read by
-members with organization access.
+The send route performs the launch snapshot for draft campaigns. Recipient
+listing can be read by members with organization access. The summary endpoint
+supports review screens that need a count without downloading full recipient
+snapshots.
 
 ### Web
 
@@ -106,11 +110,8 @@ Extend the campaign builder with launch readiness state:
 - show current audience count and estimated SMS segments
 - require an explicit `Send campaign` action from an admin
 - after launch snapshot, disable editing and show recipient snapshot status
-
-Do not add live send controls in this phase.
-The next phase wires the same user action to live send execution. If this phase
-is implemented separately, prefer keeping launch snapshot internal until live
-sending is ready.
+- final send remains the user-facing action. The snapshot is internal behind
+  that action.
 
 ## Tests
 
@@ -149,5 +150,5 @@ pnpm --filter @retaino/api typecheck
 - Launch snapshot and preview using different eligibility logic.
 - Missing audit records for sensitive send preparation.
 - Letting users edit SMS copy after recipients are launched.
-- Adding a separate pre-send decision step instead of making launch the final
-  action.
+- Adding a separate pre-send decision step or public launch endpoint instead of
+  keeping the snapshot internal to final send.

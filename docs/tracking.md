@@ -32,6 +32,9 @@ All tenant-owned entities follow `docs/architecture.md`.
 Store provider callback data only through normalized Retaino message events.
 Reports use Retaino states such as queued, sent, delivered, failed, reply, and
 opt-out instead of reading Twilio payload fields directly.
+Outbound provider delivery status is stored on `SmsMessage`. Campaign recipient
+status tracks the send-attempt workflow and is not a duplicate delivery-status
+ledger.
 
 Keep provider message IDs for support and dedupe. Inbound replies must be
 evaluated for STOP-style opt-outs before future sends.
@@ -59,13 +62,15 @@ recipient IDs.
 
 1. Recipient opens `/r/:code`.
 2. API looks up the link by short code.
-3. API records a click event with timestamp, user agent, IP-derived coarse
-   metadata if allowed, and organization ID.
+3. API records a click event with timestamp, user agent, and organization ID.
 4. API redirects to the stored booking URL.
-5. UTM settings are appended when the campaign has them.
 
 Redirects must stay fast. Enrichment and aggregation run outside the HTTP
 request.
+
+MVP click tracking does not persist IP addresses or IP-derived metadata.
+Redirect abuse protection uses Cloudflare Worker rate-limiting bindings keyed
+by the redirect route and tracking code.
 
 ## Booking CSV Reconciliation
 

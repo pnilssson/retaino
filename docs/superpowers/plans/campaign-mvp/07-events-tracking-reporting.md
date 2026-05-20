@@ -76,7 +76,6 @@ separate campaign-only message table as a second source of truth.
 - `recipientId`
 - `trackingLinkId`
 - `userAgent`
-- `ipAddress` or coarse IP-derived metadata when allowed by policy
 - `occurredAt`
 - `createdAt`
 
@@ -109,8 +108,10 @@ Redirect flow:
 5. Redirect to the target booking URL.
 
 The redirect route must not require Clerk auth.
-Add rate limiting for redirect requests before launch. Do not record more IP
-data than the product and legal docs allow.
+Add Cloudflare Worker rate limiting for redirect requests before launch. Use a
+route-level limiter before the tracking-code lookup plus a tracking-code limiter
+for repeated requests to a known code. Click events store user agent plus the
+tenant, campaign, recipient, and tracking link IDs needed for reporting.
 
 ### Provider Callbacks
 
@@ -126,16 +127,20 @@ Rules:
   hand-rolled fixed-parameter check
 - normalize provider statuses into Retaino event types
 - write `campaign_message_events`
-- update message and recipient status where appropriate
+- update `sms_messages` delivery status from provider callbacks
 - store every inbound message in `sms_messages`
-- detect STOP-style inbound replies
+- detect STOP-style inbound replies, including Twilio's standard opt-out
+  keywords such as STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT, REVOKE, and
+  OPTOUT
 - write phone suppressions for STOP replies
 - associate inbound messages to the organization sender by provider service,
-  provider phone number, or destination phone number
+  provider phone number reference when available, or destination phone number
 - associate inbound messages to the most recent relevant campaign recipient
   when possible, but keep the message even when campaign matching is uncertain
-- support `OptOutType` when present, but still detect STOP-style body text
-  because the parameter depends on Messaging Service opt-out configuration
+- support `OptOutType` when present, but only treat `STOP` as an opt-out.
+  `START` and `HELP` should be stored as replies without creating suppressions.
+  Still detect STOP-style body text because the parameter depends on Messaging
+  Service opt-out configuration.
 
 STOP suppression fields:
 
@@ -165,6 +170,11 @@ Initial metrics:
 - segment estimate drift
 - estimated cost
 - actual cost when available
+
+Delivery metrics use `sms_messages` as the source of truth for provider status.
+`campaign_recipients.status` represents the send-attempt workflow, such as
+selected, sent, failed, or skipped, and should not duplicate every later
+provider callback state.
 
 ### Web
 
@@ -201,6 +211,7 @@ Minimum coverage:
 - signed webhook fixture tests cover evolving form parameters, not a hard-coded
   current parameter list
 - STOP replies create suppressions
+- START and HELP provider opt-out events do not create suppressions
 - non-STOP inbound replies are stored and tenant-scoped
 - inbound replies are preserved even when campaign matching is uncertain
 - reporting metrics are tenant-scoped
@@ -229,7 +240,7 @@ pnpm --filter @retaino/web typecheck
 - Accepting forged provider callbacks.
 - Resolving tracking redirects from the URL instead of stored records.
 - Recording clicks without tenant ownership.
-- Over-collecting raw IP data for click events.
+- Expanding click-event data beyond the current reporting need.
 - Missing STOP variants that customers expect to suppress future sends.
 - Dropping non-STOP replies and making the future inbox require backfilling from
   provider logs.
