@@ -153,96 +153,6 @@ export const campaignSchema = z.object({
   updatedAt: timestampSchema,
 });
 
-export const campaignRecipientSchema = z.object({
-  id: idSchema,
-  organizationId: idSchema,
-  campaignId: idSchema,
-  contactId: idSchema.nullable(),
-  status: campaignRecipientStatusSchema,
-  exclusionReason: nonEmptyStringSchema.nullable(),
-  name: nonEmptyStringSchema.nullable(),
-  phone: nonEmptyStringSchema.nullable(),
-  email: nonEmptyStringSchema.nullable(),
-  lastBookingAt: timestampSchema.nullable(),
-  lastContactedAt: timestampSchema.nullable(),
-  selectedAt: timestampSchema.nullable(),
-  queuedAt: timestampSchema.nullable(),
-  sentAt: timestampSchema.nullable(),
-  failedAt: timestampSchema.nullable(),
-  createdAt: timestampSchema,
-  updatedAt: timestampSchema,
-});
-
-export const trackingLinkSchema = z.object({
-  id: idSchema,
-  organizationId: idSchema,
-  campaignId: idSchema,
-  recipientId: idSchema,
-  code: nonEmptyStringSchema,
-  targetUrl: bookingUrlSchema,
-  phoneHash: nonEmptyStringSchema.nullable(),
-  emailHash: nonEmptyStringSchema.nullable(),
-  firstClickedAt: timestampSchema.nullable(),
-  lastClickedAt: timestampSchema.nullable(),
-  clickCount: z.number().int().nonnegative(),
-  createdAt: timestampSchema,
-  updatedAt: timestampSchema,
-});
-
-export const smsMessageSchema = z.object({
-  id: idSchema,
-  organizationId: idSchema,
-  direction: smsMessageDirectionSchema,
-  campaignId: idSchema.nullable(),
-  recipientId: idSchema.nullable(),
-  contactId: idSchema.nullable(),
-  provider: smsSenderProviderSchema,
-  providerMessageId: nonEmptyStringSchema.nullable(),
-  providerMessagingServiceId: nonEmptyStringSchema.nullable(),
-  providerPhoneNumberId: nonEmptyStringSchema.nullable(),
-  fromPhone: nonEmptyStringSchema.nullable(),
-  toPhone: nonEmptyStringSchema,
-  body: nonEmptyStringSchema,
-  status: nonEmptyStringSchema,
-  estimatedSegmentCount: z.number().int().nonnegative(),
-  actualSegmentCount: z.number().int().nonnegative().nullable(),
-  estimatedCostMinor: z.number().int().nonnegative().nullable(),
-  actualCostMinor: z.number().int().nonnegative().nullable(),
-  currency: nonEmptyStringSchema.nullable(),
-  queuedAt: timestampSchema.nullable(),
-  sentAt: timestampSchema.nullable(),
-  receivedAt: timestampSchema.nullable(),
-  deliveredAt: timestampSchema.nullable(),
-  failedAt: timestampSchema.nullable(),
-  createdAt: timestampSchema,
-  updatedAt: timestampSchema,
-});
-
-export const campaignMessageEventSchema = z.object({
-  id: idSchema,
-  organizationId: idSchema,
-  campaignId: idSchema.nullable(),
-  messageId: idSchema.nullable(),
-  recipientId: idSchema.nullable(),
-  provider: smsSenderProviderSchema,
-  providerMessageId: nonEmptyStringSchema,
-  eventType: nonEmptyStringSchema,
-  rawStatus: nonEmptyStringSchema.nullable(),
-  occurredAt: timestampSchema,
-  createdAt: timestampSchema,
-});
-
-export const clickEventSchema = z.object({
-  id: idSchema,
-  organizationId: idSchema,
-  campaignId: idSchema,
-  recipientId: idSchema,
-  trackingLinkId: idSchema,
-  userAgent: nonEmptyStringSchema.nullable(),
-  occurredAt: timestampSchema,
-  createdAt: timestampSchema,
-});
-
 export const campaignReportSchema = z.object({
   selectedCount: z.number().int().nonnegative(),
   queuedCount: z.number().int().nonnegative(),
@@ -412,10 +322,6 @@ export const campaignSmsTestSendResponseSchema = z.object({
   }),
 });
 
-export const campaignRecipientListResponseSchema = z.object({
-  recipients: z.array(campaignRecipientSchema),
-});
-
 export const campaignRecipientSummaryResponseSchema = z.object({
   recipientCount: z.number().int().nonnegative(),
 });
@@ -428,11 +334,6 @@ export const campaignSendResponseSchema = z.object({
 
 export type CampaignAudienceRule = z.infer<typeof campaignAudienceRuleSchema>;
 export type Campaign = z.infer<typeof campaignSchema>;
-export type CampaignRecipient = z.infer<typeof campaignRecipientSchema>;
-export type SmsMessage = z.infer<typeof smsMessageSchema>;
-export type TrackingLink = z.infer<typeof trackingLinkSchema>;
-export type CampaignMessageEvent = z.infer<typeof campaignMessageEventSchema>;
-export type ClickEvent = z.infer<typeof clickEventSchema>;
 export type CampaignReport = z.infer<typeof campaignReportSchema>;
 export type CampaignReportResponse = z.infer<
   typeof campaignReportResponseSchema
@@ -487,9 +388,6 @@ export type CampaignSmsTestSendRequest = z.infer<
 >;
 export type CampaignSmsTestSendResponse = z.infer<
   typeof campaignSmsTestSendResponseSchema
->;
-export type CampaignRecipientListResponse = z.infer<
-  typeof campaignRecipientListResponseSchema
 >;
 export type CampaignRecipientSummaryResponse = z.infer<
   typeof campaignRecipientSummaryResponseSchema

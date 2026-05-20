@@ -78,7 +78,6 @@ describe('campaigns schema', () => {
     expect(auditLogs.resourceType.name).toBe('resource_type');
     expect(auditLogs.resourceId.name).toBe('resource_id');
     expect(auditLogs.metadata.name).toBe('metadata');
-    expect(auditLogs.ipAddress.name).toBe('ip_address');
     expect(auditLogs.userAgent.name).toBe('user_agent');
   });
 });

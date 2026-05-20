@@ -14,7 +14,6 @@ import {
   getSmsCreditBalance,
   getSmsCreditBalanceBreakdown,
   launchCampaign,
-  listCampaignRecipients,
   listCampaigns,
   previewCampaignAudience,
   reserveSmsCreditsIfSufficient,
@@ -44,7 +43,6 @@ vi.mock('@retaino/db', () => ({
   getSmsCreditBalance: vi.fn(),
   getSmsCreditBalanceBreakdown: vi.fn(),
   launchCampaign: vi.fn(),
-  listCampaignRecipients: vi.fn(),
   listCampaigns: vi.fn(),
   previewCampaignAudience: vi.fn(),
   reserveSmsCreditsIfSufficient: vi.fn(),
@@ -161,26 +159,6 @@ const campaign: Campaign = {
   updatedAt: '2026-05-16T00:00:00.000Z',
 };
 
-const recipient = {
-  id: '77777777-7777-4777-8777-777777777777',
-  organizationId: organization.id,
-  campaignId: campaign.id,
-  contactId: '88888888-8888-4888-8888-888888888888',
-  status: 'selected',
-  exclusionReason: null,
-  name: 'Ada Lovelace',
-  phone: '+46700000000',
-  email: 'ada@example.com',
-  lastBookingAt: '2026-01-01T00:00:00.000Z',
-  lastContactedAt: null,
-  selectedAt: '2026-05-16T10:00:00.000Z',
-  queuedAt: null,
-  sentAt: null,
-  failedAt: null,
-  createdAt: '2026-05-16T10:00:00.000Z',
-  updatedAt: '2026-05-16T10:00:00.000Z',
-} as const;
-
 function testApp(input: { role?: string } = {}) {
   const app = new Hono<AppEnv>();
 
@@ -215,7 +193,6 @@ describe('campaignsRoutes', () => {
     vi.mocked(getSmsCreditBalanceBreakdown).mockReset();
     vi.mocked(launchCampaign).mockReset();
     vi.mocked(enqueueCampaignSendProcessing).mockReset();
-    vi.mocked(listCampaignRecipients).mockReset();
     vi.mocked(listCampaigns).mockReset();
     vi.mocked(previewCampaignAudience).mockReset();
     vi.mocked(updateCampaignDraft).mockReset();
@@ -531,25 +508,6 @@ describe('campaignsRoutes', () => {
     expect(enqueueCampaignSendProcessing).not.toHaveBeenCalled();
   });
 
-  it('lets members list campaign recipient snapshots', async () => {
-    vi.mocked(listCampaignRecipients).mockResolvedValue({
-      recipients: [recipient],
-    });
-
-    const response = await testApp({ role: 'org:member' }).request(
-      `/v1/campaigns/${campaign.id}/recipients`,
-    );
-
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
-      recipients: [recipient],
-    });
-    expect(listCampaignRecipients).toHaveBeenCalledWith(expect.anything(), {
-      organizationId: organization.id,
-      campaignId: campaign.id,
-    });
-  });
-
   it('lets members read campaign recipient counts without snapshots', async () => {
     vi.mocked(countCampaignRecipients).mockResolvedValue({
       recipientCount: 12,
@@ -567,7 +525,6 @@ describe('campaignsRoutes', () => {
       organizationId: organization.id,
       campaignId: campaign.id,
     });
-    expect(listCampaignRecipients).not.toHaveBeenCalled();
   });
 
   it('lets members read tenant-scoped campaign reports', async () => {

@@ -250,30 +250,30 @@ Purpose: validate the current implementation against primary provider and
 platform docs, then remove implementation that is speculative, stale, duplicated,
 or not valuable for the campaign MVP.
 
-- [ ] Refresh the official references listed above and note any changed
+- [x] Refresh the official references listed above and note any changed
   requirements that affect campaign sending, Twilio callbacks, STOP handling,
   Cloudflare redirect rate limiting, Inngest retries, Stripe-backed credit
   idempotency, or Drizzle migrations.
-- [ ] Compare Twilio webhook validation code with the current webhook security
+- [x] Compare Twilio webhook validation code with the current webhook security
   docs, including form parameter sorting, exact callback URL handling, and JSON
   `bodySHA256` behavior.
-- [ ] Compare Twilio inbound reply handling with current STOP, START, HELP,
+- [x] Compare Twilio inbound reply handling with current STOP, START, HELP,
   REVOKE, and OPTOUT behavior. Confirm Retaino suppresses only true STOP-style
   opt-outs and preserves non-STOP replies.
-- [ ] Compare tracking redirect protection with Cloudflare Worker rate-limit
+- [x] Compare tracking redirect protection with Cloudflare Worker rate-limit
   binding behavior, including the per-location nature of rate limits.
-- [ ] Compare campaign send retry behavior with Inngest retry and idempotency
+- [x] Compare campaign send retry behavior with Inngest retry and idempotency
   guidance. Treat database state as the durable source of truth, not event
   dedupe alone.
-- [ ] Compare credit reservation and release behavior with Stripe duplicate
+- [x] Compare credit reservation and release behavior with Stripe duplicate
   event guidance and Retaino's local SMS credit ledger model.
-- [ ] Confirm Drizzle schema and generated migrations still match. Do not edit
+- [x] Confirm Drizzle schema and generated migrations still match. Do not edit
   generated migration SQL or metadata by hand.
-- [ ] Run a deletion review over new modules, helpers, routes, types, and UI
+- [x] Run a deletion review over new modules, helpers, routes, types, and UI
   pieces. Remove code when it is only speculative future scaffolding, a
   pass-through wrapper, duplicated logic, or a preserved remnant of a removed
   concept.
-- [ ] For every finding, either fix it immediately or record it in
+- [x] For every finding, either fix it immediately or record it in
   `docs/superpowers/plans/campaign-audit.md` with a concrete file reference and
   proposed fix.
 
@@ -297,22 +297,22 @@ Purpose: keep tests focused on current product behavior and production risks.
 Negative tests are useful when they protect current behavior. Tests for concepts
 that Retaino removed are noise and should be deleted with the removed concept.
 
-- [ ] Inventory campaign-related tests by package:
+- [x] Inventory campaign-related tests by package:
   `packages/shared/test`, `packages/db/test`, and `apps/api/test`.
-- [ ] For each test, classify it as one of:
+- [x] For each test, classify it as one of:
   `current behavior`, `production guardrail`, `regression for fixed finding`,
   `implementation-shape only`, `stale removed concept`, or `duplicate coverage`.
-- [ ] Keep negative tests that protect active contracts, tenant scoping, auth,
+- [x] Keep negative tests that protect active contracts, tenant scoping, auth,
   send safety, idempotency, privacy, suppression behavior, provider validation,
   billing ledger behavior, or URL validation.
-- [ ] Delete tests for removed concepts such as a public launch endpoint,
+- [x] Delete tests for removed concepts such as a public launch endpoint,
   persisted click IP data, exposed provider references, recipient hashes in API
   responses, or any other behavior that no longer exists in the product.
-- [ ] Delete or rewrite tests that only assert private implementation shape when
+- [x] Delete or rewrite tests that only assert private implementation shape when
   the same risk is better tested through a public package interface.
-- [ ] Remove duplicate tests when one clear package-level test already protects
+- [x] Remove duplicate tests when one clear package-level test already protects
   the behavior and additional copies only make future refactors harder.
-- [ ] After each cleanup batch, run the smallest relevant package command, then
+- [x] After each cleanup batch, run the smallest relevant package command, then
   run full verification before committing.
 
 Test files to inspect first:

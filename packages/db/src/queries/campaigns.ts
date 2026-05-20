@@ -18,17 +18,12 @@ import type {
   Campaign,
   CampaignAudienceRule,
   CampaignAudiencePreviewResponse,
-  CampaignMessageEvent,
   CampaignReport,
-  CampaignRecipient,
   CampaignRecipientStatus,
   CampaignStatus,
-  ClickEvent,
   CreateCampaignDraftInput,
-  SmsMessage,
   SmsMessageDirection,
   SmsSenderProvider,
-  TrackingLink,
   UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
 import type { DbClient } from '../client';
@@ -116,7 +111,7 @@ export function campaignToContract(row: CampaignRow): Campaign {
   };
 }
 
-export function recipientToContract(row: CampaignRecipientRow): CampaignRecipient {
+export function recipientToContract(row: CampaignRecipientRow) {
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -138,7 +133,7 @@ export function recipientToContract(row: CampaignRecipientRow): CampaignRecipien
   };
 }
 
-export function trackingLinkToContract(row: TrackingLinkRow): TrackingLink {
+export function trackingLinkToContract(row: TrackingLinkRow) {
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -156,7 +151,7 @@ export function trackingLinkToContract(row: TrackingLinkRow): TrackingLink {
   };
 }
 
-export function smsMessageToContract(row: SmsMessageRow): SmsMessage {
+export function smsMessageToContract(row: SmsMessageRow) {
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -189,7 +184,7 @@ export function smsMessageToContract(row: SmsMessageRow): SmsMessage {
 
 export function campaignMessageEventToContract(
   row: CampaignMessageEventRow,
-): CampaignMessageEvent {
+) {
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -205,7 +200,7 @@ export function campaignMessageEventToContract(
   };
 }
 
-export function clickEventToContract(row: ClickEventRow): ClickEvent {
+export function clickEventToContract(row: ClickEventRow) {
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -217,6 +212,14 @@ export function clickEventToContract(row: ClickEventRow): ClickEvent {
     createdAt: row.createdAt.toISOString(),
   };
 }
+
+export type CampaignRecipient = ReturnType<typeof recipientToContract>;
+export type SmsMessage = ReturnType<typeof smsMessageToContract>;
+export type TrackingLink = ReturnType<typeof trackingLinkToContract>;
+export type CampaignMessageEvent = ReturnType<
+  typeof campaignMessageEventToContract
+>;
+export type ClickEvent = ReturnType<typeof clickEventToContract>;
 
 export function assertCampaignDraftStatus(row: Pick<CampaignRow, 'status'>) {
   if (row.status !== 'draft') {
@@ -435,26 +438,6 @@ export async function deleteCampaignDraft(
     .returning({ id: campaigns.id });
 
   return Boolean(deleted);
-}
-
-export async function listCampaignRecipients(
-  db: DbClient,
-  input: { organizationId: string; campaignId: string },
-): Promise<{ recipients: CampaignRecipient[] }> {
-  assertOrganizationId(input.organizationId);
-
-  const rows = await db
-    .select()
-    .from(campaignRecipients)
-    .where(
-      and(
-        eq(campaignRecipients.organizationId, input.organizationId),
-        eq(campaignRecipients.campaignId, input.campaignId),
-      ),
-    )
-    .orderBy(asc(campaignRecipients.createdAt));
-
-  return { recipients: rows.map(recipientToContract) };
 }
 
 export async function countCampaignRecipients(
@@ -1161,7 +1144,6 @@ export async function launchCampaign(
     organizationId: string;
     campaignId: string;
     actorUserId: string;
-    ipAddress?: string | null;
     userAgent?: string | null;
     now?: Date;
   },
@@ -1291,7 +1273,6 @@ export async function launchCampaign(
             campaignCode: campaign.campaignCode,
             recipientCount,
           },
-          ipAddress: input.ipAddress ?? null,
           userAgent: input.userAgent ?? null,
         }),
       )
@@ -1314,7 +1295,6 @@ export async function createAuditLog(
     resourceType: string;
     resourceId: string;
     metadata: Record<string, unknown>;
-    ipAddress?: string | null;
     userAgent?: string | null;
   },
 ) {
@@ -1333,7 +1313,6 @@ function auditLogValues(input: {
   resourceType: string;
   resourceId: string;
   metadata: Record<string, unknown>;
-  ipAddress?: string | null;
   userAgent?: string | null;
 }) {
   return {
@@ -1343,7 +1322,6 @@ function auditLogValues(input: {
     resourceType: input.resourceType,
     resourceId: input.resourceId,
     metadata: input.metadata,
-    ipAddress: input.ipAddress ?? null,
     userAgent: input.userAgent ?? null,
   };
 }

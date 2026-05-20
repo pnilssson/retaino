@@ -3,24 +3,18 @@ import {
   campaignAudiencePreviewRequestSchema,
   campaignAudiencePreviewResponseSchema,
   campaignAudienceRuleSchema,
-  campaignMessageEventSchema,
   campaignReportResponseSchema,
-  campaignRecipientListResponseSchema,
   campaignRecipientSummaryResponseSchema,
-  campaignRecipientSchema,
   campaignSendResponseSchema,
   campaignSmsPreviewResponseSchema,
   campaignSmsTestSendRequestSchema,
   campaignSmsTestSendResponseSchema,
   campaignSchema,
-  clickEventSchema,
   createCampaignDraftSchema,
   organizationSmsSenderResponseSchema,
   provisionOrganizationSmsSenderSchema,
-  smsMessageSchema,
   smsSenderCountriesResponseSchema,
   smsSenderNumbersRequestSchema,
-  trackingLinkSchema,
   updateCampaignDraftSchema,
 } from '../../src/contracts';
 
@@ -322,27 +316,7 @@ describe('campaign contracts', () => {
     ).toBe(true);
   });
 
-  it('accepts launch and recipient snapshot contracts', () => {
-    const recipient = {
-      id: '44444444-4444-4444-8444-444444444444',
-      organizationId: '22222222-2222-4222-8222-222222222222',
-      campaignId: '55555555-5555-4555-8555-555555555555',
-      contactId: null,
-      status: 'selected',
-      exclusionReason: null,
-      name: 'Ada Lovelace',
-      phone: '+46700000000',
-      email: 'ada@example.com',
-      lastBookingAt: '2026-01-01T00:00:00.000Z',
-      lastContactedAt: null,
-      selectedAt: '2026-05-16T10:00:00.000Z',
-      queuedAt: null,
-      sentAt: null,
-      failedAt: null,
-      createdAt: '2026-05-16T10:00:00.000Z',
-      updatedAt: '2026-05-16T10:00:00.000Z',
-    };
-
+  it('accepts campaign send response contracts', () => {
     const campaign = {
       id: '55555555-5555-4555-8555-555555555555',
       organizationId: '22222222-2222-4222-8222-222222222222',
@@ -369,12 +343,6 @@ describe('campaign contracts', () => {
       updatedAt: '2026-05-16T10:00:00.000Z',
     };
 
-    expect(campaignRecipientSchema.safeParse(recipient).success).toBe(true);
-    expect(
-      campaignRecipientListResponseSchema.safeParse({
-        recipients: [recipient],
-      }).success,
-    ).toBe(true);
     expect(
       campaignRecipientSummaryResponseSchema.safeParse({
         recipientCount: 1,
@@ -420,86 +388,6 @@ describe('campaign contracts', () => {
           chargedCredits: 1,
           status: 'queued',
         },
-      }).success,
-    ).toBe(true);
-  });
-
-  it('accepts tracking link and SMS message contracts', () => {
-    expect(
-      trackingLinkSchema.safeParse({
-        id: '11111111-1111-4111-8111-111111111111',
-        organizationId: '22222222-2222-4222-8222-222222222222',
-        campaignId: '33333333-3333-4333-8333-333333333333',
-        recipientId: '44444444-4444-4444-8444-444444444444',
-        code: 'abc123',
-        targetUrl: 'https://booking.example.com/studio',
-        phoneHash: 'p'.repeat(64),
-        emailHash: null,
-        firstClickedAt: null,
-        lastClickedAt: null,
-        clickCount: 0,
-        createdAt: '2026-05-16T10:00:00.000Z',
-        updatedAt: '2026-05-16T10:00:00.000Z',
-      }).success,
-    ).toBe(true);
-
-    expect(
-      smsMessageSchema.safeParse({
-        id: '55555555-5555-4555-8555-555555555555',
-        organizationId: '22222222-2222-4222-8222-222222222222',
-        direction: 'outbound',
-        campaignId: '33333333-3333-4333-8333-333333333333',
-        recipientId: '44444444-4444-4444-8444-444444444444',
-        contactId: '66666666-6666-4666-8666-666666666666',
-        provider: 'fake',
-        providerMessageId: 'fake-message-1',
-        providerMessagingServiceId: 'fake-ms-1',
-        providerPhoneNumberId: 'fake-pn-1',
-        fromPhone: '+46700000000',
-        toPhone: '+46701111111',
-        body: 'Hi Anna',
-        status: 'queued',
-        estimatedSegmentCount: 1,
-        actualSegmentCount: 1,
-        estimatedCostMinor: null,
-        actualCostMinor: null,
-        currency: 'SEK',
-        queuedAt: '2026-05-16T10:00:00.000Z',
-        sentAt: null,
-        receivedAt: null,
-        deliveredAt: null,
-        failedAt: null,
-        createdAt: '2026-05-16T10:00:00.000Z',
-        updatedAt: '2026-05-16T10:00:00.000Z',
-      }).success,
-    ).toBe(true);
-
-    expect(
-      campaignMessageEventSchema.safeParse({
-        id: '77777777-7777-4777-8777-777777777777',
-        organizationId: '22222222-2222-4222-8222-222222222222',
-        campaignId: '33333333-3333-4333-8333-333333333333',
-        messageId: '55555555-5555-4555-8555-555555555555',
-        recipientId: '44444444-4444-4444-8444-444444444444',
-        provider: 'fake',
-        providerMessageId: 'fake-message-1',
-        eventType: 'delivered',
-        rawStatus: 'delivered',
-        occurredAt: '2026-05-16T10:01:00.000Z',
-        createdAt: '2026-05-16T10:01:00.000Z',
-      }).success,
-    ).toBe(true);
-
-    expect(
-      clickEventSchema.safeParse({
-        id: '88888888-8888-4888-8888-888888888888',
-        organizationId: '22222222-2222-4222-8222-222222222222',
-        campaignId: '33333333-3333-4333-8333-333333333333',
-        recipientId: '44444444-4444-4444-8444-444444444444',
-        trackingLinkId: '11111111-1111-4111-8111-111111111111',
-        userAgent: 'Mozilla/5.0',
-        occurredAt: '2026-05-16T10:02:00.000Z',
-        createdAt: '2026-05-16T10:02:00.000Z',
       }).success,
     ).toBe(true);
   });

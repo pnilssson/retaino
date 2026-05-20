@@ -16,7 +16,6 @@ import {
   getTrackingLinkByCode,
   listSelectedCampaignRecipientsForSend,
   launchCampaign,
-  listCampaignRecipients,
   markCampaignRecipientSkipped,
   markCampaignRecipientSent,
   markCampaignSendCompleted,
@@ -424,7 +423,6 @@ describe('campaign query helpers', () => {
       organizationId: campaignRow.organizationId,
       campaignId: campaignRow.id,
       actorUserId: campaignRow.createdByUserId,
-      ipAddress: '203.0.113.1',
       userAgent: 'vitest',
       now,
     });
@@ -472,7 +470,6 @@ describe('campaign query helpers', () => {
         eventType: 'campaign.ready_to_send',
         resourceType: 'campaign',
         resourceId: campaignRow.id,
-        ipAddress: '203.0.113.1',
         userAgent: 'vitest',
         metadata: expect.objectContaining({
           audienceRule: campaignRow.audienceRule,
@@ -681,42 +678,6 @@ describe('campaign query helpers', () => {
 
     expect(insertedRecipients).toEqual([]);
     expect(auditValues).toEqual([]);
-  });
-
-  it('lists campaign recipients with organization and campaign filters', async () => {
-    let whereCondition: SQL | undefined;
-    const db = {
-      select: () => ({
-        from: () => ({
-          where: (condition: SQL | undefined) => {
-            whereCondition = condition;
-
-            return {
-              orderBy: () => [recipientRow],
-            };
-          },
-        }),
-      }),
-    };
-
-    await expect(
-      listCampaignRecipients(db as never, {
-        organizationId: campaignRow.organizationId,
-        campaignId: campaignRow.id,
-      }),
-    ).resolves.toEqual({ recipients: [recipientToContract(recipientRow)] });
-
-    if (!whereCondition) {
-      throw new Error('Expected listCampaignRecipients to build a where condition.');
-    }
-
-    const query = new PgDialect().sqlToQuery(
-      sql`select 1 where ${whereCondition}`,
-    );
-
-    expect(query.sql).toContain('"campaign_recipients"."organization_id" = $1');
-    expect(query.sql).toContain('"campaign_recipients"."campaign_id" = $2');
-    expect(query.params).toEqual([campaignRow.organizationId, campaignRow.id]);
   });
 
   it('counts campaign recipients without loading snapshots', async () => {
@@ -1387,7 +1348,6 @@ describe('campaign query helpers', () => {
       resourceType: 'campaign',
       resourceId: campaignRow.id,
       metadata: { recipientCount: 1 },
-      ipAddress: null,
       userAgent: null,
     });
 

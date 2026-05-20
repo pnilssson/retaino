@@ -6,7 +6,6 @@ import {
   getCampaignReport,
   getOrganizationSmsSender,
   launchCampaign,
-  listCampaignRecipients,
   listCampaigns,
   previewCampaignAudience,
   updateCampaignDraft,
@@ -224,14 +223,6 @@ export const campaignsRoutes = new Hono<AppEnv>()
       return campaignSmsSendErrorResponse(c, error);
     }
   })
-  .get('/:id/recipients', async (c) => {
-    return c.json(
-      await listCampaignRecipients(c.get('db'), {
-        organizationId: c.get('organization').id,
-        campaignId: c.req.param('id'),
-      }),
-    );
-  })
   .get('/:id/recipients/summary', async (c) => {
     return c.json(
       await countCampaignRecipients(c.get('db'), {
@@ -294,10 +285,6 @@ export const campaignsRoutes = new Hono<AppEnv>()
         organizationId: organization.id,
         campaignId,
         actorUserId: c.get('user').id,
-        ipAddress:
-          c.req.header('cf-connecting-ip') ??
-          c.req.header('x-forwarded-for') ??
-          null,
         userAgent: c.req.header('user-agent') ?? null,
       });
 
