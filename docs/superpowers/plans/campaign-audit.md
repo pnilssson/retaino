@@ -46,6 +46,7 @@
 | TR-05 | Public redirects accepted arbitrary path values until the database lookup. | Redirects now validate the Retaino short-code shape before the tracking-code limiter and database lookup. |
 | DR-01 | A full recipient snapshot endpoint exposed more campaign recipient data than the MVP UI needed. | Removed the public recipient-list endpoint, response contract, query, tests, and web query key. The UI uses the count-only summary endpoint. |
 | DR-02 | Campaign audit logs stored request IP data without a current product or compliance need. | Removed campaign audit IP storage from schema, queries, routes, tests, and generated a Drizzle migration. |
+| DR-03 | Legal acceptance capture still persisted request IP data after the no-IP decision. | Removed legal acceptance IP storage from schema, queries, contracts, routes, and tests. |
 | TA-01 | Shared campaign contracts included internal operational row schemas for recipients, tracking links, SMS messages, message events, and clicks. | Removed those schemas from the shared public contract surface. Operational return types now live in the database query layer. |
 
 ## Minor Findings Fixed

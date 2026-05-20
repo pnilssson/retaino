@@ -15,7 +15,6 @@ export const organizationLegalAcceptances = pgTable(
     bundleVersion: text('bundle_version').notNull(),
     bundleHash: text('bundle_hash').notNull(),
     documentsSnapshot: jsonb('documents_snapshot').notNull(),
-    ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
     acceptedAt: timestamp('accepted_at', { withTimezone: true })
       .notNull()

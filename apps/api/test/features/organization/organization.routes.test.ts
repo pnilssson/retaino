@@ -80,7 +80,6 @@ const legalAcceptance: OrganizationLegalAcceptance = {
   bundleVersion: legalBundle.version,
   bundleHash: legalBundle.hash,
   documentsSnapshot: legalBundle.documents,
-  ipAddress: '203.0.113.1',
   userAgent: 'vitest',
   acceptedAt: '2026-05-05T00:00:00.000Z',
   acceptedByEmail: user.email,
@@ -213,7 +212,6 @@ describe('organizationRoutes', () => {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'cf-connecting-ip': '203.0.113.1',
         'user-agent': 'vitest',
       },
       body: JSON.stringify({}),
@@ -226,7 +224,6 @@ describe('organizationRoutes', () => {
         organizationId: organization.id,
         userId: user.id,
         legalBundle,
-        ipAddress: '203.0.113.1',
         userAgent: 'vitest',
       },
     );
