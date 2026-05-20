@@ -24,6 +24,10 @@ import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
+import {
+  campaignReadinessBlock,
+  campaignsAllowed,
+} from '../campaign-readiness';
 import type {
   CampaignListDirection,
   CampaignListSort,
@@ -162,7 +166,11 @@ export function CampaignsScreen() {
                 />
               ) : (
                 <EmptyState
-                  description="Create a campaign to choose a lapsed audience and write the SMS copy."
+                  description={
+                    canManageCampaigns
+                      ? 'Create a campaign to choose a lapsed audience and write the SMS copy.'
+                      : 'Campaigns will appear here after an organization admin creates one.'
+                  }
                   title="No campaigns yet"
                 />
               )}
@@ -175,16 +183,7 @@ export function CampaignsScreen() {
 }
 
 function BlockedCampaigns({ session }: { session: OrganizationSession }) {
-  const legalUpdateRequired =
-    session.readiness.legalUpdatesRequired || !session.readiness.legalCurrent;
-  const title = legalUpdateRequired
-    ? 'Legal updates required before campaign previews'
-    : 'Finish setup before campaign work';
-  const description = legalUpdateRequired
-    ? 'Updated legal terms must be accepted before campaign audiences can be previewed.'
-    : 'Company profile and legal agreement acceptance are required before campaigns can be prepared.';
-  const actionHref = legalUpdateRequired ? routes.legal : routes.organizationSetup;
-  const actionLabel = legalUpdateRequired ? 'Review legal updates' : 'Finish setup';
+  const block = campaignReadinessBlock(session);
 
   return (
     <main className="flex flex-1 items-start bg-background">
@@ -192,23 +191,23 @@ function BlockedCampaigns({ session }: { session: OrganizationSession }) {
         <AppPageHeader
           badge={
             <StatusBadge
-              label={legalUpdateRequired ? 'Legal updates required' : 'Setup required'}
+              label={block.badgeLabel}
               tone="amber"
             />
           }
-          description={description}
+          description={block.description}
           eyebrow="Campaigns"
-          title={title}
+          title={block.title}
         />
         <AppPageContent>
           <AppPageItem asChild>
             <section>
-              <ItemNotice description={description} title={title} />
+              <ItemNotice description={block.description} title={block.title} />
               <div className="flex justify-end">
                 <Button asChild>
-                  <Link href={actionHref}>
+                  <Link href={block.actionHref}>
                     <FileText aria-hidden="true" data-icon="inline-start" />
-                    {actionLabel}
+                    {block.actionLabel}
                   </Link>
                 </Button>
               </div>
@@ -217,14 +216,6 @@ function BlockedCampaigns({ session }: { session: OrganizationSession }) {
         </AppPageContent>
       </section>
     </main>
-  );
-}
-
-function campaignsAllowed(session: OrganizationSession) {
-  return (
-    session.readiness.ready &&
-    session.readiness.legalCurrent &&
-    !session.readiness.legalUpdatesRequired
   );
 }
 

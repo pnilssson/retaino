@@ -4,6 +4,7 @@ import type { Campaign, CampaignReport } from '@retaino/shared/contracts';
 import {
   AlertCircle,
   CheckCircle2,
+  CircleSlash,
   MailQuestion,
   MousePointerClick,
   RefreshCw,
@@ -138,7 +139,7 @@ function ReportMetric({ metric }: { metric: ReportMetric }) {
 function reportMetrics(report: CampaignReport): ReportMetric[] {
   return [
     {
-      detail: `${formatNumber(report.sentCount)} sent`,
+      detail: recipientDetail(report),
       icon: Users,
       label: 'Recipients',
       tone: 'default',
@@ -155,8 +156,15 @@ function reportMetrics(report: CampaignReport): ReportMetric[] {
       detail: `${formatNumber(report.queuedCount)} queued`,
       icon: Send,
       label: 'In progress',
-      tone: report.failedCount > 0 ? 'warning' : 'default',
+      tone: report.queuedCount > 0 ? 'warning' : 'default',
       value: formatNumber(report.queuedCount),
+    },
+    {
+      detail: `${formatPercent(report.skippedCount, report.selectedCount)} of selected`,
+      icon: CircleSlash,
+      label: 'Skipped',
+      tone: report.skippedCount > 0 ? 'warning' : 'default',
+      value: formatNumber(report.skippedCount),
     },
     {
       detail: `${formatPercent(report.failedCount, report.sentCount)} of sent`,
@@ -207,6 +215,16 @@ function reportMetrics(report: CampaignReport): ReportMetric[] {
           : formatCurrency(report.actualCostMinor, report.currency),
     },
   ];
+}
+
+function recipientDetail(report: CampaignReport) {
+  const sent = `${formatNumber(report.sentCount)} sent`;
+
+  if (report.skippedCount <= 0) {
+    return sent;
+  }
+
+  return `${sent}, ${formatNumber(report.skippedCount)} skipped`;
 }
 
 function formatNumber(value: number) {

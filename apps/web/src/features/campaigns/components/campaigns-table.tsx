@@ -56,10 +56,10 @@ const campaignColumns: ColumnDef<Campaign>[] = [
 
       return (
         <Link className="block min-w-56 p-2" href={detailPath}>
-          <span className="font-medium underline-offset-4 group-hover:underline">
+          <span className="block break-words font-medium underline-offset-4 group-hover:underline">
             {row.original.name}
           </span>
-          <span className="mt-1 block text-xs text-muted-foreground">
+          <span className="mt-1 block break-words text-xs text-muted-foreground">
             {row.original.campaignCode ?? 'No campaign reference'}
           </span>
         </Link>
@@ -128,7 +128,11 @@ function LinkedCell({
   children: ReactNode;
 }) {
   return (
-    <Link className="block p-2" href={routes.campaign(campaign.id)} tabIndex={-1}>
+    <Link
+      className="block min-w-0 p-2"
+      href={routes.campaign(campaign.id)}
+      tabIndex={-1}
+    >
       {children}
     </Link>
   );
