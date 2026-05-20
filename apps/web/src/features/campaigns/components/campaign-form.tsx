@@ -35,7 +35,7 @@ import { AudienceRuleFields } from './audience-rule-fields';
 import { SenderSetup } from './sender-setup';
 import { useCampaignAudiencePreview } from '../hooks/use-campaign-audience-preview';
 import { useCampaignRecipientSummary } from '../hooks/use-campaign-recipient-summary';
-import { useLaunchCampaign } from '../hooks/use-launch-campaign';
+import { useSendCampaign } from '../hooks/use-send-campaign';
 import { useSendCampaignTestSms } from '../hooks/use-send-campaign-test-sms';
 import { useSmsSender } from '../hooks/use-sms-sender';
 
@@ -90,24 +90,29 @@ export function CampaignForm({
 }) {
   const campaignIsDraft = !campaign || campaign.status === 'draft';
   const canEditCampaign = canManageCampaigns && campaignIsDraft;
+  const canSendCampaign =
+    canManageCampaigns &&
+    Boolean(campaign) &&
+    (campaign?.status === 'draft' || campaign?.status === 'ready_to_send');
   const [activeStep, setActiveStep] = useState<CampaignStepId>(
     initialStep ?? (campaignIsDraft ? 'audience' : 'review'),
   );
   const messageTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const createCampaign = useCreateCampaign(organizationId);
   const sender = useSmsSender(organizationId);
-  const launchCampaign = useLaunchCampaign({
+  const sendCampaign = useSendCampaign({
     campaignId: campaign?.id ?? null,
     organizationId,
   });
+  const campaignNotice = campaign ? campaignStatusNotice(campaign) : null;
   const updateCampaign = useUpdateCampaign({
     campaignId: campaign?.id ?? null,
     organizationId,
   });
   const actionError =
-    createCampaign.error ?? updateCampaign.error ?? launchCampaign.error;
+    createCampaign.error ?? updateCampaign.error ?? sendCampaign.error;
   const isSaving = createCampaign.isPending || updateCampaign.isPending;
-  const isLaunching = launchCampaign.isPending;
+  const isSending = sendCampaign.isPending;
   const form = useForm({
     defaultValues: campaign
       ? campaignToFormValues(campaign)
@@ -170,10 +175,10 @@ export function CampaignForm({
         />
       ) : null}
 
-      {!campaignIsDraft ? (
+      {campaignNotice ? (
         <ItemNotice
-          description="Recipients have been selected for this campaign. Campaign details are locked so reporting can use the original send decision."
-          title="Campaign is ready to send"
+          description={campaignNotice.description}
+          title={campaignNotice.title}
         />
       ) : null}
 
@@ -185,7 +190,7 @@ export function CampaignForm({
               : 'Try checking the campaign fields and saving again.'
           }
           title={
-            launchCampaign.error
+            sendCampaign.error
               ? 'Campaign could not be sent'
               : 'Campaign could not be saved'
           }
@@ -480,18 +485,18 @@ export function CampaignForm({
                             <Button
                               disabled={
                                 !canManageCampaigns ||
-                                !canEditCampaign ||
+                                !canSendCampaign ||
                                 !canSubmit ||
                                 !senderReady ||
                                 !campaign ||
                                 isSaving ||
                                 isSubmitting ||
-                                isLaunching
+                                isSending
                               }
                               onClick={() => {
-                                launchCampaign.mutate(undefined, {
+                                sendCampaign.mutate(undefined, {
                                   onSuccess: (response) => {
-                                    toast.success('Campaign is ready to send.', {
+                                    toast.success('Campaign send queued.', {
                                       description: `${response.recipientCount} ${
                                         response.recipientCount === 1
                                           ? 'recipient'
@@ -504,7 +509,7 @@ export function CampaignForm({
                               type="button"
                             >
                               <Send aria-hidden="true" data-icon="inline-start" />
-                              {isLaunching ? 'Sending campaign' : 'Send campaign'}
+                              {isSending ? 'Sending campaign' : 'Send campaign'}
                             </Button>
                           </GuidedFlowActions>
                         </div>
@@ -539,20 +544,20 @@ function CampaignReview({
   const audiencePreview = useCampaignAudiencePreview({
     audienceRule: values.audienceRule,
     enabled:
-      campaign?.status !== 'ready_to_send' &&
+      (!campaign || campaign.status === 'draft') &&
       isPreviewableAudienceRule(values.audienceRule),
     organizationId,
   });
   const recipientSummary = useCampaignRecipientSummary({
     campaignId,
-    enabled: campaign?.status === 'ready_to_send',
+    enabled: Boolean(campaign && campaign.status !== 'draft'),
     organizationId,
   });
   const smsPreview = createCampaignSmsPreview({ smsBody: values.smsBody });
   const frozenRecipientCount = recipientSummary.data?.recipientCount ?? null;
   const eligibleCount = audiencePreview.data?.eligibleCount ?? null;
   const usageRecipientCount =
-    campaign?.status === 'ready_to_send' ? frozenRecipientCount : eligibleCount;
+    campaign && campaign.status !== 'draft' ? frozenRecipientCount : eligibleCount;
   const estimatedCredits =
     usageRecipientCount === null
       ? null
@@ -577,7 +582,7 @@ function CampaignReview({
 
         <ReviewSection title="Audience">
           <p className={textStyles.body}>
-            {campaign?.status === 'ready_to_send'
+            {campaign && campaign.status !== 'draft'
               ? frozenRecipientCount === null
                 ? recipientSummary.isLoading
                   ? 'Loading selected recipients.'
@@ -599,12 +604,10 @@ function CampaignReview({
           </p>
         </ReviewSection>
 
-        {campaign?.status === 'ready_to_send' ? (
+        {campaign && campaign.status !== 'draft' ? (
           <ReviewSection title="Send status">
             <p className={textStyles.body}>
-              {campaign.readyToSendAt
-                ? `Ready to send since ${formatDateTime(campaign.readyToSendAt)}.`
-                : 'Ready to send.'}
+              {campaignSendStatusText(campaign)}
             </p>
           </ReviewSection>
         ) : null}
@@ -1015,6 +1018,70 @@ function formatDateTime(value: string) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
+}
+
+function campaignStatusNotice(campaign: Campaign) {
+  if (campaign.status === 'ready_to_send') {
+    return {
+      title: 'Campaign is ready to send',
+      description:
+        'Recipients have been selected for this campaign. Campaign details are locked so the send uses this exact audience and message.',
+    };
+  }
+
+  if (campaign.status === 'sending') {
+    return {
+      title: 'Campaign send is in progress',
+      description:
+        'Messages are being sent in the background. Campaign details are locked while the send runs.',
+    };
+  }
+
+  if (campaign.status === 'sent') {
+    return {
+      title: 'Campaign has been sent',
+      description:
+        'Messages were sent to the selected recipients. Campaign details are locked.',
+    };
+  }
+
+  if (campaign.status === 'failed') {
+    return {
+      title: 'Campaign send needs attention',
+      description:
+        'The send did not finish. Review the campaign status before trying again.',
+    };
+  }
+
+  return null;
+}
+
+function campaignSendStatusText(campaign: Campaign) {
+  if (campaign.status === 'sending') {
+    return campaign.sendStartedAt
+      ? `Sending started ${formatDateTime(campaign.sendStartedAt)}.`
+      : 'Sending is in progress.';
+  }
+
+  if (campaign.status === 'sent') {
+    return campaign.sentAt
+      ? `Sent ${formatDateTime(campaign.sentAt)}.`
+      : 'Campaign sent.';
+  }
+
+  if (campaign.status === 'failed') {
+    const failedAt = campaign.failedAt
+      ? `Send failed ${formatDateTime(campaign.failedAt)}.`
+      : 'Send failed.';
+
+    return campaign.failureReason
+      ? `${failedAt} ${campaign.failureReason}`
+      : failedAt;
+  }
+
+  return campaign.readyToSendAt
+    ? `Ready to send since ${formatDateTime(campaign.readyToSendAt)}.`
+    : 'Ready to send.';
 }
 
 function validateRequired(value: string, message: string) {

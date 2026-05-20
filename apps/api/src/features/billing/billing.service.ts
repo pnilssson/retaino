@@ -291,6 +291,7 @@ export async function debitSmsCreditUsage(input: {
 export async function releaseSmsCreditUsage(input: {
   db: DbClient;
   organizationId: string;
+  credits?: number;
   description: string;
   reservedTransactions: SmsCreditTransaction[];
   source: Extract<
@@ -300,17 +301,22 @@ export async function releaseSmsCreditUsage(input: {
   sourceId: string;
 }) {
   const releases = [];
+  let remainingCredits = input.credits ?? Number.POSITIVE_INFINITY;
 
   for (const transaction of input.reservedTransactions) {
-    if (transaction.credits >= 0) {
+    if (transaction.credits >= 0 || remainingCredits <= 0) {
       continue;
     }
+    const releaseCredits = Math.min(
+      Math.abs(transaction.credits),
+      remainingCredits,
+    );
 
     releases.push(
       await createSmsCreditTransaction(input.db, {
         organizationId: input.organizationId,
         transactionType: 'adjustment',
-        credits: Math.abs(transaction.credits),
+        credits: releaseCredits,
         creditBucket: transaction.creditBucket,
         periodStart: transaction.periodStart
           ? new Date(transaction.periodStart)
@@ -321,6 +327,7 @@ export async function releaseSmsCreditUsage(input: {
         description: input.description,
       }),
     );
+    remainingCredits -= releaseCredits;
   }
 
   return releases;

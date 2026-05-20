@@ -323,6 +323,63 @@ describe('billing query helpers', () => {
     expect(query.sql).toContain('insert into "sms_credit_transactions"');
   });
 
+  it('returns existing reservation rows for idempotent source IDs', async () => {
+    let statement: SQL | undefined;
+    const db = {
+      execute: (query: SQL) => {
+        statement = query;
+
+        return { rows: [] };
+      },
+      select: () => ({
+        from: () => ({
+          where: () => [
+            {
+              id: '11111111-1111-4111-8111-111111111111',
+              organizationId: '22222222-2222-4222-8222-222222222222',
+              transactionType: 'debit',
+              credits: -3,
+              source: 'campaign_send',
+              sourceId: 'campaign-send-123',
+              creditBucket: 'subscription_period',
+              periodStart: new Date('2026-05-14T00:00:00.000Z'),
+              periodEnd: new Date('2026-06-14T00:00:00.000Z'),
+              description: 'Campaign SMS reservation',
+              createdAt: new Date('2026-05-14T00:00:00.000Z'),
+              updatedAt: new Date('2026-05-14T00:00:00.000Z'),
+            },
+          ],
+        }),
+      }),
+    };
+
+    const result = await reserveSmsCreditsIfSufficient(db as never, {
+      organizationId: '22222222-2222-4222-8222-222222222222',
+      credits: 3,
+      source: 'campaign_send',
+      sourceId: 'campaign-send-123',
+      description: 'Campaign SMS reservation',
+    });
+
+    expect(statement).toBeDefined();
+    expect(result).toEqual({
+      debitedCredits: 3,
+      transactions: [
+        {
+          transactionType: 'debit',
+          credits: -3,
+          source: 'campaign_send',
+          sourceId: 'campaign-send-123',
+          creditBucket: 'subscription_period',
+          periodStart: '2026-05-14T00:00:00.000Z',
+          periodEnd: '2026-06-14T00:00:00.000Z',
+          description: 'Campaign SMS reservation',
+          createdAt: '2026-05-14T00:00:00.000Z',
+        },
+      ],
+    });
+  });
+
   it('returns SMS credit balance breakdown by purchased and current period credits', async () => {
     const db = {
       select: () => ({

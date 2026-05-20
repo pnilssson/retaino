@@ -26,6 +26,7 @@ import type {
   OrganizationLegalAcceptance,
 } from '@retaino/shared/contracts';
 import { campaignsRoutes } from '../../../src/features/campaigns/campaigns.routes';
+import { enqueueCampaignSendProcessing } from '../../../src/features/campaigns/campaigns.jobs';
 import type { AppEnv } from '../../../src/types';
 
 vi.mock('@retaino/db', () => ({
@@ -46,6 +47,10 @@ vi.mock('@retaino/db', () => ({
   previewCampaignAudience: vi.fn(),
   reserveSmsCreditsIfSufficient: vi.fn(),
   updateCampaignDraft: vi.fn(),
+}));
+
+vi.mock('../../../src/features/campaigns/campaigns.jobs', () => ({
+  enqueueCampaignSendProcessing: vi.fn(),
 }));
 
 const user = {
@@ -144,6 +149,12 @@ const campaign: Campaign = {
   attributionWindowDays: 7,
   readyToSendAt: null,
   readyToSendByUserId: null,
+  sendStartedAt: null,
+  sentAt: null,
+  failedAt: null,
+  failureReason: null,
+  reservedCreditCount: null,
+  actualCreditCount: null,
   createdAt: '2026-05-16T00:00:00.000Z',
   updatedAt: '2026-05-16T00:00:00.000Z',
 };
@@ -200,6 +211,7 @@ describe('campaignsRoutes', () => {
     vi.mocked(getSmsCreditBalance).mockReset();
     vi.mocked(getSmsCreditBalanceBreakdown).mockReset();
     vi.mocked(launchCampaign).mockReset();
+    vi.mocked(enqueueCampaignSendProcessing).mockReset();
     vi.mocked(listCampaignRecipients).mockReset();
     vi.mocked(listCampaigns).mockReset();
     vi.mocked(previewCampaignAudience).mockReset();
@@ -457,6 +469,121 @@ describe('campaignsRoutes', () => {
 
     expect(response.status).toBe(409);
     expect(launchCampaign).not.toHaveBeenCalled();
+  });
+
+  it('launches draft campaigns and enqueues live send processing', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue(campaign);
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue(readySender());
+    vi.mocked(launchCampaign).mockResolvedValue({
+      status: 'launched',
+      campaign: {
+        ...campaign,
+        status: 'ready_to_send',
+        readyToSendAt: '2026-05-16T10:00:00.000Z',
+        readyToSendByUserId: user.id,
+      },
+      recipientCount: 3,
+    });
+    vi.mocked(enqueueCampaignSendProcessing).mockResolvedValue(undefined);
+
+    const response = await testApp().request(
+      `/v1/campaigns/${campaign.id}/send`,
+      { method: 'POST' },
+      { SMS_SENDING_MODE: 'test' },
+    );
+
+    expect(response.status).toBe(202);
+    await expect(response.json()).resolves.toMatchObject({
+      campaign: {
+        status: 'ready_to_send',
+      },
+      recipientCount: 3,
+      sendStatus: 'queued',
+    });
+    expect(launchCampaign).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        organizationId: organization.id,
+        campaignId: campaign.id,
+        actorUserId: user.id,
+      }),
+    );
+    expect(enqueueCampaignSendProcessing).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        organizationId: organization.id,
+        campaignId: campaign.id,
+        userId: user.id,
+      },
+    );
+  });
+
+  it('enqueues ready campaigns without launching again', async () => {
+    const readyCampaign = {
+      ...campaign,
+      status: 'ready_to_send',
+      readyToSendAt: '2026-05-16T10:00:00.000Z',
+      readyToSendByUserId: user.id,
+    } as const;
+
+    vi.mocked(getCampaignById).mockResolvedValue(readyCampaign);
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue(readySender());
+    vi.mocked(countCampaignRecipients).mockResolvedValue({
+      recipientCount: 3,
+    });
+    vi.mocked(enqueueCampaignSendProcessing).mockResolvedValue(undefined);
+
+    const response = await testApp().request(
+      `/v1/campaigns/${campaign.id}/send`,
+      { method: 'POST' },
+      { SMS_SENDING_MODE: 'test' },
+    );
+
+    expect(response.status).toBe(202);
+    await expect(response.json()).resolves.toMatchObject({
+      campaign: {
+        status: 'ready_to_send',
+      },
+      sendStatus: 'queued',
+    });
+    expect(launchCampaign).not.toHaveBeenCalled();
+    expect(enqueueCampaignSendProcessing).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        organizationId: organization.id,
+        campaignId: campaign.id,
+        userId: user.id,
+      },
+    );
+  });
+
+  it('rejects ready campaign sends when the sender is not ready', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue({
+      ...campaign,
+      status: 'ready_to_send',
+      readyToSendAt: '2026-05-16T10:00:00.000Z',
+      readyToSendByUserId: user.id,
+    });
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue(null);
+
+    const response = await testApp().request(
+      `/v1/campaigns/${campaign.id}/send`,
+      { method: 'POST' },
+      { SMS_SENDING_MODE: 'test' },
+    );
+
+    expect(response.status).toBe(409);
+    expect(enqueueCampaignSendProcessing).not.toHaveBeenCalled();
+  });
+
+  it('rejects live send enqueue for organization members', async () => {
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/send`,
+      { method: 'POST' },
+    );
+
+    expect(response.status).toBe(403);
+    expect(enqueueCampaignSendProcessing).not.toHaveBeenCalled();
   });
 
   it('lets members list campaign recipient snapshots', async () => {

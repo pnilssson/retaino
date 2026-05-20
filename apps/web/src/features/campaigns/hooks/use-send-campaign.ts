@@ -1,11 +1,11 @@
 "use client";
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { CampaignLaunchResponse } from '@retaino/shared/contracts';
+import type { CampaignSendResponse } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
 import { campaignsQueryKeys } from '../query-keys';
 
-export function useLaunchCampaign({
+export function useSendCampaign({
   campaignId,
   organizationId,
 }: {
@@ -21,8 +21,8 @@ export function useLaunchCampaign({
         throw new Error('Choose a campaign before sending it.');
       }
 
-      return api.post<CampaignLaunchResponse>(
-        `/v1/campaigns/${campaignId}/launch`,
+      return api.post<CampaignSendResponse>(
+        `/v1/campaigns/${campaignId}/send`,
         {},
       );
     },
@@ -42,9 +42,17 @@ export function useLaunchCampaign({
         ),
         { recipientCount: response.recipientCount },
       );
-      await queryClient.invalidateQueries({
-        queryKey: campaignsQueryKeys.organization(organizationId),
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: campaignsQueryKeys.detail(
+            organizationId,
+            response.campaign.id,
+          ),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: campaignsQueryKeys.organization(organizationId),
+        }),
+      ]);
     },
   });
 }

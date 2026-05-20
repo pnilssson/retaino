@@ -373,6 +373,29 @@ export async function reserveSmsCreditsIfSufficient(
     return total + Math.abs(row.credits);
   }, 0);
 
+  if (debitedCredits === 0) {
+    const existingRows = await db
+      .select()
+      .from(smsCreditTransactions)
+      .where(
+        and(
+          eq(smsCreditTransactions.organizationId, input.organizationId),
+          eq(smsCreditTransactions.source, input.source),
+          eq(smsCreditTransactions.sourceId, input.sourceId),
+        ),
+      );
+    const existingDebitedCredits = existingRows.reduce((total, row) => {
+      return total + (row.credits < 0 ? Math.abs(row.credits) : 0);
+    }, 0);
+
+    if (existingDebitedCredits > 0) {
+      return {
+        debitedCredits: existingDebitedCredits,
+        transactions: existingRows.map(smsCreditTransactionToContract),
+      };
+    }
+  }
+
   return {
     debitedCredits,
     transactions: rows.map(rawSmsCreditTransactionToContract),

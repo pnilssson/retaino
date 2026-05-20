@@ -28,6 +28,7 @@ import {
   releaseSmsCreditUsage,
 } from '../billing/billing.service';
 import { apiError } from '../../lib/errors';
+import { callbackUrl } from '../../lib/callback-url';
 import { parseJsonBody } from '../../lib/route-helpers';
 import { createSmsProvider, SmsProviderError } from '../../lib/sms-provider';
 import type { AppEnv } from '../../types';
@@ -35,6 +36,7 @@ import {
   requireCampaignEligibility,
   requireCampaignPreviewEligibility,
 } from '../organization/organization.gates';
+import { enqueueCampaignSendProcessing } from './campaigns.jobs';
 
 const TEST_TRACKED_BOOKING_LINK = 'https://go.retaino.com/r/test';
 
@@ -364,6 +366,112 @@ export const campaignsRoutes = new Hono<AppEnv>()
       recipientCount: result.recipientCount,
     });
   })
+  .post('/:id/send', async (c) => {
+    const gate = await requireCampaignEligibility(c);
+
+    if (!gate.ok) {
+      return gate.response;
+    }
+
+    const db = c.get('db');
+    const organization = c.get('organization');
+    const campaignId = c.req.param('id');
+    const campaign = await getCampaignById(db, {
+      organizationId: organization.id,
+      campaignId,
+    });
+
+    if (!campaign) {
+      return c.json(apiError('not_found', 'Campaign was not found.'), 404);
+    }
+
+    if (campaign.status !== 'draft' && campaign.status !== 'ready_to_send') {
+      return c.json(
+        apiError('conflict', 'Only ready campaigns can be sent.'),
+        409,
+      );
+    }
+
+    const provider = createSmsProvider(c.env);
+    const sender = await getOrganizationSmsSender(db, {
+      organizationId: organization.id,
+      provider: provider.name,
+    });
+
+    if (!sender || sender.status !== 'ready') {
+      return c.json(
+        apiError('conflict', 'Set up the SMS sender before sending a campaign.'),
+        409,
+      );
+    }
+
+    let sendCampaign = campaign;
+    let recipientCount = 0;
+    if (campaign.status === 'draft') {
+      const result = await launchCampaign(db, {
+        organizationId: organization.id,
+        campaignId,
+        actorUserId: c.get('user').id,
+        ipAddress:
+          c.req.header('cf-connecting-ip') ??
+          c.req.header('x-forwarded-for') ??
+          null,
+        userAgent: c.req.header('user-agent') ?? null,
+      });
+
+      if (result.status === 'not_found') {
+        return c.json(apiError('not_found', 'Campaign was not found.'), 404);
+      }
+
+      if (result.status === 'not_editable') {
+        return c.json(
+          apiError('conflict', 'Only draft campaigns can be sent.'),
+          409,
+        );
+      }
+
+      if (result.status === 'incomplete') {
+        return c.json(
+          apiError('conflict', 'Complete the campaign before sending it.'),
+          409,
+        );
+      }
+
+      if (result.status === 'empty_audience') {
+        return c.json(
+          apiError(
+            'validation_failed',
+            'Choose an audience with eligible contacts.',
+          ),
+          400,
+        );
+      }
+
+      sendCampaign = result.campaign;
+      recipientCount = result.recipientCount;
+    } else {
+      const summary = await countCampaignRecipients(db, {
+        organizationId: organization.id,
+        campaignId,
+      });
+      recipientCount = summary.recipientCount;
+    }
+
+    await enqueueCampaignSendProcessing(c.env, {
+      organizationId: organization.id,
+      campaignId,
+      userId: c.get('user').id,
+    });
+
+    return c.json(
+      {
+        campaign: sendCampaign,
+        recipientCount,
+        sendStatus: 'queued',
+      },
+      202,
+    );
+  })
   .get('/:id', async (c) => {
     const campaign = await getCampaignById(c.get('db'), {
       organizationId: c.get('organization').id,
@@ -465,14 +573,6 @@ function requireSmsReadyCampaign(campaign: {
     ok: true as const,
     smsBody: campaign.smsBody,
   };
-}
-
-function callbackUrl(baseUrl: string | undefined, path: string) {
-  if (!baseUrl) {
-    return null;
-  }
-
-  return `${baseUrl.replace(/\/$/, '')}${path}`;
 }
 
 function campaignSmsSendErrorResponse(

@@ -8,4 +8,6 @@ export * from './organization-acceptances';
 export * from './organization-profiles';
 export * from './organizations';
 export * from './sms-senders';
+export * from './sms-messages';
+export * from './tracking-links';
 export * from './users';

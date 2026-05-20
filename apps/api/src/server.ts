@@ -2,17 +2,16 @@ import { Hono } from 'hono';
 import { serve } from 'inngest/hono';
 import { billingRoutes } from './features/billing/billing.routes';
 import { billingWebhookRoutes } from './features/billing/billing.webhook-routes';
+import { processCampaignSendFunction } from './features/campaigns/campaigns.jobs';
 import { campaignsRoutes } from './features/campaigns/campaigns.routes';
 import { contactsRoutes } from './features/contacts/contacts.routes';
-import {
-  inngest,
-  processContactImportFunction,
-} from './features/contacts/contacts.jobs';
+import { processContactImportFunction } from './features/contacts/contacts.jobs';
 import { healthRoutes } from './features/health/health.routes';
 import { legalRoutes } from './features/legal/legal.routes';
 import { organizationRoutes } from './features/organization/organization.routes';
 import { smsRoutes } from './features/sms/sms.routes';
 import { apiError } from './lib/errors';
+import { inngest } from './lib/inngest';
 import { authMiddleware } from './middleware/auth';
 import { corsMiddleware } from './middleware/cors';
 import { dbMiddleware } from './middleware/db';
@@ -21,7 +20,7 @@ import type { AppEnv } from './types';
 const app = new Hono<AppEnv>();
 const inngestHandler = serve({
   client: inngest,
-  functions: [processContactImportFunction],
+  functions: [processContactImportFunction, processCampaignSendFunction],
 });
 
 app.route('/health', healthRoutes);

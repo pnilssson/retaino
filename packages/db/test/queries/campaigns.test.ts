@@ -7,10 +7,20 @@ import {
   campaignToContract,
   countCampaignRecipients,
   createAuditLog,
+  createOutboundSmsMessage,
   deleteCampaignDraft,
+  listSelectedCampaignRecipientsForSend,
   launchCampaign,
   listCampaignRecipients,
+  markCampaignRecipientSkipped,
+  markCampaignRecipientSent,
+  markCampaignSendCompleted,
+  recordSmsMessageProviderResult,
   recipientToContract,
+  smsMessageToContract,
+  startCampaignSend,
+  trackingLinkToContract,
+  upsertTrackingLink,
   updateCampaignDraft,
 } from '../../src/queries/campaigns';
 
@@ -27,6 +37,12 @@ const campaignRow = {
   attributionWindowDays: 7,
   readyToSendAt: null,
   readyToSendByUserId: null,
+  sendStartedAt: null,
+  sentAt: null,
+  failedAt: null,
+  failureReason: null,
+  reservedCreditCount: null,
+  actualCreditCount: null,
   createdAt: new Date('2026-05-16T00:00:00.000Z'),
   updatedAt: new Date('2026-05-16T00:00:00.000Z'),
 };
@@ -50,6 +66,50 @@ const recipientRow = {
   selectedAt: new Date('2026-05-16T10:00:00.000Z'),
   queuedAt: null,
   sentAt: null,
+  failedAt: null,
+  createdAt: new Date('2026-05-16T10:00:00.000Z'),
+  updatedAt: new Date('2026-05-16T10:00:00.000Z'),
+};
+
+const trackingLinkRow = {
+  id: '66666666-6666-4666-8666-666666666666',
+  organizationId: campaignRow.organizationId,
+  campaignId: campaignRow.id,
+  recipientId: recipientRow.id,
+  code: 'abc123',
+  targetUrl: 'https://booking.example.com/studio',
+  phoneHash: recipientRow.phoneHash,
+  emailHash: recipientRow.emailHash,
+  firstClickedAt: null,
+  lastClickedAt: null,
+  clickCount: 0,
+  createdAt: new Date('2026-05-16T10:00:00.000Z'),
+  updatedAt: new Date('2026-05-16T10:00:00.000Z'),
+};
+
+const smsMessageRow = {
+  id: '77777777-7777-4777-8777-777777777777',
+  organizationId: campaignRow.organizationId,
+  direction: 'outbound',
+  campaignId: campaignRow.id,
+  recipientId: recipientRow.id,
+  contactId: recipientRow.contactId,
+  provider: 'fake',
+  providerMessageId: null,
+  providerMessagingServiceId: null,
+  providerPhoneNumberId: null,
+  fromPhone: '+46700000000',
+  toPhone: '+46701111111',
+  body: 'Hi Anna',
+  status: 'queued',
+  estimatedSegmentCount: 1,
+  actualSegmentCount: null,
+  estimatedCostMinor: null,
+  actualCostMinor: null,
+  currency: 'SEK',
+  queuedAt: new Date('2026-05-16T10:00:00.000Z'),
+  sentAt: null,
+  deliveredAt: null,
   failedAt: null,
   createdAt: new Date('2026-05-16T10:00:00.000Z'),
   updatedAt: new Date('2026-05-16T10:00:00.000Z'),
@@ -92,6 +152,51 @@ describe('campaign query helpers', () => {
       selectedAt: '2026-05-16T10:00:00.000Z',
       queuedAt: null,
       sentAt: null,
+      failedAt: null,
+      createdAt: '2026-05-16T10:00:00.000Z',
+      updatedAt: '2026-05-16T10:00:00.000Z',
+    });
+  });
+
+  it('maps tracking links and SMS messages to shared contract shapes', () => {
+    expect(trackingLinkToContract(trackingLinkRow)).toEqual({
+      id: trackingLinkRow.id,
+      organizationId: trackingLinkRow.organizationId,
+      campaignId: trackingLinkRow.campaignId,
+      recipientId: trackingLinkRow.recipientId,
+      code: trackingLinkRow.code,
+      targetUrl: trackingLinkRow.targetUrl,
+      phoneHash: trackingLinkRow.phoneHash,
+      emailHash: trackingLinkRow.emailHash,
+      firstClickedAt: null,
+      lastClickedAt: null,
+      clickCount: 0,
+      createdAt: '2026-05-16T10:00:00.000Z',
+      updatedAt: '2026-05-16T10:00:00.000Z',
+    });
+    expect(smsMessageToContract(smsMessageRow)).toEqual({
+      id: smsMessageRow.id,
+      organizationId: smsMessageRow.organizationId,
+      direction: 'outbound',
+      campaignId: smsMessageRow.campaignId,
+      recipientId: smsMessageRow.recipientId,
+      contactId: smsMessageRow.contactId,
+      provider: 'fake',
+      providerMessageId: null,
+      providerMessagingServiceId: null,
+      providerPhoneNumberId: null,
+      fromPhone: smsMessageRow.fromPhone,
+      toPhone: smsMessageRow.toPhone,
+      body: smsMessageRow.body,
+      status: 'queued',
+      estimatedSegmentCount: 1,
+      actualSegmentCount: null,
+      estimatedCostMinor: null,
+      actualCostMinor: null,
+      currency: 'SEK',
+      queuedAt: '2026-05-16T10:00:00.000Z',
+      sentAt: null,
+      deliveredAt: null,
       failedAt: null,
       createdAt: '2026-05-16T10:00:00.000Z',
       updatedAt: '2026-05-16T10:00:00.000Z',
@@ -583,6 +688,306 @@ describe('campaign query helpers', () => {
     expect(query.sql).toContain('"campaign_recipients"."organization_id" = $1');
     expect(query.sql).toContain('"campaign_recipients"."campaign_id" = $2');
     expect(query.params).toEqual([campaignRow.organizationId, campaignRow.id]);
+  });
+
+  it('loads send-attempt recipients for campaign sending', async () => {
+    let whereCondition: SQL | undefined;
+    const db = {
+      select: () => ({
+        from: () => ({
+          where: (condition: SQL | undefined) => {
+            whereCondition = condition;
+
+            return {
+              orderBy: () => [recipientRow],
+            };
+          },
+        }),
+      }),
+    };
+
+    await expect(
+      listSelectedCampaignRecipientsForSend(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+      }),
+    ).resolves.toEqual({
+      recipients: [
+        expect.objectContaining({
+          id: recipientRow.id,
+          phoneHash: recipientRow.phoneHash,
+          normalizedPhone: recipientRow.normalizedPhone,
+          status: 'selected',
+        }),
+      ],
+    });
+
+    if (!whereCondition) {
+      throw new Error(
+        'Expected listSelectedCampaignRecipientsForSend to build a where condition.',
+      );
+    }
+
+    const query = new PgDialect().sqlToQuery(
+      sql`select 1 where ${whereCondition}`,
+    );
+
+    expect(query.sql).toContain('"campaign_recipients"."organization_id" = $1');
+    expect(query.sql).toContain('"campaign_recipients"."campaign_id" = $2');
+    expect(query.sql).toContain('"campaign_recipients"."status" in ($3, $4)');
+    expect(query.params).toEqual([
+      campaignRow.organizationId,
+      campaignRow.id,
+      'selected',
+      'sent',
+    ]);
+  });
+
+  it('upserts one tracking link per campaign recipient', async () => {
+    const upsertValues: unknown[] = [];
+    const db = {
+      insert: () => ({
+        values: (values: unknown) => {
+          upsertValues.push(values);
+
+          return {
+            onConflictDoUpdate: () => ({
+              returning: () => [trackingLinkRow],
+            }),
+          };
+        },
+      }),
+    };
+
+    await expect(
+      upsertTrackingLink(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        recipientId: recipientRow.id,
+        code: trackingLinkRow.code,
+        targetUrl: trackingLinkRow.targetUrl,
+        phoneHash: recipientRow.phoneHash,
+        emailHash: recipientRow.emailHash,
+      }),
+    ).resolves.toEqual(trackingLinkToContract(trackingLinkRow));
+    expect(upsertValues).toEqual([
+      expect.objectContaining({
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        recipientId: recipientRow.id,
+        code: trackingLinkRow.code,
+      }),
+    ]);
+  });
+
+  it('creates outbound SMS messages idempotently per campaign recipient', async () => {
+    const db = {
+      insert: () => ({
+        values: () => ({
+          onConflictDoNothing: () => ({
+            returning: () => [],
+          }),
+        }),
+      }),
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            limit: () => [smsMessageRow],
+          }),
+        }),
+      }),
+    };
+
+    await expect(
+      createOutboundSmsMessage(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        recipientId: recipientRow.id,
+        contactId: recipientRow.contactId,
+        provider: 'fake',
+        fromPhone: '+46700000000',
+        toPhone: '+46701111111',
+        body: 'Hi Anna',
+        estimatedSegmentCount: 1,
+        currency: 'SEK',
+        now: new Date('2026-05-16T10:00:00.000Z'),
+      }),
+    ).resolves.toEqual({
+      status: 'existing',
+      message: smsMessageToContract(smsMessageRow),
+    });
+  });
+
+  it('marks campaigns sending with reserved credit counts', async () => {
+    const now = new Date('2026-05-16T10:00:00.000Z');
+    const db = {
+      transaction: async (callback: (inner: unknown) => unknown) =>
+        callback({
+          select: vi
+            .fn()
+            .mockReturnValueOnce({
+              from: () => ({
+                where: () => ({
+                  limit: () => [],
+                }),
+              }),
+            })
+            .mockReturnValueOnce({
+              from: () => ({
+                where: () => ({
+                  limit: () => [{ ...campaignRow, status: 'ready_to_send' }],
+                }),
+              }),
+            }),
+          update: () => ({
+            set: () => ({
+              where: () => ({
+                returning: () => [
+                  {
+                    ...campaignRow,
+                    status: 'sending',
+                    sendStartedAt: now,
+                    reservedCreditCount: 3,
+                    updatedAt: now,
+                  },
+                ],
+              }),
+            }),
+          }),
+        }),
+    };
+
+    await expect(
+      startCampaignSend(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        reservedCreditCount: 3,
+        now,
+      }),
+    ).resolves.toMatchObject({
+      status: 'started',
+      campaign: {
+        status: 'sending',
+        sendStartedAt: '2026-05-16T10:00:00.000Z',
+        reservedCreditCount: 3,
+      },
+    });
+  });
+
+  it('records provider results on outbound SMS messages', async () => {
+    const now = new Date('2026-05-16T10:01:00.000Z');
+    const updatedMessage = {
+      ...smsMessageRow,
+      providerMessageId: 'fake-message-1',
+      providerMessagingServiceId: 'fake-ms-1',
+      providerPhoneNumberId: 'fake-pn-1',
+      status: 'sent',
+      actualSegmentCount: 1,
+      actualCostMinor: 0,
+      sentAt: now,
+      updatedAt: now,
+    };
+    const db = {
+      update: () => ({
+        set: () => ({
+          where: () => ({
+            returning: () => [updatedMessage],
+          }),
+        }),
+      }),
+    };
+
+    await expect(
+      recordSmsMessageProviderResult(db as never, {
+        organizationId: campaignRow.organizationId,
+        messageId: smsMessageRow.id,
+        providerMessageId: 'fake-message-1',
+        providerMessagingServiceId: 'fake-ms-1',
+        providerPhoneNumberId: 'fake-pn-1',
+        status: 'sent',
+        actualSegmentCount: 1,
+        actualCostMinor: 0,
+        currency: 'SEK',
+        now,
+      }),
+    ).resolves.toMatchObject({
+      status: 'sent',
+      providerMessageId: 'fake-message-1',
+      sentAt: '2026-05-16T10:01:00.000Z',
+    });
+  });
+
+  it('marks campaign recipients and campaigns after send attempts', async () => {
+    const now = new Date('2026-05-16T10:02:00.000Z');
+    const db = {
+      update: vi
+        .fn()
+        .mockReturnValueOnce({
+          set: () => ({
+            where: () => ({
+              returning: () => [{ ...recipientRow, status: 'sent', sentAt: now }],
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          set: () => ({
+            where: () => ({
+              returning: () => [
+                {
+                  ...recipientRow,
+                  status: 'skipped',
+                  exclusionReason: 'suppressed_phone',
+                },
+              ],
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          set: () => ({
+            where: () => ({
+              returning: () => [
+                {
+                  ...campaignRow,
+                  status: 'sent',
+                  sentAt: now,
+                  actualCreditCount: 1,
+                  updatedAt: now,
+                },
+              ],
+            }),
+          }),
+        }),
+    };
+
+    await expect(
+      markCampaignRecipientSent(db as never, {
+        organizationId: campaignRow.organizationId,
+        recipientId: recipientRow.id,
+        now,
+      }),
+    ).resolves.toMatchObject({ status: 'sent' });
+    await expect(
+      markCampaignRecipientSkipped(db as never, {
+        organizationId: campaignRow.organizationId,
+        recipientId: recipientRow.id,
+        exclusionReason: 'suppressed_phone',
+        now,
+      }),
+    ).resolves.toMatchObject({
+      status: 'skipped',
+      exclusionReason: 'suppressed_phone',
+    });
+    await expect(
+      markCampaignSendCompleted(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        actualCreditCount: 1,
+        now,
+      }),
+    ).resolves.toMatchObject({
+      status: 'sent',
+      actualCreditCount: 1,
+    });
   });
 
   it('creates tenant-scoped audit logs', async () => {

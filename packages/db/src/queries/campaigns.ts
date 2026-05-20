@@ -4,9 +4,11 @@ import {
   count,
   desc,
   eq,
+  inArray,
   isNotNull,
   isNull,
   lte,
+  ne,
   not,
   or,
   type SQL,
@@ -19,15 +21,28 @@ import type {
   CampaignRecipientStatus,
   CampaignStatus,
   CreateCampaignDraftInput,
+  SmsMessage,
+  SmsMessageDirection,
+  SmsSenderProvider,
+  TrackingLink,
   UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
 import type { DbClient } from '../client';
-import { auditLogs, campaignRecipients, campaigns, contacts } from '../schema';
+import {
+  auditLogs,
+  campaignRecipients,
+  campaigns,
+  contacts,
+  smsMessages,
+  trackingLinks,
+} from '../schema';
 import { assertOrganizationId, phoneSuppressionExistsFilter } from './contacts';
 
 type CampaignRow = typeof campaigns.$inferSelect;
 type CampaignRecipientRow = typeof campaignRecipients.$inferSelect;
 type CampaignRecipientInsert = typeof campaignRecipients.$inferInsert;
+type SmsMessageRow = typeof smsMessages.$inferSelect;
+type TrackingLinkRow = typeof trackingLinks.$inferSelect;
 
 const RECIPIENT_SNAPSHOT_INSERT_BATCH_SIZE = 1000;
 
@@ -43,6 +58,31 @@ export type LaunchCampaignResult =
   | { status: 'incomplete' }
   | { status: 'empty_audience' };
 
+export type StartCampaignSendResult =
+  | { status: 'started'; campaign: Campaign }
+  | { status: 'not_found' }
+  | { status: 'not_ready' }
+  | { status: 'active_send_exists' };
+
+export type CampaignRecipientForSend = {
+  id: string;
+  organizationId: string;
+  campaignId: string;
+  contactId: string | null;
+  status: CampaignRecipientStatus;
+  exclusionReason: string | null;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  normalizedPhone: string | null;
+  normalizedEmail: string | null;
+  phoneHash: string | null;
+  emailHash: string | null;
+  lastBookingAt: string | null;
+  lastContactedAt: string | null;
+  selectedAt: string | null;
+};
+
 export function campaignToContract(row: CampaignRow): Campaign {
   return {
     id: row.id,
@@ -57,6 +97,12 @@ export function campaignToContract(row: CampaignRow): Campaign {
     attributionWindowDays: row.attributionWindowDays,
     readyToSendAt: row.readyToSendAt?.toISOString() ?? null,
     readyToSendByUserId: row.readyToSendByUserId,
+    sendStartedAt: row.sendStartedAt?.toISOString() ?? null,
+    sentAt: row.sentAt?.toISOString() ?? null,
+    failedAt: row.failedAt?.toISOString() ?? null,
+    failureReason: row.failureReason,
+    reservedCreditCount: row.reservedCreditCount,
+    actualCreditCount: row.actualCreditCount,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -78,6 +124,54 @@ export function recipientToContract(row: CampaignRecipientRow): CampaignRecipien
     selectedAt: row.selectedAt?.toISOString() ?? null,
     queuedAt: row.queuedAt?.toISOString() ?? null,
     sentAt: row.sentAt?.toISOString() ?? null,
+    failedAt: row.failedAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export function trackingLinkToContract(row: TrackingLinkRow): TrackingLink {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    campaignId: row.campaignId,
+    recipientId: row.recipientId,
+    code: row.code,
+    targetUrl: row.targetUrl,
+    phoneHash: row.phoneHash,
+    emailHash: row.emailHash,
+    firstClickedAt: row.firstClickedAt?.toISOString() ?? null,
+    lastClickedAt: row.lastClickedAt?.toISOString() ?? null,
+    clickCount: row.clickCount,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export function smsMessageToContract(row: SmsMessageRow): SmsMessage {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    direction: row.direction as SmsMessageDirection,
+    campaignId: row.campaignId,
+    recipientId: row.recipientId,
+    contactId: row.contactId,
+    provider: row.provider as SmsSenderProvider,
+    providerMessageId: row.providerMessageId,
+    providerMessagingServiceId: row.providerMessagingServiceId,
+    providerPhoneNumberId: row.providerPhoneNumberId,
+    fromPhone: row.fromPhone,
+    toPhone: row.toPhone,
+    body: row.body,
+    status: row.status,
+    estimatedSegmentCount: row.estimatedSegmentCount,
+    actualSegmentCount: row.actualSegmentCount,
+    estimatedCostMinor: row.estimatedCostMinor,
+    actualCostMinor: row.actualCostMinor,
+    currency: row.currency,
+    queuedAt: row.queuedAt?.toISOString() ?? null,
+    sentAt: row.sentAt?.toISOString() ?? null,
+    deliveredAt: row.deliveredAt?.toISOString() ?? null,
     failedAt: row.failedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -342,6 +436,351 @@ export async function countCampaignRecipients(
   return { recipientCount: row?.total ?? 0 };
 }
 
+export async function listSelectedCampaignRecipientsForSend(
+  db: DbClient,
+  input: { organizationId: string; campaignId: string },
+): Promise<{ recipients: CampaignRecipientForSend[] }> {
+  assertOrganizationId(input.organizationId);
+
+  const rows = await db
+    .select()
+    .from(campaignRecipients)
+    .where(
+      and(
+        eq(campaignRecipients.organizationId, input.organizationId),
+        eq(campaignRecipients.campaignId, input.campaignId),
+        inArray(campaignRecipients.status, ['selected', 'sent']),
+      ),
+    )
+    .orderBy(asc(campaignRecipients.createdAt));
+
+  return { recipients: rows.map(recipientForSendToContract) };
+}
+
+export async function upsertTrackingLink(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    campaignId: string;
+    recipientId: string;
+    code: string;
+    targetUrl: string;
+    phoneHash: string | null;
+    emailHash: string | null;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+  const now = new Date();
+  const [row] = await db
+    .insert(trackingLinks)
+    .values({
+      organizationId: input.organizationId,
+      campaignId: input.campaignId,
+      recipientId: input.recipientId,
+      code: input.code,
+      targetUrl: input.targetUrl,
+      phoneHash: input.phoneHash,
+      emailHash: input.emailHash,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: [trackingLinks.organizationId, trackingLinks.recipientId],
+      set: {
+        targetUrl: input.targetUrl,
+        phoneHash: input.phoneHash,
+        emailHash: input.emailHash,
+        updatedAt: now,
+      },
+    })
+    .returning();
+
+  return row ? trackingLinkToContract(row) : null;
+}
+
+export async function createOutboundSmsMessage(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    campaignId: string;
+    recipientId: string;
+    contactId: string | null;
+    provider: SmsSenderProvider;
+    fromPhone: string | null;
+    toPhone: string;
+    body: string;
+    estimatedSegmentCount: number;
+    currency: string | null;
+    now?: Date;
+  },
+): Promise<
+  | { status: 'created'; message: SmsMessage }
+  | { status: 'existing'; message: SmsMessage }
+> {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+  const [created] = await db
+    .insert(smsMessages)
+    .values({
+      organizationId: input.organizationId,
+      direction: 'outbound',
+      campaignId: input.campaignId,
+      recipientId: input.recipientId,
+      contactId: input.contactId,
+      provider: input.provider,
+      fromPhone: input.fromPhone,
+      toPhone: input.toPhone,
+      body: input.body,
+      status: 'queued',
+      estimatedSegmentCount: input.estimatedSegmentCount,
+      currency: input.currency,
+      queuedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoNothing({
+      target: [
+        smsMessages.organizationId,
+        smsMessages.campaignId,
+        smsMessages.recipientId,
+        smsMessages.direction,
+      ],
+    })
+    .returning();
+
+  if (created) {
+    return { status: 'created', message: smsMessageToContract(created) };
+  }
+
+  const [existing] = await db
+    .select()
+    .from(smsMessages)
+    .where(
+      and(
+        eq(smsMessages.organizationId, input.organizationId),
+        eq(smsMessages.campaignId, input.campaignId),
+        eq(smsMessages.recipientId, input.recipientId),
+        eq(smsMessages.direction, 'outbound'),
+      ),
+    )
+    .limit(1);
+
+  if (!existing) {
+    throw new Error('Outbound SMS message was not created or found.');
+  }
+
+  return { status: 'existing', message: smsMessageToContract(existing) };
+}
+
+export async function startCampaignSend(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    campaignId: string;
+    reservedCreditCount: number;
+    now?: Date;
+  },
+): Promise<StartCampaignSendResult> {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+
+  return db.transaction(async (tx) => {
+    const [activeSend] = await tx
+      .select({ id: campaigns.id })
+      .from(campaigns)
+      .where(
+        and(
+          eq(campaigns.organizationId, input.organizationId),
+          eq(campaigns.status, 'sending'),
+          ne(campaigns.id, input.campaignId),
+        ),
+      )
+      .limit(1);
+
+    if (activeSend) {
+      return { status: 'active_send_exists' };
+    }
+
+    const [existing] = await tx
+      .select()
+      .from(campaigns)
+      .where(
+        and(
+          eq(campaigns.organizationId, input.organizationId),
+          eq(campaigns.id, input.campaignId),
+        ),
+      )
+      .limit(1);
+
+    if (!existing) {
+      return { status: 'not_found' };
+    }
+
+    if (existing.status === 'sending') {
+      return { status: 'started', campaign: campaignToContract(existing) };
+    }
+
+    if (existing.status !== 'ready_to_send') {
+      return { status: 'not_ready' };
+    }
+
+    const [updated] = await tx
+      .update(campaigns)
+      .set({
+        status: 'sending',
+        sendStartedAt: now,
+        reservedCreditCount: input.reservedCreditCount,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(campaigns.organizationId, input.organizationId),
+          eq(campaigns.id, input.campaignId),
+          eq(campaigns.status, 'ready_to_send'),
+        ),
+      )
+      .returning();
+
+    return updated
+      ? { status: 'started', campaign: campaignToContract(updated) }
+      : { status: 'not_ready' };
+  });
+}
+
+export async function recordSmsMessageProviderResult(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    messageId: string;
+    providerMessageId: string;
+    providerMessagingServiceId: string | null;
+    providerPhoneNumberId: string | null;
+    status: string;
+    actualSegmentCount: number | null;
+    actualCostMinor: number | null;
+    currency: string | null;
+    now?: Date;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+  const [row] = await db
+    .update(smsMessages)
+    .set({
+      providerMessageId: input.providerMessageId,
+      providerMessagingServiceId: input.providerMessagingServiceId,
+      providerPhoneNumberId: input.providerPhoneNumberId,
+      status: input.status,
+      actualSegmentCount: input.actualSegmentCount,
+      actualCostMinor: input.actualCostMinor,
+      currency: input.currency,
+      sentAt:
+        input.status === 'sent' ||
+        input.status === 'delivered' ||
+        input.status === 'accepted'
+          ? now
+          : undefined,
+      deliveredAt: input.status === 'delivered' ? now : undefined,
+      failedAt:
+        input.status === 'failed' || input.status === 'undelivered'
+          ? now
+          : undefined,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(smsMessages.organizationId, input.organizationId),
+        eq(smsMessages.id, input.messageId),
+      ),
+    )
+    .returning();
+
+  return row ? smsMessageToContract(row) : null;
+}
+
+export async function markCampaignRecipientSent(
+  db: DbClient,
+  input: { organizationId: string; recipientId: string; now?: Date },
+) {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+  const [row] = await db
+    .update(campaignRecipients)
+    .set({
+      status: 'sent',
+      sentAt: now,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(campaignRecipients.organizationId, input.organizationId),
+        eq(campaignRecipients.id, input.recipientId),
+      ),
+    )
+    .returning();
+
+  return row ? recipientToContract(row) : null;
+}
+
+export async function markCampaignRecipientSkipped(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    recipientId: string;
+    exclusionReason: string;
+    now?: Date;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+  const [row] = await db
+    .update(campaignRecipients)
+    .set({
+      status: 'skipped',
+      exclusionReason: input.exclusionReason,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(campaignRecipients.organizationId, input.organizationId),
+        eq(campaignRecipients.id, input.recipientId),
+      ),
+    )
+    .returning();
+
+  return row ? recipientToContract(row) : null;
+}
+
+export async function markCampaignSendCompleted(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    campaignId: string;
+    actualCreditCount: number;
+    now?: Date;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+  const [row] = await db
+    .update(campaigns)
+    .set({
+      status: 'sent',
+      sentAt: now,
+      actualCreditCount: input.actualCreditCount,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(campaigns.organizationId, input.organizationId),
+        eq(campaigns.id, input.campaignId),
+        inArray(campaigns.status, ['ready_to_send', 'sending']),
+      ),
+    )
+    .returning();
+
+  return row ? campaignToContract(row) : null;
+}
+
 export async function launchCampaign(
   db: DbClient,
   input: {
@@ -532,6 +971,29 @@ function auditLogValues(input: {
     metadata: input.metadata,
     ipAddress: input.ipAddress ?? null,
     userAgent: input.userAgent ?? null,
+  };
+}
+
+function recipientForSendToContract(
+  row: CampaignRecipientRow,
+): CampaignRecipientForSend {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    campaignId: row.campaignId,
+    contactId: row.contactId,
+    status: row.status as CampaignRecipientStatus,
+    exclusionReason: row.exclusionReason,
+    name: row.name,
+    phone: row.phone,
+    email: row.email,
+    normalizedPhone: row.normalizedPhone,
+    normalizedEmail: row.normalizedEmail,
+    phoneHash: row.phoneHash,
+    emailHash: row.emailHash,
+    lastBookingAt: row.lastBookingAt?.toISOString() ?? null,
+    lastContactedAt: row.lastContactedAt?.toISOString() ?? null,
+    selectedAt: row.selectedAt?.toISOString() ?? null,
   };
 }
 

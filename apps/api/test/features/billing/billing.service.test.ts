@@ -17,6 +17,7 @@ import {
   getBillingStatus,
   BillingInsufficientCreditsError,
   BillingSubscriptionRequiredError,
+  releaseSmsCreditUsage,
 } from '../../../src/features/billing/billing.service';
 import type { StripeConfig } from '../../../src/lib/stripe';
 
@@ -443,5 +444,53 @@ describe('billing service', () => {
         description: 'Campaign test SMS usage',
       },
     );
+  });
+
+  it('releases only unused SMS credits when a partial release is requested', async () => {
+    vi.mocked(createSmsCreditTransaction).mockResolvedValue({
+      transactionType: 'adjustment',
+      source: 'campaign_send',
+      sourceId: 'campaign-send-123:release',
+      credits: 2,
+      creditBucket: 'subscription_period',
+      periodStart: '2026-05-15T00:00:00.000Z',
+      periodEnd: '2026-06-15T00:00:00.000Z',
+      description: 'Campaign SMS reservation release',
+      createdAt: '2026-05-15T00:00:00.000Z',
+    });
+
+    await releaseSmsCreditUsage({
+      db,
+      organizationId: organization.id,
+      credits: 2,
+      reservedTransactions: [
+        {
+          transactionType: 'debit',
+          source: 'campaign_send',
+          sourceId: 'campaign-send-123',
+          credits: -5,
+          creditBucket: 'subscription_period',
+          periodStart: '2026-05-15T00:00:00.000Z',
+          periodEnd: '2026-06-15T00:00:00.000Z',
+          description: 'Campaign SMS reservation',
+          createdAt: '2026-05-15T00:00:00.000Z',
+        },
+      ],
+      source: 'campaign_send',
+      sourceId: 'campaign-send-123:release',
+      description: 'Campaign SMS reservation release',
+    });
+
+    expect(createSmsCreditTransaction).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      transactionType: 'adjustment',
+      credits: 2,
+      creditBucket: 'subscription_period',
+      periodStart: new Date('2026-05-15T00:00:00.000Z'),
+      periodEnd: new Date('2026-06-15T00:00:00.000Z'),
+      source: 'campaign_send',
+      sourceId: 'campaign-send-123:release',
+      description: 'Campaign SMS reservation release',
+    });
   });
 });

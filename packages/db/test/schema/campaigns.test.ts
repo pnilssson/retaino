@@ -23,7 +23,12 @@ describe('campaigns schema', () => {
     expect(campaigns.readyToSendByUserId.name).toBe(
       'ready_to_send_by_user_id',
     );
-    expect('sendStartedAt' in campaigns).toBe(false);
+    expect(campaigns.sendStartedAt.name).toBe('send_started_at');
+    expect(campaigns.sentAt.name).toBe('sent_at');
+    expect(campaigns.failedAt.name).toBe('failed_at');
+    expect(campaigns.failureReason.name).toBe('failure_reason');
+    expect(campaigns.reservedCreditCount.name).toBe('reserved_credit_count');
+    expect(campaigns.actualCreditCount.name).toBe('actual_credit_count');
     expect('providerMessageId' in campaigns).toBe(false);
   });
 

@@ -27,6 +27,7 @@ type AppBindings = {
   STRIPE_SUCCESS_URL: string;
   STRIPE_WEBHOOK_SECRET: string;
   SMS_SENDING_MODE?: 'disabled' | 'test' | 'live';
+  TRACKING_BASE_URL?: string;
   TWILIO_ACCOUNT_SID?: string;
   TWILIO_API_KEY_SECRET?: string;
   TWILIO_API_KEY_SID?: string;

@@ -64,6 +64,13 @@
       "when": 1779218385160,
       "tag": "0008_rare_doomsday",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779227098126,
+      "tag": "0009_pink_thanos",
+      "breakpoints": true
     }
   ]
 }
