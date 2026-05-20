@@ -2,7 +2,7 @@
 
 > Completed first deep review of the campaign MVP branch. Use this as the
 > review log for what was inspected. The condensed finding audit trail lives in
-> `docs/superpowers/plans/2026-05-20-campaign-mvp-requirements-matrix.md`.
+> `docs/superpowers/plans/campaign-audit.md`.
 
 **Goal:** Deeply review the completed campaign MVP implementation before PR or
 merge, including Phase 1 even though it was committed before this branch.
@@ -45,7 +45,7 @@ Project docs:
 - `docs/product.md`
 - `docs/compliance.md`
 - `docs/tracking.md`
-- `docs/superpowers/plans/2026-05-14-campaign-mvp-implementation.md`
+- `docs/superpowers/plans/campaign-mvp.md`
 
 The original Phase 1 through Phase 7 implementation notes were reviewed during
 the first pass and then consolidated into the canonical implementation plan.
@@ -70,7 +70,7 @@ Official/current external references to check during review:
 ## Pass 1: Requirements Matrix
 
 - [x] Build a checklist from every non-negotiable in
-  `2026-05-14-campaign-mvp-implementation.md`.
+  `campaign-mvp.md`.
 - [x] Build a checklist from the Phase 1 through Phase 7 implementation
   requirements that existed during the first review pass.
 - [x] Mark each item as implemented, intentionally deferred, unclear, or
@@ -225,7 +225,7 @@ pnpm build
 
 ## Pass 9: Review Output
 
-Completed review summary is captured in the requirements matrix:
+Completed review summary is captured in the audit trail:
 
 - Critical findings that must be fixed before PR.
 - Important findings that should be fixed before PR.

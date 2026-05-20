@@ -2,7 +2,7 @@
 
 > Condensed audit trail for the first deep review of the campaign MVP branch.
 > The canonical product and implementation state is
-> `docs/superpowers/plans/2026-05-14-campaign-mvp-implementation.md`.
+> `docs/superpowers/plans/campaign-mvp.md`.
 
 ## Review Baseline
 
@@ -11,7 +11,7 @@
 - Phase 1 commit included in review:
   `33ba067 feat: add campaign draft foundation`
 - Review log:
-  `docs/superpowers/plans/2026-05-20-campaign-mvp-branch-review.md`
+  `docs/superpowers/plans/campaign-review.md`
 
 ## Critical Findings Fixed
 

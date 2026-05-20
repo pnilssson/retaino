@@ -294,9 +294,9 @@ Phases 1 through 7 are implemented and consolidated into this canonical plan:
 
 Phases 1 through 7 have been implemented and completed one deep branch review.
 The review log is
-`docs/superpowers/plans/2026-05-20-campaign-mvp-branch-review.md`.
+`docs/superpowers/plans/campaign-review.md`.
 The condensed finding audit trail is
-`docs/superpowers/plans/2026-05-20-campaign-mvp-requirements-matrix.md`.
+`docs/superpowers/plans/campaign-audit.md`.
 
 Manual UI review remains owner-led. Agent-created browser walkthroughs and
 screenshots are intentionally out of scope for the review log.
