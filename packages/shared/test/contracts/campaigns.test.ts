@@ -3,7 +3,6 @@ import {
   campaignAudiencePreviewRequestSchema,
   campaignAudiencePreviewResponseSchema,
   campaignAudienceRuleSchema,
-  campaignLaunchResponseSchema,
   campaignMessageEventSchema,
   campaignReportResponseSchema,
   campaignRecipientListResponseSchema,
@@ -16,6 +15,7 @@ import {
   campaignSchema,
   clickEventSchema,
   createCampaignDraftSchema,
+  organizationSmsSenderResponseSchema,
   provisionOrganizationSmsSenderSchema,
   smsMessageSchema,
   smsSenderCountriesResponseSchema,
@@ -316,7 +316,6 @@ describe('campaign contracts', () => {
             smartEncoding: false,
           },
           regulatoryRequirementSummary: null,
-          providerReference: 'available-number-1',
           label: '+46 70 000 00 00',
         },
       }).success,
@@ -374,12 +373,6 @@ describe('campaign contracts', () => {
     expect(
       campaignRecipientListResponseSchema.safeParse({
         recipients: [recipient],
-      }).success,
-    ).toBe(true);
-    expect(
-      campaignLaunchResponseSchema.safeParse({
-        campaign,
-        recipientCount: 1,
       }).success,
     ).toBe(true);
     expect(
@@ -505,11 +498,33 @@ describe('campaign contracts', () => {
         recipientId: '44444444-4444-4444-8444-444444444444',
         trackingLinkId: '11111111-1111-4111-8111-111111111111',
         userAgent: 'Mozilla/5.0',
-        ipAddress: '203.0.113.10',
         occurredAt: '2026-05-16T10:02:00.000Z',
         createdAt: '2026-05-16T10:02:00.000Z',
       }).success,
     ).toBe(true);
+  });
+
+  it('keeps provider sender IDs out of public sender response contracts', () => {
+    const response = organizationSmsSenderResponseSchema.parse({
+      sender: {
+        id: '11111111-1111-4111-8111-111111111111',
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        provider: 'fake',
+        status: 'ready',
+        phoneNumber: '+46700000000',
+        countryCode: 'SE',
+        numberType: 'mobile',
+        regulatoryStatus: 'not_required',
+        failureReason: null,
+        provisionedAt: '2026-05-18T00:00:00.000Z',
+        lastVerifiedAt: '2026-05-18T00:00:00.000Z',
+        createdAt: '2026-05-18T00:00:00.000Z',
+        updatedAt: '2026-05-18T00:00:00.000Z',
+      },
+    });
+
+    expect(response.sender).not.toHaveProperty('providerMessagingServiceId');
+    expect(response.sender).not.toHaveProperty('providerPhoneNumberId');
   });
 
   it('accepts campaign report responses', () => {

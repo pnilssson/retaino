@@ -213,7 +213,6 @@ export function clickEventToContract(row: ClickEventRow): ClickEvent {
     recipientId: row.recipientId,
     trackingLinkId: row.trackingLinkId,
     userAgent: row.userAgent,
-    ipAddress: row.ipAddress,
     occurredAt: row.occurredAt.toISOString(),
     createdAt: row.createdAt.toISOString(),
   };
@@ -553,7 +552,6 @@ export async function recordTrackingClick(
   input: {
     trackingLink: TrackingLink;
     userAgent: string | null;
-    ipAddress: string | null;
     now?: Date;
   },
 ) {
@@ -573,7 +571,6 @@ export async function recordTrackingClick(
       recipientId: input.trackingLink.recipientId,
       trackingLinkId: input.trackingLink.id,
       userAgent: input.userAgent,
-      ipAddress: input.ipAddress,
       occurredAt: now,
     })
     .returning();
@@ -810,6 +807,10 @@ export async function startCampaignSend(
   const now = input.now ?? new Date();
 
   return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${input.organizationId}))`,
+    );
+
     const [activeSend] = await tx
       .select({ id: campaigns.id })
       .from(campaigns)
@@ -992,6 +993,39 @@ export async function markCampaignSendCompleted(
     .set({
       status: 'sent',
       sentAt: now,
+      actualCreditCount: input.actualCreditCount,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(campaigns.organizationId, input.organizationId),
+        eq(campaigns.id, input.campaignId),
+        inArray(campaigns.status, ['ready_to_send', 'sending']),
+      ),
+    )
+    .returning();
+
+  return row ? campaignToContract(row) : null;
+}
+
+export async function markCampaignSendFailed(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    campaignId: string;
+    failureReason: string;
+    actualCreditCount: number;
+    now?: Date;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+  const [row] = await db
+    .update(campaigns)
+    .set({
+      status: 'failed',
+      failedAt: now,
+      failureReason: input.failureReason,
       actualCreditCount: input.actualCreditCount,
       updatedAt: now,
     })

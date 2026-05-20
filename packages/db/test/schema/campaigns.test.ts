@@ -1,3 +1,4 @@
+import { getTableConfig } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 import {
   auditLogs,
@@ -52,6 +53,22 @@ describe('campaigns schema', () => {
     expect(campaignRecipients.queuedAt.name).toBe('queued_at');
     expect(campaignRecipients.sentAt.name).toBe('sent_at');
     expect(campaignRecipients.failedAt.name).toBe('failed_at');
+  });
+
+  it('indexes recipient lookup by phone hash for inbound replies', () => {
+    const indexes = getTableConfig(campaignRecipients).indexes.map(
+      (index) => index.config,
+    );
+    const phoneHashIndex = indexes.find(
+      (index) =>
+        index.name === 'campaign_recipients_organization_phone_sent_idx',
+    );
+
+    expect(phoneHashIndex?.columns.map((column) => column.name)).toEqual([
+      'organization_id',
+      'phone_hash',
+      'sent_at',
+    ]);
   });
 
   it('stores tenant-scoped audit logs for launch decisions', () => {

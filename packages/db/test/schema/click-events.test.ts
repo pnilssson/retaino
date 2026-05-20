@@ -8,7 +8,6 @@ describe('click events schema', () => {
     expect(clickEvents.recipientId.name).toBe('recipient_id');
     expect(clickEvents.trackingLinkId.name).toBe('tracking_link_id');
     expect(clickEvents.userAgent.name).toBe('user_agent');
-    expect(clickEvents.ipAddress.name).toBe('ip_address');
     expect(clickEvents.occurredAt.name).toBe('occurred_at');
   });
 });

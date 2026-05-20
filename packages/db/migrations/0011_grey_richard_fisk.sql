@@ -1,0 +1,1 @@
+ALTER TABLE "click_events" DROP COLUMN "ip_address";

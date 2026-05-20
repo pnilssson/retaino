@@ -21,7 +21,6 @@ export const clickEvents = pgTable(
       .notNull()
       .references(() => trackingLinks.id, { onDelete: 'cascade' }),
     userAgent: text('user_agent'),
-    ipAddress: text('ip_address'),
     occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
     createdAt,
   },

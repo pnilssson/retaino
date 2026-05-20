@@ -100,6 +100,11 @@ export const campaignRecipients = pgTable(
       table.organizationId,
       table.status,
     ),
+    index('campaign_recipients_organization_phone_sent_idx').on(
+      table.organizationId,
+      table.phoneHash,
+      table.sentAt,
+    ),
   ],
 );
 

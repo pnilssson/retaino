@@ -239,7 +239,6 @@ export const clickEventSchema = z.object({
   recipientId: idSchema,
   trackingLinkId: idSchema,
   userAgent: nonEmptyStringSchema.nullable(),
-  ipAddress: nonEmptyStringSchema.nullable(),
   occurredAt: timestampSchema,
   createdAt: timestampSchema,
 });
@@ -324,7 +323,6 @@ export const smsSenderOptionSchema = z
     numberType: smsSenderNumberTypeSchema,
     capabilities: smsSenderCapabilitySchema,
     regulatoryRequirementSummary: nonEmptyStringSchema.nullable(),
-    providerReference: nonEmptyStringSchema.nullable(),
     label: nonEmptyStringSchema,
   })
   .strict();
@@ -345,6 +343,11 @@ export const organizationSmsSenderSchema = z.object({
   lastVerifiedAt: timestampSchema.nullable(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
+});
+
+export const publicOrganizationSmsSenderSchema = organizationSmsSenderSchema.omit({
+  providerMessagingServiceId: true,
+  providerPhoneNumberId: true,
 });
 
 export const smsSenderCountriesResponseSchema = z.object({
@@ -373,7 +376,7 @@ export const provisionOrganizationSmsSenderSchema = z
   .strict();
 
 export const organizationSmsSenderResponseSchema = z.object({
-  sender: organizationSmsSenderSchema.nullable(),
+  sender: publicOrganizationSmsSenderSchema.nullable(),
 });
 
 export const campaignSmsPreviewRequestSchema = z
@@ -417,11 +420,6 @@ export const campaignRecipientSummaryResponseSchema = z.object({
   recipientCount: z.number().int().nonnegative(),
 });
 
-export const campaignLaunchResponseSchema = z.object({
-  campaign: campaignSchema,
-  recipientCount: z.number().int().nonnegative(),
-});
-
 export const campaignSendResponseSchema = z.object({
   campaign: campaignSchema,
   recipientCount: z.number().int().nonnegative(),
@@ -460,6 +458,9 @@ export type SmsSenderOption = z.infer<typeof smsSenderOptionSchema>;
 export type OrganizationSmsSender = z.infer<
   typeof organizationSmsSenderSchema
 >;
+export type PublicOrganizationSmsSender = z.infer<
+  typeof publicOrganizationSmsSenderSchema
+>;
 export type SmsSenderCountriesResponse = z.infer<
   typeof smsSenderCountriesResponseSchema
 >;
@@ -492,9 +493,6 @@ export type CampaignRecipientListResponse = z.infer<
 >;
 export type CampaignRecipientSummaryResponse = z.infer<
   typeof campaignRecipientSummaryResponseSchema
->;
-export type CampaignLaunchResponse = z.infer<
-  typeof campaignLaunchResponseSchema
 >;
 export type CampaignSendResponse = z.infer<typeof campaignSendResponseSchema>;
 

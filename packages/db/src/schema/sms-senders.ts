@@ -39,5 +39,17 @@ export const organizationSmsSenders = pgTable(
       table.organizationId,
       table.status,
     ),
+    index('organization_sms_senders_provider_service_idx').on(
+      table.provider,
+      table.providerMessagingServiceId,
+    ),
+    index('organization_sms_senders_provider_phone_ref_idx').on(
+      table.provider,
+      table.providerPhoneNumberId,
+    ),
+    index('organization_sms_senders_provider_phone_idx').on(
+      table.provider,
+      table.phoneNumber,
+    ),
   ],
 );

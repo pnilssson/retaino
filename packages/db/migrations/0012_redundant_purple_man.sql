@@ -1,0 +1,4 @@
+CREATE INDEX "campaign_recipients_organization_phone_sent_idx" ON "campaign_recipients" USING btree ("organization_id","phone_hash","sent_at");--> statement-breakpoint
+CREATE INDEX "organization_sms_senders_provider_service_idx" ON "organization_sms_senders" USING btree ("provider","provider_messaging_service_id");--> statement-breakpoint
+CREATE INDEX "organization_sms_senders_provider_phone_ref_idx" ON "organization_sms_senders" USING btree ("provider","provider_phone_number_id");--> statement-breakpoint
+CREATE INDEX "organization_sms_senders_provider_phone_idx" ON "organization_sms_senders" USING btree ("provider","phone_number");

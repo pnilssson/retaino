@@ -20,6 +20,7 @@ import {
   markCampaignRecipientSkipped,
   markCampaignRecipientSent,
   markCampaignSendCompleted,
+  markCampaignSendFailed,
   recordCampaignMessageEvent,
   recordTrackingClick,
   recordSmsMessageProviderResult,
@@ -102,7 +103,6 @@ const clickEventRow = {
   recipientId: recipientRow.id,
   trackingLinkId: '66666666-6666-4666-8666-666666666666',
   userAgent: 'Mozilla/5.0',
-  ipAddress: '203.0.113.10',
   occurredAt: new Date('2026-05-16T10:02:00.000Z'),
   createdAt: new Date('2026-05-16T10:02:00.000Z'),
 };
@@ -261,7 +261,6 @@ describe('campaign query helpers', () => {
       recipientId: clickEventRow.recipientId,
       trackingLinkId: clickEventRow.trackingLinkId,
       userAgent: clickEventRow.userAgent,
-      ipAddress: clickEventRow.ipAddress,
       occurredAt: '2026-05-16T10:02:00.000Z',
       createdAt: '2026-05-16T10:02:00.000Z',
     });
@@ -910,7 +909,6 @@ describe('campaign query helpers', () => {
       recordTrackingClick(db as never, {
         trackingLink: trackingLinkToContract(trackingLinkRow),
         userAgent: 'Mozilla/5.0',
-        ipAddress: '203.0.113.10',
         now: new Date('2026-05-16T10:02:00.000Z'),
       }),
     ).resolves.toEqual(expect.objectContaining({ id: clickEventRow.id }));
@@ -921,7 +919,6 @@ describe('campaign query helpers', () => {
       recipientId: recipientRow.id,
       trackingLinkId: trackingLinkRow.id,
       userAgent: 'Mozilla/5.0',
-      ipAddress: '203.0.113.10',
     });
     expect(updateSets[0]).toHaveProperty('lastClickedAt');
     expect(updateSets[0]).toHaveProperty('clickCount');
@@ -1143,9 +1140,11 @@ describe('campaign query helpers', () => {
 
   it('marks campaigns sending with reserved credit counts', async () => {
     const now = new Date('2026-05-16T10:00:00.000Z');
+    const execute = vi.fn().mockResolvedValue({ rows: [] });
     const db = {
       transaction: async (callback: (inner: unknown) => unknown) =>
         callback({
+          execute,
           select: vi
             .fn()
             .mockReturnValueOnce({
@@ -1195,6 +1194,13 @@ describe('campaign query helpers', () => {
         reservedCreditCount: 3,
       },
     });
+
+    expect(execute).toHaveBeenCalledTimes(1);
+    const lockQuery = new PgDialect().sqlToQuery(
+      execute.mock.calls[0]?.[0] as SQL,
+    );
+    expect(lockQuery.sql).toContain('pg_advisory_xact_lock');
+    expect(lockQuery.params).toEqual([campaignRow.organizationId]);
   });
 
   it('records provider results on outbound SMS messages', async () => {
@@ -1309,6 +1315,53 @@ describe('campaign query helpers', () => {
       }),
     ).resolves.toMatchObject({
       status: 'sent',
+      actualCreditCount: 1,
+    });
+  });
+
+  it('marks campaign sends failed with reason and actual credits', async () => {
+    const now = new Date('2026-05-16T10:03:00.000Z');
+    const db = {
+      update: () => ({
+        set: (values: unknown) => {
+          expect(values).toMatchObject({
+            status: 'failed',
+            failedAt: now,
+            failureReason: 'Provider send failed.',
+            actualCreditCount: 1,
+            updatedAt: now,
+          });
+
+          return {
+            where: () => ({
+              returning: () => [
+                {
+                  ...campaignRow,
+                  status: 'failed',
+                  failedAt: now,
+                  failureReason: 'Provider send failed.',
+                  actualCreditCount: 1,
+                  updatedAt: now,
+                },
+              ],
+            }),
+          };
+        },
+      }),
+    };
+
+    await expect(
+      markCampaignSendFailed(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        failureReason: 'Provider send failed.',
+        actualCreditCount: 1,
+        now,
+      }),
+    ).resolves.toMatchObject({
+      status: 'failed',
+      failedAt: '2026-05-16T10:03:00.000Z',
+      failureReason: 'Provider send failed.',
       actualCreditCount: 1,
     });
   });
