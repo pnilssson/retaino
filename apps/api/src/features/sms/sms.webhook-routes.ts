@@ -123,7 +123,7 @@ export const twilioMessagingWebhookRoutes = new Hono<AppEnv>()
     });
     const optOutType = providerOptOutType(payload);
     const eventType =
-      optOutType || isStopReply(inbound.body) ? 'opt_out' : 'reply';
+      optOutType === 'STOP' || isStopReply(inbound.body) ? 'opt_out' : 'reply';
 
     if (eventType === 'opt_out' && phoneIdentity) {
       await upsertSuppressionByHash(c.get('db'), {
@@ -169,13 +169,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isStopReply(body: string) {
-  return /^(stop|stopall|unsubscribe|cancel|end|quit)$/i.test(body.trim());
+  return /^(stop|stopall|unsubscribe|cancel|end|quit|revoke|optout|block)$/i.test(
+    body.trim(),
+  );
 }
 
 function providerOptOutType(payload: Record<string, unknown>) {
   const value = payload.OptOutType;
+  const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
 
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
+  return normalized === 'STOP' || normalized === 'START' || normalized === 'HELP'
+    ? normalized
+    : null;
 }
 
 async function inboundPhoneIdentity(value: string, countryCode: string) {

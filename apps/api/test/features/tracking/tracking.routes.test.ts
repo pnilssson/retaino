@@ -51,7 +51,6 @@ describe('trackingRoutes', () => {
       recipientId: trackingLink.recipientId,
       trackingLinkId: trackingLink.id,
       userAgent: 'Mozilla/5.0',
-      ipAddress: '203.0.113.10',
       occurredAt: '2026-05-16T10:02:00.000Z',
       createdAt: '2026-05-16T10:02:00.000Z',
     });
@@ -59,7 +58,6 @@ describe('trackingRoutes', () => {
     const response = await testApp().request('/r/abc123', {
       headers: {
         'user-agent': 'Mozilla/5.0',
-        'cf-connecting-ip': '203.0.113.10',
       },
     });
 
@@ -71,7 +69,6 @@ describe('trackingRoutes', () => {
       expect.objectContaining({
         trackingLink,
         userAgent: 'Mozilla/5.0',
-        ipAddress: '203.0.113.10',
       }),
     );
   });
@@ -82,6 +79,48 @@ describe('trackingRoutes', () => {
     const response = await testApp().request('/r/missing');
 
     expect(response.status).toBe(404);
+    expect(recordTrackingClick).not.toHaveBeenCalled();
+  });
+
+  it('rate limits redirect traffic before tracking-code lookup', async () => {
+    const routeLimit = vi.fn().mockResolvedValue({ success: false });
+    const codeLimit = vi.fn().mockResolvedValue({ success: true });
+
+    const response = await testApp().request('/r/random-code', undefined, {
+      TRACKING_REDIRECT_ROUTE_RATE_LIMITER: { limit: routeLimit },
+      TRACKING_REDIRECT_RATE_LIMITER: { limit: codeLimit },
+    } as never);
+
+    expect(response.status).toBe(429);
+    expect(routeLimit).toHaveBeenCalledWith({ key: 'tracking:redirect' });
+    expect(codeLimit).not.toHaveBeenCalled();
+    expect(getTrackingLinkByCode).not.toHaveBeenCalled();
+    expect(recordTrackingClick).not.toHaveBeenCalled();
+  });
+
+  it('returns rate limited before lookup when the tracking limiter blocks', async () => {
+    const limit = vi.fn().mockResolvedValue({ success: false });
+
+    const response = await testApp().request('/r/abc123', undefined, {
+      TRACKING_REDIRECT_RATE_LIMITER: { limit },
+    } as never);
+
+    expect(response.status).toBe(429);
+    expect(limit).toHaveBeenCalledWith({ key: 'tracking:abc123' });
+    expect(getTrackingLinkByCode).not.toHaveBeenCalled();
+    expect(recordTrackingClick).not.toHaveBeenCalled();
+  });
+
+  it('does not record clicks or redirect to invalid stored targets', async () => {
+    vi.mocked(getTrackingLinkByCode).mockResolvedValue({
+      ...trackingLink,
+      targetUrl: 'javascript:alert(1)',
+    });
+
+    const response = await testApp().request('/r/abc123');
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get('location')).toBeNull();
     expect(recordTrackingClick).not.toHaveBeenCalled();
   });
 });

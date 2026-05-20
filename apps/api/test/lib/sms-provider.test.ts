@@ -29,6 +29,89 @@ describe('SMS provider factory', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
+  it('returns deterministic fake provider send failures', async () => {
+    const provider = createSmsProvider({ SMS_SENDING_MODE: 'test' } as never);
+    const baseInput = {
+      retainoMessageId: 'message-1',
+      organizationSender: {
+        id: '11111111-1111-4111-8111-111111111111',
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        provider: 'fake',
+        status: 'ready',
+        phoneNumber: '+46700000000',
+        countryCode: 'SE',
+        numberType: 'mobile',
+        providerMessagingServiceId: 'fake-ms-1',
+        providerPhoneNumberId: 'fake-pn-1',
+        regulatoryStatus: 'not_required',
+        failureReason: null,
+        provisionedAt: '2026-05-18T00:00:00.000Z',
+        lastVerifiedAt: '2026-05-18T00:00:00.000Z',
+        createdAt: '2026-05-18T00:00:00.000Z',
+        updatedAt: '2026-05-18T00:00:00.000Z',
+      },
+      renderedBody: 'Test message',
+      estimatedSegments: 1,
+      statusCallbackUrl: null,
+      reference: 'test-reference',
+    } as const;
+
+    await expect(
+      provider.sendSms({ ...baseInput, to: '+15005550001' }),
+    ).rejects.toMatchObject({
+      code: 'recipient_invalid',
+      retryable: false,
+    });
+    await expect(
+      provider.sendSms({ ...baseInput, to: '+15005550002' }),
+    ).rejects.toMatchObject({
+      code: 'provider_temporary_failure',
+      retryable: true,
+    });
+    await expect(
+      provider.sendSms({ ...baseInput, to: '+15005550003' }),
+    ).rejects.toMatchObject({
+      code: 'provider_permanent_failure',
+      retryable: false,
+    });
+  });
+
+  it('parses fake provider status and inbound webhook payloads', async () => {
+    const provider = createSmsProvider({ SMS_SENDING_MODE: 'test' } as never);
+
+    await expect(
+      provider.parseStatusWebhook({
+        MessageSid: 'fake-message-1',
+        MessageStatus: 'delivered',
+        NumSegments: '2',
+        Price: '0',
+        PriceUnit: 'SEK',
+      }),
+    ).resolves.toMatchObject({
+      providerMessageId: 'fake-message-1',
+      normalizedStatus: 'delivered',
+      providerStatus: 'delivered',
+      actualSegments: 2,
+      cost: '0',
+      currency: 'SEK',
+    });
+    await expect(
+      provider.parseInboundWebhook({
+        MessageSid: 'fake-inbound-1',
+        From: '+46701111111',
+        To: '+46700000000',
+        Body: 'STOP',
+        MessagingServiceSid: 'fake-ms-1',
+      }),
+    ).resolves.toMatchObject({
+      providerMessageId: 'fake-inbound-1',
+      from: '+46701111111',
+      to: '+46700000000',
+      body: 'STOP',
+      providerSenderReference: 'fake-ms-1',
+    });
+  });
+
   it('blocks provider work when sending is disabled', async () => {
     const provider = createSmsProvider({ SMS_SENDING_MODE: 'disabled' } as never);
 
@@ -140,7 +223,6 @@ describe('SMS provider factory', () => {
             smartEncoding: false,
           },
           regulatoryRequirementSummary: null,
-          providerReference: null,
           label: '+1 500 555 0006',
         },
       }),
@@ -195,7 +277,6 @@ describe('SMS provider factory', () => {
             smartEncoding: false,
           },
           regulatoryRequirementSummary: null,
-          providerReference: null,
           label: '+1 500 555 0006',
         },
       }),
@@ -254,7 +335,6 @@ describe('SMS provider factory', () => {
             smartEncoding: false,
           },
           regulatoryRequirementSummary: null,
-          providerReference: null,
           label: '+1 500 555 0006',
         },
       }),
@@ -332,6 +412,47 @@ describe('SMS provider factory', () => {
     ).resolves.toBe(false);
   });
 
+  it('validates Twilio JSON webhook signatures with bodySHA256', async () => {
+    const authToken = '12345';
+    const body = '{"MessageSid":"SM123","MessageStatus":"delivered"}';
+    const bodyHash = await sha256Hex(body);
+    const url =
+      'https://api.retaino.com/v1/webhooks/twilio/messaging/status' +
+      `?bodySHA256=${bodyHash}`;
+    const provider = createSmsProvider(
+      {
+        SMS_SENDING_MODE: 'live',
+        TWILIO_ACCOUNT_SID: 'AC123',
+        TWILIO_API_KEY_SID: 'SK123',
+        TWILIO_API_KEY_SECRET: 'secret',
+        TWILIO_AUTH_TOKEN: authToken,
+      } as never,
+      vi.fn() as never,
+    );
+    const signature = await signTwilioTestWebhook(authToken, url, '');
+
+    await expect(
+      provider.verifyWebhook({
+        url,
+        headers: new Headers({
+          'x-twilio-signature': signature,
+          'content-type': 'application/json',
+        }),
+        body,
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      provider.verifyWebhook({
+        url,
+        headers: new Headers({
+          'x-twilio-signature': signature,
+          'content-type': 'application/json',
+        }),
+        body: '{"MessageSid":"SM123","MessageStatus":"failed"}',
+      }),
+    ).resolves.toBe(false);
+  });
+
   it('fails clearly when live Twilio credentials are incomplete', () => {
     expect(() =>
       createSmsProvider({ SMS_SENDING_MODE: 'live' } as never),
@@ -389,4 +510,15 @@ function bytesToBase64(bytes: Uint8Array) {
   });
 
   return btoa(binary);
+}
+
+async function sha256Hex(value: string) {
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(value),
+  );
+
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
 }

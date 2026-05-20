@@ -4,7 +4,6 @@ import {
   deleteCampaignDraft,
   getCampaignById,
   getCampaignReport,
-  getOrganizationProfileByOrganizationId,
   getOrganizationSmsSender,
   launchCampaign,
   listCampaignRecipients,
@@ -12,24 +11,20 @@ import {
   previewCampaignAudience,
   updateCampaignDraft,
 } from '@retaino/db';
-import { createCampaignSmsPreview, renderCampaignSms } from '@retaino/shared';
+import { createCampaignSmsPreview } from '@retaino/shared';
 import {
   campaignAudiencePreviewRequestSchema,
   campaignSmsPreviewRequestSchema,
   campaignSmsTestSendRequestSchema,
   createCampaignDraftSchema,
-  normalizePhoneNumber,
   updateCampaignDraftSchema,
 } from '@retaino/shared/contracts';
 import { Hono, type Context } from 'hono';
 import {
   BillingInsufficientCreditsError,
   BillingSubscriptionRequiredError,
-  debitSmsCreditUsage,
-  releaseSmsCreditUsage,
 } from '../billing/billing.service';
 import { apiError } from '../../lib/errors';
-import { callbackUrl } from '../../lib/callback-url';
 import { parseJsonBody } from '../../lib/route-helpers';
 import { createSmsProvider, SmsProviderError } from '../../lib/sms-provider';
 import type { AppEnv } from '../../types';
@@ -38,8 +33,10 @@ import {
   requireCampaignPreviewEligibility,
 } from '../organization/organization.gates';
 import { enqueueCampaignSendProcessing } from './campaigns.jobs';
-
-const TEST_TRACKED_BOOKING_LINK = 'https://go.retaino.com/r/test';
+import {
+  sendCampaignTestSms,
+  TEST_TRACKED_BOOKING_LINK,
+} from './campaigns.service';
 
 export const campaignsRoutes = new Hono<AppEnv>()
   .get('/', async (c) => {
@@ -182,54 +179,37 @@ export const campaignsRoutes = new Hono<AppEnv>()
       return parsed.response;
     }
 
-    const db = c.get('db');
-    const organization = c.get('organization');
-    const [campaign, profile] = await Promise.all([
-      getCampaignById(db, {
-        organizationId: organization.id,
-        campaignId: c.req.param('id'),
-      }),
-      getOrganizationProfileByOrganizationId(db, organization.id),
-    ]);
-
-    if (!campaign) {
-      return c.json(apiError('not_found', 'Campaign was not found.'), 404);
-    }
-
-    const readiness = requireSmsReadyCampaign(campaign);
-
-    if (!readiness.ok) {
-      return readiness.response(c);
-    }
-
-    const phone = parsed.data.testPhone ?? profile?.responsiblePhone;
-    const normalizedPhone = normalizePhoneNumber(
-      phone,
-      profile?.countryCode ?? 'SE',
-    );
-
-    if (!normalizedPhone.ok) {
-      return c.json(
-        apiError('validation_failed', 'Enter a valid test phone number.'),
-        400,
-      );
-    }
-
-    const rendered = renderCampaignSms({
-      smsBody: readiness.smsBody,
-      trackedBookingLink: TEST_TRACKED_BOOKING_LINK,
-    });
-    const messageId = crypto.randomUUID();
-    const sourceId = `campaign-test:${campaign.id}:${messageId}`;
-
     try {
-      const provider = createSmsProvider(c.env);
-      const sender = await getOrganizationSmsSender(db, {
-        organizationId: organization.id,
-        provider: provider.name,
+      const result = await sendCampaignTestSms({
+        db: c.get('db'),
+        env: c.env,
+        organizationId: c.get('organization').id,
+        campaignId: c.req.param('id'),
+        testPhone: parsed.data.testPhone,
       });
 
-      if (!sender || sender.status !== 'ready') {
+      if (result.status === 'not_found') {
+        return c.json(apiError('not_found', 'Campaign was not found.'), 404);
+      }
+
+      if (result.status === 'incomplete') {
+        return c.json(
+          apiError(
+            'conflict',
+            'Complete the campaign message and booking link first.',
+          ),
+          409,
+        );
+      }
+
+      if (result.status === 'invalid_phone') {
+        return c.json(
+          apiError('validation_failed', 'Enter a valid test phone number.'),
+          400,
+        );
+      }
+
+      if (result.status === 'sender_not_ready') {
         return c.json(
           apiError(
             'conflict',
@@ -239,51 +219,7 @@ export const campaignsRoutes = new Hono<AppEnv>()
         );
       }
 
-      const reservedTransactions = await debitSmsCreditUsage({
-        db,
-        organizationId: organization.id,
-        actualSegments: rendered.estimatedSmsPerRecipient,
-        source: 'campaign_test_send',
-        sourceId,
-        description: 'Campaign test SMS usage',
-      });
-      let result;
-
-      try {
-        result = await provider.sendSms({
-          retainoMessageId: messageId,
-          organizationSender: sender,
-          to: normalizedPhone.normalizedPhone,
-          renderedBody: rendered.renderedBody,
-          estimatedSegments: rendered.estimatedSmsPerRecipient,
-          statusCallbackUrl: callbackUrl(
-            c.env.TWILIO_STATUS_CALLBACK_BASE_URL,
-            '/v1/webhooks/twilio/messaging/status',
-          ),
-          reference: sourceId,
-        });
-      } catch (error) {
-        await releaseSmsCreditUsage({
-          db,
-          organizationId: organization.id,
-          reservedTransactions,
-          source: 'campaign_test_send',
-          sourceId: `${sourceId}:release`,
-          description: 'Campaign test SMS release',
-        });
-
-        throw error;
-      }
-
-      return c.json({
-        testSend: {
-          to: normalizedPhone.normalizedPhone,
-          renderedBody: rendered.renderedBody,
-          estimatedSmsPerRecipient: rendered.estimatedSmsPerRecipient,
-          chargedCredits: rendered.estimatedSmsPerRecipient,
-          status: result.normalizedStatus,
-        },
-      });
+      return c.json({ testSend: result.testSend });
     } catch (error) {
       return campaignSmsSendErrorResponse(c, error);
     }
@@ -310,69 +246,6 @@ export const campaignsRoutes = new Hono<AppEnv>()
         organizationId: c.get('organization').id,
         campaignId: c.req.param('id'),
       }),
-    });
-  })
-  .post('/:id/launch', async (c) => {
-    const gate = await requireCampaignEligibility(c);
-
-    if (!gate.ok) {
-      return gate.response;
-    }
-
-    const db = c.get('db');
-    const organization = c.get('organization');
-    const provider = createSmsProvider(c.env);
-    const sender = await getOrganizationSmsSender(db, {
-      organizationId: organization.id,
-      provider: provider.name,
-    });
-
-    if (!sender || sender.status !== 'ready') {
-      return c.json(
-        apiError('conflict', 'Set up the SMS sender before sending a campaign.'),
-        409,
-      );
-    }
-
-    const result = await launchCampaign(db, {
-      organizationId: organization.id,
-      campaignId: c.req.param('id'),
-      actorUserId: c.get('user').id,
-      ipAddress:
-        c.req.header('cf-connecting-ip') ??
-        c.req.header('x-forwarded-for') ??
-        null,
-      userAgent: c.req.header('user-agent') ?? null,
-    });
-
-    if (result.status === 'not_found') {
-      return c.json(apiError('not_found', 'Campaign was not found.'), 404);
-    }
-
-    if (result.status === 'not_editable') {
-      return c.json(
-        apiError('conflict', 'Only draft campaigns can be sent.'),
-        409,
-      );
-    }
-
-    if (result.status === 'incomplete') {
-      return c.json(
-        apiError('conflict', 'Complete the campaign before sending it.'),
-        409,
-      );
-    }
-
-    if (result.status === 'empty_audience') {
-      return c.json(
-        apiError('validation_failed', 'Choose an audience with eligible contacts.'),
-        400,
-      );
-    }
-
-    return c.json({
-      campaign: result.campaign,
-      recipientCount: result.recipientCount,
     });
   })
   .post('/:id/send', async (c) => {

@@ -74,15 +74,17 @@ describe('twilioMessagingWebhookRoutes', () => {
         providerErrorMessage: null,
         rawProviderReference: 'SM123',
       }),
-      parseInboundWebhook: vi.fn().mockResolvedValue({
-        providerMessageId: 'IM123',
-        from: '+46701111111',
-        to: '+46700000000',
-        body: 'STOP',
-        receivedAt: new Date('2026-05-16T10:05:00.000Z'),
-        providerSenderReference: 'MG123',
-        rawProviderReference: 'IM123',
-      }),
+      parseInboundWebhook: vi.fn().mockImplementation(
+        async (payload: Record<string, string | undefined>) => ({
+          providerMessageId: payload.MessageSid ?? 'IM123',
+          from: payload.From ?? '+46701111111',
+          to: payload.To ?? '+46700000000',
+          body: payload.Body ?? '',
+          receivedAt: new Date('2026-05-16T10:05:00.000Z'),
+          providerSenderReference: payload.MessagingServiceSid ?? 'MG123',
+          rawProviderReference: payload.MessageSid ?? 'IM123',
+        }),
+      ),
     });
   });
 
@@ -150,7 +152,7 @@ describe('twilioMessagingWebhookRoutes', () => {
     );
   });
 
-  it('stores inbound STOP replies and creates phone suppressions', async () => {
+  it('stores inbound STOP-style replies and creates phone suppressions', async () => {
     vi.mocked(getOrganizationSmsSenderByProviderReference).mockResolvedValue({
       id: '66666666-6666-4666-8666-666666666666',
       organizationId,
@@ -264,6 +266,122 @@ describe('twilioMessagingWebhookRoutes', () => {
         messageId,
         recipientId,
         eventType: 'opt_out',
+      }),
+    );
+
+    vi.mocked(upsertSuppressionByHash).mockClear();
+
+    const revokeResponse = await testApp().request(
+      '/v1/webhooks/twilio/messaging/inbound',
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': 'valid',
+        },
+        body:
+          'MessageSid=IM124&From=%2B46701111111' +
+          '&To=%2B46700000000&Body=REVOKE',
+      },
+    );
+
+    expect(revokeResponse.status).toBe(200);
+    expect(upsertSuppressionByHash).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        organizationId,
+        type: 'phone',
+        value: '+46701111111',
+        reason: 'provider_opt_out',
+        source: 'twilio',
+      }),
+    );
+  });
+
+  it('does not suppress phones for Twilio START or HELP advanced opt-out events', async () => {
+    vi.mocked(getOrganizationSmsSenderByProviderReference).mockResolvedValue({
+      id: '66666666-6666-4666-8666-666666666666',
+      organizationId,
+      provider: 'twilio',
+      status: 'ready',
+      phoneNumber: '+46700000000',
+      countryCode: 'SE',
+      numberType: 'mobile',
+      providerMessagingServiceId: 'MG123',
+      providerPhoneNumberId: 'PN123',
+      regulatoryStatus: null,
+      failureReason: null,
+      provisionedAt: null,
+      lastVerifiedAt: null,
+      createdAt: '2026-05-16T10:00:00.000Z',
+      updatedAt: '2026-05-16T10:00:00.000Z',
+    });
+    vi.mocked(getLatestCampaignRecipientByPhoneHash).mockResolvedValue(null);
+    vi.mocked(createInboundSmsMessage).mockImplementation(
+      async (_db, input) =>
+        ({
+          id: messageId,
+          organizationId,
+          direction: 'inbound',
+          campaignId: null,
+          recipientId: null,
+          contactId: null,
+          provider: 'twilio',
+          providerMessageId: input.providerMessageId,
+          providerMessagingServiceId: 'MG123',
+          providerPhoneNumberId: null,
+          fromPhone: '+46701111111',
+          toPhone: '+46700000000',
+          body: input.body,
+          status: 'received',
+          estimatedSegmentCount: 0,
+          actualSegmentCount: null,
+          estimatedCostMinor: null,
+          actualCostMinor: null,
+          currency: null,
+          queuedAt: null,
+          sentAt: null,
+          receivedAt: '2026-05-16T10:05:00.000Z',
+          deliveredAt: null,
+          failedAt: null,
+          createdAt: '2026-05-16T10:05:00.000Z',
+          updatedAt: '2026-05-16T10:05:00.000Z',
+        }) as Awaited<ReturnType<typeof createInboundSmsMessage>>,
+    );
+
+    for (const optOutType of ['START', 'HELP']) {
+      const response = await testApp().request(
+        '/v1/webhooks/twilio/messaging/inbound',
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/x-www-form-urlencoded',
+            'x-twilio-signature': 'valid',
+          },
+          body:
+            `MessageSid=IM${optOutType}&From=%2B46701111111` +
+            `&To=%2B46700000000&Body=${optOutType}&OptOutType=${optOutType}`,
+        },
+      );
+
+      expect(response.status).toBe(200);
+    }
+
+    expect(upsertSuppressionByHash).not.toHaveBeenCalled();
+    expect(recordCampaignMessageEvent).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        eventType: 'reply',
+        rawStatus: 'START',
+      }),
+    );
+    expect(recordCampaignMessageEvent).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        eventType: 'reply',
+        rawStatus: 'HELP',
       }),
     );
   });

@@ -6,6 +6,8 @@ import {
 import {
   provisionOrganizationSmsSenderSchema,
   smsSenderNumbersRequestSchema,
+  type OrganizationSmsSender,
+  type PublicOrganizationSmsSender,
   type SmsSenderOption,
 } from '@retaino/shared/contracts';
 import { Hono, type Context } from 'hono';
@@ -24,7 +26,7 @@ export const smsRoutes = new Hono<AppEnv>()
       provider: provider.name,
     });
 
-    return c.json({ sender });
+    return c.json({ sender: publicSender(sender) });
   })
   .get('/countries', async (c) => {
     const eligibility = await requireCampaignEligibility(c);
@@ -114,7 +116,7 @@ export const smsRoutes = new Hono<AppEnv>()
       });
 
       if (existing?.status === 'ready') {
-        return c.json({ sender: existing });
+        return c.json({ sender: publicSender(existing) });
       }
 
       const selectedSender = await getProviderVerifiedSender(
@@ -178,7 +180,7 @@ export const smsRoutes = new Hono<AppEnv>()
         lastVerifiedAt: result.lastVerifiedAt,
       });
 
-      return c.json({ sender }, 201);
+      return c.json({ sender: publicSender(sender) }, 201);
     } catch (error) {
       return providerErrorResponse(c, error);
     }
@@ -282,6 +284,30 @@ function providerErrorResponse(c: Context<AppEnv>, error: unknown) {
   }
 
   throw error;
+}
+
+function publicSender(
+  sender: OrganizationSmsSender | null,
+): PublicOrganizationSmsSender | null {
+  if (!sender) {
+    return null;
+  }
+
+  return {
+    id: sender.id,
+    organizationId: sender.organizationId,
+    provider: sender.provider,
+    status: sender.status,
+    phoneNumber: sender.phoneNumber,
+    countryCode: sender.countryCode,
+    numberType: sender.numberType,
+    regulatoryStatus: sender.regulatoryStatus,
+    failureReason: sender.failureReason,
+    provisionedAt: sender.provisionedAt,
+    lastVerifiedAt: sender.lastVerifiedAt,
+    createdAt: sender.createdAt,
+    updatedAt: sender.updatedAt,
+  };
 }
 
 function providerHttpError(error: SmsProviderError) {

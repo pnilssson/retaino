@@ -12,6 +12,7 @@ import {
   markCampaignRecipientSent,
   markCampaignRecipientSkipped,
   markCampaignSendCompleted,
+  markCampaignSendFailed,
   recordSmsMessageProviderResult,
   startCampaignSend,
   upsertTrackingLink,
@@ -20,7 +21,10 @@ import {
   debitSmsCreditUsage,
   releaseSmsCreditUsage,
 } from '../../../src/features/billing/billing.service';
-import { processCampaignSend } from '../../../src/features/campaigns/campaigns.service';
+import {
+  processCampaignSend,
+  sendCampaignTestSms,
+} from '../../../src/features/campaigns/campaigns.service';
 import { createSmsProvider } from '../../../src/lib/sms-provider';
 
 vi.mock('@retaino/db', () => ({
@@ -36,6 +40,7 @@ vi.mock('@retaino/db', () => ({
   markCampaignRecipientSent: vi.fn(),
   markCampaignRecipientSkipped: vi.fn(),
   markCampaignSendCompleted: vi.fn(),
+  markCampaignSendFailed: vi.fn(),
   recordSmsMessageProviderResult: vi.fn(),
   startCampaignSend: vi.fn(),
   upsertTrackingLink: vi.fn(),
@@ -148,6 +153,7 @@ describe('campaign send service', () => {
     vi.mocked(markCampaignRecipientSent).mockReset();
     vi.mocked(markCampaignRecipientSkipped).mockReset();
     vi.mocked(markCampaignSendCompleted).mockReset();
+    vi.mocked(markCampaignSendFailed).mockReset();
     vi.mocked(recordSmsMessageProviderResult).mockReset();
     vi.mocked(startCampaignSend).mockReset();
     vi.mocked(upsertTrackingLink).mockReset();
@@ -248,6 +254,13 @@ describe('campaign send service', () => {
       sentAt: '2026-05-16T10:05:00.000Z',
       actualCreditCount: 1,
     });
+    vi.mocked(markCampaignSendFailed).mockResolvedValue({
+      ...campaign,
+      status: 'failed',
+      failedAt: '2026-05-16T10:05:00.000Z',
+      failureReason: 'Provider send failed.',
+      actualCreditCount: 0,
+    });
     vi.mocked(createSmsProvider).mockReturnValue({
       name: 'fake',
       listSenderCountries: vi.fn(),
@@ -267,6 +280,78 @@ describe('campaign send service', () => {
       parseStatusWebhook: vi.fn(),
       parseInboundWebhook: vi.fn(),
       verifyWebhook: vi.fn(),
+    });
+  });
+
+  it('sends campaign test SMS through the provider and reserves credits', async () => {
+    await expect(
+      sendCampaignTestSms({
+        db,
+        env: {
+          SMS_SENDING_MODE: 'test',
+          TWILIO_STATUS_CALLBACK_BASE_URL: 'https://api.retaino.test',
+        } as never,
+        organizationId,
+        campaignId,
+        testPhone: '0700000000',
+      }),
+    ).resolves.toMatchObject({
+      status: 'sent',
+      testSend: {
+        to: '+46700000000',
+        chargedCredits: 1,
+        status: 'queued',
+      },
+    });
+
+    expect(debitSmsCreditUsage).toHaveBeenCalledWith({
+      db,
+      organizationId,
+      actualSegments: 1,
+      source: 'campaign_test_send',
+      sourceId: expect.stringMatching(/^campaign-test:/),
+      description: 'Campaign test SMS usage',
+    });
+    const provider = vi.mocked(createSmsProvider).mock.results[0]?.value;
+    expect(provider.sendSms).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationSender: sender,
+        to: '+46700000000',
+        estimatedSegments: 1,
+      }),
+    );
+  });
+
+  it('releases test SMS credits when the provider send fails', async () => {
+    const providerError = new Error('Provider rejected the test SMS.');
+    vi.mocked(createSmsProvider).mockReturnValue({
+      name: 'fake',
+      listSenderCountries: vi.fn(),
+      searchSenderOptions: vi.fn(),
+      ensureSender: vi.fn(),
+      sendSms: vi.fn().mockRejectedValue(providerError),
+      parseStatusWebhook: vi.fn(),
+      parseInboundWebhook: vi.fn(),
+      verifyWebhook: vi.fn(),
+    });
+
+    await expect(
+      sendCampaignTestSms({
+        db,
+        env: { SMS_SENDING_MODE: 'test' } as never,
+        organizationId,
+        campaignId,
+        testPhone: '0700000000',
+      }),
+    ).rejects.toThrow(providerError);
+
+    expect(releaseSmsCreditUsage).toHaveBeenCalledWith({
+      db,
+      organizationId,
+      reservedTransactions: expect.any(Array),
+      source: 'campaign_test_send',
+      sourceId: expect.stringMatching(/^campaign-test:.*:release$/),
+      description: 'Campaign test SMS release',
     });
   });
 
@@ -355,9 +440,14 @@ describe('campaign send service', () => {
         eventType: 'campaign.sent',
       }),
     );
+    expect(
+      vi.mocked(createAuditLog).mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      vi.mocked(markCampaignSendCompleted).mock.invocationCallOrder[0] ?? 0,
+    );
   });
 
-  it('does not reserve or send again for recipients already sent by a retry', async () => {
+  it('does not send again for recipients already sent by a retry', async () => {
     vi.mocked(getCampaignById).mockResolvedValue({
       ...campaign,
       status: 'sending',
@@ -408,7 +498,14 @@ describe('campaign send service', () => {
       userId,
     });
 
-    expect(debitSmsCreditUsage).not.toHaveBeenCalled();
+    expect(debitSmsCreditUsage).toHaveBeenCalledWith({
+      db,
+      organizationId,
+      actualSegments: 1,
+      source: 'campaign_send',
+      sourceId: `campaign-send:${campaignId}`,
+      description: 'Campaign SMS reservation',
+    });
     const provider = vi.mocked(createSmsProvider).mock.results[0]?.value;
     expect(provider.sendSms).not.toHaveBeenCalled();
     expect(markCampaignRecipientSent).toHaveBeenCalledWith(
@@ -418,6 +515,78 @@ describe('campaign send service', () => {
         recipientId: recipient.id,
       }),
     );
+  });
+
+  it('fails unresolved existing message attempts instead of sending twice', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue({
+      ...campaign,
+      status: 'sending',
+      reservedCreditCount: 1,
+      sendStartedAt: '2026-05-16T10:01:00.000Z',
+    });
+    vi.mocked(createOutboundSmsMessage).mockResolvedValue({
+      status: 'existing',
+      message: {
+        id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        organizationId,
+        direction: 'outbound',
+        campaignId,
+        recipientId: recipient.id,
+        contactId: recipient.contactId,
+        provider: 'fake',
+        providerMessageId: null,
+        providerMessagingServiceId: null,
+        providerPhoneNumberId: null,
+        fromPhone: sender.phoneNumber,
+        toPhone: recipient.normalizedPhone,
+        body: 'Hi Ada',
+        status: 'queued',
+        estimatedSegmentCount: 1,
+        actualSegmentCount: null,
+        estimatedCostMinor: null,
+        actualCostMinor: null,
+        currency: 'SEK',
+        queuedAt: '2026-05-16T10:00:00.000Z',
+        sentAt: null,
+        receivedAt: null,
+        deliveredAt: null,
+        failedAt: null,
+        createdAt: '2026-05-16T10:00:00.000Z',
+        updatedAt: '2026-05-16T10:00:00.000Z',
+      },
+    });
+
+    await expect(
+      processCampaignSend({
+        db,
+        env: {
+          DATABASE_URL: 'postgres://retaino.test/db',
+          SMS_SENDING_MODE: 'test',
+          TRACKING_BASE_URL: 'https://go.retaino.test',
+        } as never,
+        organizationId,
+        campaignId,
+        userId,
+      }),
+    ).rejects.toThrow('Campaign recipient send attempt is unresolved.');
+
+    const provider = vi.mocked(createSmsProvider).mock.results[0]?.value;
+    expect(provider.sendSms).not.toHaveBeenCalled();
+    expect(releaseSmsCreditUsage).toHaveBeenCalledWith({
+      db,
+      organizationId,
+      credits: 1,
+      reservedTransactions: expect.any(Array),
+      source: 'campaign_send',
+      sourceId: `campaign-send:${campaignId}:release`,
+      description: 'Campaign SMS reservation release',
+    });
+    expect(markCampaignSendFailed).toHaveBeenCalledWith(db, {
+      organizationId,
+      campaignId,
+      actualCreditCount: 0,
+      failureReason: 'Campaign recipient send attempt is unresolved.',
+    });
   });
 
   it('releases unused reserved credits after provider results are lower', async () => {
@@ -464,6 +633,107 @@ describe('campaign send service', () => {
       sourceId: `campaign-send:${campaignId}:release`,
       description: 'Campaign SMS reservation release',
     });
+    expect(
+      vi.mocked(releaseSmsCreditUsage).mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      vi.mocked(markCampaignSendCompleted).mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it('releases reserved credits when the campaign send cannot start', async () => {
+    vi.mocked(startCampaignSend).mockResolvedValue({
+      status: 'active_send_exists',
+    });
+
+    await expect(
+      processCampaignSend({
+        db,
+        env: {
+          DATABASE_URL: 'postgres://retaino.test/db',
+          SMS_SENDING_MODE: 'test',
+          TRACKING_BASE_URL: 'https://go.retaino.test',
+        } as never,
+        organizationId,
+        campaignId,
+        userId,
+      }),
+    ).rejects.toThrow('Campaign send could not be started.');
+
+    expect(releaseSmsCreditUsage).toHaveBeenCalledWith({
+      db,
+      organizationId,
+      reservedTransactions: expect.any(Array),
+      source: 'campaign_send',
+      sourceId: `campaign-send:${campaignId}:release`,
+      description: 'Campaign SMS reservation release',
+    });
+    expect(createOutboundSmsMessage).not.toHaveBeenCalled();
+    const provider = vi.mocked(createSmsProvider).mock.results[0]?.value;
+    expect(provider.sendSms).not.toHaveBeenCalled();
+  });
+
+  it('marks the campaign failed and releases credits when provider send fails', async () => {
+    const providerError = new Error('Provider timeout.');
+    const provider = {
+      name: 'fake' as const,
+      listSenderCountries: vi.fn(),
+      searchSenderOptions: vi.fn(),
+      ensureSender: vi.fn(),
+      sendSms: vi.fn().mockRejectedValue(providerError),
+      parseStatusWebhook: vi.fn(),
+      parseInboundWebhook: vi.fn(),
+      verifyWebhook: vi.fn(),
+    };
+    vi.mocked(createSmsProvider).mockReturnValue(provider);
+
+    await expect(
+      processCampaignSend({
+        db,
+        env: {
+          DATABASE_URL: 'postgres://retaino.test/db',
+          SMS_SENDING_MODE: 'test',
+          TRACKING_BASE_URL: 'https://go.retaino.test',
+        } as never,
+        organizationId,
+        campaignId,
+        userId,
+      }),
+    ).rejects.toThrow('Provider timeout.');
+
+    expect(markCampaignSendFailed).toHaveBeenCalledWith(db, {
+      organizationId,
+      campaignId,
+      actualCreditCount: 0,
+      failureReason: 'Provider timeout.',
+    });
+    expect(releaseSmsCreditUsage).toHaveBeenCalledWith({
+      db,
+      organizationId,
+      credits: 1,
+      reservedTransactions: expect.any(Array),
+      source: 'campaign_send',
+      sourceId: `campaign-send:${campaignId}:release`,
+      description: 'Campaign SMS reservation release',
+    });
+    expect(
+      vi.mocked(releaseSmsCreditUsage).mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      vi.mocked(markCampaignSendFailed).mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(createAuditLog).toHaveBeenCalledWith(
+      db,
+      expect.objectContaining({
+        organizationId,
+        actorUserId: userId,
+        eventType: 'campaign.failed',
+        metadata: expect.objectContaining({
+          reservedCreditCount: 1,
+          actualCreditCount: 0,
+          failureReason: 'Provider timeout.',
+        }),
+      }),
+    );
+    expect(markCampaignSendCompleted).not.toHaveBeenCalled();
   });
 
   it('skips recipients suppressed after launch', async () => {

@@ -114,7 +114,6 @@ export function createTwilioSmsProvider(
           numberType,
           capabilities: SENDER_CAPABILITIES,
           regulatoryRequirementSummary: null,
-          providerReference: null,
           label: number.friendly_name ?? number.phone_number,
         }));
     },
@@ -523,6 +522,13 @@ async function verifyTwilioWebhook(
     return false;
   }
 
+  if (
+    input.headers.get('content-type')?.toLowerCase().includes('application/json') &&
+    !(await hasValidJsonBodyHash(input.url, input.body))
+  ) {
+    return false;
+  }
+
   const expectedSignature = await signTwilioWebhook({
     authToken: config.authToken,
     url: input.url,
@@ -562,7 +568,7 @@ function twilioSignatureBaseString(input: {
   contentType: string;
 }) {
   if (input.contentType.toLowerCase().includes('application/json')) {
-    return `${input.url}${input.body}`;
+    return input.url;
   }
 
   const params = Array.from(new URLSearchParams(input.body).entries()).sort(
@@ -583,6 +589,27 @@ function twilioSignatureBaseString(input: {
     (baseString, [key, value]) => `${baseString}${key}${value}`,
     input.url,
   );
+}
+
+async function hasValidJsonBodyHash(url: string, body: string) {
+  const bodyHash = new URL(url).searchParams.get('bodySHA256');
+
+  if (!bodyHash) {
+    return false;
+  }
+
+  return constantTimeEqual(bodyHash, await sha256Hex(body));
+}
+
+async function sha256Hex(value: string) {
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(value),
+  );
+
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 function bytesToBase64(bytes: Uint8Array) {

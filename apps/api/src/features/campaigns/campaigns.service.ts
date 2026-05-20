@@ -11,6 +11,7 @@ import {
   markCampaignRecipientSent,
   markCampaignRecipientSkipped,
   markCampaignSendCompleted,
+  markCampaignSendFailed,
   recordSmsMessageProviderResult,
   startCampaignSend,
   upsertTrackingLink,
@@ -18,6 +19,7 @@ import {
   type DbClient,
 } from '@retaino/db';
 import { renderCampaignSms } from '@retaino/shared';
+import { normalizePhoneNumber } from '@retaino/shared/contracts';
 import type { Campaign } from '@retaino/shared/contracts';
 import {
   debitSmsCreditUsage,
@@ -36,11 +38,126 @@ type CampaignSendResult = {
   actualCreditCount: number;
 };
 
+type CampaignTestSmsResult =
+  | { status: 'not_found' }
+  | { status: 'incomplete' }
+  | { status: 'invalid_phone' }
+  | { status: 'sender_not_ready' }
+  | {
+      status: 'sent';
+      testSend: {
+        to: string;
+        renderedBody: string;
+        estimatedSmsPerRecipient: number;
+        chargedCredits: number;
+        status: string;
+      };
+    };
+
 type PreparedRecipient = {
   recipient: CampaignRecipientForSend;
   renderedBody: string;
   estimatedSegments: number;
 };
+
+export const TEST_TRACKED_BOOKING_LINK = 'https://go.retaino.com/r/test';
+
+export async function sendCampaignTestSms(input: {
+  db: DbClient;
+  env: AppEnv['Bindings'];
+  organizationId: string;
+  campaignId: string;
+  testPhone?: string | undefined;
+}): Promise<CampaignTestSmsResult> {
+  const [campaign, profile] = await Promise.all([
+    getCampaignById(input.db, {
+      organizationId: input.organizationId,
+      campaignId: input.campaignId,
+    }),
+    getOrganizationProfileByOrganizationId(input.db, input.organizationId),
+  ]);
+
+  if (!campaign) {
+    return { status: 'not_found' };
+  }
+
+  if (!campaign.smsBody || !campaign.bookingUrl) {
+    return { status: 'incomplete' };
+  }
+
+  const phone = input.testPhone ?? profile?.responsiblePhone;
+  const normalizedPhone = normalizePhoneNumber(
+    phone,
+    profile?.countryCode ?? 'SE',
+  );
+
+  if (!normalizedPhone.ok) {
+    return { status: 'invalid_phone' };
+  }
+
+  const rendered = renderCampaignSms({
+    smsBody: campaign.smsBody,
+    trackedBookingLink: TEST_TRACKED_BOOKING_LINK,
+  });
+  const messageId = crypto.randomUUID();
+  const sourceId = `campaign-test:${campaign.id}:${messageId}`;
+  const provider = createSmsProvider(input.env);
+  const sender = await getOrganizationSmsSender(input.db, {
+    organizationId: input.organizationId,
+    provider: provider.name,
+  });
+
+  if (!sender || sender.status !== 'ready') {
+    return { status: 'sender_not_ready' };
+  }
+
+  const reservedTransactions = await debitSmsCreditUsage({
+    db: input.db,
+    organizationId: input.organizationId,
+    actualSegments: rendered.estimatedSmsPerRecipient,
+    source: 'campaign_test_send',
+    sourceId,
+    description: 'Campaign test SMS usage',
+  });
+  let result;
+
+  try {
+    result = await provider.sendSms({
+      retainoMessageId: messageId,
+      organizationSender: sender,
+      to: normalizedPhone.normalizedPhone,
+      renderedBody: rendered.renderedBody,
+      estimatedSegments: rendered.estimatedSmsPerRecipient,
+      statusCallbackUrl: callbackUrl(
+        input.env.TWILIO_STATUS_CALLBACK_BASE_URL,
+        '/v1/webhooks/twilio/messaging/status',
+      ),
+      reference: sourceId,
+    });
+  } catch (error) {
+    await releaseSmsCreditUsage({
+      db: input.db,
+      organizationId: input.organizationId,
+      reservedTransactions,
+      source: 'campaign_test_send',
+      sourceId: `${sourceId}:release`,
+      description: 'Campaign test SMS release',
+    });
+
+    throw error;
+  }
+
+  return {
+    status: 'sent',
+    testSend: {
+      to: normalizedPhone.normalizedPhone,
+      renderedBody: rendered.renderedBody,
+      estimatedSmsPerRecipient: rendered.estimatedSmsPerRecipient,
+      chargedCredits: rendered.estimatedSmsPerRecipient,
+      status: result.normalizedStatus,
+    },
+  };
+}
 
 export async function processCampaignSend(input: {
   db: DbClient;
@@ -113,15 +230,15 @@ export async function processCampaignSend(input: {
     recipients,
     trackingBaseUrl,
   });
-  const reservedCreditCount = preparedRecipients.reduce(
+  const estimatedCreditCount = preparedRecipients.reduce(
     (sum, prepared) => sum + prepared.estimatedSegments,
     0,
   );
+  const reservedCreditCount =
+    campaign.reservedCreditCount ?? estimatedCreditCount;
   const sourceId = `campaign-send:${input.campaignId}`;
-  const hasExistingReservation =
-    campaign.status === 'sending' && campaign.reservedCreditCount !== null;
   const reservedTransactions =
-    reservedCreditCount > 0 && !hasExistingReservation
+    reservedCreditCount > 0
       ? await debitSmsCreditUsage({
           db: input.db,
           organizationId: input.organizationId,
@@ -133,12 +250,23 @@ export async function processCampaignSend(input: {
       : [];
 
   const startResult = await startCampaignSend(input.db, {
-    organizationId: input.organizationId,
-    campaignId: input.campaignId,
-    reservedCreditCount: campaign.reservedCreditCount ?? reservedCreditCount,
+      organizationId: input.organizationId,
+      campaignId: input.campaignId,
+      reservedCreditCount,
   });
 
   if (startResult.status !== 'started') {
+    if (reservedTransactions.length > 0) {
+      await releaseSmsCreditUsage({
+        db: input.db,
+        organizationId: input.organizationId,
+        reservedTransactions,
+        source: 'campaign_send',
+        sourceId: `${sourceId}:release`,
+        description: 'Campaign SMS reservation release',
+      });
+    }
+
     throw new Error('Campaign send could not be started.');
   }
 
@@ -146,85 +274,127 @@ export async function processCampaignSend(input: {
   let skippedCount = 0;
   let actualCreditCount = 0;
 
-  for (const prepared of preparedRecipients) {
-    if (
-      prepared.recipient.status !== 'sent' &&
-      (await shouldSkipRecipient(input.db, prepared.recipient))
-    ) {
-      await markCampaignRecipientSkipped(input.db, {
+  try {
+    for (const prepared of preparedRecipients) {
+      if (
+        prepared.recipient.status !== 'sent' &&
+        (await shouldSkipRecipient(input.db, prepared.recipient))
+      ) {
+        await markCampaignRecipientSkipped(input.db, {
+          organizationId: input.organizationId,
+          recipientId: prepared.recipient.id,
+          exclusionReason: 'suppressed_phone',
+        });
+        skippedCount += 1;
+        continue;
+      }
+
+      const messageResult = await createOutboundSmsMessage(input.db, {
         organizationId: input.organizationId,
+        campaignId: input.campaignId,
         recipientId: prepared.recipient.id,
-        exclusionReason: 'suppressed_phone',
+        contactId: prepared.recipient.contactId,
+        provider: provider.name,
+        fromPhone: sender.phoneNumber,
+        toPhone: prepared.recipient.normalizedPhone as string,
+        body: prepared.renderedBody,
+        estimatedSegmentCount: prepared.estimatedSegments,
+        currency: 'SEK',
       });
-      skippedCount += 1;
-      continue;
-    }
+      const message = messageResult.message;
 
-    const messageResult = await createOutboundSmsMessage(input.db, {
-      organizationId: input.organizationId,
-      campaignId: input.campaignId,
-      recipientId: prepared.recipient.id,
-      contactId: prepared.recipient.contactId,
-      provider: provider.name,
-      fromPhone: sender.phoneNumber,
-      toPhone: prepared.recipient.normalizedPhone as string,
-      body: prepared.renderedBody,
-      estimatedSegmentCount: prepared.estimatedSegments,
-      currency: 'SEK',
-    });
-    const message = messageResult.message;
+      if (message.providerMessageId) {
+        await markCampaignRecipientSent(input.db, {
+          organizationId: input.organizationId,
+          recipientId: prepared.recipient.id,
+        });
+        sentCount += 1;
+        actualCreditCount +=
+          message.actualSegmentCount ?? message.estimatedSegmentCount;
+        continue;
+      }
 
-    if (message.providerMessageId) {
+      if (messageResult.status === 'existing') {
+        throw new Error('Campaign recipient send attempt is unresolved.');
+      }
+
+      const providerResult = await provider.sendSms({
+        retainoMessageId: message.id,
+        organizationSender: sender,
+        to: prepared.recipient.normalizedPhone as string,
+        renderedBody: prepared.renderedBody,
+        estimatedSegments: prepared.estimatedSegments,
+        statusCallbackUrl: callbackUrl(
+          input.env.TWILIO_STATUS_CALLBACK_BASE_URL,
+          '/v1/webhooks/twilio/messaging/status',
+        ),
+        reference: `campaign:${input.campaignId}:recipient:${prepared.recipient.id}`,
+      });
+      const actualSegments =
+        providerResult.actualSegments ?? prepared.estimatedSegments;
+
+      await recordSmsMessageProviderResult(input.db, {
+        organizationId: input.organizationId,
+        messageId: message.id,
+        providerMessageId: providerResult.providerMessageId,
+        providerMessagingServiceId: sender.providerMessagingServiceId,
+        providerPhoneNumberId: sender.providerPhoneNumberId,
+        status: providerResult.normalizedStatus,
+        actualSegmentCount: providerResult.actualSegments,
+        actualCostMinor: providerCostMinor(providerResult.cost),
+        currency: providerResult.currency,
+      });
       await markCampaignRecipientSent(input.db, {
         organizationId: input.organizationId,
         recipientId: prepared.recipient.id,
       });
+
       sentCount += 1;
-      actualCreditCount +=
-        message.actualSegmentCount ?? message.estimatedSegmentCount;
-      continue;
+      actualCreditCount += actualSegments;
+    }
+  } catch (error) {
+    const failureReason = errorMessage(error);
+
+    if (
+      reservedCreditCount > actualCreditCount &&
+      reservedTransactions.length > 0
+    ) {
+      await releaseSmsCreditUsage({
+        db: input.db,
+        organizationId: input.organizationId,
+        credits: reservedCreditCount - actualCreditCount,
+        reservedTransactions,
+        source: 'campaign_send',
+        sourceId: `${sourceId}:release`,
+        description: 'Campaign SMS reservation release',
+      });
     }
 
-    const providerResult = await provider.sendSms({
-      retainoMessageId: message.id,
-      organizationSender: sender,
-      to: prepared.recipient.normalizedPhone as string,
-      renderedBody: prepared.renderedBody,
-      estimatedSegments: prepared.estimatedSegments,
-      statusCallbackUrl: callbackUrl(
-        input.env.TWILIO_STATUS_CALLBACK_BASE_URL,
-        '/v1/webhooks/twilio/messaging/status',
-      ),
-      reference: `campaign:${input.campaignId}:recipient:${prepared.recipient.id}`,
-    });
-    const actualSegments =
-      providerResult.actualSegments ?? prepared.estimatedSegments;
-
-    await recordSmsMessageProviderResult(input.db, {
+    await markCampaignSendFailed(input.db, {
       organizationId: input.organizationId,
-      messageId: message.id,
-      providerMessageId: providerResult.providerMessageId,
-      providerMessagingServiceId: sender.providerMessagingServiceId,
-      providerPhoneNumberId: sender.providerPhoneNumberId,
-      status: providerResult.normalizedStatus,
-      actualSegmentCount: providerResult.actualSegments,
-      actualCostMinor: providerCostMinor(providerResult.cost),
-      currency: providerResult.currency,
-    });
-    await markCampaignRecipientSent(input.db, {
-      organizationId: input.organizationId,
-      recipientId: prepared.recipient.id,
+      campaignId: input.campaignId,
+      actualCreditCount,
+      failureReason,
     });
 
-    sentCount += 1;
-    actualCreditCount += actualSegments;
+    await createAuditLog(input.db, {
+      organizationId: input.organizationId,
+      actorUserId: input.userId,
+      eventType: 'campaign.failed',
+      resourceType: 'campaign',
+      resourceId: input.campaignId,
+      metadata: {
+        recipientCount: recipients.length,
+        sentCount,
+        skippedCount,
+        reservedCreditCount,
+        actualCreditCount,
+        failureReason,
+      },
+    });
+
+    throw error;
   }
-
-  const completedCampaign = await markCampaignSendCompleted(input.db, {
-    organizationId: input.organizationId,
-    campaignId: input.campaignId,
-    actualCreditCount,
-  });
 
   if (
     reservedCreditCount > actualCreditCount &&
@@ -256,6 +426,12 @@ export async function processCampaignSend(input: {
     },
   });
 
+  const completedCampaign = await markCampaignSendCompleted(input.db, {
+    organizationId: input.organizationId,
+    campaignId: input.campaignId,
+    actualCreditCount,
+  });
+
   return {
     campaign: completedCampaign,
     sentCount,
@@ -263,6 +439,14 @@ export async function processCampaignSend(input: {
     reservedCreditCount,
     actualCreditCount,
   };
+}
+
+function errorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return 'Campaign send failed.';
 }
 
 async function prepareRecipients(input: {

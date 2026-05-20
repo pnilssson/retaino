@@ -120,6 +120,38 @@ describe('smsRoutes', () => {
     vi.unstubAllGlobals();
   });
 
+  it('returns SMS sender setup without provider resource IDs', async () => {
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue({
+      id: '66666666-6666-4666-8666-666666666666',
+      organizationId: organization.id,
+      provider: 'fake',
+      status: 'ready',
+      phoneNumber: '+46700000000',
+      countryCode: 'SE',
+      numberType: 'mobile',
+      providerMessagingServiceId: `fake-ms-${organization.id}`,
+      providerPhoneNumberId: 'fake-pn-46700000000',
+      regulatoryStatus: 'not_required',
+      failureReason: null,
+      provisionedAt: '2026-05-18T00:00:00.000Z',
+      lastVerifiedAt: '2026-05-18T00:00:00.000Z',
+      createdAt: '2026-05-18T00:00:00.000Z',
+      updatedAt: '2026-05-18T00:00:00.000Z',
+    });
+
+    const response = await testApp().request(
+      '/v1/sms',
+      {},
+      { SMS_SENDING_MODE: 'test' },
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { sender: Record<string, unknown> };
+    expect(body.sender.phoneNumber).toBe('+46700000000');
+    expect(body.sender).not.toHaveProperty('providerMessagingServiceId');
+    expect(body.sender).not.toHaveProperty('providerPhoneNumberId');
+  });
+
   it('lists SMS sender countries for eligible admins', async () => {
     const response = await testApp().request(
       '/v1/sms/countries',
@@ -183,7 +215,6 @@ describe('smsRoutes', () => {
               smartEncoding: false,
             },
             regulatoryRequirementSummary: null,
-            providerReference: 'fake-se-mobile-1',
             label: '+46 70 000 00 00',
           },
         }),
@@ -192,6 +223,9 @@ describe('smsRoutes', () => {
     );
 
     expect(response.status).toBe(201);
+    const body = (await response.json()) as { sender: Record<string, unknown> };
+    expect(body.sender).not.toHaveProperty('providerMessagingServiceId');
+    expect(body.sender).not.toHaveProperty('providerPhoneNumberId');
     expect(upsertOrganizationSmsSender).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
@@ -274,7 +308,6 @@ describe('smsRoutes', () => {
               smartEncoding: false,
             },
             regulatoryRequirementSummary: null,
-            providerReference: 'previously-verified',
             label: '+46 79 999 99 99',
           },
         }),
@@ -349,7 +382,6 @@ describe('smsRoutes', () => {
               smartEncoding: false,
             },
             regulatoryRequirementSummary: null,
-            providerReference: 'fake-se-mobile-1',
             label: '+46 70 000 00 00',
           },
         }),
@@ -412,7 +444,6 @@ describe('smsRoutes', () => {
               smartEncoding: false,
             },
             regulatoryRequirementSummary: null,
-            providerReference: 'tampered',
             label: '+46 79 999 99 99',
           },
         }),

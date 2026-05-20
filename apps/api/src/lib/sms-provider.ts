@@ -193,7 +193,6 @@ export function createFakeSmsProvider(): SmsProvider {
       numberType: 'mobile',
       capabilities,
       regulatoryRequirementSummary: null,
-      providerReference: 'fake-se-mobile-1',
       label: '+46 70 000 00 00',
     },
     {
@@ -202,7 +201,6 @@ export function createFakeSmsProvider(): SmsProvider {
       numberType: 'local',
       capabilities,
       regulatoryRequirementSummary: null,
-      providerReference: 'fake-us-local-1',
       label: '+1 500 555 0006',
     },
     {
@@ -211,7 +209,6 @@ export function createFakeSmsProvider(): SmsProvider {
       numberType: 'toll_free',
       capabilities,
       regulatoryRequirementSummary: null,
-      providerReference: 'fake-us-toll-free-1',
       label: '+1 888 555 0123',
     },
   ];
@@ -233,7 +230,6 @@ export function createFakeSmsProvider(): SmsProvider {
       numberType: input.selectedSender.numberType,
       providerMessagingServiceId: `fake-ms-${input.organizationId}`,
       providerPhoneNumberId:
-        input.selectedSender.providerReference ??
         `fake-pn-${input.selectedSender.phoneNumber.replace(/\D/g, '')}`,
       capabilities: input.selectedSender.capabilities,
       regulatoryStatus: 'not_required',
@@ -241,33 +237,125 @@ export function createFakeSmsProvider(): SmsProvider {
       provisionedAt: new Date(),
       lastVerifiedAt: new Date(),
     }),
-    sendSms: async (input) => ({
-      provider: 'fake',
-      providerMessageId: `fake-message-${input.retainoMessageId}`,
-      normalizedStatus: 'queued',
-      providerStatus: 'queued',
-      providerSenderReference: input.organizationSender.providerMessagingServiceId,
-      actualSegments: input.estimatedSegments,
-      cost: '0',
-      currency: 'SEK',
-      rawProviderReference: `fake-message-${input.retainoMessageId}`,
-    }),
-    parseStatusWebhook: async () => {
-      throw new SmsProviderError({
-        code: 'message_invalid',
-        retryable: false,
-        publicMessage: 'The provider status callback could not be read.',
-      });
-    },
-    parseInboundWebhook: async () => {
-      throw new SmsProviderError({
-        code: 'message_invalid',
-        retryable: false,
-        publicMessage: 'The inbound message could not be read.',
-      });
-    },
+    sendSms: async (input) => sendFakeSms(input),
+    parseStatusWebhook: async (input) => parseFakeStatusWebhook(input),
+    parseInboundWebhook: async (input) => parseFakeInboundWebhook(input),
     verifyWebhook: async () => true,
   };
+}
+
+function sendFakeSms(input: OutboundSmsInput): Promise<OutboundSmsResult> {
+  if (input.to === '+15005550001') {
+    throw new SmsProviderError({
+      code: 'recipient_invalid',
+      retryable: false,
+      publicMessage: 'The recipient phone number is invalid.',
+    });
+  }
+
+  if (input.to === '+15005550002') {
+    throw new SmsProviderError({
+      code: 'provider_temporary_failure',
+      retryable: true,
+      publicMessage: 'The SMS provider is temporarily unavailable.',
+    });
+  }
+
+  if (input.to === '+15005550003') {
+    throw new SmsProviderError({
+      code: 'provider_permanent_failure',
+      retryable: false,
+      publicMessage: 'The SMS provider rejected the message.',
+    });
+  }
+
+  return Promise.resolve({
+    provider: 'fake',
+    providerMessageId: `fake-message-${input.retainoMessageId}`,
+    normalizedStatus: 'queued',
+    providerStatus: 'queued',
+    providerSenderReference: input.organizationSender.providerMessagingServiceId,
+    actualSegments: input.estimatedSegments,
+    cost: '0',
+    currency: 'SEK',
+    rawProviderReference: `fake-message-${input.retainoMessageId}`,
+  });
+}
+
+function parseFakeStatusWebhook(input: unknown): Promise<SmsStatusEvent> {
+  const payload = fakeWebhookPayload(input);
+  const providerMessageId = payload.MessageSid ?? payload.SmsSid;
+
+  if (!providerMessageId) {
+    throw new SmsProviderError({
+      code: 'message_invalid',
+      retryable: false,
+      publicMessage: 'The provider status callback could not be read.',
+    });
+  }
+
+  return Promise.resolve({
+    providerMessageId,
+    retainoMessageReference: payload.MessageStatusCallbackEvent ?? null,
+    normalizedStatus: normalizeFakeStatus(
+      payload.MessageStatus ?? payload.SmsStatus,
+    ),
+    providerStatus: payload.MessageStatus ?? payload.SmsStatus ?? null,
+    occurredAt: new Date(),
+    actualSegments: payload.NumSegments ? Number(payload.NumSegments) : null,
+    cost: payload.Price ?? null,
+    currency: payload.PriceUnit ?? null,
+    providerErrorCode: payload.ErrorCode ?? null,
+    providerErrorMessage: payload.ErrorMessage ?? null,
+    rawProviderReference: providerMessageId,
+  });
+}
+
+function parseFakeInboundWebhook(input: unknown): Promise<InboundSmsMessage> {
+  const payload = fakeWebhookPayload(input);
+  const providerMessageId = payload.MessageSid ?? payload.SmsSid;
+
+  if (!providerMessageId) {
+    throw new SmsProviderError({
+      code: 'message_invalid',
+      retryable: false,
+      publicMessage: 'The inbound message could not be read.',
+    });
+  }
+
+  return Promise.resolve({
+    providerMessageId,
+    from: payload.From ?? '',
+    to: payload.To ?? '',
+    body: payload.Body ?? '',
+    receivedAt: new Date(),
+    providerSenderReference: payload.MessagingServiceSid ?? null,
+    rawProviderReference: providerMessageId,
+  });
+}
+
+function fakeWebhookPayload(input: unknown) {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+    return {} as Record<string, string | undefined>;
+  }
+
+  return input as Record<string, string | undefined>;
+}
+
+function normalizeFakeStatus(
+  status: string | null | undefined,
+): SmsOutboundStatus {
+  if (
+    status === 'delivered' ||
+    status === 'sent' ||
+    status === 'failed' ||
+    status === 'undelivered' ||
+    status === 'accepted'
+  ) {
+    return status;
+  }
+
+  return 'queued';
 }
 
 function createDisabledSmsProvider(): SmsProvider {

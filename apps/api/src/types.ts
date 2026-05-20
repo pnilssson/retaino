@@ -35,6 +35,8 @@ type AppBindings = {
   TWILIO_FROM_PHONE?: string;
   TWILIO_INBOUND_CALLBACK_BASE_URL?: string;
   TWILIO_STATUS_CALLBACK_BASE_URL?: string;
+  TRACKING_REDIRECT_RATE_LIMITER?: RateLimit;
+  TRACKING_REDIRECT_ROUTE_RATE_LIMITER?: RateLimit;
 };
 
 type AppVariables = {

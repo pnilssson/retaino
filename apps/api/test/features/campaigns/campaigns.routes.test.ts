@@ -416,64 +416,6 @@ describe('campaignsRoutes', () => {
     expect(body.preview.estimatedSmsPerRecipient).toBeGreaterThan(0);
   });
 
-  it('launches a draft campaign after the sender is ready', async () => {
-    vi.mocked(getOrganizationSmsSender).mockResolvedValue(readySender());
-    vi.mocked(launchCampaign).mockResolvedValue({
-      status: 'launched',
-      campaign: {
-        ...campaign,
-        status: 'ready_to_send',
-        readyToSendAt: '2026-05-16T10:00:00.000Z',
-        readyToSendByUserId: user.id,
-      },
-      recipientCount: 3,
-    });
-
-    const response = await testApp().request(
-      `/v1/campaigns/${campaign.id}/launch`,
-      {
-        method: 'POST',
-        headers: {
-          'user-agent': 'vitest',
-          'cf-connecting-ip': '203.0.113.1',
-        },
-      },
-      { SMS_SENDING_MODE: 'test' },
-    );
-
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      campaign: {
-        status: 'ready_to_send',
-      },
-      recipientCount: 3,
-    });
-    expect(getOrganizationSmsSender).toHaveBeenCalledWith(expect.anything(), {
-      organizationId: organization.id,
-      provider: 'fake',
-    });
-    expect(launchCampaign).toHaveBeenCalledWith(expect.anything(), {
-      organizationId: organization.id,
-      campaignId: campaign.id,
-      actorUserId: user.id,
-      ipAddress: '203.0.113.1',
-      userAgent: 'vitest',
-    });
-  });
-
-  it('rejects launch when the sender is not ready', async () => {
-    vi.mocked(getOrganizationSmsSender).mockResolvedValue(null);
-
-    const response = await testApp().request(
-      `/v1/campaigns/${campaign.id}/launch`,
-      { method: 'POST' },
-      { SMS_SENDING_MODE: 'test' },
-    );
-
-    expect(response.status).toBe(409);
-    expect(launchCampaign).not.toHaveBeenCalled();
-  });
-
   it('launches draft campaigns and enqueues live send processing', async () => {
     vi.mocked(getCampaignById).mockResolvedValue(campaign);
     vi.mocked(getOrganizationSmsSender).mockResolvedValue(readySender());
