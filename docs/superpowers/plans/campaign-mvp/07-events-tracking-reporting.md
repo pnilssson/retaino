@@ -181,10 +181,15 @@ Add a campaign report view:
 
 Add or extend tests in:
 
+- `packages/shared/test/contracts/campaigns.test.ts`
+- `packages/db/test/schema/campaign-message-events.test.ts`
+- `packages/db/test/schema/click-events.test.ts`
 - `packages/db/test/schema/campaigns.test.ts`
 - `packages/db/test/queries/campaigns.test.ts`
 - `apps/api/test/features/campaigns/campaigns.routes.test.ts`
 - `apps/api/test/features/campaigns/campaigns.service.test.ts`
+- `apps/api/test/features/tracking/tracking.routes.test.ts`
+- `apps/api/test/features/sms/sms.webhook-routes.test.ts`
 
 Minimum coverage:
 
@@ -211,8 +216,12 @@ Run:
 ```bash
 pnpm --filter @retaino/db test
 pnpm --filter @retaino/db typecheck
+pnpm --filter @retaino/shared test
+pnpm --filter @retaino/shared typecheck
 pnpm --filter @retaino/api test -- campaigns
+pnpm --filter @retaino/api test -- tracking.routes.test.ts sms.webhook-routes.test.ts
 pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/web typecheck
 ```
 
 ## Risks

@@ -15,7 +15,8 @@ deferred until customers need advanced campaign operations.
 This is both backend and frontend work. The first two phases build stable
 backend APIs, phase 3 turns those APIs into a usable campaign builder, and the
 remaining phases add sender setup, test sending, launch, tracking, and
-reporting.
+reporting. Phases 1 through 7 have now been implemented and are awaiting deep
+branch review before PR or merge.
 
 ## Campaign UX Direction
 
@@ -271,20 +272,20 @@ MVP does not mean loose. Each phase should be small, testable, and complete:
 
 | Phase | Outcome | Document |
 | --- | --- | --- |
-| 1. Campaign Persistence | Create, read, update, and delete internally drafted campaigns. | `docs/superpowers/plans/campaign-mvp/01-draft-foundation.md` |
-| 2. Audience Preview | Count and sample eligible lapsed contacts before launch. | `docs/superpowers/plans/campaign-mvp/02-audience-preview.md` |
-| 3. Web Campaign Builder | Let users create and edit one-audience, one-message campaigns. | `docs/superpowers/plans/campaign-mvp/03-web-campaign-builder.md` |
-| 4. SMS Provider And Test Sends | Preview SMS cost, provision sender resources, and let admins send test messages. | `docs/superpowers/plans/campaign-mvp/04-sms-provider-test-sends.md` |
-| 5. Launch Snapshot | Freeze recipients behind the final send action. | `docs/superpowers/plans/campaign-mvp/05-launch-snapshot.md` |
-| 6. Tracking Links And Live Send Jobs | Create recipient links, send campaigns, and show send state. | `docs/superpowers/plans/campaign-mvp/06-live-send-jobs.md` |
-| 7. Events, Tracking, Reporting | Handle callbacks, STOP replies, clicks, and show campaign metrics. | `docs/superpowers/plans/campaign-mvp/07-events-tracking-reporting.md` |
+| 1. Campaign Persistence | Implemented. Create, read, update, and delete internally drafted campaigns. | `docs/superpowers/plans/campaign-mvp/01-draft-foundation.md` |
+| 2. Audience Preview | Implemented. Count and sample eligible lapsed contacts before launch. | `docs/superpowers/plans/campaign-mvp/02-audience-preview.md` |
+| 3. Web Campaign Builder | Implemented. Let users create and edit one-audience, one-message campaigns. | `docs/superpowers/plans/campaign-mvp/03-web-campaign-builder.md` |
+| 4. SMS Provider And Test Sends | Implemented. Preview SMS cost, provision sender resources, and let admins send test messages. | `docs/superpowers/plans/campaign-mvp/04-sms-provider-test-sends.md` |
+| 5. Launch Snapshot | Implemented. Freeze recipients behind the final send action. | `docs/superpowers/plans/campaign-mvp/05-launch-snapshot.md` |
+| 6. Tracking Links And Live Send Jobs | Implemented. Create recipient links, send campaigns, and show send state. | `docs/superpowers/plans/campaign-mvp/06-live-send-jobs.md` |
+| 7. Events, Tracking, Reporting | Implemented. Handle callbacks, STOP replies, clicks, and show campaign metrics. | `docs/superpowers/plans/campaign-mvp/07-events-tracking-reporting.md` |
 
 ## Suggested Execution
 
-Implement one phase at a time. Before starting a phase, update that phase
-document if product or architecture decisions changed. After finishing a phase,
-run the package tests and typechecks named in the phase document, then stop for
-review before loading the next phase.
+Phases 1 through 7 have been implemented. Before merge, follow
+`docs/superpowers/plans/2026-05-20-campaign-mvp-branch-review.md` to review the
+entire campaign MVP branch, including Phase 1, which was committed before this
+branch split from main.
 
 The first user-visible milestone is phase 3: a campaign builder that persists a
 new campaign and previews the audience. Until sender setup and test sends are
@@ -297,5 +298,5 @@ should not present "creating a draft" as the final product goal.
 - Multiple audience or message variants inside one campaign.
 - Journey-style automation.
 - Booking CSV reconciliation and attribution matching.
-- A public tracking redirect route can be planned with phase 6, but booking
-  reconciliation should remain a separate plan.
+- Booking reconciliation should remain a separate plan even though public
+  tracking redirects and click reporting are now implemented.
