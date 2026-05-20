@@ -76,7 +76,7 @@ export function CampaignReportPanel({
             />
           ) : report.isLoading ? (
             <p className="text-sm leading-6 text-muted-foreground">
-              Loading campaign report.
+              Loading campaign report…
             </p>
           ) : report.data ? (
             <>
@@ -152,11 +152,11 @@ function reportMetrics(report: CampaignReport): ReportMetric[] {
       value: formatNumber(report.deliveredCount),
     },
     {
-      detail: `${formatNumber(report.failedCount)} failed`,
+      detail: `${formatNumber(report.queuedCount)} queued`,
       icon: Send,
-      label: 'Messages',
+      label: 'Failed',
       tone: report.failedCount > 0 ? 'warning' : 'default',
-      value: formatNumber(report.queuedCount),
+      value: formatNumber(report.failedCount),
     },
     {
       detail: `${formatNumber(report.uniqueClickerCount)} unique recipients`,

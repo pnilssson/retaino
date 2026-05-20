@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type {
-  OrganizationSmsSender,
+  PublicOrganizationSmsSender,
   SmsSenderNumberType,
 } from '@retaino/shared/contracts';
 import { Phone } from 'lucide-react';
@@ -31,7 +31,7 @@ export function SenderSetup({
 }: {
   canManageCampaigns: boolean;
   organizationId: string | null;
-  sender: OrganizationSmsSender | null;
+  sender: PublicOrganizationSmsSender | null;
 }) {
   const countries = useSmsSenderCountries(organizationId);
   const [countryCode, setCountryCode] = useState('');
@@ -101,12 +101,13 @@ export function SenderSetup({
           <div className="grid gap-4 sm:grid-cols-3">
             <SenderSelect
               disabled={!canManageCampaigns || countries.isLoading}
+              id="campaign-sender-country"
               label="Country"
               onValueChange={(value) => {
                 setCountryCode(value);
                 setSelectedPhoneNumber('');
               }}
-              placeholder={countries.isLoading ? 'Loading' : 'Choose country'}
+              placeholder={countries.isLoading ? 'Loading…' : 'Choose country'}
               value={effectiveCountryCode}
             >
               {(countries.data?.countries ?? []).map((country) => (
@@ -118,6 +119,7 @@ export function SenderSetup({
 
             <SenderSelect
               disabled={!canManageCampaigns || !selectedCountry}
+              id="campaign-sender-number-type"
               label="Number type"
               onValueChange={(value) => {
                 setNumberType(value as SmsSenderNumberType);
@@ -140,9 +142,10 @@ export function SenderSetup({
                 numbers.isLoading ||
                 !numbers.data?.numbers.length
               }
+              id="campaign-sender-number"
               label="Number"
               onValueChange={setSelectedPhoneNumber}
-              placeholder={numbers.isLoading ? 'Loading' : 'Choose number'}
+              placeholder={numbers.isLoading ? 'Loading…' : 'Choose number'}
               value={effectiveSelectedPhoneNumber}
             >
               {(numbers.data?.numbers ?? []).map((number) => (
@@ -184,7 +187,7 @@ export function SenderSetup({
               ) : (
                 <Phone aria-hidden="true" data-icon="inline-start" />
               )}
-              {provisionSender.isPending ? 'Setting up sender' : 'Set up sender'}
+              {provisionSender.isPending ? 'Setting up sender…' : 'Set up sender'}
             </Button>
           </div>
         </section>
@@ -196,6 +199,7 @@ export function SenderSetup({
 function SenderSelect({
   children,
   disabled,
+  id,
   label,
   onValueChange,
   placeholder,
@@ -203,6 +207,7 @@ function SenderSelect({
 }: {
   children: ReactNode;
   disabled: boolean;
+  id: string;
   label: string;
   onValueChange: (value: string) => void;
   placeholder: string;
@@ -210,13 +215,13 @@ function SenderSelect({
 }) {
   return (
     <div className="grid gap-2">
-      <Label>{label}</Label>
+      <Label htmlFor={id}>{label}</Label>
       <Select
         disabled={disabled}
         onValueChange={onValueChange}
         value={value || undefined}
       >
-        <SelectTrigger className="w-full">
+        <SelectTrigger aria-label={label} className="w-full" id={id}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>{children}</SelectContent>
@@ -225,7 +230,9 @@ function SenderSelect({
   );
 }
 
-function senderStatusLabel(status: OrganizationSmsSender['status'] | undefined) {
+function senderStatusLabel(
+  status: PublicOrganizationSmsSender['status'] | undefined,
+) {
   if (status === 'pending') {
     return 'Pending';
   }

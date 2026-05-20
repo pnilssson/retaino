@@ -1,6 +1,12 @@
 "use client";
 
-import { useRef, useState, type ReactNode, type Ref } from 'react';
+import {
+  useRef,
+  useState,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type Ref,
+} from 'react';
 import { useForm } from '@tanstack/react-form';
 import type {
   Campaign,
@@ -241,7 +247,8 @@ export function CampaignForm({
                           name={field.name}
                           onBlur={field.handleBlur}
                           onChange={field.handleChange}
-                          placeholder="90-day reactivation"
+                          placeholder="90-day reactivation…"
+                          spellCheck={false}
                           value={field.state.value}
                         />
                       )}
@@ -274,7 +281,7 @@ export function CampaignForm({
                               {getFieldError(
                                 lapsedDaysField.state.meta.errors,
                               ) ? (
-                                <p className={textStyles.error}>
+                                <p aria-live="polite" className={textStyles.error}>
                                   {getFieldError(
                                     lapsedDaysField.state.meta.errors,
                                   )}
@@ -330,7 +337,7 @@ export function CampaignForm({
                               name={field.name}
                               onBlur={field.handleBlur}
                               onChange={field.handleChange}
-                              placeholder="Hi {first_name}, we have openings this week."
+                              placeholder="Hi {first_name}, we have openings this week…"
                               textAreaRef={messageTextAreaRef}
                               value={field.state.value}
                             />
@@ -408,7 +415,7 @@ export function CampaignForm({
                             name={field.name}
                             onBlur={field.handleBlur}
                             onChange={field.handleChange}
-                            placeholder="https://booking.example.com"
+                            placeholder="https://booking.example.com…"
                             type="url"
                             value={field.state.value}
                           />
@@ -423,7 +430,8 @@ export function CampaignForm({
                             name={field.name}
                             onBlur={field.handleBlur}
                             onChange={field.handleChange}
-                            placeholder="SPRING REACTIVATION"
+                            placeholder="SPRING REACTIVATION…"
+                            spellCheck={false}
                             value={field.state.value}
                           />
                         )}
@@ -509,7 +517,7 @@ export function CampaignForm({
                               type="button"
                             >
                               <Send aria-hidden="true" data-icon="inline-start" />
-                              {isSending ? 'Sending campaign' : 'Send campaign'}
+                              {isSending ? 'Sending campaign…' : 'Send campaign'}
                             </Button>
                           </GuidedFlowActions>
                         </div>
@@ -584,12 +592,12 @@ function CampaignReview({
           <p className={textStyles.body}>
             {campaign && campaign.status !== 'draft'
               ? frozenRecipientCount === null
-                ? recipientSummary.isLoading
-                  ? 'Loading selected recipients.'
+                  ? recipientSummary.isLoading
+                  ? 'Loading selected recipients…'
                   : 'Selected recipients unavailable.'
                 : `${frozenRecipientCount} selected ${frozenRecipientCount === 1 ? 'recipient' : 'recipients'}.`
               : audiencePreview.isLoading
-              ? 'Checking eligible contacts.'
+              ? 'Checking eligible contacts…'
               : eligibleCount === null
                 ? 'Eligible contacts unavailable.'
                 : `${eligibleCount} eligible ${eligibleCount === 1 ? 'contact' : 'contacts'}. Last booking at least ${values.audienceRule.lapsedDays} days ago. Contacts without booking date ${
@@ -701,14 +709,16 @@ function CampaignTestSend({
             name={field.name}
             onBlur={field.handleBlur}
             onChange={field.handleChange}
-            placeholder="Use responsible phone"
+            inputMode="tel"
+            placeholder="Use responsible phone…"
+            type="tel"
             value={field.state.value}
           />
         )}
       </form.Field>
 
       {testSend.isError ? (
-        <p className={textStyles.error}>
+        <p aria-live="polite" className={textStyles.error}>
           {testSend.error instanceof Error
             ? testSend.error.message
             : 'Test SMS could not be sent.'}
@@ -727,7 +737,7 @@ function CampaignTestSend({
           type="button"
         >
           <Send aria-hidden="true" data-icon="inline-start" />
-          {testSend.isPending ? 'Sending test SMS' : 'Send test SMS'}
+          {testSend.isPending ? 'Sending test SMS…' : 'Send test SMS'}
         </Button>
       </div>
     </div>
@@ -777,7 +787,9 @@ function MessagePreview({
 
   return (
     <div className="grid content-start gap-2">
-      {showLabel ? <Label>Recipient preview</Label> : null}
+      {showLabel ? (
+        <p className={textStyles.metaStrong}>Recipient preview</p>
+      ) : null}
       <div
         className={cn(
           'min-h-36 rounded-lg bg-muted px-3 py-2',
@@ -819,23 +831,29 @@ function insertTextAtCursor({
 }
 
 function TextInput({
+  autoComplete = 'off',
   disabled,
   error,
+  inputMode,
   label,
   name,
   onBlur,
   onChange,
   placeholder,
+  spellCheck,
   type = 'text',
   value,
 }: {
+  autoComplete?: string;
   disabled: boolean;
   error: string | null;
+  inputMode?: InputHTMLAttributes<HTMLInputElement>['inputMode'];
   label: string;
   name: string;
   onBlur: () => void;
   onChange: (value: string) => void;
   placeholder?: string;
+  spellCheck?: boolean;
   type?: string;
   value: string;
 }) {
@@ -844,16 +862,23 @@ function TextInput({
       <Label htmlFor={name}>{label}</Label>
       <Input
         aria-invalid={Boolean(error)}
+        autoComplete={autoComplete}
         disabled={disabled}
         id={name}
+        inputMode={inputMode}
         name={name}
         onBlur={onBlur}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
+        spellCheck={spellCheck}
         type={type}
         value={value}
       />
-      {error ? <p className={textStyles.error}>{error}</p> : null}
+      {error ? (
+        <p aria-live="polite" className={textStyles.error}>
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -884,6 +909,7 @@ function TextAreaInput({
       <Label htmlFor={name}>{label}</Label>
       <textarea
         aria-invalid={Boolean(error)}
+        autoComplete="off"
         className={cn(
           'min-h-36 w-full resize-y rounded-lg border border-input bg-transparent px-2.5 py-2 text-base leading-6 transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30',
         )}
@@ -896,7 +922,11 @@ function TextAreaInput({
         ref={textAreaRef}
         value={value}
       />
-      {error ? <p className={textStyles.error}>{error}</p> : null}
+      {error ? (
+        <p aria-live="polite" className={textStyles.error}>
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

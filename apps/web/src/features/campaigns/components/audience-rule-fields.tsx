@@ -70,10 +70,13 @@ export function AudienceRuleFields({
         <div className="grid max-w-48 gap-2">
           <Label htmlFor="campaign-lapsed-days">Days since last booking</Label>
           <Input
+            autoComplete="off"
             disabled={disabled}
             id="campaign-lapsed-days"
+            inputMode="numeric"
             max={365}
             min={30}
+            name="campaign-lapsed-days"
             onChange={(event) => {
               const nextValue = event.currentTarget.value;
               onLapsedDaysChange(

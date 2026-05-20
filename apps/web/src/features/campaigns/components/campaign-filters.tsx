@@ -1,6 +1,5 @@
 "use client";
 
-import type { CampaignStatus } from '@retaino/shared/contracts';
 import { ArrowUpDown, Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,11 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import type {
+  CampaignListDirection,
+  CampaignListSort,
+  CampaignListStatusFilter,
+} from '../campaign-list-state';
 import { formatCampaignStatus } from './campaign-status-badge';
-
-export type CampaignListStatusFilter = CampaignStatus | 'all';
-export type CampaignListSort = 'createdAt' | 'name' | 'status' | 'lapsedDays';
-export type CampaignListDirection = 'asc' | 'desc';
 
 const sortLabels: Record<CampaignListSort, string> = {
   createdAt: 'Created date',
@@ -73,9 +73,12 @@ export function CampaignFilters({
             className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
           />
           <Input
+            aria-label="Search campaigns"
+            autoComplete="off"
             className="h-9 pl-9"
+            name="campaign-search"
             onChange={(event) => onChange({ search: event.target.value })}
-            placeholder="Search campaigns"
+            placeholder="Search campaigns…"
             value={search}
           />
         </div>
@@ -87,7 +90,10 @@ export function CampaignFilters({
             }
             value={status}
           >
-            <SelectTrigger className="h-9 min-h-9 flex-1 sm:w-40 sm:flex-none">
+            <SelectTrigger
+              aria-label="Filter by campaign status"
+              className="h-9 min-h-9 flex-1 sm:w-40 sm:flex-none"
+            >
               <SelectValue />
             </SelectTrigger>
               <SelectContent>

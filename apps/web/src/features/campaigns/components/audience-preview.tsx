@@ -45,7 +45,7 @@ export function AudiencePreview({
   }
 
   if (preview.isLoading || !preview.data) {
-    return <p className={textStyles.mutedBody}>Loading audience preview.</p>;
+    return <p className={textStyles.mutedBody}>Loading audience preview…</p>;
   }
 
   return (
@@ -87,26 +87,26 @@ type PreviewMetricTone = 'amber' | 'green' | 'red' | 'slate';
 
 const previewMetricToneClasses: Record<
   PreviewMetricTone,
-  { label: string; panel: string; value: string }
+  { accent: string; label: string; value: string }
 > = {
   amber: {
+    accent: 'border-amber-300 dark:border-amber-700',
     label: 'text-amber-800 dark:text-amber-200',
-    panel: 'border-amber-200 bg-amber-50/55 dark:border-amber-900/60 dark:bg-amber-950/25',
     value: 'text-amber-800 dark:text-amber-200',
   },
   green: {
+    accent: 'border-emerald-300 dark:border-emerald-700',
     label: 'text-emerald-800 dark:text-emerald-200',
-    panel: 'border-emerald-200 bg-emerald-50/55 dark:border-emerald-900/60 dark:bg-emerald-950/25',
     value: 'text-emerald-800 dark:text-emerald-200',
   },
   red: {
+    accent: 'border-rose-300 dark:border-rose-700',
     label: 'text-rose-800 dark:text-rose-200',
-    panel: 'border-rose-200 bg-rose-50/55 dark:border-rose-900/60 dark:bg-rose-950/25',
     value: 'text-rose-800 dark:text-rose-200',
   },
   slate: {
+    accent: 'border-border',
     label: 'text-slate-800 dark:text-slate-200',
-    panel: 'border-slate-200 bg-slate-50/70 dark:border-slate-800/70 dark:bg-slate-950/30',
     value: 'text-slate-800 dark:text-slate-200',
   },
 };
@@ -125,8 +125,8 @@ function PreviewMetric({
   return (
     <div
       className={cn(
-        'grid min-h-16 content-center gap-1 rounded-md border px-3 py-2',
-        toneClasses.panel,
+        'grid min-h-16 content-center gap-1 border-l pl-3',
+        toneClasses.accent,
       )}
     >
       <dt className={cn(textStyles.meta, toneClasses.label)}>{label}</dt>

@@ -4,7 +4,7 @@ import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import type { Campaign, OrganizationSession } from '@retaino/shared/contracts';
 import { AlertCircle, FileText, Plus, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
 import { EmptyState, TableLoading } from '@/components/data-table';
@@ -24,21 +24,20 @@ import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
-import { CampaignFilters } from './campaign-filters';
 import type {
   CampaignListDirection,
   CampaignListSort,
   CampaignListStatusFilter,
-} from './campaign-filters';
+} from '../campaign-list-state';
+import { CampaignFilters } from './campaign-filters';
 import { CampaignsTable } from './campaigns-table';
+import { useCampaignListQueryState } from '../hooks/use-campaign-list-query-state';
 import { useCampaigns } from '../hooks/use-campaigns';
 
 export function CampaignsScreen() {
   const session = useOrganizationSession();
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<CampaignListStatusFilter>('all');
-  const [sort, setSort] = useState<CampaignListSort>('createdAt');
-  const [direction, setDirection] = useState<CampaignListDirection>('desc');
+  const [{ direction, search, sort, status }, setQuery] =
+    useCampaignListQueryState();
   const organizationId = session.data?.organization.id ?? null;
   const campaigns = useCampaigns({
     enabled: Boolean(session.data?.readiness.ready),
@@ -59,7 +58,7 @@ export function CampaignsScreen() {
     return (
       <main className="flex flex-1 items-start bg-background">
         <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-          <p className={textStyles.mutedBody}>Loading campaigns.</p>
+          <p className={textStyles.mutedBody}>Loading campaigns…</p>
         </section>
       </main>
     );
@@ -135,12 +134,7 @@ export function CampaignsScreen() {
               <CampaignFilters
                 direction={direction}
                 onChange={(values) => {
-                  if (values.search !== undefined) setSearch(values.search);
-                  if (values.status !== undefined) setStatus(values.status);
-                  if (values.sort !== undefined) setSort(values.sort);
-                  if (values.direction !== undefined) {
-                    setDirection(values.direction);
-                  }
+                  void setQuery(values);
                 }}
                 search={search}
                 sort={sort}

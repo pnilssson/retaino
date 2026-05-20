@@ -63,7 +63,7 @@ export function CampaignBuilderScreen({
     return (
       <main className="flex flex-1 items-start bg-background">
         <section className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8 lg:px-10">
-          <p className={textStyles.mutedBody}>Loading campaign builder.</p>
+          <p className={textStyles.mutedBody}>Loading campaign builder…</p>
         </section>
       </main>
     );
@@ -124,7 +124,7 @@ export function CampaignBuilderScreen({
             </AlertDescription>
           </Alert>
         ) : campaignId && campaign.isLoading ? (
-          <p className={textStyles.mutedBody}>Loading campaign.</p>
+          <p className={textStyles.mutedBody}>Loading campaign…</p>
         ) : (
           <>
             <CampaignForm
