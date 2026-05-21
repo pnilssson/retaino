@@ -593,6 +593,30 @@ pnpm --filter @retaino/web lint
 git diff --check
 ```
 
+## Pass 27: Sender Setup Control Ownership Review
+
+Purpose: keep sender setup focused on provisioning state and move low-level
+selection controls into a focused module.
+
+- [x] Review `sender-setup.tsx` for mixed responsibilities.
+- [x] Move searchable sender country selection into
+  `sender-setup-controls.tsx`.
+- [x] Move sender number select control into the same control module.
+
+Files inspected first:
+
+- `apps/web/src/features/campaigns/components/sender-setup.tsx`
+- `apps/web/src/features/campaigns/hooks/use-sms-sender-countries.ts`
+- `apps/web/src/features/campaigns/hooks/use-sms-sender-numbers.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/web typecheck
+pnpm --filter @retaino/web lint
+git diff --check
+```
+
 ## Pass 19: Campaign DB Query Module Shape Review
 
 Purpose: reduce the campaign DB query module's responsibilities while keeping
