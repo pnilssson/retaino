@@ -82,6 +82,22 @@ describe('campaigns jobs', () => {
     });
   });
 
+  it('runs only one campaign send process per campaign at a time', async () => {
+    await import('../../../src/features/campaigns/campaigns.jobs');
+
+    expect(createFunction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'process-campaign-send',
+        singleton: {
+          key: 'event.data.campaignId',
+          mode: 'skip',
+        },
+        triggers: { event: 'campaigns/send.process' },
+      }),
+      expect.any(Function),
+    );
+  });
+
   it('processes campaign sends directly with injected Worker bindings', async () => {
     await import('../../../src/features/campaigns/campaigns.jobs');
     const step = {

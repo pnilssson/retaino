@@ -38,6 +38,10 @@ export const processCampaignSendFunction: ReturnType<
 > = inngest.createFunction(
   {
     id: 'process-campaign-send',
+    singleton: {
+      key: 'event.data.campaignId',
+      mode: 'skip',
+    },
     triggers: { event: 'campaigns/send.process' },
   },
   async ({ event, step, env }) => {

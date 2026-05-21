@@ -657,3 +657,34 @@ pnpm --filter @retaino/db typecheck
 pnpm --filter @retaino/db lint
 git diff --check
 ```
+
+## Pass 21: Campaign Send Job Exclusivity Review
+
+Purpose: verify the background send job cannot overlap provider sends for the
+same campaign.
+
+- [x] Review Inngest v4 singleton and concurrency guidance.
+- [x] Check campaign send job configuration against the campaign service retry
+  behavior.
+- [x] Add Inngest singleton skip mode keyed by campaign ID.
+- [x] Add a job configuration test so the exclusivity rule stays visible.
+
+Files inspected first:
+
+- `apps/api/src/features/campaigns/campaigns.jobs.ts`
+- `apps/api/src/features/campaigns/campaigns.service.ts`
+- `apps/api/test/features/campaigns/campaigns.jobs.test.ts`
+- `apps/api/test/features/campaigns/campaigns.service.test.ts`
+
+Reference checked:
+
+- Inngest singleton functions, Version 4 docs.
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/api test -- --runInBand apps/api/test/features/campaigns/campaigns.jobs.test.ts apps/api/test/features/campaigns/campaigns.service.test.ts
+pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/api lint
+git diff --check
+```
