@@ -1,4 +1,5 @@
 import {
+  countCampaignRecipients,
   createAuditLog,
   createOutboundSmsMessage,
   findSuppressionByHash,
@@ -7,6 +8,7 @@ import {
   getCurrentOrganizationLegalAcceptance,
   getOrganizationProfileByOrganizationId,
   getOrganizationSmsSender,
+  launchCampaign,
   listSelectedCampaignRecipientsForSend,
   markCampaignRecipientSent,
   markCampaignRecipientSkipped,
@@ -54,6 +56,18 @@ type CampaignTestSmsResult =
       };
     };
 
+type QueueCampaignSendResult =
+  | { status: 'not_found' }
+  | { status: 'not_sendable' }
+  | { status: 'sender_not_ready' }
+  | { status: 'incomplete' }
+  | { status: 'empty_audience' }
+  | {
+      status: 'queued';
+      campaign: Campaign;
+      recipientCount: number;
+    };
+
 type PreparedRecipient = {
   recipient: CampaignRecipientForSend;
   renderedBody: string;
@@ -68,6 +82,98 @@ type CampaignSendCreditReservation = {
   reservedTransactions: SmsCreditTransaction[];
   sourceId: string;
 };
+
+export async function queueCampaignSend(input: {
+  db: DbClient;
+  env: AppEnv['Bindings'];
+  organizationId: string;
+  campaignId: string;
+  userId: string;
+  userAgent: string | null;
+  enqueue: (payload: {
+    organizationId: string;
+    campaignId: string;
+    userId: string;
+  }) => Promise<void>;
+}): Promise<QueueCampaignSendResult> {
+  const campaign = await getCampaignById(input.db, {
+    organizationId: input.organizationId,
+    campaignId: input.campaignId,
+  });
+
+  if (!campaign) {
+    return { status: 'not_found' };
+  }
+
+  if (campaign.status !== 'draft' && campaign.status !== 'ready_to_send') {
+    return { status: 'not_sendable' };
+  }
+
+  const provider = createSmsProvider(input.env);
+  const sender = await getOrganizationSmsSender(input.db, {
+    organizationId: input.organizationId,
+    provider: provider.name,
+  });
+
+  if (!sender || sender.status !== 'ready') {
+    return { status: 'sender_not_ready' };
+  }
+
+  let sendCampaign = campaign;
+  let recipientCount = 0;
+  if (campaign.status === 'draft') {
+    const result = await launchCampaign(input.db, {
+      organizationId: input.organizationId,
+      campaignId: input.campaignId,
+      actorUserId: input.userId,
+      userAgent: input.userAgent,
+    });
+
+    if (result.status === 'not_found') {
+      return { status: 'not_found' };
+    }
+
+    if (result.status === 'not_editable') {
+      return { status: 'not_sendable' };
+    }
+
+    if (result.status === 'incomplete') {
+      return { status: 'incomplete' };
+    }
+
+    if (result.status === 'empty_audience') {
+      return { status: 'empty_audience' };
+    }
+
+    sendCampaign = result.campaign;
+    recipientCount = result.recipientCount;
+  } else {
+    const summary = await countCampaignRecipients(input.db, {
+      organizationId: input.organizationId,
+      campaignId: input.campaignId,
+    });
+    recipientCount = summary.recipientCount;
+  }
+
+  await reserveCampaignSendCredits({
+    db: input.db,
+    organizationId: input.organizationId,
+    campaign: sendCampaign,
+    trackingBaseUrl: input.env.TRACKING_BASE_URL,
+  });
+
+  await input.enqueue({
+    organizationId: input.organizationId,
+    campaignId: input.campaignId,
+    userId: input.userId,
+  });
+
+  return {
+    status: 'queued',
+    campaign: sendCampaign,
+    recipientCount,
+  };
+}
 
 export async function sendCampaignTestSms(input: {
   db: DbClient;

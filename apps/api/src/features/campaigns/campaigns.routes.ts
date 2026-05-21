@@ -4,8 +4,6 @@ import {
   deleteCampaignDraft,
   getCampaignById,
   getCampaignReport,
-  getOrganizationSmsSender,
-  launchCampaign,
   listCampaigns,
   previewCampaignAudience,
   updateCampaignDraft,
@@ -25,7 +23,7 @@ import {
 } from '../billing/billing.service';
 import { apiError } from '../../lib/errors';
 import { parseJsonBody } from '../../lib/route-helpers';
-import { createSmsProvider, SmsProviderError } from '../../lib/sms-provider';
+import { SmsProviderError } from '../../lib/sms-provider';
 import type { AppEnv } from '../../types';
 import {
   requireCampaignEligibility,
@@ -33,7 +31,7 @@ import {
 } from '../organization/organization.gates';
 import { enqueueCampaignSendProcessing } from './campaigns.jobs';
 import {
-  reserveCampaignSendCredits,
+  queueCampaignSend,
   sendCampaignTestSms,
   TEST_TRACKED_BOOKING_LINK,
 } from './campaigns.service';
@@ -247,55 +245,34 @@ export const campaignsRoutes = new Hono<AppEnv>()
       return gate.response;
     }
 
-    const db = c.get('db');
-    const organization = c.get('organization');
-    const campaignId = c.req.param('id');
-    const campaign = await getCampaignById(db, {
-      organizationId: organization.id,
-      campaignId,
-    });
-
-    if (!campaign) {
-      return c.json(apiError('not_found', 'Campaign was not found.'), 404);
-    }
-
-    if (campaign.status !== 'draft' && campaign.status !== 'ready_to_send') {
-      return c.json(
-        apiError('conflict', 'Only ready campaigns can be sent.'),
-        409,
-      );
-    }
-
-    const provider = createSmsProvider(c.env);
-    const sender = await getOrganizationSmsSender(db, {
-      organizationId: organization.id,
-      provider: provider.name,
-    });
-
-    if (!sender || sender.status !== 'ready') {
-      return c.json(
-        apiError('conflict', 'Set up the SMS sender before sending a campaign.'),
-        409,
-      );
-    }
-
-    let sendCampaign = campaign;
-    let recipientCount = 0;
-    if (campaign.status === 'draft') {
-      const result = await launchCampaign(db, {
-        organizationId: organization.id,
-        campaignId,
-        actorUserId: c.get('user').id,
+    try {
+      const result = await queueCampaignSend({
+        db: c.get('db'),
+        env: c.env,
+        organizationId: c.get('organization').id,
+        campaignId: c.req.param('id'),
+        userId: c.get('user').id,
         userAgent: c.req.header('user-agent') ?? null,
+        enqueue: (payload) => enqueueCampaignSendProcessing(c.env, payload),
       });
 
       if (result.status === 'not_found') {
         return c.json(apiError('not_found', 'Campaign was not found.'), 404);
       }
 
-      if (result.status === 'not_editable') {
+      if (result.status === 'not_sendable') {
         return c.json(
-          apiError('conflict', 'Only draft campaigns can be sent.'),
+          apiError('conflict', 'Only ready campaigns can be sent.'),
+          409,
+        );
+      }
+
+      if (result.status === 'sender_not_ready') {
+        return c.json(
+          apiError(
+            'conflict',
+            'Set up the SMS sender before sending a campaign.',
+          ),
           409,
         );
       }
@@ -317,41 +294,17 @@ export const campaignsRoutes = new Hono<AppEnv>()
         );
       }
 
-      sendCampaign = result.campaign;
-      recipientCount = result.recipientCount;
-    } else {
-      const summary = await countCampaignRecipients(db, {
-        organizationId: organization.id,
-        campaignId,
-      });
-      recipientCount = summary.recipientCount;
-    }
-
-    try {
-      await reserveCampaignSendCredits({
-        db,
-        organizationId: organization.id,
-        campaign: sendCampaign,
-        trackingBaseUrl: c.env.TRACKING_BASE_URL,
-      });
-
-      await enqueueCampaignSendProcessing(c.env, {
-        organizationId: organization.id,
-        campaignId,
-        userId: c.get('user').id,
-      });
+      return c.json(
+        {
+          campaign: result.campaign,
+          recipientCount: result.recipientCount,
+          sendStatus: 'queued',
+        },
+        202,
+      );
     } catch (error) {
       return campaignSmsSendErrorResponse(c, error);
     }
-
-    return c.json(
-      {
-        campaign: sendCampaign,
-        recipientCount,
-        sendStatus: 'queued',
-      },
-      202,
-    );
   })
   .get('/:id', async (c) => {
     const campaign = await getCampaignById(c.get('db'), {

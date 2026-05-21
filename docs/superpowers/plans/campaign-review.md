@@ -688,3 +688,32 @@ pnpm --filter @retaino/api typecheck
 pnpm --filter @retaino/api lint
 git diff --check
 ```
+
+## Pass 22: Campaign Send Route Ownership Review
+
+Purpose: keep final-send business rules in the campaign service instead of the
+HTTP route.
+
+- [x] Review the final send route for business orchestration owned outside the
+  service layer.
+- [x] Move campaign lookup, sendability checks, sender readiness, launch
+  snapshot, credit reservation, and enqueue orchestration into
+  `queueCampaignSend`.
+- [x] Keep the route responsible for eligibility gate execution, HTTP response
+  mapping, and error mapping.
+
+Files inspected first:
+
+- `apps/api/src/features/campaigns/campaigns.routes.ts`
+- `apps/api/src/features/campaigns/campaigns.service.ts`
+- `apps/api/test/features/campaigns/campaigns.routes.test.ts`
+- `apps/api/test/features/campaigns/campaigns.service.test.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/api test -- --runInBand apps/api/test/features/campaigns/campaigns.routes.test.ts apps/api/test/features/campaigns/campaigns.service.test.ts apps/api/test/features/campaigns/campaigns.jobs.test.ts
+pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/api lint
+git diff --check
+```

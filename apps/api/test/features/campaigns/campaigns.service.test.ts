@@ -28,6 +28,7 @@ import {
 import { createSmsProvider } from '../../../src/lib/sms-provider';
 
 vi.mock('@retaino/db', () => ({
+  countCampaignRecipients: vi.fn(),
   createAuditLog: vi.fn(),
   createOutboundSmsMessage: vi.fn(),
   findSuppressionByHash: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock('@retaino/db', () => ({
   getCurrentOrganizationLegalAcceptance: vi.fn(),
   getOrganizationProfileByOrganizationId: vi.fn(),
   getOrganizationSmsSender: vi.fn(),
+  launchCampaign: vi.fn(),
   listSelectedCampaignRecipientsForSend: vi.fn(),
   markCampaignRecipientSent: vi.fn(),
   markCampaignRecipientSkipped: vi.fn(),
