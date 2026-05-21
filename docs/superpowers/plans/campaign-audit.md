@@ -26,6 +26,7 @@
 | LC-05 | Later provider status callbacks that omitted segment or cost fields could erase values already captured from the initial provider send response. | Provider result updates now preserve existing actual segment count, cost, and currency when a callback omits those fields. |
 | LC-06 | Initial provider send responses that omitted segment counts could leave message actual segments empty while campaign credit reconciliation used the estimate. | Campaign sends now store the same estimated segment fallback on the message row that the campaign reconciliation uses. Later callbacks can still replace it with a provider value. |
 | LC-07 | Duplicate campaign send jobs for the same campaign could overlap during provider sending. | The Inngest campaign send function now uses singleton skip mode keyed by campaign ID. |
+| LC-08 | If final-send credit reservation succeeded but background enqueue failed, credits could remain reserved without a send job. | `queueCampaignSend` now releases the live-send reservation when enqueueing fails, then rethrows the enqueue error. |
 
 ## Important Findings Fixed
 

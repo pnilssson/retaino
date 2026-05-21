@@ -717,3 +717,29 @@ pnpm --filter @retaino/api typecheck
 pnpm --filter @retaino/api lint
 git diff --check
 ```
+
+## Pass 23: Campaign Send Enqueue Failure Review
+
+Purpose: verify live-send credit reservations are not left behind when the
+background job cannot be queued.
+
+- [x] Review `queueCampaignSend` after moving final-send orchestration into the
+  campaign service.
+- [x] Release the reserved campaign credits if enqueueing the Inngest send job
+  fails.
+- [x] Add service coverage for the reservation-release path.
+
+Files inspected first:
+
+- `apps/api/src/features/campaigns/campaigns.service.ts`
+- `apps/api/test/features/campaigns/campaigns.service.test.ts`
+- `apps/api/src/features/campaigns/campaigns.routes.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/api test -- --runInBand apps/api/test/features/campaigns/campaigns.service.test.ts apps/api/test/features/campaigns/campaigns.routes.test.ts apps/api/test/features/campaigns/campaigns.jobs.test.ts
+pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/api lint
+git diff --check
+```

@@ -155,18 +155,31 @@ export async function queueCampaignSend(input: {
     recipientCount = summary.recipientCount;
   }
 
-  await reserveCampaignSendCredits({
+  const reservation = await reserveCampaignSendCredits({
     db: input.db,
     organizationId: input.organizationId,
     campaign: sendCampaign,
     trackingBaseUrl: input.env.TRACKING_BASE_URL,
   });
 
-  await input.enqueue({
-    organizationId: input.organizationId,
-    campaignId: input.campaignId,
-    userId: input.userId,
-  });
+  try {
+    await input.enqueue({
+      organizationId: input.organizationId,
+      campaignId: input.campaignId,
+      userId: input.userId,
+    });
+  } catch (error) {
+    await releaseUnusedCampaignCredits({
+      db: input.db,
+      organizationId: input.organizationId,
+      reservedCreditCount: reservation.reservedCreditCount,
+      actualCreditCount: 0,
+      reservedTransactions: reservation.reservedTransactions,
+      reservationSourceId: reservation.sourceId,
+    });
+
+    throw error;
+  }
 
   return {
     status: 'queued',

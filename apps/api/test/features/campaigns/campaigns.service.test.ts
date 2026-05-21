@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  countCampaignRecipients,
   createAuditLog,
   createOutboundSmsMessage,
   findSuppressionByHash,
@@ -8,6 +9,7 @@ import {
   getCurrentOrganizationLegalAcceptance,
   getOrganizationProfileByOrganizationId,
   getOrganizationSmsSender,
+  launchCampaign,
   listSelectedCampaignRecipientsForSend,
   markCampaignRecipientSent,
   markCampaignRecipientSkipped,
@@ -23,6 +25,7 @@ import {
 } from '../../../src/features/billing/billing.service';
 import {
   processCampaignSend,
+  queueCampaignSend,
   sendCampaignTestSms,
 } from '../../../src/features/campaigns/campaigns.service';
 import { createSmsProvider } from '../../../src/lib/sms-provider';
@@ -144,6 +147,7 @@ const legalAcceptance = {
 describe('campaign send service', () => {
   beforeEach(() => {
     vi.mocked(createAuditLog).mockReset();
+    vi.mocked(countCampaignRecipients).mockReset();
     vi.mocked(createOutboundSmsMessage).mockReset();
     vi.mocked(findSuppressionByHash).mockReset();
     vi.mocked(getCampaignById).mockReset();
@@ -151,6 +155,7 @@ describe('campaign send service', () => {
     vi.mocked(getCurrentOrganizationLegalAcceptance).mockReset();
     vi.mocked(getOrganizationProfileByOrganizationId).mockReset();
     vi.mocked(getOrganizationSmsSender).mockReset();
+    vi.mocked(launchCampaign).mockReset();
     vi.mocked(listSelectedCampaignRecipientsForSend).mockReset();
     vi.mocked(markCampaignRecipientSent).mockReset();
     vi.mocked(markCampaignRecipientSkipped).mockReset();
@@ -184,6 +189,14 @@ describe('campaign send service', () => {
     vi.mocked(getOrganizationSmsSender).mockResolvedValue(sender);
     vi.mocked(listSelectedCampaignRecipientsForSend).mockResolvedValue({
       recipients: [recipient],
+    });
+    vi.mocked(launchCampaign).mockResolvedValue({
+      status: 'launched',
+      campaign,
+      recipientCount: 1,
+    });
+    vi.mocked(countCampaignRecipients).mockResolvedValue({
+      recipientCount: 1,
     });
     vi.mocked(upsertTrackingLink).mockResolvedValue({
       id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -350,6 +363,47 @@ describe('campaign send service', () => {
       sourceId: expect.stringMatching(/^campaign-test:.*:release$/),
       description: 'Campaign test SMS release',
     });
+  });
+
+  it('releases live send credits when enqueue fails after reservation', async () => {
+    const enqueueError = new Error('Inngest is unavailable.');
+    const enqueue = vi.fn().mockRejectedValue(enqueueError);
+
+    await expect(
+      queueCampaignSend({
+        db,
+        env: {
+          DATABASE_URL: 'postgres://retaino.test/db',
+          SMS_SENDING_MODE: 'test',
+          TRACKING_BASE_URL: 'https://go.retaino.test',
+        } as never,
+        organizationId,
+        campaignId,
+        userId,
+        userAgent: 'Vitest',
+        enqueue,
+      }),
+    ).rejects.toThrow(enqueueError);
+
+    expect(launchCampaign).not.toHaveBeenCalled();
+    expect(debitSmsCreditUsage).toHaveBeenCalledWith({
+      db,
+      organizationId,
+      actualSegments: 1,
+      source: 'campaign_send',
+      sourceId: `campaign-send:${campaignId}`,
+      description: 'Campaign SMS reservation',
+    });
+    expect(releaseSmsCreditUsage).toHaveBeenCalledWith({
+      db,
+      organizationId,
+      credits: 1,
+      reservedTransactions: expect.any(Array),
+      source: 'campaign_send',
+      sourceId: `campaign-send:${campaignId}:release`,
+      description: 'Campaign SMS reservation release',
+    });
+    expect(startCampaignSend).not.toHaveBeenCalled();
   });
 
   it('creates tracking links and records provider send results', async () => {
