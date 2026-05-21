@@ -5,26 +5,28 @@ import {
   campaignAudienceWhere,
   countCampaignRecipients,
   createAuditLog,
-  createInboundSmsMessage,
-  createOutboundSmsMessage,
   deleteCampaignDraft,
   getCampaignReport,
   getLatestCampaignRecipientByPhoneHash,
-  getSmsMessageByProviderMessageId,
-  getTrackingLinkByCode,
   listSelectedCampaignRecipientsForSend,
   launchCampaign,
   markCampaignRecipientSkipped,
   markCampaignRecipientSent,
   markCampaignSendCompleted,
   markCampaignSendFailed,
+  startCampaignSend,
+  updateCampaignDraft,
+} from '../../src/queries/campaigns';
+import {
+  createInboundSmsMessage,
+  createOutboundSmsMessage,
+  getSmsMessageByProviderMessageId,
+  getTrackingLinkByCode,
   recordCampaignMessageEvent,
   recordTrackingClick,
   recordSmsMessageProviderResult,
-  startCampaignSend,
   upsertTrackingLink,
-  updateCampaignDraft,
-} from '../../src/queries/campaigns';
+} from '../../src/queries/campaign-communications';
 import { campaignMessageEvents } from '../../src/schema/campaign-message-events';
 
 const campaignRow = {

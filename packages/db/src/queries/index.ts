@@ -1,4 +1,5 @@
 export * from './billing';
+export * from './campaign-communications';
 export * from './campaigns';
 export * from './contacts';
 export * from './identity';

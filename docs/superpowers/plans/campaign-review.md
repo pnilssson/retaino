@@ -592,3 +592,40 @@ pnpm --filter @retaino/web typecheck
 pnpm --filter @retaino/web lint
 git diff --check
 ```
+
+## Pass 19: Campaign DB Query Module Shape Review
+
+Purpose: reduce the campaign DB query module's responsibilities while keeping
+the public DB package API stable.
+
+- [x] Review `packages/db/src/queries/campaigns.ts` for unrelated operational
+  query groups.
+- [x] Move tracking-link, click-event, SMS-message, and campaign-message-event
+  queries into `campaign-communications.ts`.
+- [x] Re-export the new query module from `packages/db/src/queries/index.ts`
+  so API callers can keep importing from `@retaino/db`.
+- [x] Keep campaign lifecycle, audience, recipient snapshot, send-state, audit,
+  and report queries in `campaigns.ts`.
+
+Files inspected first:
+
+- `packages/db/src/queries/campaigns.ts`
+- `packages/db/src/schema/tracking-links.ts`
+- `packages/db/src/schema/click-events.ts`
+- `packages/db/src/schema/sms-messages.ts`
+- `packages/db/src/schema/campaign-message-events.ts`
+- `packages/db/test/queries/campaigns.test.ts`
+- `apps/api/src/features/campaigns/campaigns.service.ts`
+- `apps/api/src/features/sms/sms.webhook-routes.ts`
+- `apps/api/src/features/tracking/tracking.routes.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/db test -- --runInBand packages/db/test/queries/campaigns.test.ts
+pnpm --filter @retaino/db typecheck
+pnpm --filter @retaino/db lint
+pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/api test -- --runInBand apps/api/test/features/campaigns/campaigns.service.test.ts apps/api/test/features/sms/sms.webhook-routes.test.ts apps/api/test/features/tracking/tracking.routes.test.ts
+git diff --check
+```
