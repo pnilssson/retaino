@@ -646,9 +646,6 @@ describe('campaignsRoutes', () => {
       estimatedSmsSegments: 10,
       actualSmsSegments: 9,
       segmentEstimateDrift: -1,
-      estimatedCostMinor: null,
-      actualCostMinor: null,
-      currency: 'SEK',
     });
 
     const response = await testApp({ role: 'org:member' }).request(

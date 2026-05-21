@@ -96,7 +96,10 @@ Campaign and billing intent lives in `source` and `sourceId`. Use
 `campaign_send` for live sends and `campaign_test_send` for test sends.
 `sourceId` must identify the operation idempotently, such as
 `campaign-send:{campaignId}` for a live-send reservation and
-`campaign-send:{campaignId}:release` for release rows.
+`campaign-send:{campaignId}:release` for release rows. If a reservation was
+fully released before the background send could run, a retry may append a fresh
+attempt suffix after `campaign-send:{campaignId}` and release against that exact
+attempt source.
 
 ## Tax
 

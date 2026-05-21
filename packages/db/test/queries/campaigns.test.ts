@@ -807,9 +807,6 @@ describe('campaign query helpers', () => {
               unique_clicker_count: 3,
               estimated_sms_segments: 10,
               actual_sms_segments: 9,
-              estimated_cost_minor: null,
-              actual_cost_minor: null,
-              currency: 'SEK',
             },
           ],
         };

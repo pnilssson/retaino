@@ -229,7 +229,9 @@ one of the shared billing values, such as `debit` or `adjustment`. Campaign
 intent is recorded through `source`, using `campaign_send` for live sends and
 `campaign_test_send` for test sends. `sourceId` must identify the operation
 idempotently, for example `campaign-send:<campaignId>` for the reservation and
-`campaign-send:<campaignId>:release` for release rows.
+`campaign-send:<campaignId>:release` for release rows. When an enqueue failure
+fully releases a reservation before the background job runs, a retry may create
+a fresh attempt-specific source ID and release against that exact source.
 
 Do not check credits before every individual SMS. That creates partial
 campaign-send behavior that is worse for users. To avoid two campaign jobs

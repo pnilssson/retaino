@@ -83,6 +83,7 @@
 | UI-02 | Sankey charts depended too heavily on SVG labels fitting in the chart area. | Increased chart label margins and removed duplicate numeric summary rows from the campaign audience step. |
 | UI-03 | Campaign form placeholders and loading labels contained mojibake ellipsis characters. | Replaced corrupted characters with plain ASCII ellipses. |
 | UI-04 | Campaign report loading text still contained a corrupted ellipsis character. | Replaced it with a plain ASCII ellipsis and rechecked campaign UI sources for the mojibake marker. |
+| UI-05 | The public campaign report exposed provider monetary cost fields even though the MVP product spends and reports prepaid SMS credits. | Removed monetary cost fields from the public report contract and aggregate. The report UI now shows credits used, while provider cost remains internal on SMS message rows. |
 
 ## Deferred Scope Confirmed
 

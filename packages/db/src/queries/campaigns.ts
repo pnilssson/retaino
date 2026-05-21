@@ -637,14 +637,7 @@ export async function getCampaignReport(
         ), 0)::integer as estimated_sms_segments,
         coalesce(sum(coalesce(actual_segment_count, 0)) filter (
           where direction = ${'outbound'}
-        ), 0)::integer as actual_sms_segments,
-        sum(estimated_cost_minor) filter (
-          where direction = ${'outbound'}
-        )::integer as estimated_cost_minor,
-        sum(actual_cost_minor) filter (
-          where direction = ${'outbound'}
-        )::integer as actual_cost_minor,
-        max(currency) filter (where currency is not null) as currency
+        ), 0)::integer as actual_sms_segments
       from ${smsMessages}, input
       where ${smsMessages.campaignId} = input.campaign_id
         and ${smsMessages.organizationId} = input.organization_id
@@ -676,10 +669,7 @@ export async function getCampaignReport(
       click_counts.click_count,
       click_counts.unique_clicker_count,
       message_counts.estimated_sms_segments,
-      message_counts.actual_sms_segments,
-      message_counts.estimated_cost_minor,
-      message_counts.actual_cost_minor,
-      message_counts.currency
+      message_counts.actual_sms_segments
     from recipient_counts, message_counts, event_counts, click_counts
   `);
   const [row = {}] = Array.from(result.rows ?? []) as Array<
@@ -700,11 +690,6 @@ export async function getCampaignReport(
     actualSmsSegments: intValue(row.actual_sms_segments),
     segmentEstimateDrift:
       intValue(row.actual_sms_segments) - intValue(row.estimated_sms_segments),
-    estimatedCostMinor:
-      row.estimated_cost_minor === null ? null : intValue(row.estimated_cost_minor),
-    actualCostMinor:
-      row.actual_cost_minor === null ? null : intValue(row.actual_cost_minor),
-    currency: typeof row.currency === 'string' ? row.currency : null,
   };
 
   return report;

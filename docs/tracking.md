@@ -135,11 +135,12 @@ less precise.
 
 ## Reporting Metrics
 
-Campaign reports include recipients selected, segments sent, estimated and
-actual SMS cost, delivered count, failed count, click count, unique clickers,
-opt-outs, uploaded bookings, direct matches, click-assisted matches,
-campaign-window matches, unmatched bookings, attributed revenue, revenue by
-confidence, and return on spend.
+Campaign activity reports include selected recipients, sent messages, delivered
+messages, failed messages, skipped recipients, click count, unique clickers,
+replies, opt-outs, estimated SMS credits, and actual SMS credits.
+
+Booking uploads, attribution classes, attributed revenue, revenue by confidence,
+and return on spend belong to the later booking reconciliation plan.
 
 Reports must label inferred attribution clearly. Do not imply click tracking
 proves a booking happened.

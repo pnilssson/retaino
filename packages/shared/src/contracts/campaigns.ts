@@ -167,9 +167,6 @@ export const campaignReportSchema = z.object({
   estimatedSmsSegments: z.number().int().nonnegative(),
   actualSmsSegments: z.number().int().nonnegative(),
   segmentEstimateDrift: z.number().int(),
-  estimatedCostMinor: z.number().int().nonnegative().nullable(),
-  actualCostMinor: z.number().int().nonnegative().nullable(),
-  currency: nonEmptyStringSchema.nullable(),
 });
 
 export const campaignReportResponseSchema = z.object({

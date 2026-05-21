@@ -678,6 +678,45 @@ pnpm --filter @retaino/api lint
 git diff --check
 ```
 
+## Pass 31: Campaign Report Public Metric Review
+
+Purpose: keep public campaign reporting aligned with the MVP credit model and
+avoid exposing provider-cost implementation details as product metrics.
+
+- [x] Review campaign report aggregate fields and report UI labels against
+  `docs/pricing.md`, `docs/tracking.md`, and the campaign MVP plan.
+- [x] Remove public monetary cost fields from the campaign report contract and
+  aggregate.
+- [x] Keep provider cost storage internal on SMS message rows for support and
+  later margin analysis.
+- [x] Change the report UI metric from provider cost to credits used.
+- [x] Update tracking and campaign plan docs to describe report credits and the
+  current reservation retry source-ID behavior.
+
+Files inspected first:
+
+- `packages/shared/src/contracts/campaigns.ts`
+- `packages/db/src/queries/campaigns.ts`
+- `apps/web/src/features/campaigns/components/campaign-report-panel.tsx`
+- `docs/tracking.md`
+- `docs/pricing.md`
+- `docs/superpowers/plans/campaign-mvp.md`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/shared test -- --runInBand packages/shared/test/contracts/campaigns.test.ts
+pnpm --filter @retaino/db test -- --runInBand packages/db/test/queries/campaigns.test.ts
+pnpm --filter @retaino/api test -- --runInBand apps/api/test/features/campaigns/campaigns.routes.test.ts
+pnpm --filter @retaino/web typecheck
+pnpm --filter @retaino/shared typecheck
+pnpm --filter @retaino/db typecheck
+pnpm --filter @retaino/web lint
+pnpm --filter @retaino/shared lint
+pnpm --filter @retaino/db lint
+git diff --check
+```
+
 ## Pass 27: Sender Setup Control Ownership Review
 
 Purpose: keep sender setup focused on provisioning state and move low-level

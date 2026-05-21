@@ -196,23 +196,10 @@ function reportMetrics(report: CampaignReport): ReportMetric[] {
     },
     {
       detail: `${formatNumber(report.estimatedSmsSegments)} estimated`,
-      icon: AlertCircle,
-      label: 'Actual segments',
+      icon: Send,
+      label: 'Credits used',
       tone: 'default',
       value: formatNumber(report.actualSmsSegments),
-    },
-    {
-      detail:
-        report.estimatedCostMinor === null
-          ? 'Estimate pending'
-          : `${formatCurrency(report.estimatedCostMinor, report.currency)} estimated`,
-      icon: Send,
-      label: 'Cost',
-      tone: 'default',
-      value:
-        report.actualCostMinor === null
-          ? 'Pending'
-          : formatCurrency(report.actualCostMinor, report.currency),
     },
   ];
 }
@@ -240,13 +227,4 @@ function formatPercent(value: number, total: number) {
     maximumFractionDigits: 1,
     style: 'percent',
   }).format(value / total);
-}
-
-function formatCurrency(valueMinor: number, currency: string | null) {
-  const currencyCode = currency ?? 'SEK';
-
-  return new Intl.NumberFormat(undefined, {
-    currency: currencyCode,
-    style: 'currency',
-  }).format(valueMinor / 100);
 }
