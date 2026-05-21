@@ -1,23 +1,85 @@
-import { and, desc, eq } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  ne,
+  not,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import type {
   Campaign,
   CampaignAudienceRule,
+  CampaignAudiencePreviewResponse,
+  CampaignReport,
+  CampaignRecipientStatus,
   CampaignStatus,
   CreateCampaignDraftInput,
   UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
 import type { DbClient } from '../client';
-import { campaigns } from '../schema';
-import { assertOrganizationId } from './contacts';
+import {
+  auditLogs,
+  campaignMessageEvents,
+  campaignRecipients,
+  campaigns,
+  clickEvents,
+  contacts,
+  smsMessages,
+} from '../schema';
+import { assertOrganizationId, phoneSuppressionExistsFilter } from './contacts';
 
 type CampaignRow = typeof campaigns.$inferSelect;
+type CampaignRecipientRow = typeof campaignRecipients.$inferSelect;
+type CampaignRecipientInsert = typeof campaignRecipients.$inferInsert;
+
+const RECIPIENT_SNAPSHOT_INSERT_BATCH_SIZE = 1000;
 
 export type UpdateCampaignDraftResult =
   | { status: 'updated'; campaign: Campaign }
   | { status: 'not_found' }
   | { status: 'not_editable' };
 
-export function campaignToContract(row: CampaignRow): Campaign {
+export type LaunchCampaignResult =
+  | { status: 'launched'; campaign: Campaign; recipientCount: number }
+  | { status: 'not_found' }
+  | { status: 'not_editable' }
+  | { status: 'incomplete' }
+  | { status: 'empty_audience' };
+
+export type StartCampaignSendResult =
+  | { status: 'started'; campaign: Campaign }
+  | { status: 'not_found' }
+  | { status: 'not_ready' }
+  | { status: 'active_send_exists' };
+
+export type CampaignRecipientForSend = {
+  id: string;
+  organizationId: string;
+  campaignId: string;
+  contactId: string | null;
+  status: CampaignRecipientStatus;
+  exclusionReason: string | null;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  normalizedPhone: string | null;
+  normalizedEmail: string | null;
+  phoneHash: string | null;
+  emailHash: string | null;
+  lastBookingAt: string | null;
+  lastContactedAt: string | null;
+  selectedAt: string | null;
+};
+
+function campaignToContract(row: CampaignRow): Campaign {
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -29,15 +91,131 @@ export function campaignToContract(row: CampaignRow): Campaign {
     bookingUrl: row.bookingUrl,
     campaignCode: row.campaignCode,
     attributionWindowDays: row.attributionWindowDays,
+    readyToSendAt: row.readyToSendAt?.toISOString() ?? null,
+    readyToSendByUserId: row.readyToSendByUserId,
+    sendStartedAt: row.sendStartedAt?.toISOString() ?? null,
+    sentAt: row.sentAt?.toISOString() ?? null,
+    failedAt: row.failedAt?.toISOString() ?? null,
+    failureReason: row.failureReason,
+    reservedCreditCount: row.reservedCreditCount,
+    actualCreditCount: row.actualCreditCount,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
 
-export function assertCampaignDraftStatus(row: Pick<CampaignRow, 'status'>) {
-  if (row.status !== 'draft') {
-    throw new Error('Campaign is not editable.');
-  }
+function recipientToContract(row: CampaignRecipientRow) {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    campaignId: row.campaignId,
+    contactId: row.contactId,
+    status: row.status as CampaignRecipientStatus,
+    exclusionReason: row.exclusionReason,
+    name: row.name,
+    phone: row.phone,
+    email: row.email,
+    lastBookingAt: row.lastBookingAt?.toISOString() ?? null,
+    lastContactedAt: row.lastContactedAt?.toISOString() ?? null,
+    selectedAt: row.selectedAt?.toISOString() ?? null,
+    queuedAt: row.queuedAt?.toISOString() ?? null,
+    sentAt: row.sentAt?.toISOString() ?? null,
+    failedAt: row.failedAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export function campaignAudienceWhere(
+  organizationId: string,
+  rule: CampaignAudienceRule,
+  now = new Date(),
+): SQL | undefined {
+  assertOrganizationId(organizationId);
+  const suppressionExists = phoneSuppressionExistsFilter(organizationId);
+
+  return and(
+    campaignAudienceDateWhere(rule, now),
+    eq(contacts.organizationId, organizationId),
+    isNotNull(contacts.normalizedPhone),
+    eq(contacts.consentStatus, 'granted'),
+    not(suppressionExists),
+  );
+}
+
+export async function previewCampaignAudience(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    audienceRule: CampaignAudienceRule;
+    now?: Date;
+  },
+): Promise<CampaignAudiencePreviewResponse> {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+  const eligibleWhere = campaignAudienceWhere(
+    input.organizationId,
+    input.audienceRule,
+    now,
+  );
+  const [eligibleRow] = await db
+    .select({ total: count() })
+    .from(contacts)
+    .where(eligibleWhere);
+  const [suppressedRow] = await db
+    .select({ total: count() })
+    .from(contacts)
+    .where(
+      campaignAudienceSuppressedWhere(
+        input.organizationId,
+        input.audienceRule,
+        now,
+      ),
+    );
+  const [incompleteRow] = await db
+    .select({ total: count() })
+    .from(contacts)
+    .where(
+      campaignAudienceIncompleteWhere(
+        input.organizationId,
+        input.audienceRule,
+        now,
+      ),
+    );
+  const [missingConsentRow] = await db
+    .select({ total: count() })
+    .from(contacts)
+    .where(
+      campaignAudienceMissingConsentWhere(
+        input.organizationId,
+        input.audienceRule,
+        now,
+      ),
+    );
+  const sampleRows = await db
+    .select({
+      id: contacts.id,
+      name: contacts.name,
+      phone: contacts.phone,
+      lastBookingAt: contacts.lastBookingAt,
+    })
+    .from(contacts)
+    .where(eligibleWhere)
+    .orderBy(desc(contacts.lastBookingAt))
+    .limit(10);
+
+  return {
+    eligibleCount: eligibleRow?.total ?? 0,
+    suppressedCount: suppressedRow?.total ?? 0,
+    incompleteCount: incompleteRow?.total ?? 0,
+    missingConsentCount: missingConsentRow?.total ?? 0,
+    sampleContacts: sampleRows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      phone: row.phone,
+      lastBookingAt: row.lastBookingAt?.toISOString() ?? null,
+    })),
+  };
 }
 
 export async function createCampaignDraft(
@@ -161,6 +339,599 @@ export async function deleteCampaignDraft(
   return Boolean(deleted);
 }
 
+export async function countCampaignRecipients(
+  db: DbClient,
+  input: { organizationId: string; campaignId: string },
+): Promise<{ recipientCount: number }> {
+  assertOrganizationId(input.organizationId);
+
+  const [row] = await db
+    .select({ total: count() })
+    .from(campaignRecipients)
+    .where(
+      and(
+        eq(campaignRecipients.organizationId, input.organizationId),
+        eq(campaignRecipients.campaignId, input.campaignId),
+      ),
+    );
+
+  return { recipientCount: row?.total ?? 0 };
+}
+
+export async function listSelectedCampaignRecipientsForSend(
+  db: DbClient,
+  input: { organizationId: string; campaignId: string },
+): Promise<{ recipients: CampaignRecipientForSend[] }> {
+  assertOrganizationId(input.organizationId);
+
+  const rows = await db
+    .select()
+    .from(campaignRecipients)
+    .where(
+      and(
+        eq(campaignRecipients.organizationId, input.organizationId),
+        eq(campaignRecipients.campaignId, input.campaignId),
+        inArray(campaignRecipients.status, ['selected', 'sent']),
+      ),
+    )
+    .orderBy(asc(campaignRecipients.createdAt));
+
+  return { recipients: rows.map(recipientForSendToContract) };
+}
+
+export async function getLatestCampaignRecipientByPhoneHash(
+  db: DbClient,
+  input: { organizationId: string; phoneHash: string },
+) {
+  assertOrganizationId(input.organizationId);
+  const [row] = await db
+    .select()
+    .from(campaignRecipients)
+    .where(
+      and(
+        eq(campaignRecipients.organizationId, input.organizationId),
+        eq(campaignRecipients.phoneHash, input.phoneHash),
+        isNotNull(campaignRecipients.sentAt),
+      ),
+    )
+    .orderBy(desc(campaignRecipients.sentAt), desc(campaignRecipients.createdAt))
+    .limit(1);
+
+  return row ? recipientToContract(row) : null;
+}
+
+export async function startCampaignSend(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    campaignId: string;
+    reservedCreditCount: number;
+    now?: Date;
+  },
+): Promise<StartCampaignSendResult> {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${input.organizationId}))`,
+    );
+
+    const [activeSend] = await tx
+      .select({ id: campaigns.id })
+      .from(campaigns)
+      .where(
+        and(
+          eq(campaigns.organizationId, input.organizationId),
+          eq(campaigns.status, 'sending'),
+          ne(campaigns.id, input.campaignId),
+        ),
+      )
+      .limit(1);
+
+    if (activeSend) {
+      return { status: 'active_send_exists' };
+    }
+
+    const [existing] = await tx
+      .select()
+      .from(campaigns)
+      .where(
+        and(
+          eq(campaigns.organizationId, input.organizationId),
+          eq(campaigns.id, input.campaignId),
+        ),
+      )
+      .limit(1);
+
+    if (!existing) {
+      return { status: 'not_found' };
+    }
+
+    if (existing.status === 'sending') {
+      return { status: 'started', campaign: campaignToContract(existing) };
+    }
+
+    if (existing.status !== 'ready_to_send') {
+      return { status: 'not_ready' };
+    }
+
+    const [updated] = await tx
+      .update(campaigns)
+      .set({
+        status: 'sending',
+        sendStartedAt: now,
+        reservedCreditCount: input.reservedCreditCount,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(campaigns.organizationId, input.organizationId),
+          eq(campaigns.id, input.campaignId),
+          eq(campaigns.status, 'ready_to_send'),
+        ),
+      )
+      .returning();
+
+    return updated
+      ? { status: 'started', campaign: campaignToContract(updated) }
+      : { status: 'not_ready' };
+  });
+}
+
+export async function markCampaignRecipientSent(
+  db: DbClient,
+  input: { organizationId: string; recipientId: string; now?: Date },
+) {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+  const [row] = await db
+    .update(campaignRecipients)
+    .set({
+      status: 'sent',
+      sentAt: now,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(campaignRecipients.organizationId, input.organizationId),
+        eq(campaignRecipients.id, input.recipientId),
+      ),
+    )
+    .returning();
+
+  return row ? recipientToContract(row) : null;
+}
+
+export async function markCampaignRecipientSkipped(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    recipientId: string;
+    exclusionReason: string;
+    now?: Date;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+  const [row] = await db
+    .update(campaignRecipients)
+    .set({
+      status: 'skipped',
+      exclusionReason: input.exclusionReason,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(campaignRecipients.organizationId, input.organizationId),
+        eq(campaignRecipients.id, input.recipientId),
+      ),
+    )
+    .returning();
+
+  return row ? recipientToContract(row) : null;
+}
+
+export async function markCampaignSendCompleted(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    campaignId: string;
+    actualCreditCount: number;
+    now?: Date;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+  const [row] = await db
+    .update(campaigns)
+    .set({
+      status: 'sent',
+      sentAt: now,
+      actualCreditCount: input.actualCreditCount,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(campaigns.organizationId, input.organizationId),
+        eq(campaigns.id, input.campaignId),
+        inArray(campaigns.status, ['ready_to_send', 'sending']),
+      ),
+    )
+    .returning();
+
+  return row ? campaignToContract(row) : null;
+}
+
+export async function markCampaignSendFailed(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    campaignId: string;
+    failureReason: string;
+    actualCreditCount: number;
+    now?: Date;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+  const [row] = await db
+    .update(campaigns)
+    .set({
+      status: 'failed',
+      failedAt: now,
+      failureReason: input.failureReason,
+      actualCreditCount: input.actualCreditCount,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(campaigns.organizationId, input.organizationId),
+        eq(campaigns.id, input.campaignId),
+        inArray(campaigns.status, ['ready_to_send', 'sending']),
+      ),
+    )
+    .returning();
+
+  return row ? campaignToContract(row) : null;
+}
+
+export async function getCampaignReport(
+  db: DbClient,
+  input: { organizationId: string; campaignId: string },
+): Promise<CampaignReport> {
+  assertOrganizationId(input.organizationId);
+  const result = await db.execute(sql`
+    with input as (
+      select
+        ${input.campaignId}::uuid as campaign_id,
+        ${input.organizationId}::uuid as organization_id
+    ),
+    recipient_counts as (
+      select
+        count(*)::integer as selected_count,
+        count(*) filter (where status = ${'queued'})::integer as queued_count,
+        count(*) filter (where status = ${'sent'})::integer as sent_count,
+        count(*) filter (where status = ${'failed'})::integer as failed_count,
+        count(*) filter (where status = ${'skipped'})::integer as skipped_count
+      from ${campaignRecipients}, input
+      where ${campaignRecipients.campaignId} = input.campaign_id
+        and ${campaignRecipients.organizationId} = input.organization_id
+    ),
+    message_counts as (
+      select
+        count(*) filter (where direction = ${'outbound'})::integer as sent_count,
+        count(*) filter (
+          where direction = ${'outbound'} and status in (${'queued'}, ${'accepted'})
+        )::integer as queued_count,
+        count(*) filter (
+          where direction = ${'outbound'} and status = ${'delivered'}
+        )::integer as delivered_count,
+        count(*) filter (
+          where direction = ${'outbound'} and status in (${'failed'}, ${'undelivered'})
+        )::integer as failed_count,
+        count(*) filter (where direction = ${'inbound'})::integer
+          as inbound_reply_count,
+        coalesce(sum(estimated_segment_count) filter (
+          where direction = ${'outbound'}
+        ), 0)::integer as estimated_sms_segments,
+        coalesce(sum(coalesce(actual_segment_count, 0)) filter (
+          where direction = ${'outbound'}
+        ), 0)::integer as actual_sms_segments
+      from ${smsMessages}, input
+      where ${smsMessages.campaignId} = input.campaign_id
+        and ${smsMessages.organizationId} = input.organization_id
+    ),
+    event_counts as (
+      select count(*) filter (where event_type = ${'opt_out'})::integer
+        as opt_out_count
+      from ${campaignMessageEvents}, input
+      where ${campaignMessageEvents.campaignId} = input.campaign_id
+        and ${campaignMessageEvents.organizationId} = input.organization_id
+    ),
+    click_counts as (
+      select
+        count(*)::integer as click_count,
+        count(distinct ${clickEvents.recipientId})::integer as unique_clicker_count
+      from ${clickEvents}, input
+      where ${clickEvents.campaignId} = input.campaign_id
+        and ${clickEvents.organizationId} = input.organization_id
+    )
+    select
+      recipient_counts.selected_count,
+      message_counts.queued_count,
+      message_counts.sent_count,
+      message_counts.delivered_count,
+      message_counts.failed_count,
+      recipient_counts.skipped_count,
+      event_counts.opt_out_count,
+      message_counts.inbound_reply_count,
+      click_counts.click_count,
+      click_counts.unique_clicker_count,
+      message_counts.estimated_sms_segments,
+      message_counts.actual_sms_segments
+    from recipient_counts, message_counts, event_counts, click_counts
+  `);
+  const [row = {}] = Array.from(result.rows ?? []) as Array<
+    Record<string, unknown>
+  >;
+  const report = {
+    selectedCount: intValue(row.selected_count),
+    queuedCount: intValue(row.queued_count),
+    sentCount: intValue(row.sent_count),
+    deliveredCount: intValue(row.delivered_count),
+    failedCount: intValue(row.failed_count),
+    skippedCount: intValue(row.skipped_count),
+    optOutCount: intValue(row.opt_out_count),
+    inboundReplyCount: intValue(row.inbound_reply_count),
+    clickCount: intValue(row.click_count),
+    uniqueClickerCount: intValue(row.unique_clicker_count),
+    estimatedSmsSegments: intValue(row.estimated_sms_segments),
+    actualSmsSegments: intValue(row.actual_sms_segments),
+    segmentEstimateDrift:
+      intValue(row.actual_sms_segments) - intValue(row.estimated_sms_segments),
+  };
+
+  return report;
+}
+
+export async function launchCampaign(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    campaignId: string;
+    actorUserId: string;
+    userAgent?: string | null;
+    now?: Date;
+  },
+): Promise<LaunchCampaignResult> {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+
+  return db.transaction(async (tx) => {
+    const [campaign] = await tx
+      .select()
+      .from(campaigns)
+      .where(
+        and(
+          eq(campaigns.organizationId, input.organizationId),
+          eq(campaigns.id, input.campaignId),
+        ),
+      )
+      .limit(1);
+
+    if (!campaign) {
+      return { status: 'not_found' };
+    }
+
+    if (campaign.status !== 'draft') {
+      return { status: 'not_editable' };
+    }
+
+    if (!campaign.smsBody || !campaign.bookingUrl) {
+      return { status: 'incomplete' };
+    }
+
+    const eligibleContacts = await tx
+      .select({
+        contactId: contacts.id,
+        name: contacts.name,
+        phone: contacts.phone,
+        email: contacts.email,
+        normalizedPhone: contacts.normalizedPhone,
+        normalizedEmail: contacts.normalizedEmail,
+        phoneHash: contacts.phoneHash,
+        emailHash: contacts.emailHash,
+        lastBookingAt: contacts.lastBookingAt,
+        lastContactedAt: contacts.lastContactedAt,
+      })
+      .from(contacts)
+      .where(
+        campaignAudienceWhere(
+          input.organizationId,
+          campaign.audienceRule as CampaignAudienceRule,
+          now,
+        ),
+      )
+      .orderBy(asc(contacts.id));
+
+    if (eligibleContacts.length === 0) {
+      return { status: 'empty_audience' };
+    }
+
+    const [updatedCampaign] = await tx
+      .update(campaigns)
+      .set({
+        status: 'ready_to_send',
+        readyToSendAt: now,
+        readyToSendByUserId: input.actorUserId,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(campaigns.organizationId, input.organizationId),
+          eq(campaigns.id, input.campaignId),
+          eq(campaigns.status, 'draft'),
+          eq(campaigns.updatedAt, campaign.updatedAt),
+        ),
+      )
+      .returning();
+
+    if (!updatedCampaign) {
+      return { status: 'not_editable' };
+    }
+
+    let recipientCount = 0;
+    const recipientSnapshots = eligibleContacts.map(
+      (contact): CampaignRecipientInsert => ({
+        organizationId: input.organizationId,
+        campaignId: campaign.id,
+        contactId: contact.contactId,
+        status: 'selected',
+        exclusionReason: null,
+        name: contact.name,
+        phone: contact.phone,
+        email: contact.email,
+        normalizedPhone: contact.normalizedPhone,
+        normalizedEmail: contact.normalizedEmail,
+        phoneHash: contact.phoneHash,
+        emailHash: contact.emailHash,
+        lastBookingAt: contact.lastBookingAt,
+        lastContactedAt: contact.lastContactedAt,
+        selectedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    );
+
+    for (const batch of chunkArray(
+      recipientSnapshots,
+      RECIPIENT_SNAPSHOT_INSERT_BATCH_SIZE,
+    )) {
+      const insertedRecipients = await tx
+        .insert(campaignRecipients)
+        .values(batch)
+        .returning();
+
+      recipientCount += insertedRecipients.length;
+    }
+
+    await tx
+      .insert(auditLogs)
+      .values(
+        auditLogValues({
+          organizationId: input.organizationId,
+          actorUserId: input.actorUserId,
+          eventType: 'campaign.ready_to_send',
+          resourceType: 'campaign',
+          resourceId: campaign.id,
+          metadata: {
+            audienceRule: campaign.audienceRule,
+            campaignCode: campaign.campaignCode,
+            recipientCount,
+          },
+          userAgent: input.userAgent ?? null,
+        }),
+      )
+      .returning();
+
+    return {
+      status: 'launched',
+      campaign: campaignToContract(updatedCampaign),
+      recipientCount,
+    };
+  });
+}
+
+export async function createAuditLog(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    actorUserId: string;
+    eventType: string;
+    resourceType: string;
+    resourceId: string;
+    metadata: Record<string, unknown>;
+    userAgent?: string | null;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+
+  await db
+    .insert(auditLogs)
+    .values(auditLogValues(input))
+    .returning();
+}
+
+function auditLogValues(input: {
+  organizationId: string;
+  actorUserId: string;
+  eventType: string;
+  resourceType: string;
+  resourceId: string;
+  metadata: Record<string, unknown>;
+  userAgent?: string | null;
+}) {
+  return {
+    organizationId: input.organizationId,
+    actorUserId: input.actorUserId,
+    eventType: input.eventType,
+    resourceType: input.resourceType,
+    resourceId: input.resourceId,
+    metadata: input.metadata,
+    userAgent: input.userAgent ?? null,
+  };
+}
+
+function recipientForSendToContract(
+  row: CampaignRecipientRow,
+): CampaignRecipientForSend {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    campaignId: row.campaignId,
+    contactId: row.contactId,
+    status: row.status as CampaignRecipientStatus,
+    exclusionReason: row.exclusionReason,
+    name: row.name,
+    phone: row.phone,
+    email: row.email,
+    normalizedPhone: row.normalizedPhone,
+    normalizedEmail: row.normalizedEmail,
+    phoneHash: row.phoneHash,
+    emailHash: row.emailHash,
+    lastBookingAt: row.lastBookingAt?.toISOString() ?? null,
+    lastContactedAt: row.lastContactedAt?.toISOString() ?? null,
+    selectedAt: row.selectedAt?.toISOString() ?? null,
+  };
+}
+
+function chunkArray<T>(values: T[], chunkSize: number): T[][] {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < values.length; index += chunkSize) {
+    chunks.push(values.slice(index, index + chunkSize));
+  }
+
+  return chunks;
+}
+
+function intValue(value: unknown) {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'bigint') {
+    return Number(value);
+  }
+
+  if (typeof value === 'string') {
+    return Number(value);
+  }
+
+  return 0;
+}
+
 function campaignUpdateValues(input: UpdateCampaignDraftInput) {
   return {
     ...(input.name !== undefined ? { name: input.name } : {}),
@@ -174,4 +945,55 @@ function campaignUpdateValues(input: UpdateCampaignDraftInput) {
       ? { attributionWindowDays: input.attributionWindowDays }
       : {}),
   };
+}
+
+function campaignAudienceDateWhere(rule: CampaignAudienceRule, now: Date) {
+  const lapsedBefore = new Date(now);
+
+  lapsedBefore.setUTCDate(lapsedBefore.getUTCDate() - rule.lapsedDays);
+
+  const lapsedBooking = lte(contacts.lastBookingAt, lapsedBefore);
+
+  return rule.includeNoBookingDate
+    ? or(lapsedBooking, isNull(contacts.lastBookingAt))
+    : lapsedBooking;
+}
+
+function campaignAudienceSuppressedWhere(
+  organizationId: string,
+  rule: CampaignAudienceRule,
+  now: Date,
+) {
+  return and(
+    campaignAudienceDateWhere(rule, now),
+    eq(contacts.organizationId, organizationId),
+    isNotNull(contacts.normalizedPhone),
+    eq(contacts.consentStatus, 'granted'),
+    phoneSuppressionExistsFilter(organizationId),
+  );
+}
+
+function campaignAudienceIncompleteWhere(
+  organizationId: string,
+  rule: CampaignAudienceRule,
+  now: Date,
+) {
+  return and(
+    campaignAudienceDateWhere(rule, now),
+    eq(contacts.organizationId, organizationId),
+    isNull(contacts.normalizedPhone),
+  );
+}
+
+function campaignAudienceMissingConsentWhere(
+  organizationId: string,
+  rule: CampaignAudienceRule,
+  now: Date,
+) {
+  return and(
+    campaignAudienceDateWhere(rule, now),
+    eq(contacts.organizationId, organizationId),
+    isNotNull(contacts.normalizedPhone),
+    not(eq(contacts.consentStatus, 'granted')),
+  );
 }

@@ -2,8 +2,11 @@
 
 import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import { RefreshCw } from 'lucide-react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ApiClientError } from '@/lib/api-client';
+import { routes } from '@/lib/routes';
 import { useActiveOrganizationBootstrap } from '../hooks/use-active-organization-bootstrap';
 import { useOrganizationSession } from '../hooks/use-organization-session';
 import { OnboardingFlow, onboardingFlowKey } from './flow';
@@ -13,10 +16,17 @@ import { OrganizationRequired } from './organization-required';
 import { SetupError, SetupPending } from './setup-states';
 
 export function OnboardingScreen() {
+  const router = useRouter();
   const organizationBootstrap = useActiveOrganizationBootstrap();
   const session = useOrganizationSession({
     enabled: organizationBootstrap.isReady,
   });
+
+  useEffect(() => {
+    if (session.data?.readiness.ready) {
+      router.replace(routes.overview);
+    }
+  }, [router, session.data?.readiness.ready]);
 
   if (
     !organizationBootstrap.isLoaded ||
@@ -86,6 +96,17 @@ export function OnboardingScreen() {
 
   if (!session.data) {
     return null;
+  }
+
+  if (session.data.readiness.ready) {
+    return (
+      <OnboardingFrame
+        completedSteps={['organization', 'company', 'contact', 'agreements']}
+        currentStep="agreements"
+      >
+        <OnboardingItem eyebrow="Organization setup" title="Opening overview." />
+      </OnboardingFrame>
+    );
   }
 
   if (

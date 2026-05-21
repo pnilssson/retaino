@@ -131,7 +131,7 @@ describe('contact import row processing', () => {
     });
   });
 
-  it('counts suppressed rows after contact method identity is known', async () => {
+  it('marks suppressed rows as ready after contact method identity is known', async () => {
     vi.mocked(findSuppressionByHash).mockResolvedValue({
       id: '33333333-3333-4333-8333-333333333333',
       organizationId,
@@ -156,12 +156,33 @@ describe('contact import row processing', () => {
     });
 
     expect(outcome).toEqual({
-      action: 'suppressed',
-      errors: ['suppressed_contact_method'],
+      action: 'ready',
+      row: expect.objectContaining({
+        phoneHash: expect.any(String),
+        suppressed: true,
+      }),
     });
     expect(accumulator.counts).toMatchObject({
+      totalRows: 0,
+      processedRows: 0,
+      suppressedCount: 0,
+      errorSummary: [],
+    });
+  });
+
+  it('counts imported suppressed rows without adding import errors', () => {
+    const accumulator = createContactImportAccumulator();
+
+    recordContactImportOutcome(accumulator, 'created', [], {
+      suppressed: true,
+    });
+
+    expect(accumulator.counts).toMatchObject({
+      totalRows: 1,
+      processedRows: 1,
+      createdCount: 1,
       suppressedCount: 1,
-      errorSummary: ['suppressed_contact_method'],
+      errorSummary: [],
     });
   });
 });

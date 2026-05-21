@@ -142,7 +142,7 @@ export function OrganizationSwitcher() {
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background">
                   <Plus aria-hidden="true" className="size-4" />
                 </span>
-                <span className="font-medium">Create organization</span>
+                <span className="font-medium">Create workspace</span>
               </Link>
             </DropdownMenuItem>
             {canFinishSetup ? (

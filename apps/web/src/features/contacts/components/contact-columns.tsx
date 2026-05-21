@@ -1,8 +1,9 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import type { ReactNode } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import Link from 'next/link';
 import type { Contact } from '@retaino/shared/contracts';
+import { Button } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
 import { formatDate } from '../contacts-format';
 import { ContactStatusBadge } from './status-badge';
@@ -69,13 +70,18 @@ export const contactColumns: ColumnDef<Contact>[] = [
     id: 'open',
     header: () => <span className="sr-only">Open contact</span>,
     cell: ({ row }) => (
-      <Link
-        aria-label={`Open contact details for ${row.original.name ?? 'Unnamed contact'}`}
-        className="flex justify-end p-2 text-muted-foreground transition-colors group-hover:text-foreground"
-        href={routes.contact(row.original.id)}
-      >
-        <ChevronRight aria-hidden="true" className="size-4" />
-      </Link>
+      <div className="flex justify-end p-2">
+        <Button asChild size="icon-sm" variant="ghost">
+          <Link
+            aria-label={`Open contact details for ${
+              row.original.name ?? 'Unnamed contact'
+            }`}
+            href={routes.contact(row.original.id)}
+          >
+            <Pencil aria-hidden="true" />
+          </Link>
+        </Button>
+      </div>
     ),
   },
 ];

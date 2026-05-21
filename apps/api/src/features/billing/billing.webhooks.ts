@@ -142,14 +142,16 @@ async function processInvoicePaid(db: DbClient, invoice: Stripe.Invoice) {
   const planKey = parseBillingPlanKey(metadata.planKey);
   const subscriptionId = requiredStripeId(getInvoiceSubscriptionId(invoice));
   const period = getInvoiceSubscriptionCreditPeriod(invoice);
+  const periodStart = requiredDate(stripeTimestampToDate(period.start));
+  const periodEnd = requiredDate(stripeTimestampToDate(period.end));
 
   await createSmsCreditTransaction(db, {
     organizationId,
     transactionType: 'grant',
     credits: getBillingPlanCredits(planKey),
     creditBucket: 'subscription_period',
-    periodStart: stripeTimestampToDate(period.start),
-    periodEnd: stripeTimestampToDate(period.end),
+    periodStart,
+    periodEnd,
     source: 'stripe_invoice',
     sourceId: `${subscriptionId}:${period.start}:${period.end}`,
     description: `${capitalizePlanKey(planKey)} monthly credits`,
@@ -332,6 +334,14 @@ function requiredMetadata(metadata: Stripe.Metadata | null | undefined, key: str
 function requiredStripeId(value: string | null) {
   if (!value) {
     throw new Error('Stripe subscription id is required.');
+  }
+
+  return value;
+}
+
+function requiredDate(value: Date | null) {
+  if (!value) {
+    throw new Error('Stripe period date is required.');
   }
 
   return value;

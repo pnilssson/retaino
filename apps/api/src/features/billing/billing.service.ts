@@ -1,9 +1,10 @@
 import {
-  billingProfileToContract,
   createSmsCreditTransaction,
+  billingProfileToContract,
+  getSmsCreditReservationState,
   getOrganizationBillingProfile,
   getSmsCreditBalance,
-  getSmsCreditBalanceBreakdown,
+  reserveSmsCreditsIfSufficient,
   upsertOrganizationBillingProfile,
 } from '@retaino/db';
 import { hasCurrentBillingSubscription } from '@retaino/shared/contracts';
@@ -14,6 +15,8 @@ import type {
   BillingStatusResponse,
   CreditPackKey,
   OrganizationContext,
+  SmsCreditTransaction,
+  SmsCreditTransactionSource,
   User,
 } from '@retaino/shared/contracts';
 import type Stripe from 'stripe';
@@ -252,58 +255,114 @@ export async function debitSmsCreditUsage(input: {
   db: DbClient;
   organizationId: string;
   actualSegments: number;
+  description?: string;
+  source?: Extract<
+    SmsCreditTransactionSource,
+    'campaign_send' | 'campaign_test_send'
+  >;
   sourceId: string;
 }) {
-  const [profile, balance] = await Promise.all([
-    getOrganizationBillingProfile(input.db, input.organizationId),
-    getSmsCreditBalanceBreakdown(input.db, input.organizationId),
-  ]);
-  const canUseSubscriptionPeriod = Boolean(
-    profile?.currentPeriodStart && profile.currentPeriodEnd,
-  );
-  const subscriptionDebit = canUseSubscriptionPeriod
-    ? Math.min(input.actualSegments, Math.max(balance.subscriptionPeriod, 0))
-    : 0;
-  const purchasedDebit = input.actualSegments - subscriptionDebit;
-  const transactions = [];
+  const source = input.source ?? 'campaign_send';
+  const sourceId =
+    source === 'campaign_send'
+      ? await campaignSendReservationSourceId({
+          db: input.db,
+          organizationId: input.organizationId,
+          sourceId: input.sourceId,
+        })
+      : input.sourceId;
+  const result = await reserveSmsCreditsIfSufficient(input.db, {
+    organizationId: input.organizationId,
+    credits: input.actualSegments,
+    source,
+    sourceId,
+    description: input.description ?? 'Campaign SMS usage',
+  });
 
-  if (
-    subscriptionDebit > 0 &&
-    profile?.currentPeriodStart &&
-    profile.currentPeriodEnd
-  ) {
-    transactions.push(
-      await createSmsCreditTransaction(input.db, {
-        organizationId: input.organizationId,
-        transactionType: 'debit',
-        credits: -subscriptionDebit,
-        creditBucket: 'subscription_period',
-        periodStart: profile.currentPeriodStart,
-        periodEnd: profile.currentPeriodEnd,
-        source: 'campaign_send',
-        sourceId: input.sourceId,
-        description: 'Campaign SMS usage',
-      }),
-    );
+  if (result.debitedCredits < input.actualSegments) {
+    const [profile, balance] = await Promise.all([
+      getOrganizationBillingProfile(input.db, input.organizationId),
+      getSmsCreditBalance(input.db, input.organizationId),
+    ]);
+
+    if (profile?.subscriptionStatus !== 'active') {
+      throw new BillingSubscriptionRequiredError();
+    }
+
+    throw new BillingInsufficientCreditsError({
+      balance,
+      requiredCredits: input.actualSegments,
+    });
   }
 
-  if (purchasedDebit > 0) {
-    transactions.push(
-      await createSmsCreditTransaction(input.db, {
-        organizationId: input.organizationId,
-        transactionType: 'debit',
-        credits: -purchasedDebit,
-        creditBucket: 'purchased',
-        periodStart: null,
-        periodEnd: null,
-        source: 'campaign_send',
-        sourceId: input.sourceId,
-        description: 'Campaign SMS usage',
-      }),
-    );
+  return result.transactions;
+}
+
+async function campaignSendReservationSourceId(input: {
+  db: DbClient;
+  organizationId: string;
+  sourceId: string;
+}) {
+  const reservationState = await getSmsCreditReservationState(input.db, {
+    organizationId: input.organizationId,
+    source: 'campaign_send',
+    sourceId: input.sourceId,
+  });
+
+  if (reservationState.activeSourceId) {
+    return reservationState.activeSourceId;
   }
 
-  return transactions;
+  if (reservationState.hasHistory) {
+    return `${input.sourceId}:${crypto.randomUUID()}`;
+  }
+
+  return input.sourceId;
+}
+
+export async function releaseSmsCreditUsage(input: {
+  db: DbClient;
+  organizationId: string;
+  credits?: number;
+  description: string;
+  reservedTransactions: SmsCreditTransaction[];
+  source: Extract<
+    SmsCreditTransactionSource,
+    'campaign_send' | 'campaign_test_send'
+  >;
+  sourceId: string;
+}) {
+  const releases = [];
+  let remainingCredits = input.credits ?? Number.POSITIVE_INFINITY;
+
+  for (const transaction of input.reservedTransactions) {
+    if (transaction.credits >= 0 || remainingCredits <= 0) {
+      continue;
+    }
+    const releaseCredits = Math.min(
+      Math.abs(transaction.credits),
+      remainingCredits,
+    );
+
+    releases.push(
+      await createSmsCreditTransaction(input.db, {
+        organizationId: input.organizationId,
+        transactionType: 'adjustment',
+        credits: releaseCredits,
+        creditBucket: transaction.creditBucket,
+        periodStart: transaction.periodStart
+          ? new Date(transaction.periodStart)
+          : null,
+        periodEnd: transaction.periodEnd ? new Date(transaction.periodEnd) : null,
+        source: input.source,
+        sourceId: input.sourceId,
+        description: input.description,
+      }),
+    );
+    remainingCredits -= releaseCredits;
+  }
+
+  return releases;
 }
 
 async function ensureStripeCustomer(input: {

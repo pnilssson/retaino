@@ -5,10 +5,12 @@ import { Building2, Loader2, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { GuidedFlowActions } from '@/components/guided-flow';
 import { Button } from '@/components/ui/button';
 import { ItemTitle } from '@/components/ui/item';
 import { routes } from '@/lib/routes';
 import { InlineError } from './inline-error';
+import { OrganizationCreateForm } from './organization-create-form';
 import { OnboardingFrame } from './onboarding-frame';
 import { OnboardingItem } from './onboarding-item';
 
@@ -29,7 +31,7 @@ export function OrganizationRequired() {
 
   async function activateOrganization(organizationId: string) {
     if (!setActive) {
-      setError('Organization selection is still loading. Try again in a moment.');
+      setError('Workspace selection is still loading. Try again in a moment.');
       return;
     }
 
@@ -45,7 +47,7 @@ export function OrganizationRequired() {
       setError(
         cause instanceof Error
           ? cause.message
-          : 'The organization could not be selected.',
+          : 'The workspace could not be selected.',
       );
     } finally {
       setPendingOrganizationId(null);
@@ -56,8 +58,8 @@ export function OrganizationRequired() {
     return (
       <OnboardingFrame completedSteps={[]} currentStep="organization">
         <OnboardingItem
-          eyebrow="Organization"
-          title="Preparing organization setup."
+          eyebrow="Workspace"
+          title="Preparing workspace setup."
         />
       </OnboardingFrame>
     );
@@ -66,21 +68,27 @@ export function OrganizationRequired() {
   return (
     <OnboardingFrame completedSteps={[]} currentStep="organization">
       <OnboardingItem
-        description="Retaino works inside a shared workspace so your team can use the same contacts, campaigns, and results."
-        eyebrow="Organization"
+        description={
+          hasExistingOrganizations
+            ? 'Select where you want to continue. Create a new workspace only if you are setting up a separate team.'
+            : "Retaino keeps your team's contacts, campaigns, permissions, and results in one shared workspace."
+        }
+        eyebrow="Workspace"
         title={
           hasExistingOrganizations
-            ? 'Choose an organization to continue.'
-            : 'Create or join an organization.'
+            ? 'Choose your workspace.'
+            : 'Set up your workspace.'
         }
       >
         {error ? (
-          <InlineError message={error} title="Organization could not be selected" />
+          <InlineError message={error} title="Workspace could not be selected" />
         ) : null}
+
+        {!hasExistingOrganizations ? <OrganizationCreateForm /> : null}
 
         {hasExistingOrganizations ? (
           <div className="border-y py-5">
-            <ItemTitle>Your organizations</ItemTitle>
+            <ItemTitle>Your workspaces</ItemTitle>
             <div className="mt-4 grid gap-2">
               {memberships.map((membership) => (
                 <Button
@@ -111,18 +119,22 @@ export function OrganizationRequired() {
           </div>
         ) : null}
 
-        <div className="grid gap-3">
-          <Button asChild className="w-fit">
-            <Link href={routes.organizationNew}>
-              <Plus aria-hidden="true" data-icon="inline-start" />
-              Create organization
-            </Link>
-          </Button>
-          <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-            If you were invited to an existing organization, use the invitation
-            link from your email. You do not need to create a new workspace.
-          </p>
-        </div>
+        {hasExistingOrganizations ? (
+          <>
+            <p className="max-w-xl text-sm leading-6 text-muted-foreground">
+              Already invited? Open the invite link from your email to enter
+              that workspace.
+            </p>
+            <GuidedFlowActions>
+              <Button asChild variant="outline">
+                <Link href={routes.organizationNew}>
+                  <Plus aria-hidden="true" data-icon="inline-start" />
+                  Create another workspace
+                </Link>
+              </Button>
+            </GuidedFlowActions>
+          </>
+        ) : null}
       </OnboardingItem>
     </OnboardingFrame>
   );

@@ -14,7 +14,6 @@ import {
 import {
   bulkContactIdsSchema,
   bulkSuppressContactsSchema,
-  canManageOrganizationSetup,
   contactImportStartSchema,
   contactListQuerySchema,
   createContactSuppressionSchema,
@@ -55,12 +54,6 @@ export const contactsRoutes = new Hono<AppEnv>()
     );
   })
   .post('/bulk-delete', async (c) => {
-    const gate = validateContactManagementPermission(c);
-
-    if (!gate.ok) {
-      return gate.response;
-    }
-
     const parsed = await parseJsonBody(
       c,
       bulkContactIdsSchema,
@@ -83,12 +76,6 @@ export const contactsRoutes = new Hono<AppEnv>()
     });
   })
   .post('/bulk-suppressions', async (c) => {
-    const gate = validateContactManagementPermission(c);
-
-    if (!gate.ok) {
-      return gate.response;
-    }
-
     const parsed = await parseJsonBody(
       c,
       bulkSuppressContactsSchema,
@@ -124,12 +111,6 @@ export const contactsRoutes = new Hono<AppEnv>()
     return c.json({ contact });
   })
   .patch('/:id', async (c) => {
-    const gate = validateContactManagementPermission(c);
-
-    if (!gate.ok) {
-      return gate.response;
-    }
-
     const parsed = await parseJsonBody(
       c,
       updateContactSchema,
@@ -177,12 +158,6 @@ export const contactsRoutes = new Hono<AppEnv>()
     return c.json({ contact: result.contact });
   })
   .delete('/:id', async (c) => {
-    const gate = validateContactManagementPermission(c);
-
-    if (!gate.ok) {
-      return gate.response;
-    }
-
     const deleted = await deleteContact(c.get('db'), {
       organizationId: c.get('organization').id,
       contactId: c.req.param('id'),
@@ -195,12 +170,6 @@ export const contactsRoutes = new Hono<AppEnv>()
     return c.body(null, 204);
   })
   .post('/:id/suppressions', async (c) => {
-    const gate = validateContactManagementPermission(c);
-
-    if (!gate.ok) {
-      return gate.response;
-    }
-
     const parsed = await parseJsonBody(
       c,
       createContactSuppressionSchema,
@@ -234,12 +203,6 @@ export const contactsRoutes = new Hono<AppEnv>()
     );
   })
   .delete('/:id/suppressions/:suppressionId', async (c) => {
-    const gate = validateContactManagementPermission(c);
-
-    if (!gate.ok) {
-      return gate.response;
-    }
-
     const result = await deleteContactSuppression(c.get('db'), {
       organizationId: c.get('organization').id,
       contactId: c.req.param('id'),
@@ -331,20 +294,6 @@ export const contactsRoutes = new Hono<AppEnv>()
 
     return c.json({ import: importRow });
   });
-
-function validateContactManagementPermission(c: Context<AppEnv>) {
-  if (!canManageOrganizationSetup(c.get('organization').role)) {
-    return {
-      ok: false as const,
-      response: c.json(
-        apiError('forbidden', 'Only organization admins can manage contacts.'),
-        403,
-      ),
-    };
-  }
-
-  return { ok: true as const };
-}
 
 async function createAndEnqueueContactImport(
   c: Context<AppEnv>,

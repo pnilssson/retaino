@@ -265,11 +265,11 @@ describe('contactsRoutes', () => {
     vi.mocked(getOrganizationCountryCode).mockResolvedValue('SE');
   });
 
-  it('starts a one-step CSV import and enqueues processing', async () => {
+  it('lets members start a one-step CSV import and enqueue processing', async () => {
     vi.mocked(createContactImport).mockResolvedValue(importDetail);
     const testEnv = env();
 
-    const response = await testApp().request(
+    const response = await testApp({ role: 'org:member' }).request(
       '/v1/contacts/imports',
       {
         method: 'POST',
@@ -369,7 +369,7 @@ describe('contactsRoutes', () => {
     expect(createContactImport).not.toHaveBeenCalled();
   });
 
-  it('rejects import start for blocked organizations and members', async () => {
+  it('rejects import start for blocked organizations', async () => {
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValueOnce(null);
     const incomplete = await testApp().request(
       '/v1/contacts/imports',
@@ -379,17 +379,8 @@ describe('contactsRoutes', () => {
       },
       env(),
     );
-    const member = await testApp({ role: 'org:member' }).request(
-      '/v1/contacts/imports',
-      {
-        method: 'POST',
-        body: importForm({ permissionAttestation: 'true' }),
-      },
-      env(),
-    );
 
     expect(incomplete.status).toBe(403);
-    expect(member.status).toBe(403);
     expect(createContactImport).not.toHaveBeenCalled();
   });
 
@@ -456,14 +447,14 @@ describe('contactsRoutes', () => {
     });
   });
 
-  it('updates and deletes contacts for organization admins', async () => {
+  it('lets members update and delete contacts', async () => {
     vi.mocked(updateContact).mockResolvedValue({
       status: 'updated',
       contact: { ...contactDetail, name: 'Grace Hopper' },
     });
     vi.mocked(deleteContact).mockResolvedValue(true);
 
-    const update = await testApp().request(
+    const update = await testApp({ role: 'org:member' }).request(
       `/v1/contacts/${contactDetail.id}`,
       {
         method: 'PATCH',
@@ -472,7 +463,7 @@ describe('contactsRoutes', () => {
       },
       env(),
     );
-    const deleted = await testApp().request(
+    const deleted = await testApp({ role: 'org:member' }).request(
       `/v1/contacts/${contactDetail.id}`,
       { method: 'DELETE' },
       env(),
@@ -482,14 +473,14 @@ describe('contactsRoutes', () => {
     expect(deleted.status).toBe(204);
   });
 
-  it('bulk deletes selected contacts for organization admins', async () => {
+  it('lets members bulk delete selected contacts', async () => {
     vi.mocked(deleteContacts).mockResolvedValue(2);
     const contactIds = [
       contactDetail.id,
       '33333333-3333-4333-8333-333333333333',
     ];
 
-    const response = await testApp().request(
+    const response = await testApp({ role: 'org:member' }).request(
       '/v1/contacts/bulk-delete',
       {
         method: 'POST',
@@ -511,7 +502,7 @@ describe('contactsRoutes', () => {
     });
   });
 
-  it('bulk suppresses selected contacts for organization admins', async () => {
+  it('lets members bulk suppress selected contacts', async () => {
     vi.mocked(suppressContacts).mockResolvedValue({
       affectedCount: 1,
       skippedCount: 1,
@@ -521,7 +512,7 @@ describe('contactsRoutes', () => {
       '33333333-3333-4333-8333-333333333333',
     ];
 
-    const response = await testApp().request(
+    const response = await testApp({ role: 'org:member' }).request(
       '/v1/contacts/bulk-suppressions',
       {
         method: 'POST',
@@ -542,34 +533,6 @@ describe('contactsRoutes', () => {
       affectedCount: 1,
       skippedCount: 1,
     });
-  });
-
-  it('rejects bulk contact management for organization members', async () => {
-    const contactIds = [contactDetail.id];
-
-    const deleted = await testApp({ role: 'org:member' }).request(
-      '/v1/contacts/bulk-delete',
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ contactIds }),
-      },
-      env(),
-    );
-    const suppressed = await testApp({ role: 'org:member' }).request(
-      '/v1/contacts/bulk-suppressions',
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ contactIds, type: 'phone' }),
-      },
-      env(),
-    );
-
-    expect(deleted.status).toBe(403);
-    expect(suppressed.status).toBe(403);
-    expect(deleteContacts).not.toHaveBeenCalled();
-    expect(suppressContacts).not.toHaveBeenCalled();
   });
 
   it('rejects invalid bulk contact payloads', async () => {
@@ -598,7 +561,7 @@ describe('contactsRoutes', () => {
     expect(suppressContacts).not.toHaveBeenCalled();
   });
 
-  it('manages suppressions for organization admins', async () => {
+  it('lets members manage contact suppressions', async () => {
     vi.mocked(createContactSuppression).mockResolvedValue({
       status: 'created',
       contact: {
@@ -612,7 +575,7 @@ describe('contactsRoutes', () => {
       contact: contactDetail,
     });
 
-    const created = await testApp().request(
+    const created = await testApp({ role: 'org:member' }).request(
       `/v1/contacts/${contactDetail.id}/suppressions`,
       {
         method: 'POST',
@@ -621,7 +584,7 @@ describe('contactsRoutes', () => {
       },
       env(),
     );
-    const deleted = await testApp().request(
+    const deleted = await testApp({ role: 'org:member' }).request(
       `/v1/contacts/${contactDetail.id}/suppressions/33333333-3333-4333-8333-333333333333`,
       { method: 'DELETE' },
       env(),

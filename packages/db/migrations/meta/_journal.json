@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1778617659369,
-      "tag": "0000_tense_magik",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1778676784195,
-      "tag": "0001_graceful_reaper",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1778754893939,
-      "tag": "0002_damp_famine",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1778846345658,
-      "tag": "0003_boring_the_order",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1778950598306,
-      "tag": "0004_abnormal_obadiah_stane",
+      "when": 1779396321862,
+      "tag": "0000_new_serpent_society",
       "breakpoints": true
     }
   ]

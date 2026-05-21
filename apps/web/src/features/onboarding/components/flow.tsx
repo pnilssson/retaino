@@ -2,20 +2,22 @@
 
 import type { OrganizationSession } from '@retaino/shared/contracts';
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   organizationProfileFormValuesFromSession,
   organizationProfileFormValuesToUpdateInput,
   type OrganizationProfileFormValues as ProfileDraft,
 } from '@/features/organization-profile/organization-profile-form';
+import { routes } from '@/lib/routes';
 import { useCreateCurrentOrganizationLegalAcceptance } from '../hooks/use-create-current-organization-legal-acceptance';
 import { useUpdateOrganizationProfile } from '../hooks/use-update-organization-profile';
 import { AgreementsStep } from './agreements-step';
 import { CompanyStep } from './company-step';
 import { ContactStep } from './contact-step';
 import { OnboardingFrame, type OnboardingStepId } from './onboarding-frame';
-import { ReadyStep } from './setup-states';
 
 export function OnboardingFlow({ session }: { session: OrganizationSession }) {
+  const router = useRouter();
   const updateProfile = useUpdateOrganizationProfile();
   const createLegalAcceptance = useCreateCurrentOrganizationLegalAcceptance();
   const initialDraft = useMemo(
@@ -23,22 +25,11 @@ export function OnboardingFlow({ session }: { session: OrganizationSession }) {
     [session],
   );
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>(initialDraft);
-  const [activeStep, setActiveStep] = useState<OnboardingStepId | 'ready'>(
+  const [activeStep, setActiveStep] = useState<OnboardingStepId>(
     resolveInitialStep(session),
   );
 
   const completedSteps = completedStepsFor(session, activeStep);
-
-  if (activeStep === 'ready') {
-    return (
-      <OnboardingFrame
-        completedSteps={['organization', 'company', 'contact', 'agreements']}
-        currentStep="agreements"
-      >
-        <ReadyStep organizationName={session.organization.name} />
-      </OnboardingFrame>
-    );
-  }
 
   return (
     <OnboardingFrame completedSteps={completedSteps} currentStep={activeStep}>
@@ -62,7 +53,13 @@ export function OnboardingFlow({ session }: { session: OrganizationSession }) {
               organizationProfileFormValuesToUpdateInput(value),
             );
             setProfileDraft(value);
-            setActiveStep(session.readiness.legalCurrent ? 'ready' : 'agreements');
+            if (session.readiness.legalCurrent) {
+              router.replace(routes.overview);
+              router.refresh();
+              return;
+            }
+
+            setActiveStep('agreements');
           }}
         />
       ) : (
@@ -73,7 +70,8 @@ export function OnboardingFlow({ session }: { session: OrganizationSession }) {
           onBack={() => setActiveStep('contact')}
           onComplete={async () => {
             await createLegalAcceptance.mutateAsync();
-            setActiveStep('ready');
+            router.replace(routes.overview);
+            router.refresh();
           }}
         />
       )}
@@ -92,9 +90,9 @@ export function onboardingFlowKey(session: OrganizationSession) {
 
 function resolveInitialStep(
   session: OrganizationSession,
-): OnboardingStepId | 'ready' {
+): OnboardingStepId {
   if (session.readiness.ready) {
-    return 'ready';
+    return 'agreements';
   }
 
   if (!session.profile) {
@@ -106,24 +104,23 @@ function resolveInitialStep(
 
 function completedStepsFor(
   session: OrganizationSession,
-  activeStep: OnboardingStepId | 'ready',
+  activeStep: OnboardingStepId,
 ): OnboardingStepId[] {
   const completed: OnboardingStepId[] = ['organization'];
 
   if (
     session.profile ||
     activeStep === 'contact' ||
-    activeStep === 'agreements' ||
-    activeStep === 'ready'
+    activeStep === 'agreements'
   ) {
     completed.push('company');
   }
 
-  if (session.profile || activeStep === 'agreements' || activeStep === 'ready') {
+  if (session.profile || activeStep === 'agreements') {
     completed.push('contact');
   }
 
-  if (session.readiness.legalCurrent || activeStep === 'ready') {
+  if (session.readiness.legalCurrent) {
     completed.push('agreements');
   }
 

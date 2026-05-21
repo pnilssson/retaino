@@ -4,6 +4,7 @@ export const textStyles = {
   itemTitle: 'text-sm leading-snug font-medium',
   meta: 'text-xs leading-5 text-muted-foreground',
   metaStrong: 'text-xs leading-5 font-medium text-muted-foreground',
+  metric: 'text-lg leading-6 font-medium tabular-nums',
   mutedBody: 'text-sm leading-6 text-muted-foreground',
   numeric: 'text-2xl font-semibold tracking-normal',
   pageDescription: 'text-sm leading-6 text-muted-foreground',

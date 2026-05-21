@@ -865,11 +865,49 @@ export async function findSuppressionByHash(
   return row ?? null;
 }
 
+export async function upsertSuppressionByHash(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    type: SuppressionType;
+    value: string;
+    normalizedValue: string;
+    valueHash: string;
+    reason: string;
+    source: string | null;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+
+  const [created] = await db
+    .insert(suppressions)
+    .values(input)
+    .onConflictDoNothing({
+      target: [
+        suppressions.organizationId,
+        suppressions.type,
+        suppressions.valueHash,
+      ],
+    })
+    .returning();
+
+  if (created) {
+    return suppressionToContract(created);
+  }
+
+  const existing = await findSuppressionByHash(db, {
+    organizationId: input.organizationId,
+    type: input.type,
+    valueHash: input.valueHash,
+  });
+
+  return existing ? suppressionToContract(existing) : null;
+}
+
 export async function upsertImportedContact(
   db: DbClient,
   input: {
     organizationId: string;
-    contactImportId: string;
     name: string | null;
     phone: string | null;
     email: string | null;
@@ -879,6 +917,7 @@ export async function upsertImportedContact(
     emailHash: string | null;
     lastBookingAt: Date | null;
     consentStatus: ContactConsentStatus;
+    suppressed: boolean;
   },
 ) {
   assertOrganizationId(input.organizationId);
@@ -941,7 +980,12 @@ export async function upsertImportedContact(
       )
       .returning();
 
-    return { contact: updated ? contactToContract(updated, { suppressed: false }) : null, action: 'updated' as const };
+    return {
+      contact: updated
+        ? contactToContract(updated, { suppressed: input.suppressed })
+        : null,
+      action: 'updated' as const,
+    };
   }
 
   const [created] = await db
@@ -960,7 +1004,12 @@ export async function upsertImportedContact(
     })
     .returning();
 
-  return { contact: created ? contactToContract(created, { suppressed: false }) : null, action: 'created' as const };
+  return {
+    contact: created
+      ? contactToContract(created, { suppressed: input.suppressed })
+      : null,
+    action: 'created' as const,
+  };
 }
 
 export function resolveImportedContactMatch<TContact extends { id: string }>(
@@ -1099,7 +1148,7 @@ export function contactIssueFilter(
   return ne(contacts.consentStatus, 'granted');
 }
 
-function phoneSuppressionExistsFilter(organizationId: string) {
+export function phoneSuppressionExistsFilter(organizationId: string) {
   return sql`exists (
     select 1 from ${suppressions}
     where ${suppressions.organizationId} = ${organizationId}

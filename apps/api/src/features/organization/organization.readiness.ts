@@ -5,7 +5,6 @@ import type {
   OrganizationReadiness,
   OrganizationWorkflowBlocker,
 } from '@retaino/shared/contracts';
-import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 
 export function getOrganizationReadiness(input: {
   hasProfile: boolean;
@@ -33,12 +32,7 @@ export function getOrganizationReadiness(input: {
 
 export function getOrganizationEligibility(input: {
   readiness: OrganizationReadiness;
-  role: string | null | undefined;
 }): OrganizationEligibility {
-  if (!canManageOrganizationSetup(input.role)) {
-    return blocked('admin_required');
-  }
-
   if (!input.readiness.ready) {
     return blocked('setup_required');
   }

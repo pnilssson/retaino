@@ -5,6 +5,7 @@ Retaino is a multi-tenant SaaS for SMS-based customer reactivation.
 ## Related Docs
 
 - `docs/product.md`: product scope and build order.
+- `docs/campaigns.md`: campaign workflow and send rules.
 - `docs/compliance.md`: legal, privacy, retention, and audit rules.
 - `docs/caching.md`: cache policy and query-key rules.
 - `docs/pricing.md`: plans, credit rules, and Stripe decisions.
@@ -37,8 +38,8 @@ MVP roles:
 
 | Role | Meaning |
 | --- | --- |
-| `org:admin` | Manages setup, team access, billing, imports, campaigns, and reports. |
-| `org:member` | Works inside the organization without billing or destructive actions. |
+| `org:admin` | Manages setup, team access, billing, and organization settings. |
+| `org:member` | Builds, tests, sends, and reviews campaigns after organization setup is complete. |
 
 ## Data Rules
 
@@ -65,9 +66,18 @@ Twilio is the MVP SMS provider. Keep provider code behind an adapter so product
 features depend on Retaino message contracts, not Twilio SDK types or webhook
 payloads.
 
-The adapter normalizes outbound IDs, provider states, error details, inbound
-STOP-style replies, segment counts, and estimated provider cost. Provider
-credentials stay in environment bindings, never tenant-owned tables.
+The adapter models Retaino's SMS domain, not Twilio's API shape. It normalizes
+sender provisioning, sender capabilities, outbound IDs, provider states, error
+details, inbound replies, STOP-style replies, segment counts, estimated and
+actual provider cost, webhook signature verification, and provider references.
+Provider credentials stay in environment bindings, never tenant-owned tables.
+
+SMS providers differ in how they represent sender groups, phone number
+capabilities, webhooks, delivery reports, delivery states, smart encoding,
+regulatory requirements, and error payloads. Retaino product code must call a
+provider-neutral interface and must not know whether the underlying provider
+uses a Twilio Messaging Service, Telnyx Messaging Profile, Vonage application,
+Sinch service plan, Bird channel, or another provider-specific object.
 
 Each organization gets its own SMS-capable Twilio number and its own Twilio
 Messaging Service before real sends. Do not use one shared Retaino sender
@@ -79,7 +89,7 @@ selected country, provisioning status, failure reason, and timestamps in
 Retaino. Do not store Twilio account credentials in tenant-owned tables.
 
 Provision sender resources lazily after the organization has an active paid
-subscription and current legal acceptance, when an admin first prepares a
+subscription and current legal acceptance, when a user first prepares a
 campaign for test or live sending. Do not buy a Twilio number immediately after
 checkout and do not require a sender for draft creation or audience preview.
 Provisioning runs idempotently and must not create a second sender for the same
@@ -87,16 +97,20 @@ organization on retries.
 
 Onboarding should collect organization identity and address fields that are
 likely to be required for phone-number compliance so sender setup does not ask
-for the same company details again. If a selected sender country or number type
-requires additional regulatory data, the organization admin supplies it through
+for the same company details again. If a selected sender country or two-way SMS
+number requires additional regulatory data, the user supplies it through
 Retaino. Retaino staff must not need to manually configure each customer.
-Countries or number types that cannot be self-served through Retaino are not
-available in MVP.
+Sender categories that cannot be self-served through Retaino are not available
+in MVP.
 
-Sender setup is organization-controlled. Admins choose the target sender country
-based on where their recipients are, then select an available SMS-capable number
-or accept a recommended number. The organization's legal address is only a
-default, not the source of truth for sender country.
+Sender setup is organization-controlled. Users choose the target sender country
+based on where their recipients are, then select an available two-way SMS number
+or accept a recommended two-way SMS number. The provider layer may support
+multiple number types, but the MVP product exposes only two-way SMS sender
+setup. Retaino searches provider inventory using the provider number type needed
+for two-way SMS support and stores the verified provider result. Users do not
+choose provider number type. The organization's legal address is only a default,
+not the source of truth for sender country.
 
 Configure organization Messaging Services with service-level inbound and status
 callback URLs. The inbound callback stores every inbound message. STOP-style
@@ -121,9 +135,11 @@ system of record.
 - Accepted webhook events are stored idempotently before side effects.
 - Webhooks grant subscription-period credits, grant purchased credits, update
   local subscription projection, and record relevant refund adjustments.
-- SMS credit transactions are append-only and are the only source of truth for
-  credit grants, reservations, releases, usage, and adjustments. Do not maintain
-  a separate mutable balance that must be synchronized with the ledger.
+- `organization_billing_profiles` stores the local Stripe subscription
+  projection used to check whether an organization can spend SMS credits.
+- SMS credit transactions are the immutable source of truth for credit grants,
+  reservations, releases, usage, and adjustments. Available balance is derived
+  from spendable ledger rows.
 - Sends must reserve enough credits before provider cost is incurred, then
   reconcile estimated and actual usage after send completion.
 - Do not use Stripe metered overage billing or Stripe Billing Credits for MVP
@@ -170,6 +186,18 @@ Application forms use TanStack Form unless an explicit exception is approved.
 - Use `ItemTitle` and `ItemDescription` for standard item title/subtitle text.
 - Use `ItemNotice` for inline item notices instead of `Alert` inside app items.
 - Use `textStyles` from `src/lib/text-styles.ts` for repeated text roles.
+  Available roles are:
+  - `pageTitle`
+  - `pageDescription`
+  - `sectionTitle`
+  - `itemTitle`
+  - `body`
+  - `mutedBody`
+  - `meta`
+  - `metaStrong`
+  - `numeric`
+  - `metric`
+  - `error`
 - Never design cards inside cards. Use sections, lists, tables, split layouts,
   or direct item content.
 - Use the plain shadcn Sonner wrapper with state-specific toast calls. Do not

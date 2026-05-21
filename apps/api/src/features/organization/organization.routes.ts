@@ -113,10 +113,7 @@ export const organizationRoutes = new Hono<AppEnv>()
       );
     }
 
-    const ipAddress =
-      c.req.header('cf-connecting-ip') ??
-      c.req.header('x-forwarded-for') ??
-      null;
+    const ipAddress = c.req.header('cf-connecting-ip') ?? null;
     const userAgent = c.req.header('user-agent') ?? null;
 
     const legalAcceptance = await createOrganizationLegalAcceptance(db, {
@@ -149,10 +146,7 @@ export const organizationRoutes = new Hono<AppEnv>()
     return c.json(
       {
         legalAcceptance,
-        eligibility: getOrganizationEligibility({
-          readiness,
-          role: organization.role,
-        }),
+        eligibility: getOrganizationEligibility({ readiness }),
         readiness,
       },
       201,

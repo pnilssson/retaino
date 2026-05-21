@@ -12,7 +12,7 @@ export function PhoneInput({
   onBlur,
   onChange,
   onCountryChange,
-  placeholder = '070 123 45 67',
+  placeholder = '701234567',
   value,
 }: {
   'aria-invalid'?: boolean;

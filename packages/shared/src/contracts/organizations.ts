@@ -92,7 +92,6 @@ export type OrganizationReadiness = {
 };
 
 export type OrganizationWorkflowBlocker =
-  | 'admin_required'
   | 'setup_required'
   | 'legal_update_required';
 

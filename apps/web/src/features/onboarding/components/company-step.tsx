@@ -2,6 +2,7 @@
 
 import { useForm } from '@tanstack/react-form';
 import { ArrowRight } from 'lucide-react';
+import { GuidedFlowActions } from '@/components/guided-flow';
 import { Button } from '@/components/ui/button';
 import {
   type OrganizationProfileFormValues as ProfileDraft,
@@ -82,7 +83,7 @@ export function CompanyStep({
             />
           )}
         </form.Field>
-        <div className="flex justify-end pt-2">
+        <GuidedFlowActions>
           <form.Subscribe selector={(state) => [state.canSubmit]}>
             {([canSubmit]) => (
               <Button disabled={!canSubmit} type="submit">
@@ -91,7 +92,7 @@ export function CompanyStep({
               </Button>
             )}
           </form.Subscribe>
-        </div>
+        </GuidedFlowActions>
       </form>
     </OnboardingItem>
   );

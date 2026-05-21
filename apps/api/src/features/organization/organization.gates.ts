@@ -3,15 +3,13 @@ import { apiError } from '../../lib/errors';
 import type { AppEnv } from '../../types';
 import { getOrganizationSessionState } from './organization.service';
 
-type GateMessages = {
-  adminRequired: string;
+type ReadinessGateMessages = {
   setupRequired: string;
   legalUpdateRequired: string;
 };
 
 export async function requireContactImportEligibility(c: Context<AppEnv>) {
-  return requireOrganizationEligibility(c, {
-    adminRequired: 'Only organization admins can import contacts.',
+  return requireOrganizationReadiness(c, {
     setupRequired:
       'Organization setup must be complete before importing contacts.',
     legalUpdateRequired:
@@ -20,8 +18,7 @@ export async function requireContactImportEligibility(c: Context<AppEnv>) {
 }
 
 export async function requireCampaignEligibility(c: Context<AppEnv>) {
-  return requireOrganizationEligibility(c, {
-    adminRequired: 'Only organization admins can manage campaigns.',
+  return requireOrganizationReadiness(c, {
     setupRequired:
       'Organization setup must be complete before managing campaigns.',
     legalUpdateRequired:
@@ -29,31 +26,35 @@ export async function requireCampaignEligibility(c: Context<AppEnv>) {
   });
 }
 
-async function requireOrganizationEligibility(
+export async function requireCampaignPreviewEligibility(c: Context<AppEnv>) {
+  return requireOrganizationReadiness(c, {
+    setupRequired:
+      'Organization setup must be complete before previewing campaigns.',
+    legalUpdateRequired:
+      'Legal agreement must be current before previewing campaigns.',
+  });
+}
+
+async function requireOrganizationReadiness(
   c: Context<AppEnv>,
-  messages: GateMessages,
+  messages: ReadinessGateMessages,
 ) {
   const state = await getOrganizationSessionState(
     c.get('db'),
     c.get('organization'),
   );
-  const blocker = state.eligibility.contactImports.blocker;
 
-  if (blocker === 'admin_required') {
+  if (!state.readiness.ready) {
     return {
       ok: false as const,
-      response: c.json(apiError('forbidden', messages.adminRequired), 403),
+      response: c.json(
+        apiError('forbidden', messages.setupRequired),
+        403,
+      ),
     };
   }
 
-  if (blocker === 'setup_required') {
-    return {
-      ok: false as const,
-      response: c.json(apiError('forbidden', messages.setupRequired), 403),
-    };
-  }
-
-  if (blocker === 'legal_update_required') {
+  if (state.readiness.legalUpdatesRequired || !state.readiness.legalCurrent) {
     return {
       ok: false as const,
       response: c.json(

@@ -34,9 +34,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarRail,
   useSidebar
 } from '@/components/ui/sidebar';
@@ -55,17 +52,7 @@ const navigationItems = [
   {
     title: 'Contacts',
     href: routes.contacts,
-    icon: UsersRound,
-    children: [
-      {
-        title: 'All contacts',
-        href: routes.contacts,
-      },
-      {
-        title: 'Import contacts',
-        href: routes.contactsImport,
-      },
-    ],
+    icon: UsersRound
   },
   {
     title: 'Campaigns',
@@ -120,23 +107,6 @@ export function AppSidebar() {
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
-                  {item.children ? (
-                    <SidebarMenuSub>
-                      {item.children.map((child) => (
-                        <SidebarMenuSubItem key={child.href}>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={isNavigationSubItemActive(
-                              pathname,
-                              child.href,
-                            )}
-                          >
-                            <Link href={child.href}>{child.title}</Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  ) : null}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -247,18 +217,6 @@ export function AppSidebar() {
 function isNavigationItemActive(pathname: string, href: string) {
   if (href === routes.contacts) {
     return pathname === routes.contacts || pathname.startsWith(`${routes.contacts}/`);
-  }
-
-  return pathname === href;
-}
-
-function isNavigationSubItemActive(pathname: string, href: string) {
-  if (href === routes.contacts) {
-    return (
-      pathname === href ||
-      (pathname.startsWith(`${href}/`) &&
-        pathname !== routes.contactsImport)
-    );
   }
 
   return pathname === href;

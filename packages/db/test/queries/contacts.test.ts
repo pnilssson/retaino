@@ -12,6 +12,7 @@ import {
   failContactImport,
   resolveImportedContactMatch,
   suppressContacts,
+  upsertSuppressionByHash,
 } from '../../src/queries/contacts';
 
 describe('contact query helpers', () => {
@@ -312,5 +313,52 @@ describe('contact query helpers', () => {
     });
     expect(conflictConfig).toBeDefined();
     expect(result).toEqual({ affectedCount: 1, skippedCount: 2 });
+  });
+
+  it('upserts suppressions from provider opt-out replies', async () => {
+    let insertedValue: unknown;
+    const db = {
+      insert: () => ({
+        values: (value: unknown) => {
+          insertedValue = value;
+
+          return {
+            onConflictDoNothing: () => ({
+              returning: () => [
+                {
+                  id: '11111111-1111-4111-8111-111111111111',
+                  type: 'phone',
+                  value: '+46701111111',
+                  normalizedValue: '+46701111111',
+                  valueHash: 'phone-hash',
+                  reason: 'provider_opt_out',
+                  source: 'twilio',
+                  createdAt: new Date('2026-05-16T10:03:00.000Z'),
+                },
+              ],
+            }),
+          };
+        },
+      }),
+    };
+
+    await expect(
+      upsertSuppressionByHash(db as never, {
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        type: 'phone',
+        value: '+46701111111',
+        normalizedValue: '+46701111111',
+        valueHash: 'phone-hash',
+        reason: 'provider_opt_out',
+        source: 'twilio',
+      }),
+    ).resolves.toEqual(expect.objectContaining({ reason: 'provider_opt_out' }));
+    expect(insertedValue).toMatchObject({
+      organizationId: '22222222-2222-4222-8222-222222222222',
+      type: 'phone',
+      valueHash: 'phone-hash',
+      reason: 'provider_opt_out',
+      source: 'twilio',
+    });
   });
 });

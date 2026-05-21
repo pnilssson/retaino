@@ -2,6 +2,7 @@ import type {
   ContactImportStatus,
   ContactStatus,
 } from '@retaino/shared/contracts';
+import { Loader2 } from 'lucide-react';
 import {
   StatusBadge,
   type StatusBadgeTone,
@@ -36,6 +37,11 @@ export function ImportStatusBadge({
 }) {
   return (
     <StatusBadge
+      icon={
+        status === 'processing' ? (
+          <Loader2 aria-hidden="true" className="size-3 animate-spin" />
+        ) : undefined
+      }
       label={formatImportStatus(status)}
       tone={importStatusTone[status]}
     />
