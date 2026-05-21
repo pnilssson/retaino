@@ -565,3 +565,30 @@ pnpm --filter @retaino/web typecheck
 pnpm --filter @retaino/web lint
 git diff --check
 ```
+
+## Pass 18: Campaign Form Module Shape Review
+
+Purpose: reduce the campaign form's responsibilities without changing the
+guided flow behavior.
+
+- [x] Review `campaign-form.tsx` for unrelated responsibilities inside the
+  main form module.
+- [x] Move campaign review rendering and test-SMS behavior into a focused
+  `campaign-review.tsx` component.
+- [x] Move reusable SMS preview and segment estimate UI into
+  `message-preview.tsx`.
+- [x] Keep pure form state and validation in `campaign-form-state.ts`.
+
+Files inspected first:
+
+- `apps/web/src/features/campaigns/components/campaign-form.tsx`
+- `apps/web/src/features/campaigns/components`
+- `apps/web/src/features/campaigns/campaign-form-state.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/web typecheck
+pnpm --filter @retaino/web lint
+git diff --check
+```
