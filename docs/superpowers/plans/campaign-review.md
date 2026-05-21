@@ -771,6 +771,31 @@ pnpm --filter @retaino/api lint
 git diff --check
 ```
 
+## Pass 26: Campaign Form Field Ownership Review
+
+Purpose: keep `campaign-form.tsx` focused on guided-flow orchestration after
+earlier review and test-SMS component splits.
+
+- [x] Review `campaign-form.tsx` for remaining low-level helper code.
+- [x] Move reusable campaign text input and textarea controls into
+  `campaign-field-controls.tsx`.
+- [x] Move message-token insertion behavior into a feature-level helper.
+
+Files inspected first:
+
+- `apps/web/src/features/campaigns/components/campaign-form.tsx`
+- `apps/web/src/features/campaigns/components/campaign-review.tsx`
+- `apps/web/src/features/campaigns/components/sender-setup.tsx`
+- `apps/web/src/features/campaigns/campaign-form-state.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/web typecheck
+pnpm --filter @retaino/web lint
+git diff --check
+```
+
 ## Pass 24: Sender Readiness Invariant Review
 
 Purpose: keep sender readiness checks aligned with the actual provider send
