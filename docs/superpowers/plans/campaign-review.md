@@ -629,3 +629,31 @@ pnpm --filter @retaino/api typecheck
 pnpm --filter @retaino/api test -- --runInBand apps/api/test/features/campaigns/campaigns.service.test.ts apps/api/test/features/sms/sms.webhook-routes.test.ts apps/api/test/features/tracking/tracking.routes.test.ts
 git diff --check
 ```
+
+## Pass 20: Campaign DB Test Ownership Review
+
+Purpose: make the query test layout match the DB query module split from Pass
+19.
+
+- [x] Review campaign query tests for stale coverage owned by the new
+  `campaign-communications.ts` module.
+- [x] Move tracking-link, click-event, SMS-message, and provider-result query
+  tests into `campaign-communications.test.ts`.
+- [x] Move shared campaign and recipient row fixtures into a query test helper
+  instead of duplicating them.
+
+Files inspected first:
+
+- `packages/db/test/queries/campaigns.test.ts`
+- `packages/db/test/queries/campaign-communications.test.ts`
+- `packages/db/src/queries/campaigns.ts`
+- `packages/db/src/queries/campaign-communications.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/db test -- --runInBand packages/db/test/queries/campaigns.test.ts packages/db/test/queries/campaign-communications.test.ts
+pnpm --filter @retaino/db typecheck
+pnpm --filter @retaino/db lint
+git diff --check
+```
