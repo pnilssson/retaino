@@ -390,7 +390,6 @@ describe('campaign contracts', () => {
       sender: {
         id: '11111111-1111-4111-8111-111111111111',
         organizationId: '22222222-2222-4222-8222-222222222222',
-        provider: 'fake',
         status: 'ready',
         phoneNumber: '+46700000000',
         countryCode: 'SE',
@@ -403,6 +402,7 @@ describe('campaign contracts', () => {
       },
     });
 
+    expect(response.sender).not.toHaveProperty('provider');
     expect(response.sender).not.toHaveProperty('providerMessagingServiceId');
     expect(response.sender).not.toHaveProperty('providerPhoneNumberId');
     expect(response.sender).not.toHaveProperty('numberType');

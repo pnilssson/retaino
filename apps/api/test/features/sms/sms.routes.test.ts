@@ -148,6 +148,7 @@ describe('smsRoutes', () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as { sender: Record<string, unknown> };
     expect(body.sender.phoneNumber).toBe('+46700000000');
+    expect(body.sender).not.toHaveProperty('provider');
     expect(body.sender).not.toHaveProperty('providerMessagingServiceId');
     expect(body.sender).not.toHaveProperty('providerPhoneNumberId');
     expect(body.sender).not.toHaveProperty('numberType');
@@ -240,6 +241,7 @@ describe('smsRoutes', () => {
 
     expect(response.status).toBe(201);
     const body = (await response.json()) as { sender: Record<string, unknown> };
+    expect(body.sender).not.toHaveProperty('provider');
     expect(body.sender).not.toHaveProperty('providerMessagingServiceId');
     expect(body.sender).not.toHaveProperty('providerPhoneNumberId');
     expect(body.sender).not.toHaveProperty('numberType');

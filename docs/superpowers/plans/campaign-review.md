@@ -508,6 +508,7 @@ leakage and stale UI-driven number type concepts.
 - [x] Review public sender countries, number search, sender setup, and sender
   provisioning contracts.
 - [x] Keep provider number type support inside the provider adapter and SMS API.
+- [x] Remove provider name from public sender responses.
 - [x] Remove number type and capability details from public sender number
   search results.
 - [x] Remove number type and capability details from the sender provisioning

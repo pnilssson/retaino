@@ -256,6 +256,7 @@ export const organizationSmsSenderSchema = z.object({
 });
 
 export const publicOrganizationSmsSenderSchema = organizationSmsSenderSchema.omit({
+  provider: true,
   providerMessagingServiceId: true,
   providerPhoneNumberId: true,
   numberType: true,

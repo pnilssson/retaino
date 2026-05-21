@@ -325,7 +325,6 @@ function publicSender(
   return {
     id: sender.id,
     organizationId: sender.organizationId,
-    provider: sender.provider,
     status: sender.status,
     phoneNumber: sender.phoneNumber,
     countryCode: sender.countryCode,
