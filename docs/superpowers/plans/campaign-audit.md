@@ -28,6 +28,7 @@
 | LC-07 | Duplicate campaign send jobs for the same campaign could overlap during provider sending. | The Inngest campaign send function now uses singleton skip mode keyed by campaign ID. |
 | LC-08 | If final-send credit reservation succeeded but background enqueue failed, credits could remain reserved without a send job. | `queueCampaignSend` now releases the live-send reservation when enqueueing fails, then rethrows the enqueue error. |
 | LC-09 | Sender readiness checks before test sends and live-send queueing only checked status, not the provider resource needed for actual sending. | Campaign send services now require a ready sender with a provider Messaging Service ID before reserving credits or queueing sends. |
+| LC-10 | Public sender status could still show `ready` for an incomplete provider setup that the send services would reject. | Public sender responses now derive readiness from the same provider Messaging Service invariant without exposing provider IDs. |
 
 ## Important Findings Fixed
 

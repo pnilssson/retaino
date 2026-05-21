@@ -15,6 +15,7 @@ import {
 import { Hono, type Context } from 'hono';
 import { apiError } from '../../lib/errors';
 import { createSmsProvider, SmsProviderError } from '../../lib/sms-provider';
+import { smsSenderPublicStatus } from '../../lib/sms-sender-readiness';
 import { parseJsonBody } from '../../lib/route-helpers';
 import type { AppEnv } from '../../types';
 import { requireCampaignEligibility } from '../organization/organization.gates';
@@ -325,7 +326,7 @@ function publicSender(
   return {
     id: sender.id,
     organizationId: sender.organizationId,
-    status: sender.status,
+    status: smsSenderPublicStatus(sender),
     phoneNumber: sender.phoneNumber,
     countryCode: sender.countryCode,
     regulatoryStatus: sender.regulatoryStatus,

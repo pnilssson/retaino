@@ -744,6 +744,33 @@ pnpm --filter @retaino/api lint
 git diff --check
 ```
 
+## Pass 25: Public Sender Readiness Review
+
+Purpose: keep public sender status aligned with the same invariant used by
+test sends and live sends.
+
+- [x] Move sender send-readiness into a shared API helper.
+- [x] Use the helper in campaign send services.
+- [x] Derive public sender status from the same helper so incomplete provider
+  setup is not exposed as ready.
+- [x] Add SMS route coverage for incomplete provider setup.
+
+Files inspected first:
+
+- `apps/api/src/features/campaigns/campaigns.service.ts`
+- `apps/api/src/features/sms/sms.routes.ts`
+- `apps/api/src/lib/twilio-provider.ts`
+- `apps/api/test/features/sms/sms.routes.test.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/api test -- --runInBand apps/api/test/features/campaigns/campaigns.service.test.ts apps/api/test/features/campaigns/campaigns.routes.test.ts apps/api/test/features/sms/sms.routes.test.ts
+pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/api lint
+git diff --check
+```
+
 ## Pass 24: Sender Readiness Invariant Review
 
 Purpose: keep sender readiness checks aligned with the actual provider send
