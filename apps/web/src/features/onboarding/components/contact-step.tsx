@@ -3,6 +3,7 @@
 import { useForm } from '@tanstack/react-form';
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { CountryCombobox } from '@/components/country-combobox';
+import { GuidedFlowActions } from '@/components/guided-flow';
 import { PhoneInput } from '@/components/phone-input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -155,7 +156,6 @@ export function ContactStep({
               onCountryChange={(value) =>
                 form.setFieldValue('countryCode', value)
               }
-              placeholder="+46700000000"
               value={field.state.value}
             />
           )}
@@ -165,11 +165,15 @@ export function ContactStep({
           <InlineError message={mutationError} title="Profile could not be saved" />
         ) : null}
 
-        <div className="flex flex-wrap justify-between gap-3 pt-2">
-          <Button onClick={onBack} type="button" variant="outline">
-            <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-            Back
-          </Button>
+        <GuidedFlowActions
+          backLabel={
+            <>
+              <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+              Back
+            </>
+          }
+          onBack={onBack}
+        >
           <form.Subscribe
             selector={(state) => [state.canSubmit, state.isSubmitting]}
           >
@@ -192,7 +196,7 @@ export function ContactStep({
               </Button>
             )}
           </form.Subscribe>
-        </div>
+        </GuidedFlowActions>
       </form>
     </OnboardingItem>
   );
@@ -241,7 +245,6 @@ function PhoneField({
   onBlur,
   onChange,
   onCountryChange,
-  placeholder,
   value,
 }: {
   countryCode: string;
@@ -251,7 +254,6 @@ function PhoneField({
   onBlur: () => void;
   onChange: (value: string) => void;
   onCountryChange: (value: string) => void;
-  placeholder: string;
   value: string;
 }) {
   return (
@@ -265,7 +267,6 @@ function PhoneField({
         onBlur={onBlur}
         onChange={onChange}
         onCountryChange={onCountryChange}
-        placeholder={placeholder}
         value={value}
       />
       {error ? (

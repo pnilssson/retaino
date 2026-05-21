@@ -31,7 +31,7 @@ export function OnboardingFrame({
         <GuidedFlowFrame
           completedStepIds={completedSteps}
           currentStepId={currentStep}
-          progressLabel="Retaino setup"
+          progressLabel="Organization setup"
           steps={steps}
         >
           {children}

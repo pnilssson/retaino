@@ -721,7 +721,7 @@ function ImportProgress({
       ) : null}
       <ImportIssues importRow={latestImport} />
       {latestImport.status === 'completed' || latestImport.status === 'failed' ? (
-        <div className="flex flex-wrap justify-end gap-2">
+        <GuidedFlowActions>
           <Button onClick={onImportAnother} type="button" variant="outline">
             <FileUp aria-hidden="true" data-icon="inline-start" />
             Import another CSV
@@ -734,7 +734,7 @@ function ImportProgress({
               </Link>
             </Button>
           ) : null}
-        </div>
+        </GuidedFlowActions>
       ) : null}
     </section>
   );

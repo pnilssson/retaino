@@ -128,7 +128,7 @@ export function GuidedFlowActions({
   onBack,
   onContinue,
 }: {
-  backLabel?: string;
+  backLabel?: ReactNode;
   canContinue?: boolean;
   children?: ReactNode;
   continueLabel?: string;

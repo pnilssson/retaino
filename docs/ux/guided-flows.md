@@ -28,6 +28,11 @@ Guided flows use two main regions:
 Do not add persistent side summaries to guided flows unless there is a specific
 workflow reason. The review step is where user choices should be summarized.
 
+The primary next or final action always sits in the bottom-right action row of
+the active work surface. Back or secondary navigation sits in the same row on
+the bottom left. Do not place the next action directly under an input, table, or
+inline content block.
+
 ## Step Behavior
 
 - The active step shows only the fields needed for that decision.
@@ -48,7 +53,7 @@ review or result step.
   launch it. Draft is an internal persistence state, not the user's main goal.
 - Contact import ends at review before starting the background import, then
   changes to a results step while the import runs.
-- Onboarding ends with legal acceptance and the ready state.
+- Onboarding ends with legal acceptance, then routes directly to the overview.
 
 ## Implementation Rules
 
@@ -57,6 +62,8 @@ review or result step.
 - UI state such as the active step may use local React state.
 - Shared guided-flow components stay presentational. Feature components own data
   fetching, form logic, validation, and mutations.
+- Use `GuidedFlowActions` for guided-flow step actions unless the flow needs a
+  stricter local layout for a documented reason.
 - Use `textStyles` for headings, body text, muted text, metadata, and errors.
   Available roles are `pageTitle`, `pageDescription`, `sectionTitle`,
   `itemTitle`, `body`, `mutedBody`, `meta`, `metaStrong`, `numeric`, `metric`,

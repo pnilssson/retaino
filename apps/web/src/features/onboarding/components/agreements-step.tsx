@@ -6,6 +6,7 @@ import {
 } from '@retaino/shared/contracts';
 import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { GuidedFlowActions } from '@/components/guided-flow';
 import { Button } from '@/components/ui/button';
 import { textStyles } from '@/lib/text-styles';
 import { legalBundleDocumentLabels } from '../onboarding.constants';
@@ -71,11 +72,15 @@ export function AgreementsStep({
           <p className={textStyles.error}>{mutationError}</p>
         ) : null}
 
-        <div className="flex flex-wrap justify-between gap-3 pt-2">
-          <Button onClick={onBack} type="button" variant="outline">
-            <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-            Back
-          </Button>
+        <GuidedFlowActions
+          backLabel={
+            <>
+              <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+              Back
+            </>
+          }
+          onBack={onBack}
+        >
           <Button
             disabled={isPending}
             onClick={() => {
@@ -94,7 +99,7 @@ export function AgreementsStep({
             )}
             {isPending ? 'Finishing setup' : 'Finish setup'}
           </Button>
-        </div>
+        </GuidedFlowActions>
       </div>
     </OnboardingItem>
   );
