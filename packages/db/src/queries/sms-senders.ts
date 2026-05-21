@@ -1,4 +1,4 @@
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type {
   OrganizationSmsSender,
   SmsSenderNumberType,
@@ -102,7 +102,7 @@ export async function getOrganizationSmsSenderByProviderReference(
   const [row] = await db
     .select()
     .from(organizationSmsSenders)
-    .where(and(eq(organizationSmsSenders.provider, input.provider), or(...filters)))
+    .where(and(eq(organizationSmsSenders.provider, input.provider), ...filters))
     .limit(1);
 
   return row ? organizationSmsSenderToContract(row) : null;

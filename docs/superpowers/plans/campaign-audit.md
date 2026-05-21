@@ -42,6 +42,7 @@
 | WH-01 | Twilio `START` and `HELP` advanced opt-out events were treated as suppressions. | Only `OptOutType=STOP` creates suppressions. `START` and `HELP` are stored as replies. |
 | WH-02 | Body-based STOP fallback missed current STOP-style keywords. | STOP-style detection now covers the current standard keyword set used by the MVP. |
 | WH-03 | Duplicate Twilio webhook deliveries could insert duplicate campaign message events and inflate reply, opt-out, or event counts. | Campaign message events now have a provider/message/event unique index, and event inserts ignore duplicate retries. |
+| WH-04 | Inbound sender lookup accepted any matching provider reference, so mismatched webhook references could attach a reply to the wrong organization sender. | Sender lookup now requires every provided provider reference to match the same sender row. |
 | TR-02 | Public redirects trusted stored target URLs at response time. | The redirect route rejects stored targets unless they parse as `http` or `https`, before recording the click. |
 | TR-03 | A click-storage failure could block the recipient from reaching the booking page. | Public redirects now log click-write failures but still redirect after the stored target URL is validated. |
 | TR-04 | Tracking links duplicated recipient hashes and unused click counters. | Tracking links now store only link ownership, code, target URL, and timestamps. Reports count `click_events` directly. |

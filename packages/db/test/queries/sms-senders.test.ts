@@ -113,6 +113,7 @@ describe('organization SMS sender query helpers', () => {
       '"organization_sms_senders"."provider_messaging_service_id" = $2',
     );
     expect(query.sql).toContain('"organization_sms_senders"."phone_number" = $3');
+    expect(query.sql.toLowerCase()).not.toContain(' or ');
     expect(query.params).toEqual([
       'twilio',
       senderRow.providerMessagingServiceId,

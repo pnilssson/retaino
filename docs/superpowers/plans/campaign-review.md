@@ -434,3 +434,36 @@ pnpm --filter @retaino/api typecheck
 pnpm --filter @retaino/api lint
 git diff --check
 ```
+
+## Pass 14: Webhook Tenant Attribution Review
+
+Purpose: review Twilio webhook sender lookup, reply attribution, suppression
+creation, and duplicate delivery handling against Twilio webhook payloads and
+Retaino's tenant-safety requirements.
+
+- [x] Review status webhook lookup by provider message ID.
+- [x] Review inbound webhook sender lookup by Messaging Service SID, phone
+  number reference, and destination phone number.
+- [x] Require every provided sender provider reference to match the same sender
+  row before attributing inbound replies or suppressions to an organization.
+- [x] Review duplicate inbound and status callback handling.
+
+Files inspected first:
+
+- `apps/api/src/features/sms/sms.webhook-routes.ts`
+- `apps/api/test/features/sms/sms.webhook-routes.test.ts`
+- `packages/db/src/queries/sms-senders.ts`
+- `packages/db/test/queries/sms-senders.test.ts`
+- `packages/db/src/queries/campaigns.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/db test -- --runInBand packages/db/test/queries/sms-senders.test.ts packages/db/test/queries/campaigns.test.ts
+pnpm --filter @retaino/api test -- --runInBand apps/api/test/features/sms/sms.webhook-routes.test.ts
+pnpm --filter @retaino/db typecheck
+pnpm --filter @retaino/db lint
+pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/api lint
+git diff --check
+```
