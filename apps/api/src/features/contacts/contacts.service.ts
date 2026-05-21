@@ -79,7 +79,6 @@ export async function processContactImport(input: ProcessContactImportInput) {
       const row = outcome.row;
       const result = await upsertImportedContact(input.db, {
         organizationId: input.organizationId,
-        contactImportId: input.contactImportId,
         name: row.name,
         phone: row.phone,
         email: row.email,
@@ -89,6 +88,7 @@ export async function processContactImport(input: ProcessContactImportInput) {
         emailHash: row.emailHash,
         lastBookingAt: row.lastBookingAt,
         consentStatus: 'granted',
+        suppressed: row.suppressed,
       });
 
       if (result.action === 'conflict') {

@@ -33,7 +33,7 @@ export function AudienceRuleFields({
   return (
     <div className="grid gap-4">
       <div className="grid gap-2">
-        <Label>Time since last booking</Label>
+        <Label>Days since last booking</Label>
         <div className="flex flex-wrap gap-2">
           {lapsedDayPresets.map((days) => (
             <Button
@@ -68,8 +68,8 @@ export function AudienceRuleFields({
 
       {showCustomInput ? (
         <div className="grid max-w-48 gap-2">
-          <Label htmlFor="campaign-lapsed-days">Days since last booking</Label>
           <Input
+            aria-label="Custom days since last booking"
             autoComplete="off"
             disabled={disabled}
             id="campaign-lapsed-days"
@@ -93,23 +93,16 @@ export function AudienceRuleFields({
         </div>
       ) : null}
 
-      <label className="flex max-w-2xl items-start gap-3">
+      <label className="flex items-center gap-3">
         <Checkbox
           checked={includeNoBookingDate}
-          className="mt-1"
           disabled={disabled}
           onCheckedChange={(value) =>
             onIncludeNoBookingDateChange(value === true)
           }
         />
-        <span className="grid gap-1">
-          <span className={textStyles.itemTitle}>
-            Include contacts without a booking date
-          </span>
-          <span className={textStyles.mutedBody}>
-            Use this only when the import did not contain booking history but
-            the contacts are still valid marketing recipients.
-          </span>
+        <span className={textStyles.itemTitle}>
+          Include contacts without booking date
         </span>
       </label>
     </div>

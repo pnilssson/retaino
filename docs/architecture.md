@@ -96,16 +96,20 @@ organization on retries.
 
 Onboarding should collect organization identity and address fields that are
 likely to be required for phone-number compliance so sender setup does not ask
-for the same company details again. If a selected sender country or number type
-requires additional regulatory data, the user supplies it through
+for the same company details again. If a selected sender country or two-way SMS
+number requires additional regulatory data, the user supplies it through
 Retaino. Retaino staff must not need to manually configure each customer.
-Countries or number types that cannot be self-served through Retaino are not
-available in MVP.
+Sender categories that cannot be self-served through Retaino are not available
+in MVP.
 
 Sender setup is organization-controlled. Users choose the target sender country
-based on where their recipients are, then select an available SMS-capable number
-or accept a recommended number. The organization's legal address is only a
-default, not the source of truth for sender country.
+based on where their recipients are, then select an available two-way SMS number
+or accept a recommended two-way SMS number. The provider layer may support
+multiple number types, but the MVP product exposes only two-way SMS sender
+setup. Retaino searches provider inventory using the provider number type needed
+for two-way SMS support and stores the verified provider result. Users do not
+choose provider number type. The organization's legal address is only a default,
+not the source of truth for sender country.
 
 Configure organization Messaging Services with service-level inbound and status
 callback URLs. The inbound callback stores every inbound message. STOP-style

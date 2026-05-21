@@ -60,9 +60,9 @@ export function AudiencePreview({
   return (
     <div className="grid gap-5">
       <SankeyBreakdown
-        description="Contacts that match this audience grouped by send readiness."
         links={audienceLinks}
         nodes={audienceNodes}
+        showHeader={false}
         summary={audienceSummary}
         title="Audience breakdown"
       />

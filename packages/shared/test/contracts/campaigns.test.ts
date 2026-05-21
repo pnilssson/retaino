@@ -261,14 +261,13 @@ describe('campaign contracts', () => {
     ).toBe(false);
   });
 
-  it('accepts provider-neutral SMS sender countries and number choices', () => {
+  it('accepts public SMS sender countries and number searches', () => {
     expect(
       smsSenderCountriesResponseSchema.parse({
         countries: [
           {
             countryCode: 'se',
             label: 'Sweden',
-            supportedNumberTypes: ['mobile'],
             selfServeAvailable: true,
           },
         ],
@@ -278,7 +277,6 @@ describe('campaign contracts', () => {
         {
           countryCode: 'SE',
           label: 'Sweden',
-          supportedNumberTypes: ['mobile'],
           selfServeAvailable: true,
         },
       ],
@@ -287,12 +285,17 @@ describe('campaign contracts', () => {
     expect(
       smsSenderNumbersRequestSchema.parse({
         countryCode: 'us',
-        numberType: 'toll_free',
       }),
     ).toEqual({
       countryCode: 'US',
-      numberType: 'toll_free',
     });
+
+    expect(() =>
+      smsSenderNumbersRequestSchema.parse({
+        countryCode: 'SE',
+        numberType: 'local',
+      }),
+    ).toThrow();
   });
 
   it('accepts the selected sender needed for provisioning', () => {

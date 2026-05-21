@@ -35,7 +35,7 @@ const organization = {
   name: 'Retaino',
   slug: 'retaino',
   onboardingStatus: 'complete',
-  role: 'org:admin',
+  role: 'org:member',
 };
 
 const profile = {
@@ -152,7 +152,7 @@ describe('smsRoutes', () => {
     expect(body.sender).not.toHaveProperty('providerPhoneNumberId');
   });
 
-  it('lists SMS sender countries for eligible admins', async () => {
+  it('lists SMS sender countries for eligible members', async () => {
     const response = await testApp().request(
       '/v1/sms/countries',
       {},
@@ -165,13 +165,36 @@ describe('smsRoutes', () => {
     };
 
     expect(body.countries).toEqual(
-      expect.arrayContaining([
+      [
         expect.objectContaining({
           countryCode: 'SE',
-          supportedNumberTypes: ['mobile'],
+          label: 'Sweden',
+          selfServeAvailable: true,
         }),
-      ]),
+      ],
     );
+    expect(body.countries[0]).not.toHaveProperty('supportedNumberTypes');
+  });
+
+  it('lists two-way sender numbers by country', async () => {
+    const response = await testApp().request(
+      '/v1/sms/numbers?countryCode=SE',
+      {},
+      { SMS_SENDING_MODE: 'test' },
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      numbers: Array<Record<string, unknown>>;
+    };
+
+    expect(body.numbers).toEqual([
+      expect.objectContaining({
+        phoneNumber: '+46700000000',
+        countryCode: 'SE',
+        numberType: 'mobile',
+      }),
+    ]);
   });
 
   it('provisions a selected SMS sender once billing is active', async () => {
@@ -455,6 +478,39 @@ describe('smsRoutes', () => {
     expect(upsertOrganizationSmsSender).not.toHaveBeenCalled();
   });
 
+  it('rejects sender provisioning selections that are not two-way numbers', async () => {
+    vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue(null);
+
+    const response = await testApp().request(
+      '/v1/sms',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          selectedSender: {
+            phoneNumber: '+15005550006',
+            countryCode: 'US',
+            numberType: 'local',
+            capabilities: {
+              outboundSms: true,
+              inboundSms: true,
+              statusCallbacks: true,
+              twoWaySms: true,
+              smartEncoding: false,
+            },
+            regulatoryRequirementSummary: null,
+            label: '+1 500 555 0006',
+          },
+        }),
+      },
+      { SMS_SENDING_MODE: 'test' },
+    );
+
+    expect(response.status).toBe(400);
+    expect(upsertOrganizationSmsSender).not.toHaveBeenCalled();
+  });
+
   it('returns retryable responses for provider outages', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       new Response('rate limited', {
@@ -467,7 +523,7 @@ describe('smsRoutes', () => {
     vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
 
     const response = await testApp().request(
-      '/v1/sms/numbers?countryCode=US&numberType=local',
+      '/v1/sms/numbers?countryCode=SE',
       {},
       {
         SMS_SENDING_MODE: 'live',

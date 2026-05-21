@@ -89,7 +89,6 @@ describe('processContactImport', () => {
 
     expect(upsertImportedContact).toHaveBeenCalledWith(expect.anything(), {
       organizationId,
-      contactImportId,
       name: 'Ada Lovelace',
       phone: '0701234567',
       email: 'ada@example.com',
@@ -99,6 +98,7 @@ describe('processContactImport', () => {
       emailHash: expect.any(String),
       lastBookingAt: new Date('2026-01-02T00:00:00.000Z'),
       consentStatus: 'granted',
+      suppressed: false,
     });
     expect(completeContactImport).toHaveBeenCalledWith(expect.anything(), {
       organizationId,
@@ -155,6 +155,7 @@ describe('processContactImport', () => {
         phone: '0700000000',
         normalizedPhone: '+46700000000',
         consentStatus: 'granted',
+        suppressed: true,
       }),
     );
     expect(completeContactImport).toHaveBeenCalledWith(expect.anything(), {

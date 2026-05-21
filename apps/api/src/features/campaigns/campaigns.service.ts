@@ -263,13 +263,13 @@ export async function processCampaignSend(input: {
       startResult.status !== 'active_send_exists' &&
       reservedTransactions.length > 0
     ) {
-      await releaseSmsCreditUsage({
+      await releaseUnusedCampaignCredits({
         db: input.db,
         organizationId: input.organizationId,
+        reservedCreditCount,
+        actualCreditCount: 0,
         reservedTransactions,
-        source: 'campaign_send',
-        sourceId: `${reservation.sourceId}:release`,
-        description: 'Campaign SMS reservation release',
+        reservationSourceId: reservation.sourceId,
       });
     }
 
@@ -365,20 +365,14 @@ export async function processCampaignSend(input: {
   } catch (error) {
     const failureReason = errorMessage(error);
 
-    if (
-      reservedCreditCount > actualCreditCount &&
-      reservedTransactions.length > 0
-    ) {
-      await releaseSmsCreditUsage({
-        db: input.db,
-        organizationId: input.organizationId,
-        credits: reservedCreditCount - actualCreditCount,
-        reservedTransactions,
-        source: 'campaign_send',
-        sourceId: `${reservation.sourceId}:release`,
-        description: 'Campaign SMS reservation release',
-      });
-    }
+    await releaseUnusedCampaignCredits({
+      db: input.db,
+      organizationId: input.organizationId,
+      reservedCreditCount,
+      actualCreditCount,
+      reservedTransactions,
+      reservationSourceId: reservation.sourceId,
+    });
 
     await markCampaignSendFailed(input.db, {
       organizationId: input.organizationId,
@@ -406,20 +400,14 @@ export async function processCampaignSend(input: {
     throw error;
   }
 
-  if (
-    reservedCreditCount > actualCreditCount &&
-    reservedTransactions.length > 0
-  ) {
-    await releaseSmsCreditUsage({
-      db: input.db,
-      organizationId: input.organizationId,
-      credits: reservedCreditCount - actualCreditCount,
-      reservedTransactions,
-      source: 'campaign_send',
-      sourceId: `${reservation.sourceId}:release`,
-      description: 'Campaign SMS reservation release',
-    });
-  }
+  await releaseUnusedCampaignCredits({
+    db: input.db,
+    organizationId: input.organizationId,
+    reservedCreditCount,
+    actualCreditCount,
+    reservedTransactions,
+    reservationSourceId: reservation.sourceId,
+  });
 
   await createAuditLog(input.db, {
     organizationId: input.organizationId,
@@ -532,6 +520,32 @@ async function debitCampaignSendCredits(input: {
     reservedTransactions,
     sourceId,
   };
+}
+
+async function releaseUnusedCampaignCredits(input: {
+  db: DbClient;
+  organizationId: string;
+  reservedCreditCount: number;
+  actualCreditCount: number;
+  reservedTransactions: SmsCreditTransaction[];
+  reservationSourceId: string;
+}) {
+  const unusedCreditCount =
+    input.reservedCreditCount - input.actualCreditCount;
+
+  if (unusedCreditCount <= 0 || input.reservedTransactions.length === 0) {
+    return;
+  }
+
+  await releaseSmsCreditUsage({
+    db: input.db,
+    organizationId: input.organizationId,
+    credits: unusedCreditCount,
+    reservedTransactions: input.reservedTransactions,
+    source: 'campaign_send',
+    sourceId: `${input.reservationSourceId}:release`,
+    description: 'Campaign SMS reservation release',
+  });
 }
 
 function errorMessage(error: unknown) {

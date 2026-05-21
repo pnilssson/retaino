@@ -114,7 +114,7 @@ Campaign:
 4. User chooses a booking URL and optional campaign code or reference that may
    appear in later booking exports.
 5. User chooses the sender country based on recipient market and selects an
-   available SMS-capable number or accepts Retaino's recommendation.
+   available two-way SMS number or accepts Retaino's recommendation.
 6. Retaino provisions the organization's dedicated sender if it does not exist.
 7. User reviews the final campaign, estimated credits, sender, and recipient
    count.

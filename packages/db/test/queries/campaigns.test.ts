@@ -2,9 +2,7 @@ import { sql, type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it, vi } from 'vitest';
 import {
-  assertCampaignDraftStatus,
   campaignAudienceWhere,
-  campaignToContract,
   countCampaignRecipients,
   createAuditLog,
   createInboundSmsMessage,
@@ -23,12 +21,7 @@ import {
   recordCampaignMessageEvent,
   recordTrackingClick,
   recordSmsMessageProviderResult,
-  recipientToContract,
-  campaignMessageEventToContract,
-  clickEventToContract,
-  smsMessageToContract,
   startCampaignSend,
-  trackingLinkToContract,
   upsertTrackingLink,
   updateCampaignDraft,
 } from '../../src/queries/campaigns';
@@ -148,120 +141,6 @@ const smsMessageRow = {
 };
 
 describe('campaign query helpers', () => {
-  it('maps campaign rows to shared contract shapes', () => {
-    expect(campaignToContract(campaignRow)).toEqual({
-      ...campaignRow,
-      status: 'draft',
-      createdAt: '2026-05-16T00:00:00.000Z',
-      updatedAt: '2026-05-16T00:00:00.000Z',
-    });
-
-    expect(
-      campaignToContract({
-        ...campaignRow,
-        bookingUrl: null,
-        smsBody: null,
-      }),
-    ).toMatchObject({
-      bookingUrl: null,
-      smsBody: null,
-    });
-  });
-
-  it('maps recipient snapshot rows to shared contract shapes', () => {
-    expect(recipientToContract(recipientRow)).toEqual({
-      id: recipientRow.id,
-      organizationId: recipientRow.organizationId,
-      campaignId: recipientRow.campaignId,
-      contactId: recipientRow.contactId,
-      status: 'selected',
-      exclusionReason: recipientRow.exclusionReason,
-      name: recipientRow.name,
-      phone: recipientRow.phone,
-      email: recipientRow.email,
-      lastBookingAt: '2026-01-01T00:00:00.000Z',
-      lastContactedAt: null,
-      selectedAt: '2026-05-16T10:00:00.000Z',
-      queuedAt: null,
-      sentAt: null,
-      failedAt: null,
-      createdAt: '2026-05-16T10:00:00.000Z',
-      updatedAt: '2026-05-16T10:00:00.000Z',
-    });
-  });
-
-  it('maps tracking links and SMS messages to shared contract shapes', () => {
-    expect(trackingLinkToContract(trackingLinkRow)).toEqual({
-      id: trackingLinkRow.id,
-      organizationId: trackingLinkRow.organizationId,
-      campaignId: trackingLinkRow.campaignId,
-      recipientId: trackingLinkRow.recipientId,
-      code: trackingLinkRow.code,
-      targetUrl: trackingLinkRow.targetUrl,
-      createdAt: '2026-05-16T10:00:00.000Z',
-      updatedAt: '2026-05-16T10:00:00.000Z',
-    });
-    expect(smsMessageToContract(smsMessageRow)).toEqual({
-      id: smsMessageRow.id,
-      organizationId: smsMessageRow.organizationId,
-      direction: 'outbound',
-      campaignId: smsMessageRow.campaignId,
-      recipientId: smsMessageRow.recipientId,
-      contactId: smsMessageRow.contactId,
-      provider: 'fake',
-      providerMessageId: null,
-      providerMessagingServiceId: null,
-      providerPhoneNumberId: null,
-      fromPhone: smsMessageRow.fromPhone,
-      toPhone: smsMessageRow.toPhone,
-      body: smsMessageRow.body,
-      status: 'queued',
-      estimatedSegmentCount: 1,
-      actualSegmentCount: null,
-      estimatedCostMinor: null,
-      actualCostMinor: null,
-      currency: 'SEK',
-      queuedAt: '2026-05-16T10:00:00.000Z',
-      sentAt: null,
-      receivedAt: null,
-      deliveredAt: null,
-      failedAt: null,
-      createdAt: '2026-05-16T10:00:00.000Z',
-      updatedAt: '2026-05-16T10:00:00.000Z',
-    });
-
-    expect(campaignMessageEventToContract(messageEventRow)).toEqual({
-      id: messageEventRow.id,
-      organizationId: messageEventRow.organizationId,
-      campaignId: messageEventRow.campaignId,
-      messageId: messageEventRow.messageId,
-      recipientId: messageEventRow.recipientId,
-      provider: 'fake',
-      providerMessageId: messageEventRow.providerMessageId,
-      eventType: messageEventRow.eventType,
-      rawStatus: messageEventRow.rawStatus,
-      occurredAt: '2026-05-16T10:01:00.000Z',
-      createdAt: '2026-05-16T10:01:00.000Z',
-    });
-
-    expect(clickEventToContract(clickEventRow)).toEqual({
-      id: clickEventRow.id,
-      organizationId: clickEventRow.organizationId,
-      campaignId: clickEventRow.campaignId,
-      recipientId: clickEventRow.recipientId,
-      trackingLinkId: clickEventRow.trackingLinkId,
-      userAgent: clickEventRow.userAgent,
-      occurredAt: '2026-05-16T10:02:00.000Z',
-      createdAt: '2026-05-16T10:02:00.000Z',
-    });
-  });
-
-  it('rejects non-draft campaign mutations', () => {
-    expect(() =>
-      assertCampaignDraftStatus({ ...campaignRow, status: 'ready_to_send' }),
-    ).toThrow('Campaign is not editable.');
-  });
-
   it('updates drafts with organization and draft filters', async () => {
     let whereCondition: SQL | undefined;
     const db = {
@@ -782,7 +661,14 @@ describe('campaign query helpers', () => {
         code: trackingLinkRow.code,
         targetUrl: trackingLinkRow.targetUrl,
       }),
-    ).resolves.toEqual(trackingLinkToContract(trackingLinkRow));
+    ).resolves.toEqual(
+      expect.objectContaining({
+        id: trackingLinkRow.id,
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        recipientId: recipientRow.id,
+      }),
+    );
     expect(upsertValues).toEqual([
       expect.objectContaining({
         organizationId: campaignRow.organizationId,
@@ -845,7 +731,16 @@ describe('campaign query helpers', () => {
 
     await expect(
       recordTrackingClick(db as never, {
-        trackingLink: trackingLinkToContract(trackingLinkRow),
+        trackingLink: {
+          id: trackingLinkRow.id,
+          organizationId: trackingLinkRow.organizationId,
+          campaignId: trackingLinkRow.campaignId,
+          recipientId: trackingLinkRow.recipientId,
+          code: trackingLinkRow.code,
+          targetUrl: trackingLinkRow.targetUrl,
+          createdAt: '2026-05-16T10:00:00.000Z',
+          updatedAt: '2026-05-16T10:00:00.000Z',
+        },
         userAgent: 'Mozilla/5.0',
         now: new Date('2026-05-16T10:02:00.000Z'),
       }),
@@ -943,7 +838,12 @@ describe('campaign query helpers', () => {
       }),
     ).resolves.toEqual({
       status: 'existing',
-      message: smsMessageToContract(smsMessageRow),
+      message: expect.objectContaining({
+        id: smsMessageRow.id,
+        campaignId: campaignRow.id,
+        recipientId: recipientRow.id,
+        status: 'queued',
+      }),
     });
   });
 

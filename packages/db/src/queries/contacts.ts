@@ -908,7 +908,6 @@ export async function upsertImportedContact(
   db: DbClient,
   input: {
     organizationId: string;
-    contactImportId: string;
     name: string | null;
     phone: string | null;
     email: string | null;
@@ -918,6 +917,7 @@ export async function upsertImportedContact(
     emailHash: string | null;
     lastBookingAt: Date | null;
     consentStatus: ContactConsentStatus;
+    suppressed: boolean;
   },
 ) {
   assertOrganizationId(input.organizationId);
@@ -980,7 +980,12 @@ export async function upsertImportedContact(
       )
       .returning();
 
-    return { contact: updated ? contactToContract(updated, { suppressed: false }) : null, action: 'updated' as const };
+    return {
+      contact: updated
+        ? contactToContract(updated, { suppressed: input.suppressed })
+        : null,
+      action: 'updated' as const,
+    };
   }
 
   const [created] = await db
@@ -999,7 +1004,12 @@ export async function upsertImportedContact(
     })
     .returning();
 
-  return { contact: created ? contactToContract(created, { suppressed: false }) : null, action: 'created' as const };
+  return {
+    contact: created
+      ? contactToContract(created, { suppressed: input.suppressed })
+      : null,
+    action: 'created' as const,
+  };
 }
 
 export function resolveImportedContactMatch<TContact extends { id: string }>(

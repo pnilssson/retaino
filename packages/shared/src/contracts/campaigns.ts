@@ -260,8 +260,12 @@ export const publicOrganizationSmsSenderSchema = organizationSmsSenderSchema.omi
   providerPhoneNumberId: true,
 });
 
+export const publicSmsSenderCountrySchema = smsSenderCountrySchema.omit({
+  supportedNumberTypes: true,
+});
+
 export const smsSenderCountriesResponseSchema = z.object({
-  countries: z.array(smsSenderCountrySchema),
+  countries: z.array(publicSmsSenderCountrySchema),
 });
 
 export const smsSenderNumbersRequestSchema = z
@@ -271,7 +275,6 @@ export const smsSenderNumbersRequestSchema = z
       .trim()
       .length(2)
       .transform((value) => value.toUpperCase()),
-    numberType: smsSenderNumberTypeSchema.optional(),
   })
   .strict();
 

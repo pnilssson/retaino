@@ -345,3 +345,54 @@ pnpm typecheck
 pnpm lint
 pnpm build
 ```
+
+## Pass 12: Architecture, Duplication, And Deletion Review
+
+Purpose: reduce avoidable code surface before PR by checking the largest
+campaign and campaign-adjacent modules for shallow exports, duplicated helpers,
+mixed responsibilities, and stale tests.
+
+- [x] Review the largest campaign DB/API/web files by line count.
+- [x] Remove campaign DB exports that existed only for private mapper tests.
+- [x] Delete tests that asserted private row mapper implementation shape.
+- [x] Consolidate duplicated campaign credit release logic in the send service.
+- [x] Move pure campaign form state and validation out of the guided-flow
+  component.
+- [x] Review the Sankey and suppressed contact re-import changes now that they
+  are reviewable.
+- [x] Tighten the suppressed import DB upsert interface by removing unused
+  input and preserving known suppression state in returned contact data.
+- [x] Adjust Sankey label spacing and remove duplicate audience summary rows
+  from the campaign audience step.
+- [x] Remove provider number type selection from the campaign builder and let
+  the SMS API search and provision provider-verified two-way numbers.
+
+Files inspected first:
+
+- `packages/db/src/queries/campaigns.ts`
+- `apps/api/src/features/campaigns/campaigns.service.ts`
+- `apps/api/src/features/campaigns/campaigns.routes.ts`
+- `apps/web/src/features/campaigns/components/campaign-form.tsx`
+- `apps/web/src/features/campaigns/components/audience-preview.tsx`
+- `apps/web/src/components/sankey-breakdown.tsx`
+- `apps/web/src/features/campaigns/components/sender-setup.tsx`
+- `apps/api/src/features/sms/sms.routes.ts`
+- `apps/api/src/features/contacts/contact-import-processing.ts`
+- `apps/api/src/features/contacts/contacts.service.ts`
+- `packages/db/src/queries/contacts.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/db test
+pnpm --filter @retaino/api test
+pnpm --filter @retaino/web typecheck
+pnpm --filter @retaino/web lint
+pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/db lint
+git diff --check
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm build
+```

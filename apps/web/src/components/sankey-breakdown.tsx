@@ -92,7 +92,7 @@ export function SankeyBreakdown({
             iterations={48}
             link={{ stroke: 'var(--chart-2)', strokeOpacity: 0.22 }}
             linkCurvature={0.55}
-            margin={{ bottom: 24, left: 128, right: 128, top: 24 }}
+            margin={{ bottom: 24, left: 144, right: 112, top: 24 }}
             node={SankeyNode}
             nodePadding={22}
             nodeWidth={10}
@@ -104,6 +104,7 @@ export function SankeyBreakdown({
           </Sankey>
         </ChartContainer>
       ) : null}
+
     </div>
   );
 }
@@ -192,6 +193,8 @@ function toRenderableSankeyData(
   };
 }
 
+const countFormatter = new Intl.NumberFormat();
+
 function formatCount(value: number) {
-  return new Intl.NumberFormat().format(value);
+  return countFormatter.format(value);
 }

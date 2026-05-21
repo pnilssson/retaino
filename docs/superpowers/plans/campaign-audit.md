@@ -37,6 +37,7 @@
 | DM-01 | Webhook-facing sender and recipient lookups needed supporting indexes. | Added indexes for organization sender lookup by provider service, provider phone reference, destination phone, and recipient phone hash. |
 | SC-01 | Public sender responses exposed provider resource identifiers. | Public sender responses now omit provider Messaging Service and phone-number IDs. |
 | SC-02 | Sender number selection exposed provider-only references to the browser. | Public sender options no longer include provider references. The server re-verifies selected numbers before provisioning. |
+| SC-03 | Sender setup exposed provider number type choices that are outside the product decision Retaino already makes. | The campaign builder now asks only for sender country and number. The API searches and provisions provider-verified two-way SMS numbers only. |
 | WH-01 | Twilio `START` and `HELP` advanced opt-out events were treated as suppressions. | Only `OptOutType=STOP` creates suppressions. `START` and `HELP` are stored as replies. |
 | WH-02 | Body-based STOP fallback missed current STOP-style keywords. | STOP-style detection now covers the current standard keyword set used by the MVP. |
 | WH-03 | Duplicate Twilio webhook deliveries could insert duplicate campaign message events and inflate reply, opt-out, or event counts. | Campaign message events now have a provider/message/event unique index, and event inserts ignore duplicate retries. |
@@ -49,6 +50,9 @@
 | DR-03 | The no-IP decision was applied too broadly to legal acceptance evidence. | Legal acceptances store the Cloudflare client IP for the acceptance audit trail. Campaign audit logs and click tracking still do not store IP data. |
 | TA-01 | Shared campaign contracts included internal operational row schemas for recipients, tracking links, SMS messages, message events, and clicks. | Removed those schemas from the shared public contract surface. Operational return types now live in the database query layer. |
 | AC-01 | Campaign and contact operational workflows were still tied to owner or admin roles after the MVP direction changed to member-accessible operations. | Organization members can now import and manage contacts, create and edit draft campaigns, set up senders, send test SMS, send live campaigns, and review reports after action-specific readiness gates pass. Organization setup, legal acceptance, billing, and team administration remain role-gated. |
+| AR-01 | Campaign DB row-mapping helpers were exported only to support implementation-shape tests. | Made the mapping helpers internal and removed the private mapper tests, leaving package tests focused on public query behavior. |
+| AR-02 | Campaign send processing repeated unused-credit release logic across success and failure paths. | Consolidated campaign send credit release into one local helper. |
+| CI-01 | Suppressed contact imports passed through the right persistence path, but the DB upsert response still marked returned contacts as unsuppressed and accepted an unused import ID. | `upsertImportedContact` now accepts the known suppressed state, returns that state, and no longer accepts unused `contactImportId`. |
 
 ## Minor Findings Fixed
 
@@ -58,6 +62,8 @@
 | RM-10 | Tracking docs still described stale redirect behavior. | Tracking docs now describe redirecting to the stored booking URL. |
 | RM-11 | Campaign UI static review found copy and layout polish items. | Campaign UI copy, placeholders, labels, query-backed filters, nested-surface risk, and report metric copy were cleaned up. |
 | UI-01 | One report metric mixed queued label with failed-message detail. | The report now foregrounds failed count and shows queued count as secondary detail. |
+| AR-03 | The campaign form mixed guided-flow JSX with pure form state, validation, and status formatting. | Moved pure campaign form state and validation helpers into a feature-level module. |
+| UI-02 | Sankey charts depended too heavily on SVG labels fitting in the chart area. | Increased chart label margins and removed duplicate numeric summary rows from the campaign audience step. |
 
 ## Deferred Scope Confirmed
 

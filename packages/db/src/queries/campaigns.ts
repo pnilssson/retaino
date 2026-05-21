@@ -86,7 +86,7 @@ export type CampaignRecipientForSend = {
   selectedAt: string | null;
 };
 
-export function campaignToContract(row: CampaignRow): Campaign {
+function campaignToContract(row: CampaignRow): Campaign {
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -111,7 +111,7 @@ export function campaignToContract(row: CampaignRow): Campaign {
   };
 }
 
-export function recipientToContract(row: CampaignRecipientRow) {
+function recipientToContract(row: CampaignRecipientRow) {
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -133,7 +133,7 @@ export function recipientToContract(row: CampaignRecipientRow) {
   };
 }
 
-export function trackingLinkToContract(row: TrackingLinkRow) {
+function trackingLinkToContract(row: TrackingLinkRow) {
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -146,7 +146,7 @@ export function trackingLinkToContract(row: TrackingLinkRow) {
   };
 }
 
-export function smsMessageToContract(row: SmsMessageRow) {
+function smsMessageToContract(row: SmsMessageRow) {
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -177,7 +177,7 @@ export function smsMessageToContract(row: SmsMessageRow) {
   };
 }
 
-export function campaignMessageEventToContract(
+function campaignMessageEventToContract(
   row: CampaignMessageEventRow,
 ) {
   return {
@@ -195,7 +195,7 @@ export function campaignMessageEventToContract(
   };
 }
 
-export function clickEventToContract(row: ClickEventRow) {
+function clickEventToContract(row: ClickEventRow) {
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -208,19 +208,8 @@ export function clickEventToContract(row: ClickEventRow) {
   };
 }
 
-export type CampaignRecipient = ReturnType<typeof recipientToContract>;
-export type SmsMessage = ReturnType<typeof smsMessageToContract>;
-export type TrackingLink = ReturnType<typeof trackingLinkToContract>;
-export type CampaignMessageEvent = ReturnType<
-  typeof campaignMessageEventToContract
->;
-export type ClickEvent = ReturnType<typeof clickEventToContract>;
-
-export function assertCampaignDraftStatus(row: Pick<CampaignRow, 'status'>) {
-  if (row.status !== 'draft') {
-    throw new Error('Campaign is not editable.');
-  }
-}
+type SmsMessage = ReturnType<typeof smsMessageToContract>;
+type TrackingLink = ReturnType<typeof trackingLinkToContract>;
 
 export function campaignAudienceWhere(
   organizationId: string,

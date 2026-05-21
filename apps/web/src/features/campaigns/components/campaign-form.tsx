@@ -10,7 +10,6 @@ import {
 import { useForm } from '@tanstack/react-form';
 import type {
   Campaign,
-  CampaignAudienceRule,
   CreateCampaignDraftInput,
   UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
@@ -39,27 +38,35 @@ import { cn } from '@/lib/utils';
 import { AudiencePreview } from './audience-preview';
 import { AudienceRuleFields } from './audience-rule-fields';
 import { SenderSetup } from './sender-setup';
+import {
+  campaignFormValuesToAudienceInput,
+  campaignFormValuesToBookingInput,
+  campaignFormValuesToCompleteInput,
+  campaignFormValuesToInitialDraftInput,
+  campaignFormValuesToMessageInput,
+  campaignSendStatusText,
+  campaignStatusNotice,
+  campaignToFormValues,
+  completedCampaignSteps,
+  defaultCampaignFormValues,
+  isAudienceStepComplete,
+  isBookingStepComplete,
+  isMessageStepComplete,
+  isPreviewableAudienceRule,
+  validateBookingUrl,
+  validateLapsedDays,
+  validateRequired,
+  validateSmsBody,
+  type CampaignFormValues,
+  type CampaignStepId,
+} from '../campaign-form-state';
 import { useCampaignAudiencePreview } from '../hooks/use-campaign-audience-preview';
 import { useCampaignRecipientSummary } from '../hooks/use-campaign-recipient-summary';
 import { useSendCampaign } from '../hooks/use-send-campaign';
 import { useSendCampaignTestSms } from '../hooks/use-send-campaign-test-sms';
 import { useSmsSender } from '../hooks/use-sms-sender';
 
-type CampaignFormValues = {
-  name: string;
-  audienceRule: CampaignAudienceRule;
-  smsBody: string;
-  bookingUrl: string;
-  campaignCode: string;
-  attributionWindowDays: number;
-};
-
-export type CampaignStepId =
-  | 'audience'
-  | 'message'
-  | 'booking'
-  | 'sender'
-  | 'review';
+export type { CampaignStepId } from '../campaign-form-state';
 
 const campaignSteps: GuidedFlowStep<CampaignStepId>[] = [
   { id: 'audience', title: 'Audience' },
@@ -68,18 +75,6 @@ const campaignSteps: GuidedFlowStep<CampaignStepId>[] = [
   { id: 'sender', title: 'Sender' },
   { id: 'review', title: 'Review' },
 ];
-
-const defaultCampaignFormValues: CampaignFormValues = {
-  name: '',
-  audienceRule: {
-    lapsedDays: 90,
-    includeNoBookingDate: false,
-  },
-  smsBody: '',
-  bookingUrl: '',
-  campaignCode: '',
-  attributionWindowDays: 7,
-};
 
 export function CampaignForm({
   campaign,
@@ -254,7 +249,7 @@ export function CampaignForm({
                           name={field.name}
                           onBlur={field.handleBlur}
                           onChange={field.handleChange}
-                          placeholder="90-day reactivation…"
+                          placeholder="90-day reactivationâ€¦"
                           spellCheck={false}
                           value={field.state.value}
                         />
@@ -344,7 +339,7 @@ export function CampaignForm({
                               name={field.name}
                               onBlur={field.handleBlur}
                               onChange={field.handleChange}
-                              placeholder="Hi {first_name}, we have openings this week…"
+                              placeholder="Hi {first_name}, we have openings this weekâ€¦"
                               textAreaRef={messageTextAreaRef}
                               value={field.state.value}
                             />
@@ -422,7 +417,7 @@ export function CampaignForm({
                             name={field.name}
                             onBlur={field.handleBlur}
                             onChange={field.handleChange}
-                            placeholder="https://booking.example.com…"
+                            placeholder="https://booking.example.comâ€¦"
                             type="url"
                             value={field.state.value}
                           />
@@ -437,7 +432,7 @@ export function CampaignForm({
                             name={field.name}
                             onBlur={field.handleBlur}
                             onChange={field.handleChange}
-                            placeholder="SPRING REACTIVATION…"
+                            placeholder="SPRING REACTIVATIONâ€¦"
                             spellCheck={false}
                             value={field.state.value}
                           />
@@ -523,7 +518,7 @@ export function CampaignForm({
                               type="button"
                             >
                               <Send aria-hidden="true" data-icon="inline-start" />
-                              {isSending ? 'Sending campaign…' : 'Send campaign'}
+                              {isSending ? 'Sending campaignâ€¦' : 'Send campaign'}
                             </Button>
                           </GuidedFlowActions>
                         </div>
@@ -597,11 +592,11 @@ function CampaignReview({
             {campaign && campaign.status !== 'draft'
               ? frozenRecipientCount === null
                   ? recipientSummary.isLoading
-                  ? 'Loading selected recipients…'
+                  ? 'Loading selected recipientsâ€¦'
                   : 'Selected recipients unavailable.'
                 : `${frozenRecipientCount} selected ${frozenRecipientCount === 1 ? 'recipient' : 'recipients'}.`
               : audiencePreview.isLoading
-              ? 'Checking eligible contacts…'
+              ? 'Checking eligible contactsâ€¦'
               : eligibleCount === null
                 ? 'Eligible contacts unavailable.'
                 : `${eligibleCount} eligible ${eligibleCount === 1 ? 'contact' : 'contacts'}. Last booking at least ${values.audienceRule.lapsedDays} days ago. Contacts without booking date ${
@@ -673,7 +668,6 @@ function CampaignReview({
     </div>
   );
 }
-
 function CampaignTestSend({
   campaignId,
   senderReady,
@@ -711,7 +705,7 @@ function CampaignTestSend({
             onBlur={field.handleBlur}
             onChange={field.handleChange}
             inputMode="tel"
-            placeholder="Use responsible phone…"
+            placeholder="Use responsible phoneâ€¦"
             type="tel"
             value={field.state.value}
           />
@@ -737,7 +731,7 @@ function CampaignTestSend({
           type="button"
         >
           <Send aria-hidden="true" data-icon="inline-start" />
-          {testSend.isPending ? 'Sending test SMS…' : 'Send test SMS'}
+          {testSend.isPending ? 'Sending test SMSâ€¦' : 'Send test SMS'}
         </Button>
       </div>
     </div>
@@ -882,7 +876,6 @@ function TextInput({
     </div>
   );
 }
-
 function TextAreaInput({
   disabled,
   error,
@@ -928,233 +921,5 @@ function TextAreaInput({
         </p>
       ) : null}
     </div>
-  );
-}
-
-function campaignToFormValues(campaign: Campaign): CampaignFormValues {
-  return {
-    name: campaign.name,
-    audienceRule: campaign.audienceRule,
-    smsBody: campaign.smsBody ?? '',
-    bookingUrl: campaign.bookingUrl ?? '',
-    campaignCode: campaign.campaignCode ?? '',
-    attributionWindowDays: campaign.attributionWindowDays,
-  };
-}
-
-function campaignFormValuesToInitialDraftInput(
-  values: CampaignFormValues,
-): CreateCampaignDraftInput {
-  return {
-    name: values.name,
-    audienceRule: values.audienceRule,
-    smsBody: null,
-    bookingUrl: null,
-    campaignCode: null,
-    attributionWindowDays: values.attributionWindowDays,
-  };
-}
-
-function campaignFormValuesToAudienceInput(
-  values: CampaignFormValues,
-): UpdateCampaignDraftInput {
-  return {
-    name: values.name,
-    audienceRule: values.audienceRule,
-    attributionWindowDays: values.attributionWindowDays,
-  };
-}
-
-function campaignFormValuesToMessageInput(
-  values: CampaignFormValues,
-): UpdateCampaignDraftInput {
-  return {
-    smsBody: values.smsBody,
-  };
-}
-
-function campaignFormValuesToBookingInput(
-  values: CampaignFormValues,
-): UpdateCampaignDraftInput {
-  return {
-    bookingUrl: values.bookingUrl,
-    campaignCode: values.campaignCode,
-  };
-}
-
-function campaignFormValuesToCompleteInput(
-  values: CampaignFormValues,
-): CreateCampaignDraftInput {
-  return {
-    name: values.name,
-    audienceRule: values.audienceRule,
-    smsBody: values.smsBody,
-    bookingUrl: values.bookingUrl,
-    campaignCode: values.campaignCode,
-    attributionWindowDays: values.attributionWindowDays,
-  };
-}
-
-function completedCampaignSteps(
-  values: CampaignFormValues,
-  senderReady: boolean,
-): CampaignStepId[] {
-  const completed: CampaignStepId[] = [];
-
-  if (isAudienceStepComplete(values)) {
-    completed.push('audience');
-  }
-
-  if (isMessageStepComplete(values)) {
-    completed.push('message');
-  }
-
-  if (isBookingStepComplete(values)) {
-    completed.push('booking');
-  }
-
-  if (senderReady) {
-    completed.push('sender');
-  }
-
-  if (
-    isAudienceStepComplete(values) &&
-    isMessageStepComplete(values) &&
-    isBookingStepComplete(values) &&
-    senderReady
-  ) {
-    completed.push('review');
-  }
-
-  return completed;
-}
-
-function isAudienceStepComplete(values: CampaignFormValues) {
-  return (
-    Boolean(values.name.trim()) && isPreviewableAudienceRule(values.audienceRule)
-  );
-}
-
-function isMessageStepComplete(values: CampaignFormValues) {
-  return !validateSmsBody(values.smsBody);
-}
-
-function isBookingStepComplete(values: CampaignFormValues) {
-  return !validateBookingUrl(values.bookingUrl);
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
-
-function campaignStatusNotice(campaign: Campaign) {
-  if (campaign.status === 'ready_to_send') {
-    return {
-      title: 'Campaign is ready to send',
-      description:
-        'Recipients have been selected for this campaign. Campaign details are locked so the send uses this exact audience and message.',
-    };
-  }
-
-  if (campaign.status === 'sending') {
-    return {
-      title: 'Campaign send is in progress',
-      description:
-        'Messages are being sent in the background. Campaign details are locked while the send runs.',
-    };
-  }
-
-  if (campaign.status === 'sent') {
-    return {
-      title: 'Campaign has been sent',
-      description:
-        'Messages were sent to the selected recipients. Campaign details are locked.',
-    };
-  }
-
-  if (campaign.status === 'failed') {
-    return {
-      title: 'Campaign send needs attention',
-      description:
-        'The send did not finish. Review the campaign status before trying again.',
-    };
-  }
-
-  return null;
-}
-
-function campaignSendStatusText(campaign: Campaign) {
-  if (campaign.status === 'sending') {
-    return campaign.sendStartedAt
-      ? `Sending started ${formatDateTime(campaign.sendStartedAt)}.`
-      : 'Sending is in progress.';
-  }
-
-  if (campaign.status === 'sent') {
-    return campaign.sentAt
-      ? `Sent ${formatDateTime(campaign.sentAt)}.`
-      : 'Campaign sent.';
-  }
-
-  if (campaign.status === 'failed') {
-    const failedAt = campaign.failedAt
-      ? `Send failed ${formatDateTime(campaign.failedAt)}.`
-      : 'Send failed.';
-
-    return campaign.failureReason
-      ? `${failedAt} ${campaign.failureReason}`
-      : failedAt;
-  }
-
-  return campaign.readyToSendAt
-    ? `Ready to send since ${formatDateTime(campaign.readyToSendAt)}.`
-    : 'Ready to send.';
-}
-
-function validateRequired(value: string, message: string) {
-  return value.trim() ? undefined : message;
-}
-
-function validateLapsedDays(value: number) {
-  return Number.isInteger(value) && value >= 30 && value <= 365
-    ? undefined
-    : 'Choose a value from 30 to 365 days.';
-}
-
-function validateBookingUrl(value: string) {
-  try {
-    const url = new URL(value);
-
-    return url.protocol === 'http:' || url.protocol === 'https:'
-      ? undefined
-      : 'Enter an http or https booking URL.';
-  } catch {
-    return 'Enter an http or https booking URL.';
-  }
-}
-
-function validateSmsBody(value: string) {
-  if (!value.trim()) {
-    return 'Enter the SMS message.';
-  }
-
-  const withoutAllowedTokens = value.replace(
-    /\{(first_name|last_booking_date)\}/g,
-    '',
-  );
-
-  return /[{}]/.test(withoutAllowedTokens)
-    ? 'Only {first_name} and {last_booking_date} are supported.'
-    : undefined;
-}
-
-function isPreviewableAudienceRule(rule: CampaignAudienceRule) {
-  return (
-    Number.isInteger(rule.lapsedDays) &&
-    rule.lapsedDays >= 30 &&
-    rule.lapsedDays <= 365
   );
 }

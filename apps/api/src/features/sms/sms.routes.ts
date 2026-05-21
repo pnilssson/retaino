@@ -37,7 +37,13 @@ export const smsRoutes = new Hono<AppEnv>()
 
     try {
       const provider = createSmsProvider(c.env);
-      const countries = await provider.listSenderCountries();
+      const countries = (await provider.listSenderCountries())
+        .filter((country) => country.supportedNumberTypes.includes('mobile'))
+        .map(({ countryCode, label, selfServeAvailable }) => ({
+          countryCode,
+          label,
+          selfServeAvailable,
+        }));
 
       return c.json({ countries });
     } catch (error) {
@@ -53,7 +59,6 @@ export const smsRoutes = new Hono<AppEnv>()
 
     const parsed = smsSenderNumbersRequestSchema.safeParse({
       countryCode: c.req.query('countryCode'),
-      numberType: c.req.query('numberType'),
     });
 
     if (!parsed.success) {
@@ -69,14 +74,12 @@ export const smsRoutes = new Hono<AppEnv>()
 
     try {
       const provider = createSmsProvider(c.env);
-      const numbers = await provider.searchSenderOptions(
-        parsed.data.numberType
-          ? {
-              countryCode: parsed.data.countryCode,
-              numberType: parsed.data.numberType,
-            }
-          : { countryCode: parsed.data.countryCode },
-      );
+      const numbers = (
+        await provider.searchSenderOptions({
+          countryCode: parsed.data.countryCode,
+          numberType: 'mobile',
+        })
+      ).filter(isTwoWaySenderOption);
 
       return c.json({ numbers });
     } catch (error) {
@@ -200,15 +203,21 @@ async function getProviderVerifiedSender(
     existing?.status === 'pending' &&
     existing.phoneNumber === selectedSender.phoneNumber &&
     existing.countryCode === selectedSender.countryCode &&
-    existing.numberType === selectedSender.numberType
+    existing.numberType === 'mobile' &&
+    isTwoWaySenderOption(selectedSender)
   ) {
-    return selectedSender;
+    return {
+      ...selectedSender,
+      numberType: 'mobile' as const,
+    };
   }
 
-  const availableNumbers = await provider.searchSenderOptions({
-    countryCode: selectedSender.countryCode,
-    numberType: selectedSender.numberType,
-  });
+  const availableNumbers = (
+    await provider.searchSenderOptions({
+      countryCode: selectedSender.countryCode,
+      numberType: 'mobile',
+    })
+  ).filter(isTwoWaySenderOption);
   const verifiedSender = availableNumbers.find(
     (option) => option.phoneNumber === selectedSender.phoneNumber,
   );
@@ -222,6 +231,14 @@ async function getProviderVerifiedSender(
   }
 
   return verifiedSender;
+}
+
+function isTwoWaySenderOption(option: SmsSenderOption) {
+  return (
+    option.capabilities.outboundSms &&
+    option.capabilities.inboundSms &&
+    option.capabilities.twoWaySms
+  );
 }
 
 function isSameSenderSelection(

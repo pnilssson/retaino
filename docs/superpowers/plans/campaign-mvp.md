@@ -152,14 +152,18 @@ environment bindings.
 
 Onboarding collects the organization identity and address fields Retaino can
 know upfront for sender compliance. Sender setup should not ask for those same
-company details again. If the selected sender country or number type requires
+company details again. If the selected sender country or two-way SMS number requires
 additional regulatory data, a user completes that in Retaino.
-Retaino staff must not manually configure each customer. Countries or number
-types that cannot be self-served through Retaino are unavailable in MVP.
+Retaino staff must not manually configure each customer. Sender categories that
+cannot be self-served through Retaino are unavailable in MVP.
 
 The user chooses the sender country based on the recipient market, then selects
-an available SMS-capable number or accepts a recommended number. Do not infer
-sender country only from the organization's legal address.
+an available two-way SMS number or accepts a recommended two-way SMS number. Do
+not infer sender country only from the organization's legal address. The
+provider layer may support multiple number types, but the MVP product does not
+ask users to choose provider number type. Retaino searches provider inventory
+using the provider number type needed for two-way SMS support and stores the
+verified provider result.
 
 Twilio Messaging Service configuration APIs are not all equally stable. If a
 required service setting cannot be configured reliably through the API, mark the
@@ -304,7 +308,8 @@ Phases 1 through 7 are implemented and consolidated into this canonical plan:
 
 ## Review Status
 
-Phases 1 through 7 have been implemented and completed one deep branch review.
+Phases 1 through 7 have been implemented and completed the requirements review,
+test relevance review, and architecture/deletion review.
 The review log is
 `docs/superpowers/plans/campaign-review.md`.
 The condensed finding audit trail is

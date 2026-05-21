@@ -4,13 +4,19 @@ import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type {
   PublicOrganizationSmsSender,
-  SmsSenderNumberType,
+  SmsSenderCountriesResponse,
 } from '@retaino/shared/contracts';
-import { Phone } from 'lucide-react';
+import { Check, ChevronsUpDown, Phone } from 'lucide-react';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -20,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 import { useProvisionSmsSender } from '../hooks/use-provision-sms-sender';
 import { useSmsSenderCountries } from '../hooks/use-sms-sender-countries';
 import { useSmsSenderNumbers } from '../hooks/use-sms-sender-numbers';
@@ -40,22 +47,8 @@ export function SenderSetup({
     sender?.countryCode ||
     countries.data?.countries[0]?.countryCode ||
     '';
-  const selectedCountry = countries.data?.countries.find(
-    (country) => country.countryCode === effectiveCountryCode,
-  );
-  const [numberType, setNumberType] = useState<SmsSenderNumberType | null>(null);
-  const senderNumberType =
-    sender?.numberType &&
-    selectedCountry?.supportedNumberTypes.includes(sender.numberType)
-      ? sender.numberType
-      : null;
-  const effectiveNumberType =
-    numberType && selectedCountry?.supportedNumberTypes.includes(numberType)
-      ? numberType
-      : senderNumberType ?? selectedCountry?.supportedNumberTypes[0] ?? null;
   const numbers = useSmsSenderNumbers({
     countryCode: effectiveCountryCode,
-    numberType: effectiveNumberType,
     organizationId: setupOrganizationId,
   });
   const [selectedPhoneNumber, setSelectedPhoneNumber] = useState('');
@@ -112,53 +105,27 @@ export function SenderSetup({
 
       {!senderReady ? (
         <section className="grid gap-5">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <SenderSelect
-              disabled={countries.isLoading}
-              id="campaign-sender-country"
-              label="Country"
-              onValueChange={(value) => {
-                setCountryCode(value);
-                setSelectedPhoneNumber('');
-              }}
-              placeholder={countries.isLoading ? 'Loading…' : 'Choose country'}
-              value={effectiveCountryCode}
-            >
-              {(countries.data?.countries ?? []).map((country) => (
-                <SelectItem key={country.countryCode} value={country.countryCode}>
-                  {country.label}
-                </SelectItem>
-              ))}
-            </SenderSelect>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="campaign-sender-country">Country</Label>
+              <SenderCountryCombobox
+                countries={countries.data?.countries ?? []}
+                disabled={countries.isLoading}
+                id="campaign-sender-country"
+                onChange={(value) => {
+                  setCountryCode(value);
+                  setSelectedPhoneNumber('');
+                }}
+                value={effectiveCountryCode}
+              />
+            </div>
 
             <SenderSelect
-              disabled={!selectedCountry}
-              id="campaign-sender-number-type"
-              label="Number type"
-              onValueChange={(value) => {
-                setNumberType(value as SmsSenderNumberType);
-                setSelectedPhoneNumber('');
-              }}
-              placeholder="Choose type"
-              value={effectiveNumberType ?? ''}
-            >
-              {(selectedCountry?.supportedNumberTypes ?? []).map((type) => (
-                <SelectItem key={type} value={type}>
-                  {numberTypeLabel(type)}
-                </SelectItem>
-              ))}
-            </SenderSelect>
-
-            <SenderSelect
-              disabled={
-                !effectiveNumberType ||
-                numbers.isLoading ||
-                !numbers.data?.numbers.length
-              }
+              disabled={numbers.isLoading || !numbers.data?.numbers.length}
               id="campaign-sender-number"
               label="Number"
               onValueChange={setSelectedPhoneNumber}
-              placeholder={numbers.isLoading ? 'Loading…' : 'Choose number'}
+              placeholder={numbers.isLoading ? 'Loading...' : 'Choose number'}
               value={effectiveSelectedPhoneNumber}
             >
               {(numbers.data?.numbers ?? []).map((number) => (
@@ -199,12 +166,116 @@ export function SenderSetup({
               ) : (
                 <Phone aria-hidden="true" data-icon="inline-start" />
               )}
-              {provisionSender.isPending ? 'Setting up sender…' : 'Set up sender'}
+              {provisionSender.isPending ? 'Setting up sender...' : 'Set up sender'}
             </Button>
           </div>
         </section>
       ) : null}
     </div>
+  );
+}
+
+type SenderCountry = SmsSenderCountriesResponse['countries'][number];
+
+function SenderCountryCombobox({
+  countries,
+  disabled,
+  id,
+  onChange,
+  value,
+}: {
+  countries: SenderCountry[];
+  disabled?: boolean;
+  id: string;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const selected =
+    countries.find((country) => country.countryCode === value)?.label ??
+    'Choose country';
+  const normalizedQuery = query.trim().toLowerCase();
+  const filtered = normalizedQuery
+    ? countries.filter((country) =>
+        [country.countryCode, country.label].some((candidate) =>
+          candidate.toLowerCase().includes(normalizedQuery),
+        ),
+      )
+    : countries;
+
+  return (
+    <Popover
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+
+        if (!nextOpen) {
+          setQuery('');
+        }
+      }}
+      open={open}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          aria-expanded={open}
+          className="h-8 w-full justify-between"
+          disabled={disabled}
+          id={id}
+          role="combobox"
+          type="button"
+          variant="outline"
+        >
+          <span className="truncate">{selected}</span>
+          <ChevronsUpDown aria-hidden="true" data-icon="inline-end" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-(--radix-popover-trigger-width) p-2">
+        <Input
+          aria-label="Search sender countries"
+          autoComplete="off"
+          className="mb-2"
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search country"
+          value={query}
+        />
+        <div className="max-h-64 overflow-y-auto" role="listbox">
+          {filtered.length > 0 ? (
+            filtered.map((country) => (
+              <button
+                aria-selected={country.countryCode === value}
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+                  country.countryCode === value && 'bg-accent/60',
+                )}
+                key={country.countryCode}
+                onClick={() => {
+                  onChange(country.countryCode);
+                  setOpen(false);
+                }}
+                role="option"
+                type="button"
+              >
+                <span className="min-w-0 flex-1 truncate">{country.label}</span>
+                <span className="shrink-0 text-muted-foreground">
+                  {country.countryCode}
+                </span>
+                <Check
+                  aria-hidden="true"
+                  className={cn(
+                    'size-4 shrink-0',
+                    country.countryCode === value ? 'opacity-100' : 'opacity-0',
+                  )}
+                />
+              </button>
+            ))
+          ) : (
+            <p className="px-2 py-3 text-sm text-muted-foreground">
+              No countries found.
+            </p>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -258,14 +329,6 @@ function senderStatusLabel(
   }
 
   return 'Not set up';
-}
-
-function numberTypeLabel(type: SmsSenderNumberType) {
-  if (type === 'toll_free') {
-    return 'Toll-free';
-  }
-
-  return type === 'mobile' ? 'Mobile' : 'Local';
 }
 
 function setupErrorMessage(error: unknown) {
