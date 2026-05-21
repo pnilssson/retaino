@@ -39,7 +39,7 @@
 | RM-05 | Click tracking needed a smaller data footprint. | Click events store the link, campaign, recipient, timestamp, and user agent needed for reporting. |
 | RM-06 | Twilio webhook verification needed to match current official behavior. | Form callbacks sign sorted form fields. JSON callbacks require matching `bodySHA256` and sign the exact callback URL. |
 | RM-07 | Fake provider coverage needed deterministic failures and inbound payload parsing. | Test mode now supports known recipient failure numbers and Twilio-shaped status and inbound webhook payloads. |
-| RM-08 | Launch snapshot needed to be internal behind the final send action. | The send route owns draft launch snapshot creation before enqueueing the Inngest job. No separate public launch endpoint is part of the MVP. |
+| RM-08 | Launch snapshot needed to be internal behind the final send action. | The campaign service owns draft launch snapshot creation before enqueueing the Inngest job. No separate public launch endpoint is part of the MVP. |
 | DM-01 | Webhook-facing sender and recipient lookups needed supporting indexes. | Added indexes for organization sender lookup by provider service, provider phone reference, destination phone, and recipient phone hash. |
 | SC-01 | Public sender responses exposed provider resource identifiers. | Public sender responses now omit provider Messaging Service and phone-number IDs. |
 | SC-02 | Sender number selection exposed provider-only references to the browser. | Public sender options no longer include provider references. The server re-verifies selected numbers before provisioning. |
