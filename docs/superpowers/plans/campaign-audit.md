@@ -80,6 +80,7 @@
 | AR-09 | Sender setup mixed provisioning state with searchable country and sender-number controls. | Moved sender country and number controls into `sender-setup-controls.tsx` so `sender-setup.tsx` owns setup state and provisioning. |
 | UI-02 | Sankey charts depended too heavily on SVG labels fitting in the chart area. | Increased chart label margins and removed duplicate numeric summary rows from the campaign audience step. |
 | UI-03 | Campaign form placeholders and loading labels contained mojibake ellipsis characters. | Replaced corrupted characters with plain ASCII ellipses. |
+| UI-04 | Campaign report loading text still contained a corrupted ellipsis character. | Replaced it with a plain ASCII ellipsis and rechecked campaign UI sources for the mojibake marker. |
 
 ## Deferred Scope Confirmed
 

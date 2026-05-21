@@ -593,6 +593,30 @@ pnpm --filter @retaino/web lint
 git diff --check
 ```
 
+## Pass 28: Campaign Report Text Encoding Review
+
+Purpose: catch campaign report UI text corruption before manual UI review.
+
+- [x] Review campaign report loading and metric copy.
+- [x] Replace the corrupted report loading ellipsis with plain ASCII text.
+- [x] Search campaign UI and review docs for the corrupted ellipsis marker.
+
+Files inspected first:
+
+- `apps/web/src/features/campaigns/components/campaign-report-panel.tsx`
+- `packages/db/src/queries/campaigns.ts`
+- `packages/shared/src/contracts/campaigns.ts`
+
+Verification for this pass:
+
+```bash
+$pattern = [string][char]226 + [string][char]8364 + [string][char]166
+rg -n $pattern apps/web/src/features/campaigns docs/superpowers/plans
+pnpm --filter @retaino/web typecheck
+pnpm --filter @retaino/web lint
+git diff --check
+```
+
 ## Pass 27: Sender Setup Control Ownership Review
 
 Purpose: keep sender setup focused on provisioning state and move low-level
