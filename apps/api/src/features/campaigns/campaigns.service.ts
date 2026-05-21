@@ -22,7 +22,11 @@ import {
 } from '@retaino/db';
 import { renderCampaignSms, TRACKING_CODE_LENGTH } from '@retaino/shared';
 import { normalizePhoneNumber } from '@retaino/shared/contracts';
-import type { Campaign, SmsCreditTransaction } from '@retaino/shared/contracts';
+import type {
+  Campaign,
+  OrganizationSmsSender,
+  SmsCreditTransaction,
+} from '@retaino/shared/contracts';
 import {
   debitSmsCreditUsage,
   releaseSmsCreditUsage,
@@ -115,7 +119,7 @@ export async function queueCampaignSend(input: {
     provider: provider.name,
   });
 
-  if (!sender || sender.status !== 'ready') {
+  if (!isSenderReadyForSending(sender)) {
     return { status: 'sender_not_ready' };
   }
 
@@ -233,7 +237,7 @@ export async function sendCampaignTestSms(input: {
     provider: provider.name,
   });
 
-  if (!sender || sender.status !== 'ready') {
+  if (!isSenderReadyForSending(sender)) {
     return { status: 'sender_not_ready' };
   }
 
@@ -338,11 +342,7 @@ export async function processCampaignSend(input: {
     provider: provider.name,
   });
 
-  if (
-    !sender ||
-    sender.status !== 'ready' ||
-    !sender.providerMessagingServiceId
-  ) {
+  if (!isSenderReadyForSending(sender)) {
     throw new Error('SMS sender must be ready before sending.');
   }
 
@@ -673,6 +673,14 @@ function errorMessage(error: unknown) {
   }
 
   return 'Campaign send failed.';
+}
+
+function isSenderReadyForSending(
+  sender: OrganizationSmsSender | null,
+): sender is OrganizationSmsSender & { providerMessagingServiceId: string } {
+  return Boolean(
+    sender?.status === 'ready' && sender.providerMessagingServiceId,
+  );
 }
 
 async function prepareRecipients(input: {

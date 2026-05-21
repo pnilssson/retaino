@@ -743,3 +743,30 @@ pnpm --filter @retaino/api typecheck
 pnpm --filter @retaino/api lint
 git diff --check
 ```
+
+## Pass 24: Sender Readiness Invariant Review
+
+Purpose: keep sender readiness checks aligned with the actual provider send
+requirements.
+
+- [x] Review test-send, live-send queueing, and background-send sender checks.
+- [x] Replace status-only checks with a shared readiness predicate requiring
+  `status = ready` and a provider Messaging Service ID.
+- [x] Add service coverage proving test sends and live sends do not reserve
+  credits when sender provider setup is incomplete.
+
+Files inspected first:
+
+- `apps/api/src/features/campaigns/campaigns.service.ts`
+- `apps/api/src/features/sms/sms.routes.ts`
+- `apps/api/src/lib/twilio-provider.ts`
+- `apps/api/test/features/campaigns/campaigns.service.test.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/api test -- --runInBand apps/api/test/features/campaigns/campaigns.service.test.ts apps/api/test/features/campaigns/campaigns.routes.test.ts apps/api/test/features/campaigns/campaigns.jobs.test.ts
+pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/api lint
+git diff --check
+```

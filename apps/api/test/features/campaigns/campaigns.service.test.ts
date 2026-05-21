@@ -365,6 +365,57 @@ describe('campaign send service', () => {
     });
   });
 
+  it('does not reserve test SMS credits when sender provider setup is incomplete', async () => {
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue({
+      ...sender,
+      providerMessagingServiceId: null,
+    });
+
+    await expect(
+      sendCampaignTestSms({
+        db,
+        env: {
+          SMS_SENDING_MODE: 'test',
+          TWILIO_STATUS_CALLBACK_BASE_URL: 'https://api.retaino.test',
+        } as never,
+        organizationId,
+        campaignId,
+        testPhone: '0700000000',
+      }),
+    ).resolves.toEqual({ status: 'sender_not_ready' });
+
+    expect(debitSmsCreditUsage).not.toHaveBeenCalled();
+    const provider = vi.mocked(createSmsProvider).mock.results[0]?.value;
+    expect(provider.sendSms).not.toHaveBeenCalled();
+  });
+
+  it('does not reserve live send credits when sender provider setup is incomplete', async () => {
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue({
+      ...sender,
+      providerMessagingServiceId: null,
+    });
+    const enqueue = vi.fn();
+
+    await expect(
+      queueCampaignSend({
+        db,
+        env: {
+          DATABASE_URL: 'postgres://retaino.test/db',
+          SMS_SENDING_MODE: 'test',
+          TRACKING_BASE_URL: 'https://go.retaino.test',
+        } as never,
+        organizationId,
+        campaignId,
+        userId,
+        userAgent: 'Vitest',
+        enqueue,
+      }),
+    ).resolves.toEqual({ status: 'sender_not_ready' });
+
+    expect(debitSmsCreditUsage).not.toHaveBeenCalled();
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
   it('releases live send credits when enqueue fails after reservation', async () => {
     const enqueueError = new Error('Inngest is unavailable.');
     const enqueue = vi.fn().mockRejectedValue(enqueueError);
