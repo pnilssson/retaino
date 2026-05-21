@@ -467,3 +467,35 @@ pnpm --filter @retaino/api typecheck
 pnpm --filter @retaino/api lint
 git diff --check
 ```
+
+## Pass 15: Tracking And Reporting Consistency Review
+
+Purpose: review public tracking redirects and campaign report inputs for data
+minimization, redirect safety, and consistency between send-time credit
+reconciliation and later reporting.
+
+- [x] Review redirect short-code validation before database lookup.
+- [x] Review Cloudflare route and code rate-limit placement.
+- [x] Review stored target URL validation before click recording and redirect.
+- [x] Review click-write failure behavior so booking redirects are not blocked.
+- [x] Align message-level actual segment storage with the fallback used for
+  campaign credit reconciliation when the provider omits segment counts.
+
+Files inspected first:
+
+- `apps/api/src/features/tracking/tracking.routes.ts`
+- `apps/api/test/features/tracking/tracking.routes.test.ts`
+- `docs/tracking.md`
+- `packages/db/src/schema/tracking-links.ts`
+- `packages/db/src/schema/click-events.ts`
+- `packages/db/src/queries/campaigns.ts`
+- `apps/api/src/features/campaigns/campaigns.service.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/api test -- --runInBand apps/api/test/features/campaigns/campaigns.service.test.ts apps/api/test/features/tracking/tracking.routes.test.ts
+pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/api lint
+git diff --check
+```

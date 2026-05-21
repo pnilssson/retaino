@@ -350,7 +350,7 @@ export async function processCampaignSend(input: {
         providerMessagingServiceId: sender.providerMessagingServiceId,
         providerPhoneNumberId: sender.providerPhoneNumberId,
         status: providerResult.normalizedStatus,
-        actualSegmentCount: providerResult.actualSegments,
+        actualSegmentCount: actualSegments,
         actualCostMinor: providerCostMinor(providerResult.cost),
         currency: providerResult.currency,
       });

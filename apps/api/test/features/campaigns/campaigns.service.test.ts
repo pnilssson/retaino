@@ -634,6 +634,57 @@ describe('campaign send service', () => {
     );
   });
 
+  it('stores estimated segments when the provider omits actual segments', async () => {
+    const provider = {
+      name: 'fake' as const,
+      listSenderCountries: vi.fn(),
+      searchSenderOptions: vi.fn(),
+      ensureSender: vi.fn(),
+      sendSms: vi.fn().mockResolvedValue({
+        provider: 'fake',
+        providerMessageId: 'fake-message-1',
+        normalizedStatus: 'queued',
+        providerStatus: 'queued',
+        providerSenderReference: sender.providerMessagingServiceId,
+        actualSegments: null,
+        cost: null,
+        currency: 'SEK',
+        rawProviderReference: 'fake-message-1',
+      }),
+      parseStatusWebhook: vi.fn(),
+      parseInboundWebhook: vi.fn(),
+      verifyWebhook: vi.fn(),
+    };
+    vi.mocked(createSmsProvider).mockReturnValue(provider);
+
+    await processCampaignSend({
+      db,
+      env: {
+        DATABASE_URL: 'postgres://retaino.test/db',
+        SMS_SENDING_MODE: 'test',
+        TRACKING_BASE_URL: 'https://go.retaino.test',
+      } as never,
+      organizationId,
+      campaignId,
+      userId,
+    });
+
+    expect(recordSmsMessageProviderResult).toHaveBeenCalledWith(
+      db,
+      expect.objectContaining({
+        messageId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        actualSegmentCount: 1,
+      }),
+    );
+    expect(markCampaignSendCompleted).toHaveBeenCalledWith(
+      db,
+      expect.objectContaining({
+        actualCreditCount: 1,
+      }),
+    );
+    expect(releaseSmsCreditUsage).not.toHaveBeenCalled();
+  });
+
   it('reconciles against the existing reserved ledger amount on retries', async () => {
     vi.mocked(debitSmsCreditUsage).mockResolvedValue([
       {

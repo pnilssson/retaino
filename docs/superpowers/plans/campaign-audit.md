@@ -24,6 +24,7 @@
 | LC-03 | Final send could return queued before SMS credits were reserved. | The send route now reserves campaign credits before enqueueing the Inngest job, so insufficient credits block the request before the campaign appears queued. |
 | LC-04 | Retryable start failures could release a reservation and burn the campaign reservation source ID. | Active-send conflicts now keep the existing reservation for the next retry, and send processing reconciles against the actual ledger reservation amount. |
 | LC-05 | Later provider status callbacks that omitted segment or cost fields could erase values already captured from the initial provider send response. | Provider result updates now preserve existing actual segment count, cost, and currency when a callback omits those fields. |
+| LC-06 | Initial provider send responses that omitted segment counts could leave message actual segments empty while campaign credit reconciliation used the estimate. | Campaign sends now store the same estimated segment fallback on the message row that the campaign reconciliation uses. Later callbacks can still replace it with a provider value. |
 
 ## Important Findings Fixed
 
