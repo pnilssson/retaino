@@ -66,60 +66,27 @@ Twilio is the MVP SMS provider. Keep provider code behind an adapter so product
 features depend on Retaino message contracts, not Twilio SDK types or webhook
 payloads.
 
-The adapter models Retaino's SMS domain, not Twilio's API shape. It normalizes
-sender provisioning, sender capabilities, outbound IDs, provider states, error
-details, inbound replies, STOP-style replies, segment counts, estimated and
-actual provider cost, webhook signature verification, and provider references.
-Provider credentials stay in environment bindings, never tenant-owned tables.
+The adapter owns sender provisioning, sender readiness, outbound sends, inbound
+replies, delivery events, segment counts, provider errors, and webhook
+verification. Provider credentials stay in environment bindings. Tenant-owned
+tables store only provider references, sender state, selected country, phone
+number, failure reason, and timestamps.
 
-SMS providers differ in how they represent sender groups, phone number
-capabilities, webhooks, delivery reports, delivery states, smart encoding,
-regulatory requirements, and error payloads. Retaino product code must call a
-provider-neutral interface and must not know whether the underlying provider
-uses a Twilio Messaging Service, Telnyx Messaging Profile, Vonage application,
-Sinch service plan, Bird channel, or another provider-specific object.
+Each organization gets one dedicated two-way SMS-capable sender number and one
+provider sender group before real sends. Do not use a shared Retaino sender
+number or one-way alphanumeric sender IDs in MVP.
 
-Each organization gets its own SMS-capable Twilio number and its own Twilio
-Messaging Service before real sends. Do not use one shared Retaino sender
-number across tenants. Do not use alphanumeric sender IDs for MVP.
+Sender provisioning is lazy and idempotent. Organizations can create campaigns
+and preview audiences before a sender exists, but test sends and live sends
+require an active subscription, current legal acceptance, and a ready sender.
 
-Organization sender configuration is tenant-owned operational data. Store the
-provider, Messaging Service SID, phone number SID, E.164 phone number,
-selected country, provisioning status, failure reason, and timestamps in
-Retaino. Do not store Twilio account credentials in tenant-owned tables.
+Onboarding collects company identity and address fields that can support sender
+compliance. Sender setup asks users for sender country and phone number only.
+Retaino chooses the provider number type needed for two-way SMS support.
 
-Provision sender resources lazily after the organization has an active paid
-subscription and current legal acceptance, when a user first prepares a
-campaign for test or live sending. Do not buy a Twilio number immediately after
-checkout and do not require a sender for draft creation or audience preview.
-Provisioning runs idempotently and must not create a second sender for the same
-organization on retries.
-
-Onboarding should collect organization identity and address fields that are
-likely to be required for phone-number compliance so sender setup does not ask
-for the same company details again. If a selected sender country or two-way SMS
-number requires additional regulatory data, the user supplies it through
-Retaino. Retaino staff must not need to manually configure each customer.
-Sender categories that cannot be self-served through Retaino are not available
-in MVP.
-
-Sender setup is organization-controlled. Users choose the target sender country
-based on where their recipients are, then select an available two-way SMS number
-or accept a recommended two-way SMS number. The provider layer may support
-multiple number types, but the MVP product exposes only two-way SMS sender
-setup. Retaino searches provider inventory using the provider number type needed
-for two-way SMS support and stores the verified provider result. Users do not
-choose provider number type. The organization's legal address is only a default,
-not the source of truth for sender country.
-
-Configure organization Messaging Services with service-level inbound and status
-callback URLs. The inbound callback stores every inbound message. STOP-style
-replies create suppressions immediately; other replies are retained so a later
-Retaino inbox can be added without rebuilding campaign messaging.
-
-Live campaign senders must support the opt-out path Retaino presents to
-recipients. Do not use one-way alphanumeric sender IDs for live campaigns while
-reply-based STOP handling is the only opt-out mechanism.
+Provider callbacks are configured at sender-group level. Inbound messages are
+stored. STOP-style replies create suppressions immediately. Other replies are
+retained for future inbox support.
 
 ## Billing
 
