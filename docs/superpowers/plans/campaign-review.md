@@ -652,6 +652,32 @@ pnpm --filter @retaino/api lint
 git diff --check
 ```
 
+## Pass 30: Campaign Report Route Semantics Review
+
+Purpose: keep report API behavior aligned with the rest of the campaign detail
+routes.
+
+- [x] Review the report route's not-found behavior against saved campaign
+  audience preview, SMS preview, send, read, patch, and delete routes.
+- [x] Return `404` before report aggregation when the campaign does not exist
+  in the active organization.
+- [x] Add route coverage for missing campaign reports.
+
+Files inspected first:
+
+- `apps/api/src/features/campaigns/campaigns.routes.ts`
+- `apps/api/test/features/campaigns/campaigns.routes.test.ts`
+- `packages/db/src/queries/campaigns.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/api test -- --runInBand apps/api/test/features/campaigns/campaigns.routes.test.ts
+pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/api lint
+git diff --check
+```
+
 ## Pass 27: Sender Setup Control Ownership Review
 
 Purpose: keep sender setup focused on provisioning state and move low-level

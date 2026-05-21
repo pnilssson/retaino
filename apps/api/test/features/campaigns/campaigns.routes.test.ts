@@ -627,6 +627,11 @@ describe('campaignsRoutes', () => {
   });
 
   it('lets members read tenant-scoped campaign reports', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue({
+      ...campaign,
+      status: 'sent',
+      sentAt: '2026-05-16T10:10:00.000Z',
+    });
     vi.mocked(getCampaignReport).mockResolvedValue({
       selectedCount: 10,
       queuedCount: 0,
@@ -661,6 +666,17 @@ describe('campaignsRoutes', () => {
       organizationId: organization.id,
       campaignId: campaign.id,
     });
+  });
+
+  it('returns not found for missing campaign reports', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue(null);
+
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/report`,
+    );
+
+    expect(response.status).toBe(404);
+    expect(getCampaignReport).not.toHaveBeenCalled();
   });
 
   it('sends a test SMS without creating campaign recipients', async () => {

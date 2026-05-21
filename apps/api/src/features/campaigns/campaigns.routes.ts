@@ -231,6 +231,15 @@ export const campaignsRoutes = new Hono<AppEnv>()
     );
   })
   .get('/:id/report', async (c) => {
+    const campaign = await getCampaignById(c.get('db'), {
+      organizationId: c.get('organization').id,
+      campaignId: c.req.param('id'),
+    });
+
+    if (!campaign) {
+      return c.json(apiError('not_found', 'Campaign was not found.'), 404);
+    }
+
     return c.json({
       report: await getCampaignReport(c.get('db'), {
         organizationId: c.get('organization').id,

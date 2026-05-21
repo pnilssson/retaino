@@ -62,6 +62,7 @@
 | AR-01 | Campaign DB row-mapping helpers were exported only to support implementation-shape tests. | Made the mapping helpers internal and removed the private mapper tests, leaving package tests focused on public query behavior. |
 | AR-02 | Campaign send processing repeated unused-credit release logic across success and failure paths. | Consolidated campaign send credit release into one local helper. |
 | CI-01 | Suppressed contact imports passed through the right persistence path, but the DB upsert response still marked returned contacts as unsuppressed and accepted an unused import ID. | `upsertImportedContact` now accepts the known suppressed state, returns that state, and no longer accepts unused `contactImportId`. |
+| RA-01 | The campaign report route could return an all-zero report for a missing campaign instead of matching the other campaign detail routes with `404`. | The report route now verifies the campaign exists in the active organization before loading the aggregate report. |
 
 ## Minor Findings Fixed
 
