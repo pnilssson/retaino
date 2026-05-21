@@ -69,6 +69,7 @@
 | UI-01 | One report metric mixed queued label with failed-message detail. | The report now foregrounds failed count and shows queued count as secondary detail. |
 | AR-03 | The campaign form mixed guided-flow JSX with pure form state, validation, and status formatting. | Moved pure campaign form state and validation helpers into a feature-level module. |
 | UI-02 | Sankey charts depended too heavily on SVG labels fitting in the chart area. | Increased chart label margins and removed duplicate numeric summary rows from the campaign audience step. |
+| UI-03 | Campaign form placeholders and loading labels contained mojibake ellipsis characters. | Replaced corrupted characters with plain ASCII ellipses. |
 
 ## Deferred Scope Confirmed
 

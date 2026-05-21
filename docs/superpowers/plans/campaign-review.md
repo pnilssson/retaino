@@ -538,3 +538,30 @@ pnpm --filter @retaino/api lint
 pnpm --filter @retaino/shared lint
 git diff --check
 ```
+
+## Pass 17: Campaign UI Text Encoding Review
+
+Purpose: check campaign UI source text for corrupted characters before manual
+browser review.
+
+- [x] Search campaign UI, campaign API, shared contracts, and review docs for
+  mojibake markers.
+- [x] Replace corrupted campaign form ellipses with plain ASCII text.
+
+Files inspected first:
+
+- `apps/web/src/features/campaigns/components/campaign-form.tsx`
+- `apps/web/src/features/campaigns`
+- `apps/api/src`
+- `packages/shared/src`
+- `docs/superpowers/plans`
+
+Verification for this pass:
+
+```bash
+$pattern = [string][char]0x00c3 + '|' + [string][char]0x00e2
+rg -n $pattern apps/web/src/features/campaigns apps/api/src packages/shared/src docs/superpowers/plans docs/product.md docs/tracking.md docs/compliance.md docs/architecture.md
+pnpm --filter @retaino/web typecheck
+pnpm --filter @retaino/web lint
+git diff --check
+```

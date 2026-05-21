@@ -249,7 +249,7 @@ export function CampaignForm({
                           name={field.name}
                           onBlur={field.handleBlur}
                           onChange={field.handleChange}
-                          placeholder="90-day reactivationâ€¦"
+                          placeholder="90-day reactivation..."
                           spellCheck={false}
                           value={field.state.value}
                         />
@@ -339,7 +339,7 @@ export function CampaignForm({
                               name={field.name}
                               onBlur={field.handleBlur}
                               onChange={field.handleChange}
-                              placeholder="Hi {first_name}, we have openings this weekâ€¦"
+                              placeholder="Hi {first_name}, we have openings this week..."
                               textAreaRef={messageTextAreaRef}
                               value={field.state.value}
                             />
@@ -417,7 +417,7 @@ export function CampaignForm({
                             name={field.name}
                             onBlur={field.handleBlur}
                             onChange={field.handleChange}
-                            placeholder="https://booking.example.comâ€¦"
+                            placeholder="https://booking.example.com..."
                             type="url"
                             value={field.state.value}
                           />
@@ -432,7 +432,7 @@ export function CampaignForm({
                             name={field.name}
                             onBlur={field.handleBlur}
                             onChange={field.handleChange}
-                            placeholder="SPRING REACTIVATIONâ€¦"
+                            placeholder="SPRING REACTIVATION..."
                             spellCheck={false}
                             value={field.state.value}
                           />
@@ -518,7 +518,7 @@ export function CampaignForm({
                               type="button"
                             >
                               <Send aria-hidden="true" data-icon="inline-start" />
-                              {isSending ? 'Sending campaignâ€¦' : 'Send campaign'}
+                              {isSending ? 'Sending campaign...' : 'Send campaign'}
                             </Button>
                           </GuidedFlowActions>
                         </div>
@@ -592,11 +592,11 @@ function CampaignReview({
             {campaign && campaign.status !== 'draft'
               ? frozenRecipientCount === null
                   ? recipientSummary.isLoading
-                  ? 'Loading selected recipientsâ€¦'
+                  ? 'Loading selected recipients...'
                   : 'Selected recipients unavailable.'
                 : `${frozenRecipientCount} selected ${frozenRecipientCount === 1 ? 'recipient' : 'recipients'}.`
               : audiencePreview.isLoading
-              ? 'Checking eligible contactsâ€¦'
+              ? 'Checking eligible contacts...'
               : eligibleCount === null
                 ? 'Eligible contacts unavailable.'
                 : `${eligibleCount} eligible ${eligibleCount === 1 ? 'contact' : 'contacts'}. Last booking at least ${values.audienceRule.lapsedDays} days ago. Contacts without booking date ${
@@ -705,7 +705,7 @@ function CampaignTestSend({
             onBlur={field.handleBlur}
             onChange={field.handleChange}
             inputMode="tel"
-            placeholder="Use responsible phoneâ€¦"
+            placeholder="Use responsible phone..."
             type="tel"
             value={field.state.value}
           />
@@ -731,7 +731,7 @@ function CampaignTestSend({
           type="button"
         >
           <Send aria-hidden="true" data-icon="inline-start" />
-          {testSend.isPending ? 'Sending test SMSâ€¦' : 'Send test SMS'}
+          {testSend.isPending ? 'Sending test SMS...' : 'Send test SMS'}
         </Button>
       </div>
     </div>
