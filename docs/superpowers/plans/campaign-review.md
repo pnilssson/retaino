@@ -396,3 +396,41 @@ pnpm typecheck
 pnpm lint
 pnpm build
 ```
+
+## Pass 13: Send And Billing Correctness Review
+
+Purpose: review final send and billing behavior against the current campaign
+plan, Inngest retry/idempotency guidance, and Retaino's shared SMS credit ledger
+model.
+
+- [x] Review send route reservation and enqueue behavior.
+- [x] Review campaign send processing retry behavior, provider-send
+  idempotency, reservation release, and terminal campaign state ordering.
+- [x] Review provider status callback updates against reporting fields.
+- [x] Preserve known provider metrics when later callbacks omit segment, cost,
+  or currency values.
+- [x] Update stale pricing documentation to match the shared SMS credit ledger
+  model.
+
+Files inspected first:
+
+- `apps/api/src/features/campaigns/campaigns.routes.ts`
+- `apps/api/src/features/campaigns/campaigns.service.ts`
+- `apps/api/src/features/campaigns/campaigns.jobs.ts`
+- `apps/api/src/features/sms/sms.webhook-routes.ts`
+- `apps/api/src/features/billing/billing.service.ts`
+- `packages/db/src/queries/billing.ts`
+- `packages/db/src/queries/campaigns.ts`
+- `packages/db/src/schema/billing.ts`
+- `docs/pricing.md`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/db test -- --runInBand packages/db/test/queries/campaigns.test.ts
+pnpm --filter @retaino/db lint
+pnpm --filter @retaino/api test -- --runInBand apps/api/test/features/campaigns/campaigns.service.test.ts apps/api/test/features/campaigns/campaigns.routes.test.ts apps/api/test/features/sms/sms.webhook-routes.test.ts apps/api/test/features/campaigns/campaigns.jobs.test.ts
+pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/api lint
+git diff --check
+```

@@ -83,23 +83,20 @@ pricing structure.
 - Do not use Stripe metered overage billing in MVP.
 - Do not use Stripe Billing Credits for MVP credit enforcement.
 
-## Credit Transaction Types
+## Credit Transaction Model
 
-Use explicit transaction types rather than spreading credit state across
-campaign, billing, and message records:
+Use the shared SMS credit ledger instead of campaign-specific transaction
+types. `transactionType` describes the financial action:
 
-- `subscription_grant`
-- `credit_pack_grant`
-- `campaign_send_reservation`
-- `campaign_send_release`
-- `campaign_send_adjustment`
-- `test_send_reservation`
-- `test_send_release`
-- `refund_adjustment`
+- `grant`
+- `debit`
+- `adjustment`
 
-Every transaction has an idempotency key tied to the source action, such as
-`campaign:{campaignId}:reservation`, `campaign:{campaignId}:reconcile`, or
-`test-send:{testSendId}:reservation`.
+Campaign and billing intent lives in `source` and `sourceId`. Use
+`campaign_send` for live sends and `campaign_test_send` for test sends.
+`sourceId` must identify the operation idempotently, such as
+`campaign-send:{campaignId}` for a live-send reservation and
+`campaign-send:{campaignId}:release` for release rows.
 
 ## Tax
 

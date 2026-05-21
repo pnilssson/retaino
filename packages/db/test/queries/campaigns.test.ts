@@ -1094,6 +1094,61 @@ describe('campaign query helpers', () => {
     });
   });
 
+  it('preserves existing provider metrics when callbacks omit them', async () => {
+    const now = new Date('2026-05-16T10:01:00.000Z');
+    const updatedMessage = {
+      ...smsMessageRow,
+      providerMessageId: 'fake-message-1',
+      providerMessagingServiceId: 'fake-ms-1',
+      providerPhoneNumberId: 'fake-pn-1',
+      status: 'delivered',
+      actualSegmentCount: 1,
+      actualCostMinor: 0,
+      currency: 'SEK',
+      deliveredAt: now,
+      updatedAt: now,
+    };
+    const set = vi.fn(() => ({
+      where: () => ({
+        returning: () => [updatedMessage],
+      }),
+    }));
+    const db = {
+      update: () => ({ set }),
+    };
+
+    await expect(
+      recordSmsMessageProviderResult(db as never, {
+        organizationId: campaignRow.organizationId,
+        messageId: smsMessageRow.id,
+        providerMessageId: 'fake-message-1',
+        providerMessagingServiceId: 'fake-ms-1',
+        providerPhoneNumberId: 'fake-pn-1',
+        status: 'delivered',
+        actualSegmentCount: null,
+        actualCostMinor: null,
+        currency: null,
+        now,
+      }),
+    ).resolves.toMatchObject({
+      status: 'delivered',
+      actualSegmentCount: 1,
+      currency: 'SEK',
+    });
+
+    const setInput = set.mock.calls[0]?.[0] as Record<string, unknown>;
+    const dialect = new PgDialect();
+    const actualSegmentQuery = dialect.sqlToQuery(
+      setInput.actualSegmentCount as SQL,
+    );
+    const actualCostQuery = dialect.sqlToQuery(setInput.actualCostMinor as SQL);
+    const currencyQuery = dialect.sqlToQuery(setInput.currency as SQL);
+
+    expect(actualSegmentQuery.sql).toContain('actual_segment_count');
+    expect(actualCostQuery.sql).toContain('actual_cost_minor');
+    expect(currencyQuery.sql).toContain('currency');
+  });
+
   it('marks campaign recipients and campaigns after send attempts', async () => {
     const now = new Date('2026-05-16T10:02:00.000Z');
     const db = {

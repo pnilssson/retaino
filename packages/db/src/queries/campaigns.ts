@@ -848,9 +848,10 @@ export async function recordSmsMessageProviderResult(
       providerMessagingServiceId: input.providerMessagingServiceId,
       providerPhoneNumberId: input.providerPhoneNumberId,
       status: input.status,
-      actualSegmentCount: input.actualSegmentCount,
-      actualCostMinor: input.actualCostMinor,
-      currency: input.currency,
+      actualSegmentCount:
+        input.actualSegmentCount ?? sql`${smsMessages.actualSegmentCount}`,
+      actualCostMinor: input.actualCostMinor ?? sql`${smsMessages.actualCostMinor}`,
+      currency: input.currency ?? sql`${smsMessages.currency}`,
       sentAt:
         input.status === 'sent' ||
         input.status === 'delivered' ||

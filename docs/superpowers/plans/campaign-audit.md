@@ -23,6 +23,7 @@
 | LC-02 | Terminal campaign states could happen before credit release and audit writes. | Success and failure paths release unused credits and write audit data before marking terminal campaign states. |
 | LC-03 | Final send could return queued before SMS credits were reserved. | The send route now reserves campaign credits before enqueueing the Inngest job, so insufficient credits block the request before the campaign appears queued. |
 | LC-04 | Retryable start failures could release a reservation and burn the campaign reservation source ID. | Active-send conflicts now keep the existing reservation for the next retry, and send processing reconciles against the actual ledger reservation amount. |
+| LC-05 | Later provider status callbacks that omitted segment or cost fields could erase values already captured from the initial provider send response. | Provider result updates now preserve existing actual segment count, cost, and currency when a callback omits those fields. |
 
 ## Important Findings Fixed
 
@@ -61,6 +62,7 @@
 | RM-09 | Provider delivery state needed a single reporting source. | Reports use `sms_messages` for provider delivery state. Recipient status remains the send-attempt workflow state. |
 | RM-10 | Tracking docs still described stale redirect behavior. | Tracking docs now describe redirecting to the stored booking URL. |
 | RM-11 | Campaign UI static review found copy and layout polish items. | Campaign UI copy, placeholders, labels, query-backed filters, nested-surface risk, and report metric copy were cleaned up. |
+| RM-12 | Pricing docs still described old campaign-specific SMS credit transaction types. | Pricing docs now describe the shared ledger model with `transactionType`, `source`, and `sourceId`. |
 | UI-01 | One report metric mixed queued label with failed-message detail. | The report now foregrounds failed count and shows queued count as secondary detail. |
 | AR-03 | The campaign form mixed guided-flow JSX with pure form state, validation, and status formatting. | Moved pure campaign form state and validation helpers into a feature-level module. |
 | UI-02 | Sankey charts depended too heavily on SVG labels fitting in the chart area. | Increased chart label margins and removed duplicate numeric summary rows from the campaign audience step. |
