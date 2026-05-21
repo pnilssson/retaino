@@ -57,7 +57,7 @@ Required:
   persistence
 - one dedicated SMS-capable sender number and Messaging Service per
   organization
-- SMS editor with GSM-7 and Unicode segment counter plus cost preview
+- SMS editor with GSM-7 and Unicode segment counter plus credit preview
 - per-recipient short links
 - campaign code, offer code, or campaign reference for manual attribution
 - STOP handling, suppression lists, and retention of other inbound replies for
@@ -135,7 +135,7 @@ Reporting:
 
 - Sell reactivation and revenue reporting, not cheap SMS transport.
 - Be honest about attribution. Do not present inferred bookings as exact.
-- Make SMS cost visible before sending.
+- Make SMS credit use visible before sending.
 - Use prepaid credits only in MVP. Do not create surprise usage invoices.
 - Keep long-running work in background jobs.
 - Keep the product narrow until import, campaign, and reporting work end to end.
