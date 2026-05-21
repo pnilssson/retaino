@@ -150,6 +150,7 @@ describe('smsRoutes', () => {
     expect(body.sender.phoneNumber).toBe('+46700000000');
     expect(body.sender).not.toHaveProperty('providerMessagingServiceId');
     expect(body.sender).not.toHaveProperty('providerPhoneNumberId');
+    expect(body.sender).not.toHaveProperty('numberType');
   });
 
   it('lists SMS sender countries for eligible members', async () => {
@@ -192,9 +193,11 @@ describe('smsRoutes', () => {
       expect.objectContaining({
         phoneNumber: '+46700000000',
         countryCode: 'SE',
-        numberType: 'mobile',
+        label: '+46 70 000 00 00',
       }),
     ]);
+    expect(body.numbers[0]).not.toHaveProperty('numberType');
+    expect(body.numbers[0]).not.toHaveProperty('capabilities');
   });
 
   it('provisions a selected SMS sender once billing is active', async () => {
@@ -229,16 +232,6 @@ describe('smsRoutes', () => {
           selectedSender: {
             phoneNumber: '+46700000000',
             countryCode: 'SE',
-            numberType: 'mobile',
-            capabilities: {
-              outboundSms: true,
-              inboundSms: true,
-              statusCallbacks: true,
-              twoWaySms: true,
-              smartEncoding: false,
-            },
-            regulatoryRequirementSummary: null,
-            label: '+46 70 000 00 00',
           },
         }),
       },
@@ -249,6 +242,7 @@ describe('smsRoutes', () => {
     const body = (await response.json()) as { sender: Record<string, unknown> };
     expect(body.sender).not.toHaveProperty('providerMessagingServiceId');
     expect(body.sender).not.toHaveProperty('providerPhoneNumberId');
+    expect(body.sender).not.toHaveProperty('numberType');
     expect(upsertOrganizationSmsSender).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
@@ -322,16 +316,6 @@ describe('smsRoutes', () => {
           selectedSender: {
             phoneNumber: '+46799999999',
             countryCode: 'SE',
-            numberType: 'mobile',
-            capabilities: {
-              outboundSms: true,
-              inboundSms: true,
-              statusCallbacks: true,
-              twoWaySms: true,
-              smartEncoding: false,
-            },
-            regulatoryRequirementSummary: null,
-            label: '+46 79 999 99 99',
           },
         }),
       },
@@ -396,16 +380,6 @@ describe('smsRoutes', () => {
           selectedSender: {
             phoneNumber: '+46700000000',
             countryCode: 'SE',
-            numberType: 'mobile',
-            capabilities: {
-              outboundSms: true,
-              inboundSms: true,
-              statusCallbacks: true,
-              twoWaySms: true,
-              smartEncoding: false,
-            },
-            regulatoryRequirementSummary: null,
-            label: '+46 70 000 00 00',
           },
         }),
       },
@@ -458,16 +432,6 @@ describe('smsRoutes', () => {
           selectedSender: {
             phoneNumber: '+46799999999',
             countryCode: 'SE',
-            numberType: 'mobile',
-            capabilities: {
-              outboundSms: true,
-              inboundSms: true,
-              statusCallbacks: true,
-              twoWaySms: true,
-              smartEncoding: false,
-            },
-            regulatoryRequirementSummary: null,
-            label: '+46 79 999 99 99',
           },
         }),
       },
@@ -491,16 +455,6 @@ describe('smsRoutes', () => {
           selectedSender: {
             phoneNumber: '+15005550006',
             countryCode: 'US',
-            numberType: 'local',
-            capabilities: {
-              outboundSms: true,
-              inboundSms: true,
-              statusCallbacks: true,
-              twoWaySms: true,
-              smartEncoding: false,
-            },
-            regulatoryRequirementSummary: null,
-            label: '+1 500 555 0006',
           },
         }),
       },

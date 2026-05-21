@@ -144,7 +144,7 @@ export function createTwilioSmsProvider(
         numberType: input.selectedSender.numberType,
         providerMessagingServiceId: service.sid,
         providerPhoneNumberId: phoneNumber.sid,
-        capabilities: input.selectedSender.capabilities,
+        capabilities: SENDER_CAPABILITIES,
         regulatoryStatus: 'ready',
         failureReason: null,
         provisionedAt: now,

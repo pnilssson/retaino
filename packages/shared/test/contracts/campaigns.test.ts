@@ -304,16 +304,6 @@ describe('campaign contracts', () => {
         selectedSender: {
           phoneNumber: '+46700000000',
           countryCode: 'SE',
-          numberType: 'mobile',
-          capabilities: {
-            outboundSms: true,
-            inboundSms: true,
-            statusCallbacks: true,
-            twoWaySms: true,
-            smartEncoding: false,
-          },
-          regulatoryRequirementSummary: null,
-          label: '+46 70 000 00 00',
         },
       }).success,
     ).toBe(true);
@@ -404,7 +394,6 @@ describe('campaign contracts', () => {
         status: 'ready',
         phoneNumber: '+46700000000',
         countryCode: 'SE',
-        numberType: 'mobile',
         regulatoryStatus: 'not_required',
         failureReason: null,
         provisionedAt: '2026-05-18T00:00:00.000Z',
@@ -416,6 +405,7 @@ describe('campaign contracts', () => {
 
     expect(response.sender).not.toHaveProperty('providerMessagingServiceId');
     expect(response.sender).not.toHaveProperty('providerPhoneNumberId');
+    expect(response.sender).not.toHaveProperty('numberType');
   });
 
   it('accepts campaign report responses', () => {

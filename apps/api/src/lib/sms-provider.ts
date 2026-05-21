@@ -11,10 +11,15 @@ import { createTwilioSmsProvider } from './twilio-provider';
 
 export type SmsProviderName = SmsSenderProvider;
 
+export type SmsSenderSelection = Pick<
+  SmsSenderOption,
+  'phoneNumber' | 'countryCode' | 'numberType'
+>;
+
 export type SmsSenderProvisioningInput = {
   organizationId: string;
   actorUserId: string;
-  selectedSender: SmsSenderOption;
+  selectedSender: SmsSenderSelection;
   existingProviderPhoneNumberId: string | null;
   inboundCallbackUrl: string | null;
   statusCallbackUrl: string | null;
@@ -231,7 +236,7 @@ export function createFakeSmsProvider(): SmsProvider {
       providerMessagingServiceId: `fake-ms-${input.organizationId}`,
       providerPhoneNumberId:
         `fake-pn-${input.selectedSender.phoneNumber.replace(/\D/g, '')}`,
-      capabilities: input.selectedSender.capabilities,
+      capabilities,
       regulatoryStatus: 'not_required',
       failureReason: null,
       provisionedAt: new Date(),

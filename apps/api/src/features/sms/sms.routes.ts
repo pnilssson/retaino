@@ -7,7 +7,9 @@ import {
   provisionOrganizationSmsSenderSchema,
   smsSenderNumbersRequestSchema,
   type OrganizationSmsSender,
+  type ProvisionSmsSenderSelection,
   type PublicOrganizationSmsSender,
+  type PublicSmsSenderOption,
   type SmsSenderOption,
 } from '@retaino/shared/contracts';
 import { Hono, type Context } from 'hono';
@@ -79,7 +81,9 @@ export const smsRoutes = new Hono<AppEnv>()
           countryCode: parsed.data.countryCode,
           numberType: 'mobile',
         })
-      ).filter(isTwoWaySenderOption);
+      )
+        .filter(isTwoWaySenderOption)
+        .map(publicSenderOption);
 
       return c.json({ numbers });
     } catch (error) {
@@ -191,7 +195,7 @@ export const smsRoutes = new Hono<AppEnv>()
 
 async function getProviderVerifiedSender(
   provider: ReturnType<typeof createSmsProvider>,
-  selectedSender: SmsSenderOption,
+  selectedSender: ProvisionSmsSenderSelection,
   existing: {
     status: string;
     phoneNumber: string | null;
@@ -203,11 +207,11 @@ async function getProviderVerifiedSender(
     existing?.status === 'pending' &&
     existing.phoneNumber === selectedSender.phoneNumber &&
     existing.countryCode === selectedSender.countryCode &&
-    existing.numberType === 'mobile' &&
-    isTwoWaySenderOption(selectedSender)
+    existing.numberType === 'mobile'
   ) {
     return {
-      ...selectedSender,
+      phoneNumber: selectedSender.phoneNumber,
+      countryCode: selectedSender.countryCode,
       numberType: 'mobile' as const,
     };
   }
@@ -258,6 +262,14 @@ function isSameSenderSelection(
     existing.countryCode === selectedSender.countryCode &&
     existing.numberType === selectedSender.numberType
   );
+}
+
+function publicSenderOption(option: SmsSenderOption): PublicSmsSenderOption {
+  return {
+    phoneNumber: option.phoneNumber,
+    countryCode: option.countryCode,
+    label: option.label,
+  };
 }
 
 async function requireActiveBilling(c: Context<AppEnv>) {
@@ -317,7 +329,6 @@ function publicSender(
     status: sender.status,
     phoneNumber: sender.phoneNumber,
     countryCode: sender.countryCode,
-    numberType: sender.numberType,
     regulatoryStatus: sender.regulatoryStatus,
     failureReason: sender.failureReason,
     provisionedAt: sender.provisionedAt,

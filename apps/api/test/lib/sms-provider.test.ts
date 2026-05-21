@@ -215,15 +215,6 @@ describe('SMS provider factory', () => {
           phoneNumber: '+15005550006',
           countryCode: 'US',
           numberType: 'local',
-          capabilities: {
-            outboundSms: true,
-            inboundSms: true,
-            statusCallbacks: true,
-            twoWaySms: true,
-            smartEncoding: false,
-          },
-          regulatoryRequirementSummary: null,
-          label: '+1 500 555 0006',
         },
       }),
     ).resolves.toMatchObject({
@@ -269,15 +260,6 @@ describe('SMS provider factory', () => {
           phoneNumber: '+15005550006',
           countryCode: 'US',
           numberType: 'local',
-          capabilities: {
-            outboundSms: true,
-            inboundSms: true,
-            statusCallbacks: true,
-            twoWaySms: true,
-            smartEncoding: false,
-          },
-          regulatoryRequirementSummary: null,
-          label: '+1 500 555 0006',
         },
       }),
     ).rejects.toMatchObject({
@@ -327,15 +309,6 @@ describe('SMS provider factory', () => {
           phoneNumber: '+15005550006',
           countryCode: 'US',
           numberType: 'local',
-          capabilities: {
-            outboundSms: true,
-            inboundSms: true,
-            statusCallbacks: true,
-            twoWaySms: true,
-            smartEncoding: false,
-          },
-          regulatoryRequirementSummary: null,
-          label: '+1 500 555 0006',
         },
       }),
     ).rejects.toMatchObject({

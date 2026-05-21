@@ -499,3 +499,41 @@ pnpm --filter @retaino/api typecheck
 pnpm --filter @retaino/api lint
 git diff --check
 ```
+
+## Pass 16: Sender Public Contract Review
+
+Purpose: review the simplified two-way sender setup flow for provider detail
+leakage and stale UI-driven number type concepts.
+
+- [x] Review public sender countries, number search, sender setup, and sender
+  provisioning contracts.
+- [x] Keep provider number type support inside the provider adapter and SMS API.
+- [x] Remove number type and capability details from public sender number
+  search results.
+- [x] Remove number type and capability details from the sender provisioning
+  request body.
+- [x] Keep server-side provider verification before provisioning a selected
+  phone number.
+
+Files inspected first:
+
+- `packages/shared/src/contracts/campaigns.ts`
+- `apps/api/src/features/sms/sms.routes.ts`
+- `apps/api/src/lib/sms-provider.ts`
+- `apps/api/src/lib/twilio-provider.ts`
+- `apps/web/src/features/campaigns/components/sender-setup.tsx`
+- `apps/api/test/features/sms/sms.routes.test.ts`
+- `packages/shared/test/contracts/campaigns.test.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/shared test -- --runInBand packages/shared/test/contracts/campaigns.test.ts
+pnpm --filter @retaino/api test -- --runInBand apps/api/test/features/sms/sms.routes.test.ts apps/api/test/lib/sms-provider.test.ts
+pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/shared typecheck
+pnpm --filter @retaino/web typecheck
+pnpm --filter @retaino/api lint
+pnpm --filter @retaino/shared lint
+git diff --check
+```

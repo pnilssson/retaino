@@ -40,6 +40,7 @@
 | SC-01 | Public sender responses exposed provider resource identifiers. | Public sender responses now omit provider Messaging Service and phone-number IDs. |
 | SC-02 | Sender number selection exposed provider-only references to the browser. | Public sender options no longer include provider references. The server re-verifies selected numbers before provisioning. |
 | SC-03 | Sender setup exposed provider number type choices that are outside the product decision Retaino already makes. | The campaign builder now asks only for sender country and number. The API searches and provisions provider-verified two-way SMS numbers only. |
+| SC-04 | Public sender contracts still exposed provider number type and capability details after the UI stopped asking users to choose them. | Sender number search now returns only phone, country, and label. Sender provisioning posts only phone and country. The API keeps provider number type and capability checks internal. |
 | WH-01 | Twilio `START` and `HELP` advanced opt-out events were treated as suppressions. | Only `OptOutType=STOP` creates suppressions. `START` and `HELP` are stored as replies. |
 | WH-02 | Body-based STOP fallback missed current STOP-style keywords. | STOP-style detection now covers the current standard keyword set used by the MVP. |
 | WH-03 | Duplicate Twilio webhook deliveries could insert duplicate campaign message events and inflate reply, opt-out, or event counts. | Campaign message events now have a provider/message/event unique index, and event inserts ignore duplicate retries. |
