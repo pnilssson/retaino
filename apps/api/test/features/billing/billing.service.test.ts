@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createSmsCreditTransaction,
+  getSmsCreditReservationState,
   getOrganizationBillingProfile,
   getSmsCreditBalance,
   getSmsCreditBalanceBreakdown,
@@ -27,6 +28,7 @@ vi.mock('@retaino/db', async (importOriginal) => {
   return {
     ...actual,
     createSmsCreditTransaction: vi.fn(),
+    getSmsCreditReservationState: vi.fn(),
     getOrganizationBillingProfile: vi.fn(),
     getSmsCreditBalance: vi.fn(),
     getSmsCreditBalanceBreakdown: vi.fn(),
@@ -90,10 +92,15 @@ describe('billing service', () => {
   beforeEach(() => {
     vi.mocked(getOrganizationBillingProfile).mockReset();
     vi.mocked(createSmsCreditTransaction).mockReset();
+    vi.mocked(getSmsCreditReservationState).mockReset();
     vi.mocked(getSmsCreditBalance).mockReset();
     vi.mocked(getSmsCreditBalanceBreakdown).mockReset();
     vi.mocked(reserveSmsCreditsIfSufficient).mockReset();
     vi.mocked(upsertOrganizationBillingProfile).mockReset();
+    vi.mocked(getSmsCreditReservationState).mockResolvedValue({
+      activeSourceId: null,
+      hasHistory: false,
+    });
   });
 
   it('returns local billing status and SMS credit balance', async () => {
@@ -417,6 +424,85 @@ describe('billing service', () => {
     })).resolves.toHaveLength(2);
 
     expect(reserveSmsCreditsIfSufficient).toHaveBeenCalledOnce();
+  });
+
+  it('reuses an active campaign send reservation source', async () => {
+    vi.mocked(getSmsCreditReservationState).mockResolvedValue({
+      activeSourceId: 'campaign-send-123:active',
+      hasHistory: true,
+    });
+    vi.mocked(reserveSmsCreditsIfSufficient).mockResolvedValue({
+      debitedCredits: 2,
+      transactions: [
+        {
+          transactionType: 'debit',
+          source: 'campaign_send',
+          sourceId: 'campaign-send-123:active',
+          credits: -2,
+          creditBucket: 'subscription_period',
+          periodStart: '2026-05-15T00:00:00.000Z',
+          periodEnd: '2026-06-15T00:00:00.000Z',
+          description: 'Campaign SMS usage',
+          createdAt: '2026-05-15T00:00:00.000Z',
+        },
+      ],
+    });
+
+    await debitSmsCreditUsage({
+      db,
+      organizationId: organization.id,
+      actualSegments: 2,
+      sourceId: 'campaign-send-123',
+    });
+
+    expect(reserveSmsCreditsIfSufficient).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        source: 'campaign_send',
+        sourceId: 'campaign-send-123:active',
+      }),
+    );
+  });
+
+  it('creates a fresh campaign send reservation after released history', async () => {
+    vi.mocked(getSmsCreditReservationState).mockResolvedValue({
+      activeSourceId: null,
+      hasHistory: true,
+    });
+    vi.mocked(reserveSmsCreditsIfSufficient).mockResolvedValue({
+      debitedCredits: 2,
+      transactions: [
+        {
+          transactionType: 'debit',
+          source: 'campaign_send',
+          sourceId: 'campaign-send-123:new',
+          credits: -2,
+          creditBucket: 'subscription_period',
+          periodStart: '2026-05-15T00:00:00.000Z',
+          periodEnd: '2026-06-15T00:00:00.000Z',
+          description: 'Campaign SMS usage',
+          createdAt: '2026-05-15T00:00:00.000Z',
+        },
+      ],
+    });
+
+    await debitSmsCreditUsage({
+      db,
+      organizationId: organization.id,
+      actualSegments: 2,
+      sourceId: 'campaign-send-123',
+    });
+
+    expect(reserveSmsCreditsIfSufficient).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        source: 'campaign_send',
+        sourceId: expect.stringMatching(/^campaign-send-123:/),
+      }),
+    );
+    expect(
+      vi.mocked(reserveSmsCreditsIfSufficient).mock.calls[0]?.[1].sourceId,
+    ).not.toBe('campaign-send-123');
   });
 
   it('records test-send SMS usage with the test-send source', async () => {

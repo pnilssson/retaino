@@ -617,6 +617,41 @@ pnpm --filter @retaino/web lint
 git diff --check
 ```
 
+## Pass 29: Campaign Reservation Retry Review
+
+Purpose: review the final-send credit reservation path after the enqueue-failure
+release fix.
+
+- [x] Review how `queueCampaignSend` reserves credits before enqueueing the
+  background send job.
+- [x] Review how `processCampaignSend` reuses the queued reservation during
+  Inngest processing and retries.
+- [x] Fix the released-reservation retry case so a later send retry does not
+  reuse a fully released reservation source ID.
+- [x] Add billing service and DB query coverage for active reservation reuse and
+  fresh reservation creation after released history.
+
+Files inspected first:
+
+- `apps/api/src/features/campaigns/campaigns.service.ts`
+- `apps/api/src/features/billing/billing.service.ts`
+- `packages/db/src/queries/billing.ts`
+- `apps/api/test/features/billing/billing.service.test.ts`
+- `apps/api/test/features/campaigns/campaigns.service.test.ts`
+- `packages/db/test/queries/billing.test.ts`
+
+Verification for this pass:
+
+```bash
+pnpm --filter @retaino/db test -- --runInBand packages/db/test/queries/billing.test.ts
+pnpm --filter @retaino/api test -- --runInBand apps/api/test/features/billing/billing.service.test.ts apps/api/test/features/campaigns/campaigns.service.test.ts apps/api/test/features/campaigns/campaigns.routes.test.ts
+pnpm --filter @retaino/db typecheck
+pnpm --filter @retaino/api typecheck
+pnpm --filter @retaino/db lint
+pnpm --filter @retaino/api lint
+git diff --check
+```
+
 ## Pass 27: Sender Setup Control Ownership Review
 
 Purpose: keep sender setup focused on provisioning state and move low-level

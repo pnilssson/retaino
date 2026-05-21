@@ -73,6 +73,12 @@ export type ReserveSmsCreditsIfSufficientInput = {
   description: string;
 };
 
+export type SmsCreditReservationStateInput = {
+  organizationId: string;
+  source: Extract<SmsCreditTransactionSource, 'campaign_send'>;
+  sourceId: string;
+};
+
 export function billingProfileToContract(
   row: OrganizationBillingProfileRow | null,
 ): BillingSubscription {
@@ -399,6 +405,66 @@ export async function reserveSmsCreditsIfSufficient(
   return {
     debitedCredits,
     transactions: rows.map(rawSmsCreditTransactionToContract),
+  };
+}
+
+export async function getSmsCreditReservationState(
+  db: DbClient,
+  input: SmsCreditReservationStateInput,
+) {
+  assertOrganizationId(input.organizationId);
+
+  const result = await db.execute(sql`
+    with matching_transactions as (
+      select
+        ${smsCreditTransactions.sourceId} as source_id,
+        ${smsCreditTransactions.credits} as credits
+      from ${smsCreditTransactions}
+      where ${smsCreditTransactions.organizationId} = ${input.organizationId}
+        and ${smsCreditTransactions.source} = ${input.source}
+        and (
+          ${smsCreditTransactions.sourceId} = ${input.sourceId}
+          or ${smsCreditTransactions.sourceId} like ${`${input.sourceId}:%`}
+        )
+    ),
+    debits as (
+      select
+        source_id,
+        sum(abs(credits))::integer as debited_credits
+      from matching_transactions
+      where credits < 0
+        and source_id not like ${'%:release'}
+      group by source_id
+    ),
+    releases as (
+      select
+        regexp_replace(source_id, ':release$', '') as source_id,
+        sum(credits)::integer as released_credits
+      from matching_transactions
+      where credits > 0
+        and source_id like ${'%:release'}
+      group by regexp_replace(source_id, ':release$', '')
+    ),
+    active_reservations as (
+      select debits.source_id
+      from debits
+      left join releases on releases.source_id = debits.source_id
+      where debits.debited_credits > coalesce(releases.released_credits, 0)
+      order by debits.source_id
+      limit 1
+    )
+    select
+      (select source_id from active_reservations) as active_source_id,
+      exists(select 1 from matching_transactions) as has_history
+  `);
+  const [row = {}] = Array.from(result.rows ?? []) as Array<
+    Record<string, unknown>
+  >;
+
+  return {
+    activeSourceId:
+      typeof row.active_source_id === 'string' ? row.active_source_id : null,
+    hasHistory: row.has_history === true,
   };
 }
 

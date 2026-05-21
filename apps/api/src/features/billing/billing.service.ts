@@ -1,6 +1,7 @@
 import {
   createSmsCreditTransaction,
   billingProfileToContract,
+  getSmsCreditReservationState,
   getOrganizationBillingProfile,
   getSmsCreditBalance,
   reserveSmsCreditsIfSufficient,
@@ -261,11 +262,20 @@ export async function debitSmsCreditUsage(input: {
   >;
   sourceId: string;
 }) {
+  const source = input.source ?? 'campaign_send';
+  const sourceId =
+    source === 'campaign_send'
+      ? await campaignSendReservationSourceId({
+          db: input.db,
+          organizationId: input.organizationId,
+          sourceId: input.sourceId,
+        })
+      : input.sourceId;
   const result = await reserveSmsCreditsIfSufficient(input.db, {
     organizationId: input.organizationId,
     credits: input.actualSegments,
-    source: input.source ?? 'campaign_send',
-    sourceId: input.sourceId,
+    source,
+    sourceId,
     description: input.description ?? 'Campaign SMS usage',
   });
 
@@ -286,6 +296,28 @@ export async function debitSmsCreditUsage(input: {
   }
 
   return result.transactions;
+}
+
+async function campaignSendReservationSourceId(input: {
+  db: DbClient;
+  organizationId: string;
+  sourceId: string;
+}) {
+  const reservationState = await getSmsCreditReservationState(input.db, {
+    organizationId: input.organizationId,
+    source: 'campaign_send',
+    sourceId: input.sourceId,
+  });
+
+  if (reservationState.activeSourceId) {
+    return reservationState.activeSourceId;
+  }
+
+  if (reservationState.hasHistory) {
+    return `${input.sourceId}:${crypto.randomUUID()}`;
+  }
+
+  return input.sourceId;
 }
 
 export async function releaseSmsCreditUsage(input: {

@@ -14,6 +14,7 @@ import {
   getOrganizationSmsSender,
   getSmsCreditBalance,
   getSmsCreditBalanceBreakdown,
+  getSmsCreditReservationState,
   launchCampaign,
   listSelectedCampaignRecipientsForSend,
   listCampaigns,
@@ -45,6 +46,7 @@ vi.mock('@retaino/db', () => ({
   getOrganizationSmsSender: vi.fn(),
   getSmsCreditBalance: vi.fn(),
   getSmsCreditBalanceBreakdown: vi.fn(),
+  getSmsCreditReservationState: vi.fn(),
   launchCampaign: vi.fn(),
   listSelectedCampaignRecipientsForSend: vi.fn(),
   listCampaigns: vi.fn(),
@@ -215,6 +217,7 @@ describe('campaignsRoutes', () => {
     vi.mocked(getOrganizationSmsSender).mockReset();
     vi.mocked(getSmsCreditBalance).mockReset();
     vi.mocked(getSmsCreditBalanceBreakdown).mockReset();
+    vi.mocked(getSmsCreditReservationState).mockReset();
     vi.mocked(launchCampaign).mockReset();
     vi.mocked(enqueueCampaignSendProcessing).mockReset();
     vi.mocked(listSelectedCampaignRecipientsForSend).mockReset();
@@ -225,6 +228,10 @@ describe('campaignsRoutes', () => {
     vi.mocked(getCurrentLegalBundle).mockResolvedValue(legalBundle);
     vi.mocked(getCurrentOrganizationLegalAcceptance).mockResolvedValue(legalAcceptance);
     vi.mocked(findSuppressionByHash).mockResolvedValue(null);
+    vi.mocked(getSmsCreditReservationState).mockResolvedValue({
+      activeSourceId: null,
+      hasHistory: false,
+    });
     vi.mocked(listSelectedCampaignRecipientsForSend).mockResolvedValue({
       recipients: [campaignRecipientForSend],
     });

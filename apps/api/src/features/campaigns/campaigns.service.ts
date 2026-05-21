@@ -630,11 +630,14 @@ async function debitCampaignSendCredits(input: {
       transaction.credits < 0 ? total + Math.abs(transaction.credits) : total,
     0,
   );
+  const reservationSourceId =
+    reservedTransactions.find((transaction) => transaction.credits < 0)
+      ?.sourceId ?? sourceId;
 
   return {
     reservedCreditCount: debitedCreditCount || input.reservedCreditCount,
     reservedTransactions,
-    sourceId,
+    sourceId: reservationSourceId,
   };
 }
 

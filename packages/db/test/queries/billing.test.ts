@@ -7,6 +7,7 @@ import {
   getBillingWebhookEventByStripeEventId,
   getSmsCreditBalance,
   getSmsCreditBalanceBreakdown,
+  getSmsCreditReservationState,
   recordBillingWebhookEvent,
   reserveSmsCreditsIfSufficient,
   smsCreditTransactionToContract,
@@ -378,6 +379,52 @@ describe('billing query helpers', () => {
         },
       ],
     });
+  });
+
+  it('reads active SMS credit reservation state by source prefix', async () => {
+    let statement: SQL | undefined;
+    const db = {
+      execute: (query: SQL) => {
+        statement = query;
+
+        return {
+          rows: [
+            {
+              active_source_id: 'campaign-send-123:retry',
+              has_history: true,
+            },
+          ],
+        };
+      },
+    };
+
+    await expect(
+      getSmsCreditReservationState(db as never, {
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        source: 'campaign_send',
+        sourceId: 'campaign-send-123',
+      }),
+    ).resolves.toEqual({
+      activeSourceId: 'campaign-send-123:retry',
+      hasHistory: true,
+    });
+
+    if (!statement) {
+      throw new Error('Expected reservation state to execute a SQL statement.');
+    }
+
+    const query = new PgDialect().sqlToQuery(statement);
+
+    expect(query.sql).toContain('active_reservations');
+    expect(query.sql).toContain('regexp_replace');
+    expect(query.params).toEqual(
+      expect.arrayContaining([
+        '22222222-2222-4222-8222-222222222222',
+        'campaign_send',
+        'campaign-send-123',
+        'campaign-send-123:%',
+      ]),
+    );
   });
 
   it('returns SMS credit balance breakdown by purchased and current period credits', async () => {
