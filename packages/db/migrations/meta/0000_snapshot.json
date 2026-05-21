@@ -1,5 +1,5 @@
 {
-  "id": "4e63c00c-c5de-4a98-b810-cd848e03d315",
+  "id": "049c9ada-6d18-4498-acb8-9ebb8715d2ec",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1929,6 +1929,33 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "campaign_message_events_provider_message_event_idx": {
+          "name": "campaign_message_events_provider_message_event_idx",
+          "columns": [
+            {
+              "expression": "provider",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "provider_message_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "event_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -3199,37 +3226,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "phone_hash": {
-          "name": "phone_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "email_hash": {
-          "name": "email_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "first_clicked_at": {
-          "name": "first_clicked_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_clicked_at": {
-          "name": "last_clicked_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "click_count": {
-          "name": "click_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
         },
         "created_at": {
           "name": "created_at",

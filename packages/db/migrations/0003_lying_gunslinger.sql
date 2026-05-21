@@ -1,1 +1,0 @@
-ALTER TABLE "organization_legal_acceptances" DROP COLUMN "ip_address";

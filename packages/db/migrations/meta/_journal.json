@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1779307075557,
-      "tag": "0000_lonely_menace",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1779308280037,
-      "tag": "0001_handy_bloodaxe",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1779308627436,
-      "tag": "0002_pink_miracleman",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1779308973260,
-      "tag": "0003_lying_gunslinger",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1779309394154,
-      "tag": "0004_jazzy_forge",
+      "when": 1779396321862,
+      "tag": "0000_new_serpent_society",
       "breakpoints": true
     }
   ]

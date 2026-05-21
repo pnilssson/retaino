@@ -296,11 +296,6 @@ CREATE TABLE "tracking_links" (
 	"recipient_id" uuid NOT NULL,
 	"code" text NOT NULL,
 	"target_url" text NOT NULL,
-	"phone_hash" text,
-	"email_hash" text,
-	"first_clicked_at" timestamp with time zone,
-	"last_clicked_at" timestamp with time zone,
-	"click_count" integer DEFAULT 0 NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -378,6 +373,7 @@ CREATE INDEX "click_events_organization_campaign_idx" ON "click_events" USING bt
 CREATE INDEX "click_events_tracking_link_idx" ON "click_events" USING btree ("tracking_link_id");--> statement-breakpoint
 CREATE INDEX "campaign_message_events_provider_message_idx" ON "campaign_message_events" USING btree ("provider","provider_message_id");--> statement-breakpoint
 CREATE INDEX "campaign_message_events_organization_campaign_idx" ON "campaign_message_events" USING btree ("organization_id","campaign_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "campaign_message_events_provider_message_event_idx" ON "campaign_message_events" USING btree ("provider","provider_message_id","event_type");--> statement-breakpoint
 CREATE UNIQUE INDEX "legal_documents_document_type_idx" ON "legal_documents" USING btree ("document_type");--> statement-breakpoint
 CREATE UNIQUE INDEX "legal_documents_slug_idx" ON "legal_documents" USING btree ("slug");--> statement-breakpoint
 CREATE UNIQUE INDEX "legal_document_versions_document_id_version_idx" ON "legal_document_versions" USING btree ("legal_document_id","document_version");--> statement-breakpoint

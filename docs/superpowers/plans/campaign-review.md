@@ -717,6 +717,45 @@ pnpm --filter @retaino/db lint
 git diff --check
 ```
 
+## Pass 32: Final Branch Diff Review
+
+Purpose: review the full branch diff for accidental scope creep, stale removed
+concepts, and migration/doc drift before PR.
+
+- [x] Run full verification: `pnpm test`, `pnpm typecheck`, `pnpm lint`, and
+  `pnpm build`.
+- [x] Review branch diff inventory against the documented campaign MVP scope.
+- [x] Scan for stale removed concepts such as public launch endpoints, public
+  full recipient snapshots, persisted campaign IP data, user-facing provider
+  number-type choices, and SMS cost report copy.
+- [x] Regenerate Drizzle migrations from the current schema so the cleaned
+  database baseline is one migration instead of one baseline plus review-fix
+  follow-ups.
+
+Files inspected first:
+
+- Branch diff from `addd5f0bd97cd7c7d95b1b85ecefce380c89010a` to `HEAD`
+- `packages/db/migrations`
+- `docs/architecture.md`
+- `docs/product.md`
+- `docs/compliance.md`
+- `docs/tracking.md`
+- `docs/pricing.md`
+- campaign API, web, shared, and DB surfaces
+
+Verification for this pass:
+
+```bash
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm build
+pnpm --filter @retaino/db test
+pnpm --filter @retaino/db typecheck
+pnpm --filter @retaino/db lint
+git diff --check
+```
+
 ## Pass 27: Sender Setup Control Ownership Review
 
 Purpose: keep sender setup focused on provisioning state and move low-level

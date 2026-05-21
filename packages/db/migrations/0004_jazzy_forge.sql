@@ -1,1 +1,0 @@
-ALTER TABLE "organization_legal_acceptances" ADD COLUMN "ip_address" text;

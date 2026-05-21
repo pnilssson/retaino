@@ -42,6 +42,7 @@
 | RM-07 | Fake provider coverage needed deterministic failures and inbound payload parsing. | Test mode now supports known recipient failure numbers and Twilio-shaped status and inbound webhook payloads. |
 | RM-08 | Launch snapshot needed to be internal behind the final send action. | The campaign service owns draft launch snapshot creation before enqueueing the Inngest job. No separate public launch endpoint is part of the MVP. |
 | DM-01 | Webhook-facing sender and recipient lookups needed supporting indexes. | Added indexes for organization sender lookup by provider service, provider phone reference, destination phone, and recipient phone hash. |
+| DM-02 | The cleaned-database migration baseline had accumulated small follow-up migrations from later review fixes. | Regenerated the Drizzle migrations from the current schema so the branch has one clean baseline migration and one current snapshot journal. |
 | SC-01 | Public sender responses exposed provider resource identifiers. | Public sender responses now omit provider Messaging Service and phone-number IDs. |
 | SC-02 | Sender number selection exposed provider-only references to the browser. | Public sender options no longer include provider references. The server re-verifies selected numbers before provisioning. |
 | SC-03 | Sender setup exposed provider number type choices that are outside the product decision Retaino already makes. | The campaign builder now asks only for sender country and number. The API searches and provisions provider-verified two-way SMS numbers only. |
