@@ -4,7 +4,6 @@ import { AlertCircle, FileUp, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import type { RowSelectionState } from '@tanstack/react-table';
-import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import { ItemNotice } from '@/components/item-notice';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -83,10 +82,6 @@ export function ContactsScreen() {
     return <BlockedContacts session={session.data} />;
   }
 
-  const canManageContacts = canManageOrganizationSetup(
-    session.data.organization.role,
-  );
-
   return (
     <main className="flex flex-1 items-start bg-background">
       <section className="mx-auto grid w-full max-w-7xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
@@ -158,20 +153,19 @@ export function ContactsScreen() {
                     pageSize={contacts.data.pageSize}
                     total={contacts.data.total}
                   />
-                  {canManageContacts ? (
-                    <ContactBulkActions
-                      contactIds={selectedContactIds}
-                      onClear={() => setRowSelection({})}
-                      selectedCount={selectedContactIds.length}
-                    />
-                  ) : null}
+                  <ContactBulkActions
+                    contactIds={selectedContactIds}
+                    onClear={() => setRowSelection({})}
+                    organizationId={session.data.organization.id}
+                    selectedCount={selectedContactIds.length}
+                  />
                   <ContactsTable
                     contacts={contacts.data.contacts}
                     onRowSelectionChange={setRowSelection}
                     page={contacts.data.page}
                     pageSize={contacts.data.pageSize}
                     rowSelection={rowSelection}
-                    selectable={canManageContacts}
+                    selectable
                   />
                   <PaginationControls
                     itemLabel="contacts"

@@ -9,7 +9,7 @@ import type {
 import { useApi } from '@/hooks/use-api';
 import { contactsQueryKeys } from '../query-keys';
 
-export function useBulkDeleteContacts() {
+export function useBulkDeleteContacts(organizationId: string) {
   const api = useApi();
   const queryClient = useQueryClient();
   const mutation = useMutation({
@@ -17,7 +17,9 @@ export function useBulkDeleteContacts() {
       api.post<BulkContactActionResponse>('/v1/contacts/bulk-delete', input),
     onSuccess: async (response) => {
       toast.success(`Deleted ${response.affectedCount} contacts`);
-      await queryClient.invalidateQueries({ queryKey: contactsQueryKeys.all });
+      await queryClient.invalidateQueries({
+        queryKey: contactsQueryKeys.organization(organizationId),
+      });
     },
   });
 

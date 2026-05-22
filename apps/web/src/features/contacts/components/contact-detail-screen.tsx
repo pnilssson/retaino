@@ -16,7 +16,6 @@ import {
 import Link from 'next/link';
 import { useState } from 'react';
 import {
-  canManageOrganizationSetup,
   type ContactDetail,
   type ContactSuppression,
   type UpdateContactInput,
@@ -101,9 +100,6 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
     return <BlockedContacts session={session.data} />;
   }
 
-  const canManageContacts = canManageOrganizationSetup(
-    session.data.organization.role,
-  );
   const latestContact = contact.data?.contact ?? null;
   const title = latestContact?.name ?? 'Unnamed contact';
 
@@ -140,7 +136,6 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
           </section>
         ) : latestContact ? (
           <ContactDetailContent
-            canManageContacts={canManageContacts}
             contact={latestContact}
             phoneCountryCode={session.data.profile?.countryCode ?? 'SE'}
           />
@@ -151,11 +146,9 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
 }
 
 function ContactDetailContent({
-  canManageContacts,
   contact,
   phoneCountryCode,
 }: {
-  canManageContacts: boolean;
   contact: ContactDetail;
   phoneCountryCode: string;
 }) {
@@ -172,7 +165,7 @@ function ContactDetailContent({
                 Core identity and contact information.
               </ItemDescription>
             </ItemContent>
-            {canManageContacts && !isEditing ? (
+            {!isEditing ? (
               <ItemActions>
                 <Button
                   onClick={() => setIsEditing(true)}
@@ -255,10 +248,9 @@ function ContactDetailContent({
       </AppPageItem>
 
       <ContactSuppressionSection
-        canManageContacts={canManageContacts}
         contact={contact}
       />
-      {canManageContacts ? <DeleteContactSection contact={contact} /> : null}
+      <DeleteContactSection contact={contact} />
     </AppPageContent>
   );
 }
@@ -381,10 +373,8 @@ function ContactEditForm({
 }
 
 function ContactSuppressionSection({
-  canManageContacts,
   contact,
 }: {
-  canManageContacts: boolean;
   contact: ContactDetail;
 }) {
   const suppress = useSuppressContact(contact.organizationId, contact.id);
@@ -414,7 +404,6 @@ function ContactSuppressionSection({
           <div className="divide-y">
             {contact.suppressions.map((suppression) => (
               <SuppressionRow
-                canManageContacts={canManageContacts}
                 isPending={
                   unsuppress.mutation.isPending &&
                   unsuppress.mutation.variables === suppression.id
@@ -430,28 +419,26 @@ function ContactSuppressionSection({
             No contact methods are suppressed.
           </p>
         )}
-        {canManageContacts ? (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              disabled={!contact.phone || phoneSuppressed || suppress.mutation.isPending}
-              onClick={() => suppress.mutation.mutate({ type: 'phone' })}
-              type="button"
-              variant="outline"
-            >
-              <Ban aria-hidden="true" data-icon="inline-start" />
-              Suppress phone
-            </Button>
-            <Button
-              disabled={!contact.email || emailSuppressed || suppress.mutation.isPending}
-              onClick={() => suppress.mutation.mutate({ type: 'email' })}
-              type="button"
-              variant="outline"
-            >
-              <MailX aria-hidden="true" data-icon="inline-start" />
-              Suppress email
-            </Button>
-          </div>
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            disabled={!contact.phone || phoneSuppressed || suppress.mutation.isPending}
+            onClick={() => suppress.mutation.mutate({ type: 'phone' })}
+            type="button"
+            variant="outline"
+          >
+            <Ban aria-hidden="true" data-icon="inline-start" />
+            Suppress phone
+          </Button>
+          <Button
+            disabled={!contact.email || emailSuppressed || suppress.mutation.isPending}
+            onClick={() => suppress.mutation.mutate({ type: 'email' })}
+            type="button"
+            variant="outline"
+          >
+            <MailX aria-hidden="true" data-icon="inline-start" />
+            Suppress email
+          </Button>
+        </div>
         {suppress.error || unsuppress.error ? (
           <ItemNotice
             description={suppress.error ?? unsuppress.error}
@@ -465,12 +452,10 @@ function ContactSuppressionSection({
 }
 
 function SuppressionRow({
-  canManageContacts,
   isPending,
   onAllowAgain,
   suppression,
 }: {
-  canManageContacts: boolean;
   isPending: boolean;
   onAllowAgain: () => void;
   suppression: ContactSuppression;
@@ -487,26 +472,24 @@ function SuppressionRow({
           {formatDateTime(suppression.createdAt)}
         </p>
       </div>
-      {canManageContacts ? (
-        <Button
-          disabled={isPending}
-          onClick={onAllowAgain}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          {isPending ? (
-            <Loader2
-              aria-hidden="true"
-              className="animate-spin"
-              data-icon="inline-start"
-            />
-          ) : (
-            <Undo2 aria-hidden="true" data-icon="inline-start" />
-          )}
-          Allow again
-        </Button>
-      ) : null}
+      <Button
+        disabled={isPending}
+        onClick={onAllowAgain}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        {isPending ? (
+          <Loader2
+            aria-hidden="true"
+            className="animate-spin"
+            data-icon="inline-start"
+          />
+        ) : (
+          <Undo2 aria-hidden="true" data-icon="inline-start" />
+        )}
+        Allow again
+      </Button>
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { getFieldError } from '@/lib/form-errors';
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
 import { defaultOrganizationName } from '../default-organization-name';
+import { waitForClerkSessionPropagation } from '../session-propagation';
 import { InlineError } from './inline-error';
 
 type OrganizationCreateFormProps = {
@@ -174,10 +175,4 @@ function OrganizationCreateFormFields({
       </GuidedFlowActions>
     </form>
   );
-}
-
-function waitForClerkSessionPropagation() {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, 500);
-  });
 }

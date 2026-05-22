@@ -9,7 +9,7 @@ import type {
 import { useApi } from '@/hooks/use-api';
 import { contactsQueryKeys } from '../query-keys';
 
-export function useBulkSuppressContacts() {
+export function useBulkSuppressContacts(organizationId: string) {
   const api = useApi();
   const queryClient = useQueryClient();
   const mutation = useMutation({
@@ -22,7 +22,9 @@ export function useBulkSuppressContacts() {
             ? `${response.skippedCount} skipped`
             : undefined,
       });
-      await queryClient.invalidateQueries({ queryKey: contactsQueryKeys.all });
+      await queryClient.invalidateQueries({
+        queryKey: contactsQueryKeys.organization(organizationId),
+      });
     },
   });
 

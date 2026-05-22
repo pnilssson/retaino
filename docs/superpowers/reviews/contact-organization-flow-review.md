@@ -28,7 +28,7 @@ Read these before reviewing code:
 - `docs/caching.md`
 - `docs/ux/guided-flows.md`
 
-External references checked for this review:
+External references checked for this review on 2026-05-22:
 
 - Clerk `useOrganizationList`, organization creation, membership pagination,
   `isLoaded`, and `setActive`: <https://clerk.com/docs/nextjs/reference/hooks/use-organization-list>
@@ -112,6 +112,28 @@ Large-file review targets:
 - `packages/shared/src/contracts/contacts.ts`
 - `apps/api/src/features/contacts/contacts.routes.ts`
 - `apps/web/src/features/onboarding/components/contact-step.tsx`
+
+---
+
+## Requirements Matrix
+
+| ID | Source | Requirement | Status | Notes |
+| --- | --- | --- | --- | --- |
+| RM-01 | `AGENTS.md`, `docs/architecture.md` | Product data is organization-scoped. Server routes resolve the active Clerk organization and pass internal `organizationId` into queries. | Implemented | Contact and organization routes use `c.get('organization').id`; request body organization IDs are not part of the reviewed contracts. |
+| RM-02 | `docs/product.md` | Contact import supports CSV upload, field mapping, validation, dedupe, suppression checks, and permission attestation. | Implemented | Static pass still needs to verify count semantics and retry behavior in detail. |
+| RM-03 | `docs/compliance.md` | Contact permission attestation is required in import, recorded with actor and timestamp, and imports are blocked until legal acceptance is current. | Implemented | API requires `permissionAttestation: true` and gates imports through organization readiness. |
+| RM-04 | `docs/architecture.md`, `docs/product.md` | Contact import processing runs as background work, not inside the HTTP request. | Implemented | Upload route stores the file and enqueues Inngest processing. It still parses a small CSV sample for validation, which is acceptable for upload validation. |
+| RM-05 | `docs/compliance.md` | Store only MVP contact fields and do not intentionally import sensitive unsupported data. | Implemented | Import mapping is limited to supported fields. Static pass should confirm UI copy keeps this clear. |
+| RM-06 | `docs/compliance.md` | IP addresses are stored only for legal acceptance evidence, not contact or campaign operational events. | Implemented | Organization legal acceptance stores `cf-connecting-ip`; contact flow does not store request IP data. |
+| RM-07 | `docs/caching.md` | Contact query keys include active organization ID and all server-visible list inputs. | Implemented | Contact keys include org ID, filters, sort, direction, and page. Page size is fixed in the hook. |
+| RM-08 | `docs/caching.md`, TanStack Query | Organization session cache must not leak or flash stale data across active organization switches. | Fixed | OF-01 scoped organization session query data by active Clerk organization ID. |
+| RM-09 | `docs/architecture.md` | Clerk owns organization membership, invitations, active organization selection, and base roles. Retaino does not add a local membership mirror in MVP. | Implemented | Web uses Clerk `useOrganizationList`; server uses active organization context. |
+| RM-10 | Clerk docs | `useOrganizationList` consumers explicitly request `userMemberships` and handle `isLoaded` during org changes. | Implemented | Current components request memberships and handle loading states. |
+| RM-11 | `docs/architecture.md` | Members can build, test, send, and review campaigns after setup; organization setup, legal acceptance, billing mutation, and team administration stay role-gated. | Fixed | Organization profile and legal routes require `canManageOrganizationSetup`; operational contact routes and controls are member-accessible after readiness gates. |
+| RM-12 | `docs/compliance.md` | Legal acceptance records server-chosen bundle, organization ID, user ID, accepted time, IP address, and user agent. | Implemented | Server ignores client document versions and records request metadata. |
+| RM-13 | `docs/ux/guided-flows.md`, `AGENTS.md` | Onboarding and import flows use one framed surface, guided action placement, TanStack Form, and no cards inside cards. | Implemented | Static UI pass still needs to inspect large components for simplification opportunities. |
+| RM-14 | `AGENTS.md` | Shared code is extracted only when it removes real duplication or clarifies ownership. | Fixed | AR-01 moved duplicated Clerk session propagation waiting into a small onboarding helper. |
+| RM-15 | `AGENTS.md` | Tests stay package-level, no `apps/web` tests, and removed concepts are not kept as negative tests. | Implemented | Existing reviewed tests are package-level. Test relevance pass remains open. |
 
 ---
 
@@ -273,10 +295,10 @@ Large-file review targets:
 
 ### Pass 1: Requirements Matrix
 
-- [ ] Build a short matrix from `AGENTS.md` and the durable docs.
-- [ ] Mark each contact and organization requirement as `implemented`,
+- [x] Build a short matrix from `AGENTS.md` and the durable docs.
+- [x] Mark each contact and organization requirement as `implemented`,
   `missing`, `unclear`, or `deferred`.
-- [ ] Turn every `missing` or `unclear` item into a finding with a proposed fix.
+- [x] Turn every `missing` or `unclear` item into a finding with a proposed fix.
 
 ### Pass 2: Static Contact Review
 
@@ -320,9 +342,11 @@ pnpm build
 
 | ID | Severity | Flow | Status | Finding | Proposed fix | Files |
 | --- | --- | --- | --- | --- | --- | --- |
-| CF-01 |  | Contact | Open |  |  |  |
-| OF-01 |  | Organization | Open |  |  |  |
-| AR-01 |  | Architecture | Open |  |  |  |
+| CF-01 | Cleanup | Contact | Fixed | Contact route tests kept explicit 404 assertions for import routes that were removed. | Delete the stale negative test and keep the positive list/import route tests focused on existing behavior. | `apps/api/test/features/contacts/contacts.routes.test.ts` |
+| CF-02 | P2 | Contact | Fixed | Contact management UI hid bulk actions, row selection, edit, suppress, unsuppress, and delete behind organization setup permissions even though member contact operations are allowed by the API and product rules. | Remove stale admin gating from contact management UI after readiness gates pass. | `apps/web/src/features/contacts/components/contacts-screen.tsx`, `apps/web/src/features/contacts/components/contact-detail-screen.tsx` |
+| CF-03 | Cleanup | Contact | Fixed | Bulk contact mutations invalidated all contact caches instead of the active organization contact cache. | Pass the active organization ID into bulk hooks and invalidate `contactsQueryKeys.organization(organizationId)`. | `apps/web/src/features/contacts/components/contact-bulk-actions.tsx`, `apps/web/src/features/contacts/hooks/use-bulk-delete-contacts.ts`, `apps/web/src/features/contacts/hooks/use-bulk-suppress-contacts.ts` |
+| OF-01 | P3 | Organization | Fixed | Organization session data used one global TanStack Query key, so active-organization switches could briefly reuse stale setup/readiness data. | Scope organization session query data by active Clerk organization ID while keeping broad invalidation by prefix. | `apps/web/src/features/onboarding/hooks/use-organization-session.ts`, `apps/web/src/features/onboarding/hooks/use-create-current-organization-legal-acceptance.ts` |
+| AR-01 | Cleanup | Architecture | Fixed | Clerk session propagation waiting was duplicated in organization creation, organization selection, and app shell organization switching. | Move the tiny wait helper to the onboarding feature root and reuse it from the three call sites. | `apps/web/src/features/onboarding/session-propagation.ts`, `apps/web/src/features/onboarding/components/organization-create-form.tsx`, `apps/web/src/features/onboarding/components/organization-required.tsx`, `apps/web/src/features/appshell/hooks/use-organization-switcher.ts` |
 | DOC-01 |  | Docs | Open |  |  |  |
 
 Status values: `Open`, `Fixed`, `Deferred`, `Not a bug`.

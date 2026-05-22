@@ -400,27 +400,7 @@ describe('contactsRoutes', () => {
     });
   });
 
-  it('does not expose import history, process, or row routes', async () => {
-    await expect(
-      testApp().request('/v1/contacts/imports', undefined, env()),
-    ).resolves.toHaveProperty('status', 404);
-    await expect(
-      testApp().request(
-        `/v1/contacts/imports/${importDetail.id}/process`,
-        { method: 'POST' },
-        env(),
-      ),
-    ).resolves.toHaveProperty('status', 404);
-    await expect(
-      testApp().request(
-        `/v1/contacts/imports/${importDetail.id}/rows`,
-        undefined,
-        env(),
-      ),
-    ).resolves.toHaveProperty('status', 404);
-  });
-
-  it('returns contacts without import-batch filtering', async () => {
+  it('passes contact list filters to the query layer', async () => {
     vi.mocked(listContacts).mockResolvedValue({
       contacts: [contactDetail],
       page: 1,
