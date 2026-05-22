@@ -196,16 +196,16 @@ Large-file review targets:
 
 ### Code Shape
 
-- [ ] Review `import-panel.tsx` for mixed responsibilities. Candidate split
+- [x] Review `import-panel.tsx` for mixed responsibilities. Candidate split
   points: upload controls, mapping table, attestation, import result, Sankey
   summary, and step orchestration.
-- [ ] Review `contact-detail-screen.tsx` for mixed edit form, detail display,
+- [x] Review `contact-detail-screen.tsx` for mixed edit form, detail display,
   suppression actions, and destructive action state.
-- [ ] Review `packages/db/src/queries/contacts.ts` for query groups that could
+- [x] Review `packages/db/src/queries/contacts.ts` for query groups that could
   move into focused modules only if ownership becomes clearer.
-- [ ] Remove duplicated formatting, status mapping, validation, and query-key
+- [x] Remove duplicated formatting, status mapping, validation, and query-key
   helpers.
-- [ ] Keep web forms on TanStack Form and data fetching on TanStack Query.
+- [x] Keep web forms on TanStack Form and data fetching on TanStack Query.
 
 ### Tests
 
@@ -221,73 +221,73 @@ Large-file review targets:
 
 ### Product Fit
 
-- [ ] Confirm onboarding collects only what `docs/product.md`,
+- [x] Confirm onboarding collects only what `docs/product.md`,
   `docs/compliance.md`, and sender setup need.
-- [ ] Remove onboarding fields that are not used by legal acceptance, billing,
+- [x] Remove onboarding fields that are not used by legal acceptance, billing,
   sender compliance defaults, or organization identity.
-- [ ] Confirm onboarding ends with legal acceptance and routes to overview.
-- [ ] Confirm user-facing copy consistently says "workspace" or "organization"
+- [x] Confirm onboarding ends with legal acceptance and routes to overview.
+- [x] Confirm user-facing copy consistently says "workspace" or "organization"
   based on product intent, without leaking Clerk terminology.
 
 ### Clerk Organization Flow
 
-- [ ] Confirm custom organization creation follows Clerk's current
+- [x] Confirm custom organization creation follows Clerk's current
   `useOrganizationList` model: wait for `isLoaded`, call `createOrganization`,
   call `setActive`, and handle `isLoaded` changing during active organization
   switches.
-- [ ] Confirm membership lists explicitly request `userMemberships`.
-- [ ] Confirm users with existing memberships can select an organization without
+- [x] Confirm membership lists explicitly request `userMemberships`.
+- [x] Confirm users with existing memberships can select an organization without
   being forced to create a new one.
-- [ ] Confirm invited users can enter via Clerk invitation flow without Retaino
+- [x] Confirm invited users can enter via Clerk invitation flow without Retaino
   creating a duplicate local organization.
-- [ ] Confirm Retaino does not maintain a local membership mirror in MVP.
+- [x] Confirm Retaino does not maintain a local membership mirror in MVP.
 
 ### Server Gates
 
-- [ ] Confirm every organization route resolves the active Clerk organization
+- [x] Confirm every organization route resolves the active Clerk organization
   and internal `organizationId` server-side.
-- [ ] Confirm request body organization IDs are ignored or rejected.
-- [ ] Confirm operational contact and campaign actions are member-accessible
+- [x] Confirm request body organization IDs are ignored or rejected.
+- [x] Confirm operational contact and campaign actions are member-accessible
   after readiness gates.
-- [ ] Confirm organization setup, legal acceptance, billing mutation, and team
+- [x] Confirm organization setup, legal acceptance, billing mutation, and team
   administration remain role-gated.
-- [ ] Confirm readiness gates are centralized and not duplicated across routes.
+- [x] Confirm readiness gates are centralized and not duplicated across routes.
 
 ### Legal Acceptance
 
-- [ ] Confirm legal acceptance records the server-chosen bundle, user ID,
+- [x] Confirm legal acceptance records the server-chosen bundle, user ID,
   organization ID, timestamp, user agent, and legal acceptance IP address.
-- [ ] Confirm campaign and contact operational events do not store request IP
+- [x] Confirm campaign and contact operational events do not store request IP
   data.
-- [ ] Confirm old legal bundle versions are not user-facing in onboarding.
-- [ ] Confirm legal copy stays compact and links to public versioned legal docs.
+- [x] Confirm old legal bundle versions are not user-facing in onboarding.
+- [x] Confirm legal copy stays compact and links to public versioned legal docs.
 
 ### Onboarding UI And Forms
 
-- [ ] Confirm each onboarding step has one clear decision group.
-- [ ] Confirm guided-flow action placement follows `docs/ux/guided-flows.md`.
-- [ ] Confirm forms use TanStack Form validation and submit state.
-- [ ] Confirm disabled and loading states do not trap the user.
-- [ ] Confirm validation messages are specific and user-facing.
-- [ ] Confirm copied company, contact, and billing fields do not duplicate
+- [x] Confirm each onboarding step has one clear decision group.
+- [x] Confirm guided-flow action placement follows `docs/ux/guided-flows.md`.
+- [x] Confirm forms use TanStack Form validation and submit state.
+- [x] Confirm disabled and loading states do not trap the user.
+- [x] Confirm validation messages are specific and user-facing.
+- [x] Confirm copied company, contact, and billing fields do not duplicate
   sender setup fields unnecessarily.
 
 ### Code Shape
 
-- [ ] Review `organization-create-form.tsx` and organization-required flow for
+- [x] Review `organization-create-form.tsx` and organization-required flow for
   duplicated create/select/session-propagation logic.
-- [ ] Review onboarding step components for repeated field controls that should
+- [x] Review onboarding step components for repeated field controls that should
   move to a small local helper only if it reduces real duplication.
-- [ ] Review `organization.gates.ts`, `organization.readiness.ts`, and
+- [x] Review `organization.gates.ts`, `organization.readiness.ts`, and
   `organization.service.ts` for overlapping readiness concepts.
-- [ ] Remove unused constants, routes, hooks, and stale copy.
+- [x] Remove unused constants, routes, hooks, and stale copy.
 
 ### Tests
 
-- [ ] Keep organization API tests focused on gates, readiness, profile update,
+- [x] Keep organization API tests focused on gates, readiness, profile update,
   and legal acceptance behavior.
-- [ ] Remove tests for organization behaviors that the product no longer has.
-- [ ] Add package-level coverage only when server behavior changes.
+- [x] Remove tests for organization behaviors that the product no longer has.
+- [x] Add package-level coverage only when server behavior changes.
 
 ---
 
@@ -309,17 +309,17 @@ Large-file review targets:
 
 ### Pass 3: Static Organization Review
 
-- [ ] Walk new user, no-organization, existing-organization, invitation, and
+- [x] Walk new user, no-organization, existing-organization, invitation, and
   completed-onboarding paths.
-- [ ] Walk server readiness gates and legal acceptance.
-- [ ] Record findings in the table below.
+- [x] Walk server readiness gates and legal acceptance.
+- [x] Record findings in the table below.
 
 ### Pass 4: Deletion And Architecture Review
 
-- [ ] Look for unused routes, hooks, helpers, tests, schemas, and docs.
-- [ ] Look for duplicate logic across contact import, contact management, and
+- [x] Look for unused routes, hooks, helpers, tests, schemas, and docs.
+- [x] Look for duplicate logic across contact import, contact management, and
   onboarding forms.
-- [ ] Look at large files and split only when the split creates clearer
+- [x] Look at large files and split only when the split creates clearer
   ownership.
 
 ### Pass 5: Fixes And Verification
@@ -349,6 +349,7 @@ pnpm build
 | CF-05 | P2 | Contact | Fixed | Contact mutations refreshed contact caches but left campaign audience previews stale, so import, edit, delete, suppress, or unsuppress actions could show outdated eligible counts. | Add a contact cache helper that invalidates both active-organization contact queries and campaign audience preview queries. | `apps/web/src/features/contacts/contact-cache.ts`, `apps/web/src/features/campaigns/query-keys.ts`, `apps/web/src/features/contacts/hooks/use-*.ts` |
 | OF-01 | P3 | Organization | Fixed | Organization session data used one global TanStack Query key, so active-organization switches could briefly reuse stale setup/readiness data. | Scope organization session query data by active Clerk organization ID while keeping broad invalidation by prefix. | `apps/web/src/features/onboarding/hooks/use-organization-session.ts`, `apps/web/src/features/onboarding/hooks/use-create-current-organization-legal-acceptance.ts` |
 | AR-01 | Cleanup | Architecture | Fixed | Clerk session propagation waiting was duplicated in organization creation, organization selection, and app shell organization switching. | Move the tiny wait helper to the onboarding feature root and reuse it from the three call sites. | `apps/web/src/features/onboarding/session-propagation.ts`, `apps/web/src/features/onboarding/components/organization-create-form.tsx`, `apps/web/src/features/onboarding/components/organization-required.tsx`, `apps/web/src/features/appshell/hooks/use-organization-switcher.ts` |
+| AR-02 | Cleanup | Architecture | Fixed | `import-panel.tsx` mixed import step orchestration with result polling, toast side effects, and Sankey result construction. | Move import progress/result rendering into a focused `ContactImportProgress` component. | `apps/web/src/features/contacts/components/import-panel.tsx`, `apps/web/src/features/contacts/components/contact-import-progress.tsx` |
 | DOC-01 |  | Docs | Open |  |  |  |
 
 Status values: `Open`, `Fixed`, `Deferred`, `Not a bug`.
