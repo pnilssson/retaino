@@ -324,10 +324,10 @@ Large-file review targets:
 
 ### Pass 5: Fixes And Verification
 
-- [ ] Fix findings in small commits.
-- [ ] Update durable docs only when the product or architecture decision changes.
-- [ ] Run targeted tests after each server-side fix.
-- [ ] Run final verification:
+- [x] Fix findings in small commits.
+- [x] Update durable docs only when the product or architecture decision changes.
+- [x] Run targeted tests after each server-side fix.
+- [x] Run final verification:
 
 ```bash
 pnpm test
@@ -350,7 +350,7 @@ pnpm build
 | OF-01 | P3 | Organization | Fixed | Organization session data used one global TanStack Query key, so active-organization switches could briefly reuse stale setup/readiness data. | Scope organization session query data by active Clerk organization ID while keeping broad invalidation by prefix. | `apps/web/src/features/onboarding/hooks/use-organization-session.ts`, `apps/web/src/features/onboarding/hooks/use-create-current-organization-legal-acceptance.ts` |
 | AR-01 | Cleanup | Architecture | Fixed | Clerk session propagation waiting was duplicated in organization creation, organization selection, and app shell organization switching. | Move the tiny wait helper to the onboarding feature root and reuse it from the three call sites. | `apps/web/src/features/onboarding/session-propagation.ts`, `apps/web/src/features/onboarding/components/organization-create-form.tsx`, `apps/web/src/features/onboarding/components/organization-required.tsx`, `apps/web/src/features/appshell/hooks/use-organization-switcher.ts` |
 | AR-02 | Cleanup | Architecture | Fixed | `import-panel.tsx` mixed import step orchestration with result polling, toast side effects, and Sankey result construction. | Move import progress/result rendering into a focused `ContactImportProgress` component. | `apps/web/src/features/contacts/components/import-panel.tsx`, `apps/web/src/features/contacts/components/contact-import-progress.tsx` |
-| DOC-01 |  | Docs | Open |  |  |  |
+| DOC-01 | Cleanup | Docs | Deferred | This review file is intentionally temporary and should not be merged as durable product documentation. | Delete it or condense durable decisions into short docs immediately before this review branch is merged. | `docs/superpowers/reviews/contact-organization-flow-review.md` |
 
 Status values: `Open`, `Fixed`, `Deferred`, `Not a bug`.
 
