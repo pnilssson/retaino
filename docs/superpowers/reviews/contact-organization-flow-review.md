@@ -122,7 +122,7 @@ Large-file review targets:
 | RM-01 | `AGENTS.md`, `docs/architecture.md` | Product data is organization-scoped. Server routes resolve the active Clerk organization and pass internal `organizationId` into queries. | Implemented | Contact and organization routes use `c.get('organization').id`; request body organization IDs are not part of the reviewed contracts. |
 | RM-02 | `docs/product.md` | Contact import supports CSV upload, field mapping, validation, dedupe, suppression checks, and permission attestation. | Implemented | Static pass still needs to verify count semantics and retry behavior in detail. |
 | RM-03 | `docs/compliance.md` | Contact permission attestation is required in import, recorded with actor and timestamp, and imports are blocked until legal acceptance is current. | Implemented | API requires `permissionAttestation: true` and gates imports through organization readiness. |
-| RM-04 | `docs/architecture.md`, `docs/product.md` | Contact import processing runs as background work, not inside the HTTP request. | Implemented | Upload route stores the file and enqueues Inngest processing. It still parses a small CSV sample for validation, which is acceptable for upload validation. |
+| RM-04 | `docs/architecture.md`, `docs/product.md` | Contact import processing runs as background work, not inside the HTTP request. | Fixed | Upload route stores the file and enqueues Inngest processing. It rejects clearly oversized multipart requests before parsing and validates only a small CSV sample before storing the file. |
 | RM-05 | `docs/compliance.md` | Store only MVP contact fields and do not intentionally import sensitive unsupported data. | Implemented | Import mapping is limited to supported fields. Static pass should confirm UI copy keeps this clear. |
 | RM-06 | `docs/compliance.md` | IP addresses are stored only for legal acceptance evidence, not contact or campaign operational events. | Implemented | Organization legal acceptance stores `cf-connecting-ip`; contact flow does not store request IP data. |
 | RM-07 | `docs/caching.md` | Contact query keys include active organization ID and all server-visible list inputs. | Implemented | Contact keys include org ID, filters, sort, direction, and page. Page size is fixed in the hook. |
@@ -141,58 +141,58 @@ Large-file review targets:
 
 ### Product Fit
 
-- [ ] Confirm the contact flow supports the core workflow in `docs/product.md`:
+- [x] Confirm the contact flow supports the core workflow in `docs/product.md`:
   import contacts, attest permission, validate, dedupe, handle suppressions,
   and make eligible contacts available for campaigns.
-- [ ] Remove generic CRM behavior if it does not support import, suppression,
+- [x] Remove generic CRM behavior if it does not support import, suppression,
   campaign readiness, or future attribution.
-- [ ] Confirm user-facing copy does not expose internal implementation terms.
+- [x] Confirm user-facing copy does not expose internal implementation terms.
 
 ### Import Security And Privacy
 
-- [ ] Confirm imports require authentication and active organization context.
-- [ ] Confirm the upload route enforces a maximum file size before reading the
+- [x] Confirm imports require authentication and active organization context.
+- [x] Confirm the upload route enforces a maximum file size before reading the
   body into memory.
-- [ ] Confirm uploaded files use generated storage keys, not user filenames.
-- [ ] Confirm raw uploads are private and deleted after processing or lifecycle
+- [x] Confirm uploaded files use generated storage keys, not user filenames.
+- [x] Confirm raw uploads are private and deleted after processing or lifecycle
   cleaned.
-- [ ] Confirm CSV parsing does not run inside the HTTP request after upload.
-- [ ] Confirm sensitive unsupported data is not intentionally stored.
-- [ ] Confirm contact permission attestation is required before processing.
-- [ ] Decide whether CSV export exists. If it exists, review formula-injection
+- [x] Confirm CSV parsing does not run inside the HTTP request after upload.
+- [x] Confirm sensitive unsupported data is not intentionally stored.
+- [x] Confirm contact permission attestation is required before processing.
+- [x] Decide whether CSV export exists. If it exists, review formula-injection
   handling. If it does not exist, do not add tests or docs for it.
 
 ### Import Correctness
 
-- [ ] Confirm mapping, validation, dedupe, and suppression counts are consistent
+- [x] Confirm mapping, validation, dedupe, and suppression counts are consistent
   between API, DB, and UI.
-- [ ] Confirm suppressed contacts that are deleted and re-imported become
+- [x] Confirm suppressed contacts that are deleted and re-imported become
   manageable contacts while still respecting suppression.
-- [ ] Confirm normalized phone, normalized email, phone hash, and email hash are
+- [x] Confirm normalized phone, normalized email, phone hash, and email hash are
   created in one shared path and not duplicated in routes or UI code.
-- [ ] Confirm import processing is idempotent enough for job retry.
-- [ ] Confirm import result data is count-focused unless the UI truly needs row
+- [x] Confirm import processing is idempotent enough for job retry.
+- [x] Confirm import result data is count-focused unless the UI truly needs row
   detail.
 
 ### Contact Management
 
-- [ ] Review contact list filters, sorting, pagination, and empty states.
-- [ ] Review contact detail edit, delete, suppress, unsuppress, and bulk actions.
-- [ ] Confirm destructive actions are tenant-scoped and cannot operate by ID
+- [x] Review contact list filters, sorting, pagination, and empty states.
+- [x] Review contact detail edit, delete, suppress, unsuppress, and bulk actions.
+- [x] Confirm destructive actions are tenant-scoped and cannot operate by ID
   alone.
-- [ ] Confirm contact deletion behavior does not break historical campaign
+- [x] Confirm contact deletion behavior does not break historical campaign
   snapshots.
-- [ ] Confirm suppression state is clearly represented without duplicate labels
+- [x] Confirm suppression state is clearly represented without duplicate labels
   or contradictory status badges.
 
 ### Query And Cache Behavior
 
-- [ ] Confirm all contact query keys include the active organization ID.
-- [ ] Confirm list query keys include every server-visible filter, sort, page,
+- [x] Confirm all contact query keys include the active organization ID.
+- [x] Confirm list query keys include every server-visible filter, sort, page,
   and page size.
-- [ ] Confirm mutations invalidate the relevant list, detail, import, and
+- [x] Confirm mutations invalidate the relevant list, detail, import, and
   campaign-audience data.
-- [ ] Remove permanently disabled queries unless they are truly user-triggered.
+- [x] Remove permanently disabled queries unless they are truly user-triggered.
 
 ### Code Shape
 
@@ -209,11 +209,11 @@ Large-file review targets:
 
 ### Tests
 
-- [ ] Keep API and DB tests focused on behavior that exists.
-- [ ] Remove tests for removed concepts instead of keeping negative coverage.
-- [ ] Add package-level tests only for fixes that touch API, DB, shared
+- [x] Keep API and DB tests focused on behavior that exists.
+- [x] Remove tests for removed concepts instead of keeping negative coverage.
+- [x] Add package-level tests only for fixes that touch API, DB, shared
   contracts, import processing, or organization logic.
-- [ ] Do not add `apps/web` tests.
+- [x] Do not add `apps/web` tests.
 
 ---
 
@@ -302,10 +302,10 @@ Large-file review targets:
 
 ### Pass 2: Static Contact Review
 
-- [ ] Walk contact import from upload through background processing and result
+- [x] Walk contact import from upload through background processing and result
   display.
-- [ ] Walk contact list, detail, suppression, deletion, and bulk actions.
-- [ ] Record findings in the table below.
+- [x] Walk contact list, detail, suppression, deletion, and bulk actions.
+- [x] Record findings in the table below.
 
 ### Pass 3: Static Organization Review
 
@@ -345,6 +345,8 @@ pnpm build
 | CF-01 | Cleanup | Contact | Fixed | Contact route tests kept explicit 404 assertions for import routes that were removed. | Delete the stale negative test and keep the positive list/import route tests focused on existing behavior. | `apps/api/test/features/contacts/contacts.routes.test.ts` |
 | CF-02 | P2 | Contact | Fixed | Contact management UI hid bulk actions, row selection, edit, suppress, unsuppress, and delete behind organization setup permissions even though member contact operations are allowed by the API and product rules. | Remove stale admin gating from contact management UI after readiness gates pass. | `apps/web/src/features/contacts/components/contacts-screen.tsx`, `apps/web/src/features/contacts/components/contact-detail-screen.tsx` |
 | CF-03 | Cleanup | Contact | Fixed | Bulk contact mutations invalidated all contact caches instead of the active organization contact cache. | Pass the active organization ID into bulk hooks and invalidate `contactsQueryKeys.organization(organizationId)`. | `apps/web/src/features/contacts/components/contact-bulk-actions.tsx`, `apps/web/src/features/contacts/hooks/use-bulk-delete-contacts.ts`, `apps/web/src/features/contacts/hooks/use-bulk-suppress-contacts.ts` |
+| CF-04 | P2 | Contact | Fixed | The import upload route parsed multipart form data before checking declared request size and copied the full CSV into memory before writing to R2. | Reject oversized declared requests before `formData()`, validate only a small CSV sample, and store the `File` directly in R2. | `apps/api/src/features/contacts/contacts.routes.ts`, `apps/api/test/features/contacts/contacts.routes.test.ts` |
+| CF-05 | P2 | Contact | Fixed | Contact mutations refreshed contact caches but left campaign audience previews stale, so import, edit, delete, suppress, or unsuppress actions could show outdated eligible counts. | Add a contact cache helper that invalidates both active-organization contact queries and campaign audience preview queries. | `apps/web/src/features/contacts/contact-cache.ts`, `apps/web/src/features/campaigns/query-keys.ts`, `apps/web/src/features/contacts/hooks/use-*.ts` |
 | OF-01 | P3 | Organization | Fixed | Organization session data used one global TanStack Query key, so active-organization switches could briefly reuse stale setup/readiness data. | Scope organization session query data by active Clerk organization ID while keeping broad invalidation by prefix. | `apps/web/src/features/onboarding/hooks/use-organization-session.ts`, `apps/web/src/features/onboarding/hooks/use-create-current-organization-legal-acceptance.ts` |
 | AR-01 | Cleanup | Architecture | Fixed | Clerk session propagation waiting was duplicated in organization creation, organization selection, and app shell organization switching. | Move the tiny wait helper to the onboarding feature root and reuse it from the three call sites. | `apps/web/src/features/onboarding/session-propagation.ts`, `apps/web/src/features/onboarding/components/organization-create-form.tsx`, `apps/web/src/features/onboarding/components/organization-required.tsx`, `apps/web/src/features/appshell/hooks/use-organization-switcher.ts` |
 | DOC-01 |  | Docs | Open |  |  |  |

@@ -7,7 +7,7 @@ import type {
   BulkSuppressContactsInput,
 } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
-import { contactsQueryKeys } from '../query-keys';
+import { invalidateContactDependentQueries } from '../contact-cache';
 
 export function useBulkSuppressContacts(organizationId: string) {
   const api = useApi();
@@ -22,9 +22,7 @@ export function useBulkSuppressContacts(organizationId: string) {
             ? `${response.skippedCount} skipped`
             : undefined,
       });
-      await queryClient.invalidateQueries({
-        queryKey: contactsQueryKeys.organization(organizationId),
-      });
+      await invalidateContactDependentQueries(queryClient, organizationId);
     },
   });
 

@@ -6,7 +6,7 @@ import type {
   CsvMapping,
 } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
-import { contactsQueryKeys } from '../query-keys';
+import { invalidateContactDependentQueries } from '../contact-cache';
 
 type StartContactImportInput = {
   file: File;
@@ -40,9 +40,7 @@ export function useStartContactImport({
       });
     },
     onSuccess: async (response) => {
-      await queryClient.invalidateQueries({
-        queryKey: contactsQueryKeys.organization(organizationId),
-      });
+      await invalidateContactDependentQueries(queryClient, organizationId);
       onSuccess(response);
     },
   });

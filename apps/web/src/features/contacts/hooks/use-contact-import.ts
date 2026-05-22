@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ContactImportDetailResponse } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
+import { invalidateContactDependentQueries } from '../contact-cache';
 import { contactsQueryKeys } from '../query-keys';
 
 export function useContactImport({
@@ -26,9 +27,7 @@ export function useContactImport({
 
   useEffect(() => {
     if (latestImport?.status === 'completed') {
-      void queryClient.invalidateQueries({
-        queryKey: contactsQueryKeys.organization(organizationId),
-      });
+      void invalidateContactDependentQueries(queryClient, organizationId);
     }
   }, [latestImport?.status, organizationId, queryClient]);
 

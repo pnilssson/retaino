@@ -30,6 +30,9 @@ import { deleteTemporaryImportFile } from './contact-import-storage';
 import { enqueueContactImportProcessing } from './contacts.jobs';
 
 const MAX_UPLOAD_SIZE = 25 * 1024 * 1024;
+const MAX_MULTIPART_OVERHEAD = 1024 * 1024;
+const MAX_UPLOAD_REQUEST_SIZE = MAX_UPLOAD_SIZE + MAX_MULTIPART_OVERHEAD;
+const CSV_VALIDATION_SAMPLE_BYTES = 64 * 1024;
 
 export const contactsRoutes = new Hono<AppEnv>()
   .get('/', async (c) => {
@@ -222,6 +225,15 @@ export const contactsRoutes = new Hono<AppEnv>()
       return gate.response;
     }
 
+    const contentLength = parseContentLength(c.req.header('content-length'));
+
+    if (contentLength && contentLength > MAX_UPLOAD_REQUEST_SIZE) {
+      return c.json(
+        apiError('validation_failed', 'CSV uploads are limited to 25 MB.'),
+        400,
+      );
+    }
+
     const form = await c.req.formData();
     const file = form.get('file');
 
@@ -249,9 +261,9 @@ export const contactsRoutes = new Hono<AppEnv>()
       );
     }
 
-    const buffer = await file.arrayBuffer();
+    const csvSample = await file.slice(0, CSV_VALIDATION_SAMPLE_BYTES).text();
 
-    if (!isValidCsv(new TextDecoder().decode(buffer))) {
+    if (!isValidCsv(csvSample)) {
       return c.json(
         apiError('validation_failed', 'CSV file could not be parsed.'),
         400,
@@ -262,7 +274,7 @@ export const contactsRoutes = new Hono<AppEnv>()
     const storageId = crypto.randomUUID();
     const fileKey = `organizations/${organization.id}/contact-imports/${storageId}/source.csv`;
 
-    await c.env.CONTACT_IMPORTS_BUCKET.put(fileKey, buffer, {
+    await c.env.CONTACT_IMPORTS_BUCKET.put(fileKey, file, {
       httpMetadata: { contentType: file.type || 'text/csv' },
       customMetadata: { organizationId: organization.id },
     });
@@ -345,6 +357,16 @@ async function createAndEnqueueContactImport(
 
     return { ok: false };
   }
+}
+
+function parseContentLength(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = Number(value);
+
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 function parseImportStartForm(form: FormData):

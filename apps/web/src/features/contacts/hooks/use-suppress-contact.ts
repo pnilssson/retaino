@@ -6,6 +6,7 @@ import type {
   CreateContactSuppressionInput,
 } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
+import { invalidateContactDependentQueries } from '../contact-cache';
 import { contactsQueryKeys } from '../query-keys';
 
 export function useSuppressContact(organizationId: string, contactId: string) {
@@ -22,9 +23,7 @@ export function useSuppressContact(organizationId: string, contactId: string) {
         contactsQueryKeys.detail(organizationId, contactId),
         response,
       );
-      await queryClient.invalidateQueries({
-        queryKey: contactsQueryKeys.organization(organizationId),
-      });
+      await invalidateContactDependentQueries(queryClient, organizationId);
     },
   });
 

@@ -7,7 +7,7 @@ import type {
   BulkContactIdsInput,
 } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
-import { contactsQueryKeys } from '../query-keys';
+import { invalidateContactDependentQueries } from '../contact-cache';
 
 export function useBulkDeleteContacts(organizationId: string) {
   const api = useApi();
@@ -17,9 +17,7 @@ export function useBulkDeleteContacts(organizationId: string) {
       api.post<BulkContactActionResponse>('/v1/contacts/bulk-delete', input),
     onSuccess: async (response) => {
       toast.success(`Deleted ${response.affectedCount} contacts`);
-      await queryClient.invalidateQueries({
-        queryKey: contactsQueryKeys.organization(organizationId),
-      });
+      await invalidateContactDependentQueries(queryClient, organizationId);
     },
   });
 
