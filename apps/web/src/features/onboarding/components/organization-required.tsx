@@ -9,6 +9,7 @@ import { GuidedFlowActions } from '@/components/guided-flow';
 import { Button } from '@/components/ui/button';
 import { ItemTitle } from '@/components/ui/item';
 import { routes } from '@/lib/routes';
+import { waitForClerkSessionPropagation } from '../session-propagation';
 import { InlineError } from './inline-error';
 import { OrganizationCreateForm } from './organization-create-form';
 import { OnboardingFrame } from './onboarding-frame';
@@ -138,10 +139,4 @@ export function OrganizationRequired() {
       </OnboardingItem>
     </OnboardingFrame>
   );
-}
-
-function waitForClerkSessionPropagation() {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, 500);
-  });
 }

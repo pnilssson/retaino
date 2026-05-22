@@ -10,14 +10,16 @@ import { useBulkSuppressContacts } from '@/features/contacts/hooks/use-bulk-supp
 export function ContactBulkActions({
   contactIds,
   onClear,
+  organizationId,
   selectedCount,
 }: {
   contactIds: string[];
   onClear: () => void;
+  organizationId: string;
   selectedCount: number;
 }) {
-  const bulkDelete = useBulkDeleteContacts();
-  const bulkSuppress = useBulkSuppressContacts();
+  const bulkDelete = useBulkDeleteContacts(organizationId);
+  const bulkSuppress = useBulkSuppressContacts(organizationId);
   const isPending =
     bulkDelete.mutation.isPending || bulkSuppress.mutation.isPending;
   const hasSelection = selectedCount > 0;

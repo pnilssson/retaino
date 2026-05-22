@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ContactDetailResponse } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
+import { invalidateContactDependentQueries } from '../contact-cache';
 import { contactsQueryKeys } from '../query-keys';
 
 export function useDeleteContactSuppression(
@@ -22,9 +23,7 @@ export function useDeleteContactSuppression(
         contactsQueryKeys.detail(organizationId, contactId),
         response,
       );
-      await queryClient.invalidateQueries({
-        queryKey: contactsQueryKeys.organization(organizationId),
-      });
+      await invalidateContactDependentQueries(queryClient, organizationId);
     },
   });
 

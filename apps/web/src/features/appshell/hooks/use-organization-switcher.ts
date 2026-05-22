@@ -10,6 +10,7 @@ import {
   organizationSessionQueryKey,
   useOrganizationSession,
 } from '@/features/onboarding/hooks/use-organization-session';
+import { waitForClerkSessionPropagation } from '@/features/onboarding/session-propagation';
 import { routes } from '@/lib/routes';
 
 type OrganizationSwitcherMembership = {
@@ -109,10 +110,4 @@ export function useOrganizationSwitcher(): OrganizationSwitcherState {
     pendingOrganizationId,
     switchOrganization,
   };
-}
-
-function waitForClerkSessionPropagation() {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, 500);
-  });
 }

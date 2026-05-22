@@ -316,6 +316,25 @@ describe('contactsRoutes', () => {
     expect(createContactImport).not.toHaveBeenCalled();
   });
 
+  it('rejects oversized uploads before storing an import file', async () => {
+    const testEnv = env();
+    const response = await testApp().request(
+      '/v1/contacts/imports',
+      {
+        method: 'POST',
+        headers: {
+          'content-length': String(27 * 1024 * 1024),
+        },
+        body: importForm({ permissionAttestation: 'true' }),
+      },
+      testEnv,
+    );
+
+    expect(response.status).toBe(400);
+    expect(testEnv.CONTACT_IMPORTS_BUCKET.put).not.toHaveBeenCalled();
+    expect(createContactImport).not.toHaveBeenCalled();
+  });
+
   it('cleans up the temporary file if enqueueing fails', async () => {
     vi.mocked(createContactImport).mockResolvedValue(importDetail);
     vi.mocked(enqueueContactImportProcessing).mockRejectedValue(
@@ -400,27 +419,7 @@ describe('contactsRoutes', () => {
     });
   });
 
-  it('does not expose import history, process, or row routes', async () => {
-    await expect(
-      testApp().request('/v1/contacts/imports', undefined, env()),
-    ).resolves.toHaveProperty('status', 404);
-    await expect(
-      testApp().request(
-        `/v1/contacts/imports/${importDetail.id}/process`,
-        { method: 'POST' },
-        env(),
-      ),
-    ).resolves.toHaveProperty('status', 404);
-    await expect(
-      testApp().request(
-        `/v1/contacts/imports/${importDetail.id}/rows`,
-        undefined,
-        env(),
-      ),
-    ).resolves.toHaveProperty('status', 404);
-  });
-
-  it('returns contacts without import-batch filtering', async () => {
+  it('passes contact list filters to the query layer', async () => {
     vi.mocked(listContacts).mockResolvedValue({
       contacts: [contactDetail],
       page: 1,

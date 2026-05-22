@@ -6,6 +6,7 @@ import type {
   UpdateContactInput,
 } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
+import { invalidateContactDependentQueries } from '../contact-cache';
 import { contactsQueryKeys } from '../query-keys';
 
 export function useUpdateContact(
@@ -26,9 +27,7 @@ export function useUpdateContact(
         contactsQueryKeys.detail(organizationId, contactId),
         response,
       );
-      await queryClient.invalidateQueries({
-        queryKey: contactsQueryKeys.organization(organizationId),
-      });
+      await invalidateContactDependentQueries(queryClient, organizationId);
       onSaved();
     },
   });
