@@ -7,15 +7,17 @@ import { cn } from '@/lib/utils';
 export function MessageEstimate({ smsBody }: { smsBody: string }) {
   const preview = createCampaignSmsPreview({ smsBody });
   const hasBody = Boolean(smsBody.trim());
-  const estimatedSmsLabel = hasBody
-    ? `${preview.estimatedSmsPerRecipient} SMS per recipient`
+  const estimatedCreditLabel = hasBody
+    ? `${preview.estimatedSmsPerRecipient} ${
+        preview.estimatedSmsPerRecipient === 1 ? 'credit' : 'credits'
+      } per recipient`
     : 'Not ready';
 
   return (
     <p className={textStyles.meta}>
       {hasBody ? preview.smsLength : 0} characters
       {', '}
-      {estimatedSmsLabel}
+      {estimatedCreditLabel}
     </p>
   );
 }

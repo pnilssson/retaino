@@ -1,10 +1,5 @@
-import { PlaceholderPage } from '@/features/appshell/components/placeholder-page';
+import { OverviewScreen } from '@/features/overview/components/overview-screen';
 
 export default function OverviewPage() {
-  return (
-    <PlaceholderPage
-      description="Bookings, attributed revenue, and confidence reporting will live here."
-      title="Overview"
-    />
-  );
+  return <OverviewScreen />;
 }

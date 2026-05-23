@@ -6,10 +6,10 @@ import {
   hasCurrentBillingSubscription,
 } from '@retaino/shared/contracts';
 import type { BillingPlanKey, CreditPackKey } from '@retaino/shared/contracts';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import { AppPageContent } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
@@ -60,32 +60,6 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
     }
   }, [showSuccess]);
 
-  useEffect(() => {
-    if (actionError) {
-      toast.error(
-        actionError instanceof Error
-          ? actionError.message
-          : 'Billing action failed.',
-        {
-          id: 'billing-action-error',
-        },
-      );
-    }
-  }, [actionError]);
-
-  useEffect(() => {
-    if (billingStatus.error) {
-      toast.error(
-        billingStatus.error instanceof Error
-          ? billingStatus.error.message
-          : 'Billing status could not be fetched.',
-        {
-          id: 'billing-status-error',
-        },
-      );
-    }
-  }, [billingStatus.error]);
-
   if (session.isLoading) {
     return (
       <main className="flex flex-1 items-start bg-background">
@@ -99,11 +73,13 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
   if (session.isError) {
     return (
       <main className="flex flex-1 items-center justify-center bg-background px-5 py-10">
-        <Alert className="max-w-lg" variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Billing could not be loaded</AlertTitle>
-          <AlertDescription>{session.error.message}</AlertDescription>
-        </Alert>
+        <div className="max-w-lg">
+          <ItemNotice
+            description={session.error.message}
+            title="Billing could not be loaded"
+            variant="error"
+          />
+        </div>
       </main>
     );
   }
@@ -138,21 +114,36 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
         />
 
         <AppPageContent>
+          {actionError ? (
+            <ItemNotice
+              description={
+                actionError instanceof Error
+                  ? actionError.message
+                  : 'Try the billing action again.'
+              }
+              title="Billing action failed"
+              variant="error"
+            />
+          ) : null}
+
           {!canManageBilling ? (
-            <Alert>
-              <AlertCircle aria-hidden="true" />
-              <AlertTitle>Admin access required for billing changes</AlertTitle>
-              <AlertDescription>
-                You can view billing status, but only organization admins can
-                start checkout or open the Stripe portal.
-              </AlertDescription>
-            </Alert>
+            <ItemNotice
+              description="You can view billing status, but only organization admins can start checkout or open the Stripe portal."
+              title="Admin access required for billing changes"
+              variant="warning"
+            />
           ) : null}
 
           {billingStatus.isError ? (
-            <p className="text-sm text-muted-foreground">
-              Billing status could not be loaded.
-            </p>
+            <ItemNotice
+              description={
+                billingStatus.error instanceof Error
+                  ? billingStatus.error.message
+                  : 'Try refreshing the page.'
+              }
+              title="Billing status could not be loaded"
+              variant="error"
+            />
           ) : billingStatus.isLoading || !billingStatus.data ? (
             <p className="text-sm text-muted-foreground">
               Loading billing status.

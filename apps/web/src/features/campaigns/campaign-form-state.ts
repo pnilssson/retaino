@@ -19,6 +19,7 @@ export type CampaignStepId =
   | 'message'
   | 'booking'
   | 'sender'
+  | 'test'
   | 'review';
 
 export const defaultCampaignFormValues: CampaignFormValues = {
@@ -100,6 +101,7 @@ export function campaignFormValuesToCompleteInput(
 export function completedCampaignSteps(
   values: CampaignFormValues,
   senderReady: boolean,
+  testSmsStepComplete = false,
 ): CampaignStepId[] {
   const completed: CampaignStepId[] = [];
 
@@ -119,11 +121,16 @@ export function completedCampaignSteps(
     completed.push('sender');
   }
 
+  if (testSmsStepComplete) {
+    completed.push('test');
+  }
+
   if (
     isAudienceStepComplete(values) &&
     isMessageStepComplete(values) &&
     isBookingStepComplete(values) &&
-    senderReady
+    senderReady &&
+    testSmsStepComplete
   ) {
     completed.push('review');
   }

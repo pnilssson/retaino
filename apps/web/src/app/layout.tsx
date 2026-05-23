@@ -21,9 +21,27 @@ const fontMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
+const title = "Retaino";
+const description =
+  "Reactivate previous customers and measure recovered bookings.";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://retaino.com";
+
 export const metadata: Metadata = {
-  title: "Retaino",
-  description: "Reactivate previous customers and measure recovered bookings.",
+  metadataBase: new URL(siteUrl),
+  title,
+  description,
+  applicationName: "Retaino",
+  openGraph: {
+    title,
+    description,
+    siteName: "Retaino",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

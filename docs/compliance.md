@@ -1,7 +1,8 @@
 # Compliance
 
-Retaino handles marketing recipients, campaign events, booking exports, and
-revenue attribution. Treat imported and generated artifacts as sensitive.
+Retaino handles marketing recipients, campaign events, manual booking reports,
+future booking exports, and revenue reporting. Treat imported and generated
+artifacts as sensitive.
 
 This is product and engineering guidance, not legal advice.
 
@@ -9,7 +10,7 @@ This is product and engineering guidance, not legal advice.
 
 The customer is the controller for their customer list and campaign purpose.
 Retaino is the processor for imported contacts, campaign sends, tracking events,
-and reconciliation data.
+manual booking reports, and future reconciliation data.
 
 Organizations are the tenant boundary. Access rules live in
 `docs/architecture.md`.
@@ -36,8 +37,7 @@ current manifest and ignores client supplied document versions.
 
 When a material legal document changes, manually bump the bundle version.
 Affected organizations see an in-app notice. Imports are blocked until an admin
-accepts the current bundle. Campaign sends use the same gate when sending
-exists.
+accepts the current bundle. Campaign sends use the same gate.
 
 Do not add a normal user-facing revoke action.
 
@@ -71,8 +71,8 @@ execution.
 
 ## Data Minimization
 
-For MVP, store only fields needed for import, sending, tracking, and
-reconciliation:
+For MVP, store only fields needed for import, sending, tracking, and manual
+booking reports:
 
 - name
 - phone
@@ -83,7 +83,7 @@ reconciliation:
 - email hash
 - last booking date when provided
 - campaign membership
-- delivery, click, opt-out, and reconciliation events
+- delivery, click, opt-out, and reported booking events
 
 Do not import health notes, journal notes, treatment notes, free-text medical
 fields, or other sensitive special-category data. Do not use header-name deny
@@ -103,8 +103,8 @@ retention requirement.
 
 Use `audit_logs` for user-driven decisions and administrative actions: legal
 acceptance, import metadata, mapping, validation, dedupe, suppression removal,
-campaign rules, SMS copy, launch decisions, booking uploads, reconciliation,
-and manual attribution changes.
+campaign rules, SMS copy, launch decisions, manual booking reports, and future
+booking reconciliation changes.
 
 Use event tables as the audit trail for operational campaign activity:
 provider results in `campaign_message_events`, opt-outs and replies through
@@ -118,7 +118,9 @@ MVP retention defaults:
 - normalized contacts: keep while the organization is active or until deletion
   is requested
 - campaign events: keep for reporting and audit during the customer lifecycle
-- booking imports: keep only mapped fields needed for attribution and reporting
+- manual booking reports: keep only fields needed for outcome reporting
+- future booking imports: keep only mapped fields needed for attribution and
+  reporting
 
 Retention jobs run outside HTTP requests.
 
@@ -133,4 +135,4 @@ Minimum requirements:
 - no cross-tenant matching, exports, or dashboard aggregation
 - signed or unguessable short-link codes
 - rate limiting on redirects and upload endpoints
-- audit trail for destructive actions and manual attribution changes
+- audit trail for destructive actions and manual booking report changes

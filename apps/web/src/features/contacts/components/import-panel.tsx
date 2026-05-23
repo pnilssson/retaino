@@ -2,7 +2,6 @@
 
 import { useForm } from '@tanstack/react-form';
 import {
-  AlertCircle,
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
@@ -20,7 +19,6 @@ import {
   type CsvMapping,
 } from '@retaino/shared/contracts';
 import { ItemNotice } from '@/components/item-notice';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CountryCombobox } from '@/components/country-combobox';
@@ -95,11 +93,13 @@ export function ContactImportUploadScreen() {
   if (session.isError) {
     return (
       <main className="flex flex-1 items-center justify-center bg-background px-5 py-10">
-        <Alert className="max-w-lg" variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Import form could not be loaded</AlertTitle>
-          <AlertDescription>{session.error.message}</AlertDescription>
-        </Alert>
+        <div className="max-w-lg">
+          <ItemNotice
+            description={session.error.message}
+            title="Import form could not be loaded"
+            variant="error"
+          />
+        </div>
       </main>
     );
   }
@@ -240,6 +240,7 @@ function ImportForm({
         {({ canSubmit, file, isSubmitting, mapping, permissionAttestation }) => (
           <GuidedFlowFrame
             completedStepIds={completedImportSteps({
+              activeStep,
               file,
               mapping,
               parseError,
@@ -255,6 +256,7 @@ function ImportForm({
                 <section>
                   {activeStep === 'upload' ? (
                     <GuidedFlowSection
+                      description="Use a CSV export from your booking or customer system."
                       title="Upload the CSV"
                     >
                       <div className="grid gap-5">
@@ -267,6 +269,7 @@ function ImportForm({
                   >
                     {(field) => {
                       const error = field.state.meta.errors[0];
+                      const selectedFile = field.state.value;
 
                       return (
                         <div className="grid gap-2">
@@ -301,18 +304,31 @@ function ImportForm({
                               type="file"
                             />
                             <span className="flex items-center gap-3">
-                              <span className="flex size-10 items-center justify-center rounded-lg bg-muted">
-                                <FileUp aria-hidden="true" className="size-5" />
+                              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                {selectedFile ? (
+                                  <CheckCircle2
+                                    aria-hidden="true"
+                                    className="size-5"
+                                  />
+                                ) : (
+                                  <FileUp aria-hidden="true" className="size-5" />
+                                )}
                               </span>
-                              <span className="grid gap-1">
-                                <span className="text-sm font-medium">
-                                  {field.state.value
-                                    ? field.state.value.name
+                              <span className="grid min-w-0 gap-1">
+                                <span className="break-all text-sm font-medium">
+                                  {selectedFile
+                                    ? selectedFile.name
                                     : 'Choose a CSV file'}
                                 </span>
-                                <span className={textStyles.mutedBody}>
-                                  CSV only, up to 25 MB.
-                                </span>
+                                {selectedFile ? (
+                                  <span className={textStyles.mutedBody}>
+                                    Selected. Choose another CSV to replace it.
+                                  </span>
+                                ) : (
+                                  <span className={textStyles.mutedBody}>
+                                    CSV only, up to 25 MB.
+                                  </span>
+                                )}
                               </span>
                             </span>
                           </label>
@@ -338,6 +354,7 @@ function ImportForm({
 
                   {activeStep === 'match' ? (
                     <GuidedFlowSection
+                      description="Choose which CSV columns should fill each contact field."
                       title="Match the columns"
                     >
                       {preview ? (
@@ -345,33 +362,18 @@ function ImportForm({
                     <div className="grid max-w-3xl gap-3">
                       <div
                         className={cn(
-                          'hidden grid-cols-[180px_2rem_minmax(0,1fr)] items-center gap-3 px-1 uppercase sm:grid',
+                          'hidden grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)] items-center gap-3 px-1 uppercase sm:grid',
                           textStyles.metaStrong,
                         )}
                       >
-                        <span>Retaino field</span>
-                        <span aria-hidden="true" />
                         <span>CSV column</span>
+                        <span aria-hidden="true" />
+                        <span>Retaino field</span>
                       </div>
                       {CONTACT_IMPORT_TARGET_FIELDS.map((target) => (
                         <form.Field key={target} name={`mapping.${target}`}>
                           {(field) => (
-                            <div className="grid gap-2 sm:grid-cols-[180px_2rem_minmax(0,1fr)] sm:items-center">
-                              <Label>
-                                <span
-                                  className={cn(
-                                    'uppercase sm:hidden',
-                                    textStyles.metaStrong,
-                                  )}
-                                >
-                                  Retaino field
-                                </span>
-                                <span>{formatTargetField(target)}</span>
-                              </Label>
-                              <ArrowRight
-                                aria-hidden="true"
-                                className="hidden size-4 justify-self-center text-muted-foreground sm:block"
-                              />
+                            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)] sm:items-center">
                               <div className="grid gap-1">
                                 <span
                                   className={cn(
@@ -404,6 +406,21 @@ function ImportForm({
                                   </SelectContent>
                                 </Select>
                               </div>
+                              <ArrowRight
+                                aria-hidden="true"
+                                className="hidden size-4 justify-self-center text-muted-foreground sm:block"
+                              />
+                              <Label>
+                                <span
+                                  className={cn(
+                                    'uppercase sm:hidden',
+                                    textStyles.metaStrong,
+                                  )}
+                                >
+                                  Retaino field
+                                </span>
+                                <span>{formatTargetField(target)}</span>
+                              </Label>
                             </div>
                           )}
                         </form.Field>
@@ -428,6 +445,7 @@ function ImportForm({
 
                   {activeStep === 'review' ? (
                     <GuidedFlowSection
+                      description="Check the mapped sample and confirm permission before importing."
                       title="Review the import"
                     >
                       {preview ? (
@@ -505,7 +523,7 @@ function ImportForm({
                       <ItemNotice
                         description={upload.error}
                         title="Import could not start"
-                        tone="destructive"
+                        variant="error"
                       />
                     ) : null}
 
@@ -557,12 +575,14 @@ function ImportForm({
 }
 
 function completedImportSteps({
+  activeStep,
   file,
   mapping,
   parseError,
   permissionAttestation,
   preview,
 }: {
+  activeStep: ImportStepId;
   file: File | null;
   mapping: CsvMapping;
   parseError: string | null;
@@ -571,19 +591,30 @@ function completedImportSteps({
 }): ImportStepId[] {
   const completed: ImportStepId[] = [];
 
-  if (file && preview && !parseError) {
+  if (importStepIsPast(activeStep, 'upload') && file && preview && !parseError) {
     completed.push('upload');
   }
 
-  if (contactImportMappingReady(mapping)) {
+  if (importStepIsPast(activeStep, 'match') && contactImportMappingReady(mapping)) {
     completed.push('match');
   }
 
-  if (permissionAttestation) {
+  if (importStepIsPast(activeStep, 'review') && permissionAttestation) {
     completed.push('review');
   }
 
   return completed;
+}
+
+function importStepIsPast(
+  activeStep: ImportStepId,
+  completedStep: ImportStepId,
+) {
+  return importStepRank(activeStep) > importStepRank(completedStep);
+}
+
+function importStepRank(step: ImportStepId) {
+  return importSteps.findIndex((importStep) => importStep.id === step);
 }
 
 function MappedPreviewTable({

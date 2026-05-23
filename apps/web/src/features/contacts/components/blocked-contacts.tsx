@@ -62,7 +62,11 @@ export function BlockedContacts({ session }: { session: OrganizationSession }) {
         <AppPageContent>
           <AppPageItem asChild>
             <section>
-              <ItemNotice description={alertDescription} title={alertTitle} />
+              <ItemNotice
+                description={alertDescription}
+                title={alertTitle}
+                variant="warning"
+              />
               <div className="flex justify-end">
                 <Button asChild>
                   <Link href={actionHref}>

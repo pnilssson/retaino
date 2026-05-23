@@ -99,7 +99,7 @@ function Metric({
   return (
     <div className="min-w-0">
       <dt className={textStyles.meta}>{label}</dt>
-      <dd className="mt-1 truncate text-xl font-semibold tracking-normal tabular-nums">
+      <dd className={cn('mt-1 truncate font-medium tabular-nums', textStyles.body)}>
         {value}
       </dd>
     </div>

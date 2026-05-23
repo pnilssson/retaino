@@ -1,13 +1,19 @@
 "use client";
 
 import type { Campaign, OrganizationSession } from '@retaino/shared/contracts';
-import { AlertCircle, FileText, Plus, RefreshCw } from 'lucide-react';
+import {
+  FileText,
+  FileUp,
+  Megaphone,
+  Plus,
+  RefreshCw,
+  UsersRound,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
 import { EmptyState, TableLoading } from '@/components/data-table';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   ItemContent,
@@ -20,6 +26,7 @@ import {
   AppPageItem,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
+import { useContactPresence } from '@/features/contacts/hooks/use-contact-presence';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
@@ -43,6 +50,10 @@ export function CampaignsScreen() {
     useCampaignListQueryState();
   const organizationId = session.data?.organization.id ?? null;
   const campaigns = useCampaigns({
+    enabled: Boolean(session.data?.readiness.ready),
+    organizationId,
+  });
+  const contactPresence = useContactPresence({
     enabled: Boolean(session.data?.readiness.ready),
     organizationId,
   });
@@ -70,11 +81,13 @@ export function CampaignsScreen() {
   if (session.isError) {
     return (
       <main className="flex flex-1 items-center justify-center bg-background px-5 py-10">
-        <Alert className="max-w-lg" variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Campaigns could not be loaded</AlertTitle>
-          <AlertDescription>{session.error.message}</AlertDescription>
-        </Alert>
+        <div className="max-w-lg">
+          <ItemNotice
+            description={session.error.message}
+            title="Campaigns could not be loaded"
+            variant="error"
+          />
+        </div>
       </main>
     );
   }
@@ -87,12 +100,17 @@ export function CampaignsScreen() {
     return <BlockedCampaigns session={session.data} />;
   }
 
+  const hasContacts = (contactPresence.data?.total ?? 0) > 0;
+  const contactPresenceLoaded = Boolean(contactPresence.data);
+  const hasCampaigns = (campaigns.data?.campaigns.length ?? 0) > 0;
+
   return (
     <main className="flex flex-1 items-start bg-background">
       <section className="mx-auto grid w-full max-w-7xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={
-            <>
+            hasContacts && hasCampaigns ? (
+              <>
               <Button asChild>
                 <Link href={routes.campaignNew}>
                   <Plus aria-hidden="true" data-icon="inline-start" />
@@ -109,7 +127,8 @@ export function CampaignsScreen() {
                 <RefreshCw aria-hidden="true" data-icon="inline-start" />
                 Refresh
               </Button>
-            </>
+              </>
+            ) : null
           }
           description="Review campaigns and previous sends for this organization."
           eyebrow="Campaigns"
@@ -119,26 +138,34 @@ export function CampaignsScreen() {
         <AppPageContent>
           <AppPageItem asChild>
             <section>
-              <ItemHeader className="items-start">
-                <ItemContent className="gap-2">
-                  <ItemTitle>Campaigns</ItemTitle>
-                  <ItemDescription>
-                    Filter campaigns by status, audience, and activity.
-                  </ItemDescription>
-                </ItemContent>
-              </ItemHeader>
-
-              <CampaignFilters
-                direction={direction}
-                onChange={(values) => {
-                  void setQuery(values);
-                }}
-                search={search}
-                sort={sort}
-                status={status}
-              />
-
-              {campaigns.isError ? (
+              {contactPresence.isError ? (
+                <ItemNotice
+                  description={
+                    contactPresence.error instanceof Error
+                      ? contactPresence.error.message
+                      : 'Try refreshing the page.'
+                  }
+                  title="Contact status could not be checked"
+                  variant="error"
+                />
+              ) : !contactPresenceLoaded ? (
+                <TableLoading label="Checking contacts" />
+              ) : !hasContacts ? (
+                <EmptyState
+                  action={
+                    <Button asChild>
+                      <Link href={routes.contactsImport}>
+                        <FileUp aria-hidden="true" data-icon="inline-start" />
+                        Import CSV
+                      </Link>
+                    </Button>
+                  }
+                  description="Import contacts first so every campaign can preview a real audience before you write and send SMS."
+                  icon={UsersRound}
+                  title="Import contacts before campaigns"
+                  variant="page"
+                />
+              ) : campaigns.isError ? (
                 <ItemNotice
                   description={
                     campaigns.error instanceof Error
@@ -146,22 +173,55 @@ export function CampaignsScreen() {
                       : 'Try refreshing the list.'
                   }
                   title="Campaigns could not be fetched"
-                  tone="destructive"
+                  variant="error"
                 />
               ) : campaigns.isLoading ? (
                 <TableLoading label="Loading campaigns" />
-              ) : filteredCampaigns.length > 0 ? (
-                <CampaignsTable campaigns={filteredCampaigns} />
-              ) : search || status !== 'all' ? (
+              ) : !hasCampaigns ? (
                 <EmptyState
-                  description="Clear or change the filters to see more campaigns."
-                  title="No campaigns match these filters"
+                  action={
+                    <Button asChild>
+                      <Link href={routes.campaignNew}>
+                        <Plus aria-hidden="true" data-icon="inline-start" />
+                        New campaign
+                      </Link>
+                    </Button>
+                  }
+                  description="Create a campaign to choose a lapsed audience, write the SMS copy, and prepare your first send."
+                  icon={Megaphone}
+                  title="Create your first campaign"
+                  variant="page"
                 />
               ) : (
-                <EmptyState
-                  description="Create a campaign to choose a lapsed audience and write the SMS copy."
-                  title="No campaigns yet"
-                />
+                <>
+                  <ItemHeader className="items-start">
+                    <ItemContent className="gap-2">
+                      <ItemTitle>Campaigns</ItemTitle>
+                      <ItemDescription>
+                        Filter campaigns by status, audience, and activity.
+                      </ItemDescription>
+                    </ItemContent>
+                  </ItemHeader>
+
+                  <CampaignFilters
+                    direction={direction}
+                    onChange={(values) => {
+                      void setQuery(values);
+                    }}
+                    search={search}
+                    sort={sort}
+                    status={status}
+                  />
+
+                  {filteredCampaigns.length > 0 ? (
+                    <CampaignsTable campaigns={filteredCampaigns} />
+                  ) : (
+                    <EmptyState
+                      description="Clear or change the filters to see more campaigns."
+                      title="No campaigns match these filters"
+                    />
+                  )}
+                </>
               )}
             </section>
           </AppPageItem>
@@ -191,7 +251,11 @@ function BlockedCampaigns({ session }: { session: OrganizationSession }) {
         <AppPageContent>
           <AppPageItem asChild>
             <section>
-              <ItemNotice description={block.description} title={block.title} />
+              <ItemNotice
+                description={block.description}
+                title={block.title}
+                variant="warning"
+              />
               <div className="flex justify-end">
                 <Button asChild>
                   <Link href={block.actionHref}>

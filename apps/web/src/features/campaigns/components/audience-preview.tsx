@@ -44,7 +44,7 @@ export function AudiencePreview({
             : 'Try changing the audience rule or refreshing the page.'
         }
         title="Audience preview could not be loaded"
-        tone="destructive"
+        variant="error"
       />
     );
   }

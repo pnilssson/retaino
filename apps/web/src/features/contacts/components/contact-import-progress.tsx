@@ -14,8 +14,6 @@ import {
 } from '@/components/sankey-breakdown';
 import { Button } from '@/components/ui/button';
 import { GuidedFlowActions } from '@/components/guided-flow';
-import { ItemTitle } from '@/components/ui/item';
-import { Separator } from '@/components/ui/separator';
 import { useContactImport } from '@/features/contacts/hooks/use-contact-import';
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
@@ -76,7 +74,6 @@ export function ContactImportProgress({
   if (importQuery.isLoading) {
     return (
       <section className="grid gap-4">
-        <Separator />
         <p className={textStyles.mutedBody}>Loading import status.</p>
       </section>
     );
@@ -91,7 +88,7 @@ export function ContactImportProgress({
             : 'Try refreshing the page.'
         }
         title="Import status could not be loaded"
-        tone="destructive"
+        variant="error"
       />
     );
   }
@@ -99,7 +96,6 @@ export function ContactImportProgress({
   return (
     <section className="grid gap-5">
       <ImportProgressHeader
-        checkedAt={importQuery.dataUpdatedAt}
         fileName={fileName}
         importRow={latestImport}
       />
@@ -128,11 +124,9 @@ export function ContactImportProgress({
 }
 
 function ImportProgressHeader({
-  checkedAt,
   fileName,
   importRow,
 }: {
-  checkedAt: number;
   fileName: string | null;
   importRow: ContactImportDetail;
 }) {
@@ -163,16 +157,11 @@ function ImportProgressHeader({
         <p className={cn('max-w-2xl', textStyles.mutedBody)}>
           {description}
         </p>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground">
-          {fileName ? (
-            <p className={cn('truncate', textStyles.meta)}>
-              File: {fileName}
-            </p>
-          ) : null}
-          <p className={textStyles.meta}>
-            Checked {formatImportCheckedAt(checkedAt)}
+        {fileName ? (
+          <p className={cn('truncate', textStyles.meta)}>
+            {fileName}
           </p>
-        </div>
+        ) : null}
       </div>
       <ImportStatusBadge status={importRow.status} />
     </div>
@@ -199,35 +188,30 @@ function shouldShowImportMetrics(importRow: ContactImportDetail) {
   return importRow.status !== 'processing' || importRow.processedRows > 0;
 }
 
-function formatImportCheckedAt(value: number | string) {
-  return new Intl.DateTimeFormat(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).format(new Date(value));
-}
-
 function ImportIssues({ importRow }: { importRow: ContactImportDetail }) {
   if (importRow.errorSummary.length === 0) {
     return null;
   }
 
   return (
-    <div className="grid gap-2">
-      <ItemTitle>
-        {importRow.status === 'failed' ? 'Import error' : 'Rows needing attention'}
-      </ItemTitle>
-      <div className="flex flex-wrap gap-2">
-        {importRow.errorSummary.map((issue) => (
-          <span
-            className={cn('rounded-md bg-muted px-2 py-1', textStyles.mutedBody)}
-            key={issue}
-          >
-            {formatImportIssue(issue)}
-          </span>
-        ))}
-      </div>
-    </div>
+    <ItemNotice
+      description={
+        <div className="flex flex-wrap gap-2">
+          {importRow.errorSummary.map((issue) => (
+            <span
+              className={cn('rounded-md bg-muted px-2 py-1', textStyles.mutedBody)}
+              key={issue}
+            >
+              {formatImportIssue(issue)}
+            </span>
+          ))}
+        </div>
+      }
+      title={
+        importRow.status === 'failed' ? 'Import failed' : 'Rows need attention'
+      }
+      variant={importRow.status === 'failed' ? 'error' : 'warning'}
+    />
   );
 }
 

@@ -9,7 +9,9 @@ Retaino is a multi-tenant SaaS for SMS-based customer reactivation.
 - `docs/compliance.md`: legal, privacy, retention, and audit rules.
 - `docs/caching.md`: cache policy and query-key rules.
 - `docs/pricing.md`: plans, credit rules, and Stripe decisions.
-- `docs/tracking.md`: short links, booking reconciliation, and attribution.
+- `docs/tracking.md`: short links and click tracking.
+- `docs/reporting.md`: campaign metrics, manual booking reports, and future
+  attribution.
 
 ## Monorepo
 

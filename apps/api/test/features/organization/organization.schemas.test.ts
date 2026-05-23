@@ -6,17 +6,19 @@ import {
 
 describe('updateOrganizationProfileSchema', () => {
   it('accepts the required company and responsible contact fields', () => {
-    expect(
-      updateOrganizationProfileSchema.safeParse({
-        legalName: 'Retaino AB',
-        registrationNumber: '559000-0000',
-        billingEmail: 'billing@retaino.test',
-        responsibleName: 'Ada Lovelace',
-        responsibleEmail: 'ada@retaino.test',
-        responsiblePhone: '+46700000000',
-        countryCode: 'SE',
-      }).success,
-    ).toBe(true);
+    const result = updateOrganizationProfileSchema.safeParse({
+      legalName: 'Retaino AB',
+      registrationNumber: '559000-0000',
+      billingEmail: 'billing@retaino.test',
+      responsibleName: 'Ada Lovelace',
+      responsibleEmail: 'ada@retaino.test',
+      responsiblePhone: '+46700000000',
+      countryCode: 'SE',
+      currency: 'sek',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data?.currency).toBe('SEK');
   });
 
   it('rejects invalid responsible contact email', () => {
@@ -28,6 +30,21 @@ describe('updateOrganizationProfileSchema', () => {
         responsibleName: 'Ada Lovelace',
         responsibleEmail: 'not-an-email',
         countryCode: 'SE',
+        currency: 'SEK',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects invalid currencies', () => {
+    expect(
+      updateOrganizationProfileSchema.safeParse({
+        legalName: 'Retaino AB',
+        registrationNumber: '559000-0000',
+        billingEmail: 'billing@retaino.test',
+        responsibleName: 'Ada Lovelace',
+        responsibleEmail: 'ada@retaino.test',
+        countryCode: 'SE',
+        currency: 'NOT_A_CURRENCY',
       }).success,
     ).toBe(false);
   });

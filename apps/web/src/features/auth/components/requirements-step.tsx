@@ -1,10 +1,9 @@
 "use client";
 
 import { Mail } from 'lucide-react';
+import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import type { useEmailCodeAuth } from '@/features/auth/hooks/use-email-code-auth';
-import { textStyles } from '@/lib/text-styles';
-import { cn } from '@/lib/utils';
 
 type EmailCodeAuth = ReturnType<typeof useEmailCodeAuth>;
 
@@ -17,16 +16,14 @@ export function RequirementsStep({
 }) {
   return (
     <div className="grid gap-5">
-      <div
-        className={cn(
-          'border border-destructive/25 bg-destructive/5 p-4',
-          textStyles.error,
-        )}
-        role="alert"
-      >
-        {formError ??
-          'This account needs more information before it can be created.'}
-      </div>
+      <ItemNotice
+        description={
+          formError ??
+          'This account needs more information before it can be created.'
+        }
+        title="Account setup needs attention"
+        variant="error"
+      />
       <Button
         className="h-12 px-4"
         disabled={auth.isFetching}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Retaino icon">
+  <rect x="0" y="0" width="512" height="512" rx="96" fill="#ffffff" />
+  <path
+    fill="#071b17"
+    d="M94 80h194c68 0 118 50 118 119 0 52-28 94-73 113l84 120H314l-76-108h-11v-65h53c25 0 42-20 42-49 0-30-18-49-45-49H174v76H94V80Z"
+  />
+</svg>

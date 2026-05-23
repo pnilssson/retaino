@@ -35,6 +35,7 @@ import {
   CampaignTextInput,
 } from './campaign-field-controls';
 import { CampaignReview } from './campaign-review';
+import { CampaignTestSms } from './campaign-test-sms';
 import { MessageEstimate, MessagePreview } from './message-preview';
 import { SenderSetup } from './sender-setup';
 import {
@@ -69,6 +70,7 @@ const campaignSteps: GuidedFlowStep<CampaignStepId>[] = [
   { id: 'message', title: 'Message' },
   { id: 'booking', title: 'Booking' },
   { id: 'sender', title: 'Sender' },
+  { id: 'test', title: 'Test SMS' },
   { id: 'review', title: 'Review' },
 ];
 
@@ -94,6 +96,7 @@ export function CampaignForm({
   const [queuedRecipientCount, setQueuedRecipientCount] = useState<number | null>(
     null,
   );
+  const [testSmsStepComplete, setTestSmsStepComplete] = useState(false);
   const messageTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const createCampaign = useCreateCampaign(organizationId);
   const sender = useSmsSender(organizationId);
@@ -183,6 +186,7 @@ export function CampaignForm({
             queuedRecipientCount === 1 ? 'recipient is' : 'recipients are'
           } queued for sending.`}
           title="Campaign send queued"
+          variant="success"
         />
       ) : null}
 
@@ -198,7 +202,7 @@ export function CampaignForm({
               ? 'Campaign could not be sent'
               : 'Campaign could not be saved'
           }
-          tone="destructive"
+          variant="error"
         />
       ) : null}
 
@@ -211,7 +215,11 @@ export function CampaignForm({
       >
         {({ canSubmit, isSubmitting, values }) => {
           const senderReady = sender.data?.sender?.status === 'ready';
-          const completedStepIds = completedCampaignSteps(values, senderReady);
+          const completedStepIds = completedCampaignSteps(
+            values,
+            senderReady,
+            testSmsStepComplete,
+          );
 
           return (
             <GuidedFlowFrame
@@ -454,7 +462,9 @@ export function CampaignForm({
                     ) : null}
 
                     {activeStep === 'sender' ? (
-                      <GuidedFlowSection title="Set up the sender">
+                      <GuidedFlowSection
+                        title={senderReady ? 'Sender ready' : 'Set up the sender'}
+                      >
                         <div className="grid gap-5">
                           <SenderSetup
                             organizationId={organizationId}
@@ -463,12 +473,33 @@ export function CampaignForm({
 
                           <GuidedFlowActions
                             canContinue={senderReady}
-                            continueLabel="Review campaign"
+                            continueLabel="Continue to test SMS"
                             isPending={sender.isLoading}
                             onBack={() => setActiveStep('booking')}
-                            onContinue={() => setActiveStep('review')}
+                            onContinue={() => setActiveStep('test')}
                           />
                         </div>
+                      </GuidedFlowSection>
+                    ) : null}
+
+                    {activeStep === 'test' ? (
+                      <GuidedFlowSection
+                        description="Send yourself the message before launching, or skip this check."
+                        title="Send a test SMS"
+                      >
+                        <CampaignTestSms
+                          campaignId={campaign?.id ?? null}
+                          onBack={() => setActiveStep('sender')}
+                          onSent={() => {
+                            setTestSmsStepComplete(true);
+                            setActiveStep('review');
+                          }}
+                          onSkip={() => {
+                            setTestSmsStepComplete(true);
+                            setActiveStep('review');
+                          }}
+                          senderReady={senderReady}
+                        />
                       </GuidedFlowSection>
                     ) : null}
 
@@ -479,13 +510,12 @@ export function CampaignForm({
                         <div className="grid gap-5">
                     <CampaignReview
                       campaign={campaign}
-                      campaignId={campaign?.id ?? null}
                       organizationId={organizationId}
                       senderReady={senderReady}
                       values={values}
                     />
 
-                          <GuidedFlowActions onBack={() => setActiveStep('sender')}>
+                          <GuidedFlowActions onBack={() => setActiveStep('test')}>
                             <Button
                               disabled={
                                 !canSendCampaign ||

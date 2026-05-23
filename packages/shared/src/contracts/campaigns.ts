@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { currencyCodeSchema } from '../money';
 import { idSchema, nonEmptyStringSchema, timestampSchema } from '../schemas';
 
 export const SMS_SENDER_PROVIDERS = ['fake', 'twilio'] as const;
@@ -29,6 +30,9 @@ export const CAMPAIGN_RECIPIENT_STATUSES = [
   'skipped',
 ] as const;
 export const SMS_MESSAGE_DIRECTIONS = ['inbound', 'outbound'] as const;
+export const BOOKING_REPORT_SOURCES = ['manual'] as const;
+export const BOOKING_REPORT_STATUSES = ['completed'] as const;
+export const MAX_MANUAL_BOOKING_REPORT_ROWS = 50;
 
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
 export type CampaignRecipientStatus =
@@ -37,6 +41,8 @@ export type SmsMessageDirection = (typeof SMS_MESSAGE_DIRECTIONS)[number];
 export type SmsSenderProvider = (typeof SMS_SENDER_PROVIDERS)[number];
 export type SmsSenderStatus = (typeof SMS_SENDER_STATUSES)[number];
 export type SmsSenderNumberType = (typeof SMS_SENDER_NUMBER_TYPES)[number];
+export type BookingReportSource = (typeof BOOKING_REPORT_SOURCES)[number];
+export type BookingReportStatus = (typeof BOOKING_REPORT_STATUSES)[number];
 
 export const campaignStatusSchema = z.enum(CAMPAIGN_STATUSES);
 export const campaignRecipientStatusSchema = z.enum(
@@ -46,6 +52,8 @@ export const smsMessageDirectionSchema = z.enum(SMS_MESSAGE_DIRECTIONS);
 export const smsSenderProviderSchema = z.enum(SMS_SENDER_PROVIDERS);
 export const smsSenderStatusSchema = z.enum(SMS_SENDER_STATUSES);
 export const smsSenderNumberTypeSchema = z.enum(SMS_SENDER_NUMBER_TYPES);
+export const bookingReportSourceSchema = z.enum(BOOKING_REPORT_SOURCES);
+export const bookingReportStatusSchema = z.enum(BOOKING_REPORT_STATUSES);
 
 export const CAMPAIGN_SMS_PERSONALIZATION_TOKENS = [
   'first_name',
@@ -167,10 +175,93 @@ export const campaignReportSchema = z.object({
   estimatedSmsSegments: z.number().int().nonnegative(),
   actualSmsSegments: z.number().int().nonnegative(),
   segmentEstimateDrift: z.number().int(),
+  manualOutcome: z.object({
+    bookingCount: z.number().int().nonnegative(),
+    revenueAmountMinor: z.number().int().nonnegative().nullable(),
+    currency: currencyCodeSchema,
+    hasMixedCurrencies: z.boolean(),
+    bookingRate: z.number().nonnegative(),
+    revenuePerDeliveredRecipientMinor: z.number().int().nonnegative().nullable(),
+  }),
+  bookingReports: z.array(
+    z.object({
+      id: idSchema,
+      campaignId: idSchema,
+      source: bookingReportSourceSchema,
+      status: bookingReportStatusSchema,
+      checkedThroughDate: z.iso.date().nullable(),
+      note: nonEmptyStringSchema.nullable(),
+      bookingCount: z.number().int().nonnegative(),
+      revenueAmountMinor: z.number().int().nonnegative().nullable(),
+      currency: currencyCodeSchema,
+      hasMixedCurrencies: z.boolean(),
+      createdByUserId: idSchema,
+      createdAt: timestampSchema,
+    }),
+  ),
 });
 
 export const campaignReportResponseSchema = z.object({
   report: campaignReportSchema,
+});
+
+export const manualBookingReportSummarySchema =
+  campaignReportSchema.shape.bookingReports.element;
+
+function optionalBookingTextSchema(maxLength: number) {
+  return z
+    .string()
+    .trim()
+    .max(maxLength)
+    .transform((value) => (value ? value : undefined))
+    .optional();
+}
+
+export const manualBookingReportRowSchema = z
+  .object({
+    bookingDate: z.iso.date(),
+    customerName: optionalBookingTextSchema(120),
+    phone: optionalBookingTextSchema(64),
+    email: z
+      .string()
+      .trim()
+      .max(254)
+      .transform((value) => (value ? value : undefined))
+      .pipe(z.email().optional())
+      .optional(),
+    revenueAmount: optionalBookingTextSchema(32),
+    service: optionalBookingTextSchema(120),
+    note: optionalBookingTextSchema(500),
+  })
+  .strict()
+  .refine(
+    (value) =>
+      Boolean(
+        value.customerName ||
+          value.phone ||
+          value.email ||
+          value.revenueAmount ||
+          value.service ||
+          value.note,
+      ),
+    {
+      message: 'Enter at least one booking detail.',
+    },
+  );
+
+export const createManualBookingReportSchema = z
+  .object({
+    checkedThroughDate: z.iso.date().optional(),
+    note: optionalBookingTextSchema(500),
+    bookings: z
+      .array(manualBookingReportRowSchema)
+      .min(1)
+      .max(MAX_MANUAL_BOOKING_REPORT_ROWS),
+  })
+  .strict();
+
+export const createManualBookingReportResponseSchema = z.object({
+  bookingReport: manualBookingReportSummarySchema,
 });
 
 export const campaignAudiencePreviewRequestSchema = z
@@ -412,6 +503,15 @@ export type CampaignRecipientSummaryResponse = z.infer<
   typeof campaignRecipientSummaryResponseSchema
 >;
 export type CampaignSendResponse = z.infer<typeof campaignSendResponseSchema>;
+export type CreateManualBookingReportInput = z.infer<
+  typeof createManualBookingReportSchema
+>;
+export type CreateManualBookingReportResponse = z.infer<
+  typeof createManualBookingReportResponseSchema
+>;
+export type ManualBookingReportRowInput = z.infer<
+  typeof manualBookingReportRowSchema
+>;
 
 export type CampaignResponse = {
   campaign: Campaign;

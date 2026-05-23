@@ -5,9 +5,9 @@ import {
   canManageOrganizationSetup,
   type OrganizationSession,
 } from '@retaino/shared/contracts';
-import { AlertCircle, CheckCircle2, Settings2 } from 'lucide-react';
+import { CheckCircle2, Settings2 } from 'lucide-react';
 import Link from 'next/link';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import { AppPageContent } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
@@ -36,11 +36,13 @@ export function OrganizationSettingsScreen() {
   if (session.isError) {
     return (
       <main className="flex flex-1 items-center justify-center bg-background px-5 py-10">
-        <Alert className="max-w-lg" variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Organization settings could not be loaded</AlertTitle>
-          <AlertDescription>{session.error.message}</AlertDescription>
-        </Alert>
+        <div className="max-w-lg">
+          <ItemNotice
+            description={session.error.message}
+            title="Organization settings could not be loaded"
+            variant="error"
+          />
+        </div>
       </main>
     );
   }

@@ -84,4 +84,4 @@ role-gated.
 - journeys and automation
 - AI copy generation and experiments
 - full inbox workflows
-- booking reconciliation and attribution matching
+- spreadsheet booking reconciliation and attribution matching

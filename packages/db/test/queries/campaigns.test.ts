@@ -6,7 +6,6 @@ import {
   countCampaignRecipients,
   createAuditLog,
   deleteCampaignDraft,
-  getCampaignReport,
   getLatestCampaignRecipientByPhoneHash,
   listSelectedCampaignRecipientsForSend,
   launchCampaign,
@@ -783,60 +782,6 @@ describe('campaign query helpers', () => {
         resourceId: campaignRow.id,
         metadata: { recipientCount: 1 },
       }),
-    ]);
-  });
-
-  it('builds tenant-scoped campaign report aggregate queries', async () => {
-    let statement: SQL | undefined;
-    const db = {
-      execute: (query: SQL) => {
-        statement = query;
-
-        return {
-          rows: [
-            {
-              selected_count: 10,
-              queued_count: 0,
-              sent_count: 9,
-              delivered_count: 8,
-              failed_count: 1,
-              skipped_count: 1,
-              opt_out_count: 1,
-              inbound_reply_count: 2,
-              click_count: 4,
-              unique_clicker_count: 3,
-              estimated_sms_segments: 10,
-              actual_sms_segments: 9,
-            },
-          ],
-        };
-      },
-    };
-
-    await expect(
-      getCampaignReport(db as never, {
-        organizationId: campaignRow.organizationId,
-        campaignId: campaignRow.id,
-      }),
-    ).resolves.toMatchObject({
-      selectedCount: 10,
-      deliveredCount: 8,
-      segmentEstimateDrift: -1,
-    });
-
-    if (!statement) {
-      throw new Error('Expected getCampaignReport to execute a SQL statement.');
-    }
-
-    const query = new PgDialect().sqlToQuery(statement);
-    expect(query.sql).toContain('$1::uuid as campaign_id');
-    expect(query.sql).toContain('$2::uuid as organization_id');
-    expect(query.sql).toContain('"campaign_recipients"."organization_id"');
-    expect(query.sql).toContain('"sms_messages"."organization_id"');
-    expect(query.sql).toContain('"click_events"."organization_id"');
-    expect(query.params.slice(0, 2)).toEqual([
-      campaignRow.id,
-      campaignRow.organizationId,
     ]);
   });
 

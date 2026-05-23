@@ -5,9 +5,11 @@ import {
   formatPhoneCountryLabel,
   type OrganizationSession,
 } from '@retaino/shared/contracts';
-import { Pencil } from 'lucide-react';
+import { formatCurrencyLabel } from '@retaino/shared';
+import { Info, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { CountryCombobox } from '@/components/country-combobox';
+import { CurrencyCombobox } from '@/components/currency-combobox';
 import { ItemNotice } from '@/components/item-notice';
 import { PhoneInput } from '@/components/phone-input';
 import { StatusBadge } from '@/components/status-badge';
@@ -20,6 +22,12 @@ import {
   ItemTitle,
 } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { AppPageItem } from '@/features/appshell/components/app-page-content';
 import { useUpdateOrganizationProfile } from '@/features/onboarding/hooks/use-update-organization-profile';
 import {
@@ -27,6 +35,7 @@ import {
   organizationProfileFormValuesToUpdateInput,
   type OrganizationProfileFormValues,
   validateCountryCode,
+  validateCurrencyCode,
   validateEmail,
   validatePhone,
   validateRequired,
@@ -90,6 +99,7 @@ export function ProfileSection({
           <ItemNotice
             description="Organization admins need to add company and responsible contact details before the workspace is ready."
             title="Profile is not complete"
+            variant="warning"
           />
         )}
       </section>
@@ -269,6 +279,26 @@ function ProfileEditor({
           )}
         </form.Field>
         <form.Field
+          name="currency"
+          validators={{
+            onBlur: ({ value }) => validateCurrencyCode(value),
+            onSubmit: ({ value }) => validateCurrencyCode(value),
+          }}
+        >
+          {(field) => (
+            <ProfileCurrencyInput
+              error={getFieldError(field.state.meta.errors)}
+              label="Currency"
+              name={field.name}
+              onBlur={field.handleBlur}
+              onChange={(value) =>
+                field.handleChange(value as typeof field.state.value)
+              }
+              value={field.state.value}
+            />
+          )}
+        </form.Field>
+        <form.Field
           name="responsiblePhone"
           validators={{
             onBlur: ({ value }) =>
@@ -298,7 +328,7 @@ function ProfileEditor({
         <ItemNotice
           description={updateProfile.error.message}
           title="Profile could not be saved"
-          tone="destructive"
+          variant="error"
         />
       ) : null}
 
@@ -346,12 +376,16 @@ function ProfileSummary({
       <ProfileRow label="Responsible contact" value={profile.responsibleName} />
       <ProfileRow label="Responsible email" value={profile.responsibleEmail} />
       <ProfileRow
-        label="Responsible phone"
-        value={profile.responsiblePhone ?? 'Not provided'}
-      />
-      <ProfileRow
         label="Default phone country"
         value={formatPhoneCountryLabel(profile.countryCode)}
+      />
+      <ProfileRow
+        label="Currency"
+        value={formatCurrencyLabel(profile.currency)}
+      />
+      <ProfileRow
+        label="Responsible phone"
+        value={profile.responsiblePhone ?? 'Not provided'}
       />
     </dl>
   );
@@ -374,8 +408,61 @@ function ProfileCountryInput({
 }) {
   return (
     <div className="grid gap-2">
-      <Label htmlFor={name}>{label}</Label>
+      <div className="flex items-center gap-1.5">
+        <Label htmlFor={name}>{label}</Label>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                aria-label="Default phone country details"
+                className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                type="button"
+              >
+                <Info aria-hidden="true" className="size-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-72">
+              Used when imported phone numbers have no country prefix.
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
       <CountryCombobox
+        aria-invalid={Boolean(error)}
+        id={name}
+        name={name}
+        onBlur={onBlur}
+        onChange={onChange}
+        value={value}
+      />
+      {error ? (
+        <p className={textStyles.error} id={`${name}-error`}>
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ProfileCurrencyInput({
+  error,
+  label,
+  name,
+  onBlur,
+  onChange,
+  value,
+}: {
+  error: string | null;
+  label: string;
+  name: keyof OrganizationProfileFormValues;
+  onBlur: () => void;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={name}>{label}</Label>
+      <CurrencyCombobox
         aria-invalid={Boolean(error)}
         id={name}
         name={name}

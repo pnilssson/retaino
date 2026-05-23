@@ -1,13 +1,12 @@
 "use client";
 
 import type { OrganizationSession } from '@retaino/shared/contracts';
-import { AlertCircle, ArrowLeft, FileText } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   AppPageContent,
@@ -75,11 +74,13 @@ export function CampaignBuilderScreen({
   if (session.isError) {
     return (
       <main className="flex flex-1 items-center justify-center bg-background px-5 py-10">
-        <Alert className="max-w-lg" variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Campaign builder could not be loaded</AlertTitle>
-          <AlertDescription>{session.error.message}</AlertDescription>
-        </Alert>
+        <div className="max-w-lg">
+          <ItemNotice
+            description={session.error.message}
+            title="Campaign builder could not be loaded"
+            variant="error"
+          />
+        </div>
       </main>
     );
   }
@@ -114,15 +115,15 @@ export function CampaignBuilderScreen({
         />
 
         {campaignId && campaign.isError ? (
-          <Alert variant="destructive">
-            <AlertCircle aria-hidden="true" />
-            <AlertTitle>Campaign could not be fetched</AlertTitle>
-            <AlertDescription>
-              {campaign.error instanceof Error
+          <ItemNotice
+            description={
+              campaign.error instanceof Error
                 ? campaign.error.message
-                : 'Try returning to the campaign list.'}
-            </AlertDescription>
-          </Alert>
+                : 'Try returning to the campaign list.'
+            }
+            title="Campaign could not be fetched"
+            variant="error"
+          />
         ) : campaignId && campaign.isLoading ? (
           <p className={textStyles.mutedBody}>Loading campaign…</p>
         ) : (
@@ -159,6 +160,7 @@ function isCampaignStepId(value: string | undefined): value is CampaignStepId {
     value === 'message' ||
     value === 'booking' ||
     value === 'sender' ||
+    value === 'test' ||
     value === 'review'
   );
 }
@@ -183,7 +185,11 @@ function BlockedCampaignBuilder({ session }: { session: OrganizationSession }) {
         <AppPageContent>
           <AppPageItem asChild>
             <section>
-              <ItemNotice description={block.description} title={block.title} />
+              <ItemNotice
+                description={block.description}
+                title={block.title}
+                variant="warning"
+              />
               <div className="flex justify-end">
                 <Button asChild>
                   <Link href={block.actionHref}>
