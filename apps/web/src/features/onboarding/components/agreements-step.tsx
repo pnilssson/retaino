@@ -7,6 +7,7 @@ import {
 import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { GuidedFlowActions } from '@/components/guided-flow';
+import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import { textStyles } from '@/lib/text-styles';
 import { legalBundleDocumentLabels } from '../onboarding.constants';
@@ -69,7 +70,11 @@ export function AgreementsStep({
         </p>
 
         {mutationError ? (
-          <p className={textStyles.error}>{mutationError}</p>
+          <ItemNotice
+            description={mutationError}
+            title="Legal terms could not be accepted"
+            variant="error"
+          />
         ) : null}
 
         <GuidedFlowActions

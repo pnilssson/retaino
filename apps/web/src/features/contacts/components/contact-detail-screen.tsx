@@ -2,7 +2,6 @@
 
 import { useForm } from '@tanstack/react-form';
 import {
-  AlertCircle,
   ArrowLeft,
   Ban,
   CalendarIcon,
@@ -22,7 +21,6 @@ import {
   normalizePhoneNumber,
 } from '@retaino/shared/contracts';
 import { ItemNotice } from '@/components/item-notice';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -83,11 +81,13 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
   if (session.isError) {
     return (
       <main className="flex flex-1 items-center justify-center bg-background px-5 py-10">
-        <Alert className="max-w-lg" variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Contact could not be loaded</AlertTitle>
-          <AlertDescription>{session.error.message}</AlertDescription>
-        </Alert>
+        <div className="max-w-lg">
+          <ItemNotice
+            description={session.error.message}
+            title="Contact could not be loaded"
+            variant="error"
+          />
+        </div>
       </main>
     );
   }
@@ -121,15 +121,15 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
         />
 
         {contact.isError ? (
-          <Alert variant="destructive">
-            <AlertCircle aria-hidden="true" />
-            <AlertTitle>Contact could not be fetched</AlertTitle>
-            <AlertDescription>
-              {contact.error instanceof Error
+          <ItemNotice
+            description={
+              contact.error instanceof Error
                 ? contact.error.message
-                : 'Try refreshing the page.'}
-            </AlertDescription>
-          </Alert>
+                : 'Try refreshing the page.'
+            }
+            title="Contact could not be fetched"
+            variant="error"
+          />
         ) : contact.isLoading ? (
           <section className="py-8">
             <p className="text-sm text-muted-foreground">Loading contact.</p>
@@ -345,7 +345,7 @@ function ContactEditForm({
         <ItemNotice
           description={updateContact.error}
           title="Contact could not be saved"
-          tone="destructive"
+          variant="error"
         />
       ) : null}
       <div className="flex flex-wrap justify-end gap-2">
@@ -443,7 +443,7 @@ function ContactSuppressionSection({
           <ItemNotice
             description={suppress.error ?? unsuppress.error}
             title="Suppression could not be updated"
-            tone="destructive"
+            variant="error"
           />
         ) : null}
       </section>
@@ -528,7 +528,7 @@ function DeleteContactSection({ contact }: { contact: ContactDetail }) {
           <ItemNotice
             description={deleteContact.error}
             title="Contact could not be deleted"
-            tone="destructive"
+            variant="error"
           />
         ) : null}
       </section>

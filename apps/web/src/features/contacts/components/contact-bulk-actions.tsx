@@ -104,7 +104,7 @@ export function ContactBulkActions({
         <ItemNotice
           description={bulkDelete.error ?? bulkSuppress.error}
           title="Bulk action failed"
-          tone="destructive"
+          variant="error"
         />
       ) : null}
     </div>

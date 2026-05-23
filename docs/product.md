@@ -21,11 +21,11 @@ Avoid broad SMB positioning in v1.
 ## Core Workflow
 
 The user imports contacts, creates a campaign, chooses eligible lapsed
-customers, writes an SMS offer, sends it, and later sees attributed bookings
-and revenue.
+customers, writes an SMS offer, sends it, and later reports bookings and
+revenue.
 
-The dashboard should answer: how many bookings and how much revenue came from
-this campaign?
+The dashboard should answer: how much campaign activity happened, and what
+bookings and revenue did the team report afterward?
 
 ## Build Order
 
@@ -38,8 +38,9 @@ this campaign?
 5. Dedicated organization SMS sender setup, SMS preview, segment counting, and
    test sends.
 6. Campaign launch with recipient snapshots, short links, and send execution.
-7. Booking CSV upload and reconciliation.
-8. Campaign reporting with attribution confidence.
+7. Manual booking reports for campaign outcome reporting.
+8. Spreadsheet booking import and reconciliation after manual reporting proves
+   useful.
 
 ## MVP Scope
 
@@ -59,12 +60,12 @@ Required:
   organization
 - SMS editor with GSM-7 and Unicode segment counter plus credit preview
 - per-recipient short links
-- campaign code, offer code, or campaign reference for manual attribution
+- campaign code, offer code, or campaign reference for manual outcome reporting
 - STOP handling, suppression lists, and retention of other inbound replies for
   future inbox support
-- booking CSV upload and reconciliation
-- campaign dashboard for delivery, clicks, replies, opt-outs, bookings,
-  revenue, and attribution confidence
+- manual booking reports for campaign bookings and revenue
+- campaign dashboard for delivery, clicks, replies, opt-outs, reported
+  bookings, and reported revenue
 
 Deferred:
 
@@ -73,6 +74,8 @@ Deferred:
 - advanced automation, CDP behavior, AI copy generation, and experiments
 - generic CRM features
 - more than one or two booking integrations
+- spreadsheet booking import and automatic reconciliation until manual outcome
+  reporting proves the workflow
 - saved reusable segments until campaign-owned audience rules prove repetitive
 - import of medical notes, journal data, treatment notes, or sensitive
   unsupported fields
@@ -111,8 +114,8 @@ Campaign:
 1. User creates a campaign and chooses the eligible lapsed audience.
 2. User writes SMS copy.
 3. Retaino counts segments and shows the estimated SMS use in plain language.
-4. User chooses a booking URL and optional campaign code or reference that may
-   appear in later booking exports.
+4. User chooses a booking URL and optional campaign code or reference that can
+   help with manual outcome reporting.
 5. User chooses the sender country based on recipient market and selects an
    available two-way SMS number or accepts Retaino's recommendation.
 6. Retaino provisions the organization's dedicated sender if it does not exist.
@@ -126,15 +129,15 @@ Campaign:
 Reporting:
 
 1. Retaino records provider delivery state and clicks.
-2. User uploads booking export after the campaign.
-3. Retaino matches bookings to recipients.
-4. Dashboard separates attributed bookings, revenue, confidence, and unmatched
-   rows.
+2. User manually reports bookings they believe came from the campaign.
+3. Retaino stores each reported booking row and totals bookings and revenue.
+4. Dashboard separates campaign activity from team-reported outcomes.
 
 ## Product Principles
 
 - Sell reactivation and revenue reporting, not cheap SMS transport.
-- Be honest about attribution. Do not present inferred bookings as exact.
+- Be honest about outcomes. Do not present manually reported bookings as
+  automatic attribution.
 - Make SMS credit use visible before sending.
 - Use prepaid credits only in MVP. Do not create surprise usage invoices.
 - Keep long-running work in background jobs.

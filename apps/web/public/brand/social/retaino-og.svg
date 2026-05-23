@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Turn existing relationships into booked appointments.">
+  <rect width="1200" height="630" fill="#ffffff" />
+  <g transform="translate(96 76) scale(0.18)">
+    <path
+      fill="#071b17"
+      d="M94 80h194c68 0 118 50 118 119 0 52-28 94-73 113l84 120H314l-76-108h-11v-65h53c25 0 42-20 42-49 0-30-18-49-45-49H174v76H94V80Z"
+    />
+  </g>
+  <text
+    x="96"
+    y="300"
+    fill="#071b17"
+    font-family="Geist, Inter, Arial, sans-serif"
+    font-size="76"
+    font-weight="400"
+    letter-spacing="0"
+  >Turn existing relationships</text>
+  <text
+    x="96"
+    y="382"
+    fill="#071b17"
+    font-family="Geist, Inter, Arial, sans-serif"
+    font-size="76"
+    font-weight="400"
+    letter-spacing="0"
+  >into booked appointments.</text>
+</svg>

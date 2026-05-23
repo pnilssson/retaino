@@ -183,6 +183,7 @@ describe('campaign send service', () => {
       responsibleEmail: 'ada@retaino.test',
       responsiblePhone: '+46700000000',
       countryCode: 'SE',
+      currency: 'SEK',
       createdAt: '2026-05-05T00:00:00.000Z',
       updatedAt: '2026-05-05T00:00:00.000Z',
     });

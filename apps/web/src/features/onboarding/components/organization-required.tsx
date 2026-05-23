@@ -6,11 +6,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { GuidedFlowActions } from '@/components/guided-flow';
+import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import { ItemTitle } from '@/components/ui/item';
 import { routes } from '@/lib/routes';
 import { waitForClerkSessionPropagation } from '../session-propagation';
-import { InlineError } from './inline-error';
 import { OrganizationCreateForm } from './organization-create-form';
 import { OnboardingFrame } from './onboarding-frame';
 import { OnboardingItem } from './onboarding-item';
@@ -82,7 +82,11 @@ export function OrganizationRequired() {
         }
       >
         {error ? (
-          <InlineError message={error} title="Workspace could not be selected" />
+          <ItemNotice
+            description={error}
+            title="Workspace could not be selected"
+            variant="error"
+          />
         ) : null}
 
         {!hasExistingOrganizations ? <OrganizationCreateForm /> : null}

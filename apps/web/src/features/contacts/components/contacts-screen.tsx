@@ -1,11 +1,10 @@
 "use client";
 
-import { AlertCircle, FileUp, RefreshCw } from 'lucide-react';
+import { FileUp, RefreshCw, UsersRound } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import type { RowSelectionState } from '@tanstack/react-table';
 import { ItemNotice } from '@/components/item-notice';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   EmptyState,
@@ -24,6 +23,7 @@ import {
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useContactListQueryState } from '@/features/contacts/hooks/use-contact-list-query-state';
+import { useContactPresence } from '@/features/contacts/hooks/use-contact-presence';
 import { useContacts } from '@/features/contacts/hooks/use-contacts';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
@@ -40,6 +40,10 @@ export function ContactsScreen() {
     enabled: Boolean(session.data?.readiness.ready),
     organizationId: session.data?.organization.id ?? null,
     query,
+  });
+  const contactPresence = useContactPresence({
+    enabled: Boolean(session.data?.readiness.ready),
+    organizationId: session.data?.organization.id ?? null,
   });
   const selectedContacts = useMemo(
     () =>
@@ -65,11 +69,13 @@ export function ContactsScreen() {
   if (session.isError) {
     return (
       <main className="flex flex-1 items-center justify-center bg-background px-5 py-10">
-        <Alert className="max-w-lg" variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Contacts could not be loaded</AlertTitle>
-          <AlertDescription>{session.error.message}</AlertDescription>
-        </Alert>
+        <div className="max-w-lg">
+          <ItemNotice
+            description={session.error.message}
+            title="Contacts could not be loaded"
+            variant="error"
+          />
+        </div>
       </main>
     );
   }
@@ -82,12 +88,16 @@ export function ContactsScreen() {
     return <BlockedContacts session={session.data} />;
   }
 
+  const hasContacts = (contactPresence.data?.total ?? 0) > 0;
+  const contactPresenceLoaded = Boolean(contactPresence.data);
+
   return (
     <main className="flex flex-1 items-start bg-background">
       <section className="mx-auto grid w-full max-w-7xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={
-            <>
+            hasContacts ? (
+              <>
               <Button asChild>
                 <Link href={routes.contactsImport}>
                   <FileUp aria-hidden="true" data-icon="inline-start" />
@@ -104,7 +114,8 @@ export function ContactsScreen() {
                 <RefreshCw aria-hidden="true" data-icon="inline-start" />
                 Refresh
               </Button>
-            </>
+              </>
+            ) : null
           }
           description="Review imported customers, find contacts ready for SMS, and catch data issues before campaigns."
           eyebrow="Contacts"
@@ -114,27 +125,34 @@ export function ContactsScreen() {
         <AppPageContent>
           <AppPageItem asChild>
             <section>
-              <ItemHeader className="items-start">
-                <ItemContent className="gap-2">
-                  <ItemTitle className="text-base">Contacts</ItemTitle>
-                  <ItemDescription>
-                    Filter by SMS readiness and data issues.
-                  </ItemDescription>
-                </ItemContent>
-              </ItemHeader>
-              <ContactFilters
-                direction={query.direction}
-                issue={query.issue}
-                onChange={(values) => {
-                  setRowSelection({});
-                  void setQuery({ page: 1, ...values });
-                }}
-                search={query.search}
-                sort={query.sort}
-                status={query.status}
-              />
-
-              {contacts.isError ? (
+              {contactPresence.isError ? (
+                <ItemNotice
+                  description={
+                    contactPresence.error instanceof Error
+                      ? contactPresence.error.message
+                      : 'Try refreshing the page.'
+                  }
+                  title="Contact status could not be checked"
+                  variant="error"
+                />
+              ) : !contactPresenceLoaded || contacts.isLoading ? (
+                <TableLoading label="Loading contacts" />
+              ) : !hasContacts ? (
+                <EmptyState
+                  action={
+                    <Button asChild>
+                      <Link href={routes.contactsImport}>
+                        <FileUp aria-hidden="true" data-icon="inline-start" />
+                        Import CSV
+                      </Link>
+                    </Button>
+                  }
+                  description="Import a customer CSV to validate phone numbers, consent, dedupe results, and suppression checks before your first campaign."
+                  icon={UsersRound}
+                  title="Import your first contacts"
+                  variant="page"
+                />
+              ) : contacts.isError ? (
                 <ItemNotice
                   description={
                     contacts.error instanceof Error
@@ -142,12 +160,31 @@ export function ContactsScreen() {
                       : 'Try refreshing the table.'
                   }
                   title="Contacts could not be fetched"
-                  tone="destructive"
+                  variant="error"
                 />
-              ) : contacts.isLoading ? (
-                <TableLoading label="Loading contacts" />
-              ) : contacts.data && contacts.data.contacts.length > 0 ? (
+              ) : (
                 <>
+                  <ItemHeader className="items-start">
+                    <ItemContent className="gap-2">
+                      <ItemTitle className="text-base">Contacts</ItemTitle>
+                      <ItemDescription>
+                        Filter by SMS readiness and data issues.
+                      </ItemDescription>
+                    </ItemContent>
+                  </ItemHeader>
+                  <ContactFilters
+                    direction={query.direction}
+                    issue={query.issue}
+                    onChange={(values) => {
+                      setRowSelection({});
+                      void setQuery({ page: 1, ...values });
+                    }}
+                    search={query.search}
+                    sort={query.sort}
+                    status={query.status}
+                  />
+                  {contacts.data && contacts.data.contacts.length > 0 ? (
+                    <>
                   <ContactListPosition
                     page={contacts.data.page}
                     pageSize={contacts.data.pageSize}
@@ -177,19 +214,14 @@ export function ContactsScreen() {
                     pageSize={contacts.data.pageSize}
                     total={contacts.data.total}
                   />
+                    </>
+                  ) : (
+                    <EmptyState
+                      description="Clear or change the filters to see more imported contacts."
+                      title="No contacts match these filters"
+                    />
+                  )}
                 </>
-              ) : query.search ||
-                query.status !== 'all' ||
-                query.issue !== 'all' ? (
-                <EmptyState
-                  description="Clear or change the filters to see more imported contacts."
-                  title="No contacts match these filters"
-                />
-              ) : (
-                <EmptyState
-                  description="Import a customer CSV to validate phone numbers, consent, dedupe results, and suppression checks."
-                  title="No contacts imported yet"
-                />
               )}
             </section>
           </AppPageItem>

@@ -1,5 +1,7 @@
 export * from './billing';
+export * from './booking-reports';
 export * from './campaign-communications';
+export * from './campaign-reports';
 export * from './campaigns';
 export * from './contacts';
 export * from './identity';

@@ -2,6 +2,7 @@ import type {
   OrganizationSession,
   UpdateOrganizationProfileInput
 } from '@retaino/shared/contracts';
+import { currencyCodeSchema } from '@retaino/shared';
 import {
   isSupportedCountryCode,
   normalizePhoneNumber,
@@ -19,7 +20,8 @@ export const emptyOrganizationProfileFormValues: OrganizationProfileFormValues =
   responsibleName: '',
   responsibleEmail: '',
   responsiblePhone: '',
-  countryCode: 'SE'
+  countryCode: 'SE',
+  currency: 'SEK'
 };
 
 export function organizationProfileFormValuesFromSession(
@@ -36,7 +38,8 @@ export function organizationProfileFormValuesFromSession(
     responsibleName: session.profile.responsibleName,
     responsibleEmail: session.profile.responsibleEmail,
     responsiblePhone: session.profile.responsiblePhone ?? '',
-    countryCode: session.profile.countryCode
+    countryCode: session.profile.countryCode,
+    currency: session.profile.currency
   };
 }
 
@@ -71,6 +74,12 @@ export function validateCountryCode(value: string) {
   return isSupportedCountryCode(value.trim().toUpperCase())
     ? undefined
     : 'Choose a supported country.';
+}
+
+export function validateCurrencyCode(value: string) {
+  return currencyCodeSchema.safeParse(value).success
+    ? undefined
+    : 'Choose a supported currency.';
 }
 
 export function validatePhone(value: string, countryCode: string) {

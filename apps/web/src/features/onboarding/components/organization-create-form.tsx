@@ -6,6 +6,7 @@ import { Loader2, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { GuidedFlowActions } from '@/components/guided-flow';
+import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +15,6 @@ import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
 import { defaultOrganizationName } from '../default-organization-name';
 import { waitForClerkSessionPropagation } from '../session-propagation';
-import { InlineError } from './inline-error';
 
 type OrganizationCreateFormProps = {
   inviteCopy?: string;
@@ -109,7 +109,11 @@ function OrganizationCreateFormFields({
       }}
     >
       {error ? (
-        <InlineError message={error} title="Workspace could not be created" />
+        <ItemNotice
+          description={error}
+          title="Workspace could not be created"
+          variant="error"
+        />
       ) : null}
 
       <form.Field

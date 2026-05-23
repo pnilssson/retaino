@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createCampaignDraft,
+  createManualBookingReport,
   countCampaignRecipients,
   deleteCampaignDraft,
   findSuppressionByHash,
@@ -34,6 +35,7 @@ import type { AppEnv } from '../../../src/types';
 
 vi.mock('@retaino/db', () => ({
   createCampaignDraft: vi.fn(),
+  createManualBookingReport: vi.fn(),
   countCampaignRecipients: vi.fn(),
   deleteCampaignDraft: vi.fn(),
   findSuppressionByHash: vi.fn(),
@@ -86,6 +88,7 @@ const profile = {
   responsibleEmail: 'ada@retaino.test',
   responsiblePhone: '+46700000000',
   countryCode: 'SE',
+  currency: 'SEK',
   createdAt: '2026-05-05T00:00:00.000Z',
   updatedAt: '2026-05-05T00:00:00.000Z',
 };
@@ -204,6 +207,7 @@ function testApp(input: { role?: string } = {}) {
 describe('campaignsRoutes', () => {
   beforeEach(() => {
     vi.mocked(createCampaignDraft).mockReset();
+    vi.mocked(createManualBookingReport).mockReset();
     vi.mocked(countCampaignRecipients).mockReset();
     vi.mocked(reserveSmsCreditsIfSufficient).mockReset();
     vi.mocked(deleteCampaignDraft).mockReset();
@@ -646,6 +650,30 @@ describe('campaignsRoutes', () => {
       estimatedSmsSegments: 10,
       actualSmsSegments: 9,
       segmentEstimateDrift: -1,
+      manualOutcome: {
+        bookingCount: 2,
+        revenueAmountMinor: 320000,
+        currency: 'SEK',
+        hasMixedCurrencies: false,
+        bookingRate: 0.25,
+        revenuePerDeliveredRecipientMinor: 40000,
+      },
+      bookingReports: [
+        {
+          id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          campaignId: campaign.id,
+          source: 'manual',
+          status: 'completed',
+          checkedThroughDate: '2026-05-22',
+          note: 'Checked booking system',
+          bookingCount: 2,
+          revenueAmountMinor: 320000,
+          currency: 'SEK',
+          hasMixedCurrencies: false,
+          createdByUserId: user.id,
+          createdAt: '2026-05-22T10:00:00.000Z',
+        },
+      ],
     });
 
     const response = await testApp({ role: 'org:member' }).request(
@@ -657,6 +685,10 @@ describe('campaignsRoutes', () => {
       report: {
         selectedCount: 10,
         deliveredCount: 8,
+        manualOutcome: {
+          bookingCount: 2,
+          revenueAmountMinor: 320000,
+        },
       },
     });
     expect(getCampaignReport).toHaveBeenCalledWith(expect.anything(), {
@@ -674,6 +706,171 @@ describe('campaignsRoutes', () => {
 
     expect(response.status).toBe(404);
     expect(getCampaignReport).not.toHaveBeenCalled();
+  });
+
+  it('creates manual booking reports for campaigns', async () => {
+    vi.mocked(createManualBookingReport).mockResolvedValue({
+      status: 'created',
+      report: {
+        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        campaignId: campaign.id,
+        source: 'manual',
+        status: 'completed',
+        checkedThroughDate: '2026-05-22',
+        note: 'Checked booking system',
+        bookingCount: 1,
+        revenueAmountMinor: 125050,
+        currency: 'SEK',
+        hasMixedCurrencies: false,
+        createdByUserId: user.id,
+        createdAt: '2026-05-22T10:00:00.000Z',
+      },
+    });
+
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/booking-reports`,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'user-agent': 'vitest',
+        },
+        body: JSON.stringify({
+          checkedThroughDate: '2026-05-22',
+          note: 'Checked booking system',
+          bookings: [
+            {
+              bookingDate: '2026-05-21',
+              customerName: 'Ada Lovelace',
+              revenueAmount: '1250,50',
+            },
+          ],
+        }),
+      },
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual({
+      bookingReport: {
+        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        campaignId: campaign.id,
+        source: 'manual',
+        status: 'completed',
+        checkedThroughDate: '2026-05-22',
+        note: 'Checked booking system',
+        bookingCount: 1,
+        revenueAmountMinor: 125050,
+        currency: 'SEK',
+        hasMixedCurrencies: false,
+        createdByUserId: user.id,
+        createdAt: '2026-05-22T10:00:00.000Z',
+      },
+    });
+    expect(createManualBookingReport).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      campaignId: campaign.id,
+      actorUserId: user.id,
+      input: {
+        checkedThroughDate: '2026-05-22',
+        note: 'Checked booking system',
+        bookings: [
+          {
+            bookingDate: '2026-05-21',
+            customerName: 'Ada Lovelace',
+            revenueAmount: '1250,50',
+          },
+        ],
+      },
+      userAgent: 'vitest',
+    });
+  });
+
+  it('returns validation errors for invalid manual booking reports', async () => {
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/booking-reports`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          bookings: [],
+        }),
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(createManualBookingReport).not.toHaveBeenCalled();
+  });
+
+  it('rejects oversized manual booking report requests before parsing', async () => {
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/booking-reports`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          bookings: [
+            {
+              bookingDate: '2026-05-22',
+              customerName: 'Ada Lovelace',
+              note: 'x'.repeat(33 * 1024),
+            },
+          ],
+        }),
+      },
+    );
+
+    expect(response.status).toBe(413);
+    expect(createManualBookingReport).not.toHaveBeenCalled();
+  });
+
+  it('returns conflict when a campaign is not ready for booking reports', async () => {
+    vi.mocked(createManualBookingReport).mockResolvedValue({
+      status: 'not_reportable',
+    });
+
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/booking-reports`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          bookings: [
+            {
+              bookingDate: '2026-05-22',
+              customerName: 'Ada Lovelace',
+            },
+          ],
+        }),
+      },
+    );
+
+    expect(response.status).toBe(409);
+  });
+
+  it('returns validation errors for invalid reported revenue', async () => {
+    vi.mocked(createManualBookingReport).mockResolvedValue({
+      status: 'invalid_revenue',
+      rowIndex: 0,
+      error: 'Enter a positive amount.',
+    });
+
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/booking-reports`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          bookings: [
+            {
+              bookingDate: '2026-05-22',
+              revenueAmount: '-1',
+            },
+          ],
+        }),
+      },
+    );
+
+    expect(response.status).toBe(400);
   });
 
   it('sends a test SMS without creating campaign recipients', async () => {

@@ -85,7 +85,7 @@ export function SenderSetup({
           <ItemNotice
             description={sender.failureReason}
             title="Sender setup needs attention"
-            tone="destructive"
+            variant="error"
           />
         ) : null}
       </section>
@@ -127,10 +127,10 @@ export function SenderSetup({
             <ItemNotice
               description={setupErrorMessage(
                 numbers.error ?? countries.error ?? provisionSender.error,
-              )}
-              title="Sender setup failed"
-              tone="destructive"
-            />
+            )}
+            title="Sender setup failed"
+            variant="error"
+          />
           ) : null}
 
           <div className="flex justify-end">
@@ -144,7 +144,12 @@ export function SenderSetup({
                   return;
                 }
 
-                provisionSender.mutate({ selectedSender });
+                provisionSender.mutate({
+                  selectedSender: {
+                    phoneNumber: selectedSender.phoneNumber,
+                    countryCode: selectedSender.countryCode,
+                  },
+                });
               }}
               type="button"
             >

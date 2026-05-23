@@ -3,8 +3,10 @@
 import type { Campaign, CampaignReport } from '@retaino/shared/contracts';
 import {
   AlertCircle,
+  CalendarCheck,
   CheckCircle2,
   CircleSlash,
+  CircleDollarSign,
   MailQuestion,
   MousePointerClick,
   RefreshCw,
@@ -25,7 +27,13 @@ import {
   AppPageItem,
 } from '@/features/appshell/components/app-page-content';
 import { cn } from '@/lib/utils';
+import {
+  formatReportCurrency,
+  formatReportNumber,
+  formatReportPercent,
+} from '../campaign-report-format';
 import { useCampaignReport } from '../hooks/use-campaign-report';
+import { ReportedBookingsSection } from './campaign-reported-bookings';
 
 export function CampaignReportPanel({
   campaign,
@@ -73,7 +81,7 @@ export function CampaignReportPanel({
                   : 'Try refreshing the report.'
               }
               title="Report could not be fetched"
-              tone="destructive"
+              variant="error"
             />
           ) : report.isLoading ? (
             <p className="text-sm leading-6 text-muted-foreground">
@@ -86,10 +94,11 @@ export function CampaignReportPanel({
                   <ReportMetric key={metric.label} metric={metric} />
                 ))}
               </dl>
-              <p className="text-xs leading-5 text-muted-foreground">
-                Clicks show tracked link activity. Bookings and revenue are
-                reported separately when attribution is available.
-              </p>
+              <ReportedBookingsSection
+                campaign={campaign}
+                organizationId={organizationId}
+                report={report.data.report}
+              />
             </>
           ) : null}
         </section>
@@ -143,88 +152,120 @@ function reportMetrics(report: CampaignReport): ReportMetric[] {
       icon: Users,
       label: 'Recipients',
       tone: 'default',
-      value: formatNumber(report.selectedCount),
+      value: formatReportNumber(report.selectedCount),
     },
     {
-      detail: `${formatPercent(report.deliveredCount, report.sentCount)} delivered`,
+      detail: `${formatReportPercent(report.deliveredCount, report.sentCount)} delivered`,
       icon: CheckCircle2,
       label: 'Delivered',
       tone: 'good',
-      value: formatNumber(report.deliveredCount),
+      value: formatReportNumber(report.deliveredCount),
     },
     {
-      detail: `${formatNumber(report.queuedCount)} queued`,
+      detail: `${formatReportNumber(report.queuedCount)} queued`,
       icon: Send,
       label: 'In progress',
       tone: report.queuedCount > 0 ? 'warning' : 'default',
-      value: formatNumber(report.queuedCount),
+      value: formatReportNumber(report.queuedCount),
     },
     {
-      detail: `${formatPercent(report.skippedCount, report.selectedCount)} of selected`,
+      detail: `${formatReportPercent(report.skippedCount, report.selectedCount)} of selected`,
       icon: CircleSlash,
       label: 'Skipped',
       tone: report.skippedCount > 0 ? 'warning' : 'default',
-      value: formatNumber(report.skippedCount),
+      value: formatReportNumber(report.skippedCount),
     },
     {
-      detail: `${formatPercent(report.failedCount, report.sentCount)} of sent`,
+      detail: `${formatReportPercent(report.failedCount, report.sentCount)} of sent`,
       icon: AlertCircle,
       label: 'Failed',
       tone: report.failedCount > 0 ? 'warning' : 'default',
-      value: formatNumber(report.failedCount),
+      value: formatReportNumber(report.failedCount),
     },
     {
-      detail: `${formatNumber(report.uniqueClickerCount)} unique recipients`,
+      detail: `${formatReportNumber(report.uniqueClickerCount)} unique recipients`,
       icon: MousePointerClick,
       label: 'Tracked clicks',
       tone: 'default',
-      value: formatNumber(report.clickCount),
+      value: formatReportNumber(report.clickCount),
     },
     {
-      detail: `${formatPercent(report.inboundReplyCount, report.sentCount)} of sent`,
+      detail: `${formatReportPercent(report.inboundReplyCount, report.sentCount)} of sent`,
       icon: MailQuestion,
       label: 'Replies',
       tone: 'default',
-      value: formatNumber(report.inboundReplyCount),
+      value: formatReportNumber(report.inboundReplyCount),
     },
     {
-      detail: `${formatPercent(report.optOutCount, report.sentCount)} of sent`,
+      detail: `${formatReportPercent(report.optOutCount, report.sentCount)} of sent`,
       icon: ShieldOff,
       label: 'Opt-outs',
       tone: report.optOutCount > 0 ? 'warning' : 'default',
-      value: formatNumber(report.optOutCount),
+      value: formatReportNumber(report.optOutCount),
     },
     {
-      detail: `${formatNumber(report.estimatedSmsSegments)} estimated`,
+      detail: `${formatReportNumber(report.estimatedSmsSegments)} estimated`,
       icon: Send,
       label: 'Credits used',
       tone: 'default',
-      value: formatNumber(report.actualSmsSegments),
+      value: formatReportNumber(report.actualSmsSegments),
+    },
+    {
+      detail: `${formatReportPercent(
+        report.manualOutcome.bookingCount,
+        report.deliveredCount,
+      )} of delivered`,
+      icon: CalendarCheck,
+      label: 'Reported bookings',
+      tone: report.manualOutcome.bookingCount > 0 ? 'good' : 'default',
+      value: formatReportNumber(report.manualOutcome.bookingCount),
+    },
+    {
+      detail: reportedRevenueDetail(report),
+      icon: CircleDollarSign,
+      label: 'Reported revenue',
+      tone:
+        (report.manualOutcome.revenueAmountMinor ?? 0) > 0 ? 'good' : 'default',
+      value: reportedRevenueValue(report),
     },
   ];
 }
 
+function reportedRevenueDetail(report: CampaignReport) {
+  if (report.manualOutcome.hasMixedCurrencies) {
+    return 'Multiple currencies reported';
+  }
+
+  const revenuePerDelivered =
+    report.manualOutcome.revenuePerDeliveredRecipientMinor;
+
+  if (revenuePerDelivered && revenuePerDelivered > 0) {
+    return `${formatReportCurrency(
+      revenuePerDelivered,
+      report.manualOutcome.currency,
+    )} per delivered`;
+  }
+
+  return 'Reported by your team';
+}
+
+function reportedRevenueValue(report: CampaignReport) {
+  if (report.manualOutcome.hasMixedCurrencies) {
+    return 'Mixed';
+  }
+
+  return formatReportCurrency(
+    report.manualOutcome.revenueAmountMinor ?? 0,
+    report.manualOutcome.currency,
+  );
+}
+
 function recipientDetail(report: CampaignReport) {
-  const sent = `${formatNumber(report.sentCount)} sent`;
+  const sent = `${formatReportNumber(report.sentCount)} sent`;
 
   if (report.skippedCount <= 0) {
     return sent;
   }
 
-  return `${sent}, ${formatNumber(report.skippedCount)} skipped`;
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat(undefined).format(value);
-}
-
-function formatPercent(value: number, total: number) {
-  if (total <= 0) {
-    return '0%';
-  }
-
-  return new Intl.NumberFormat(undefined, {
-    maximumFractionDigits: 1,
-    style: 'percent',
-  }).format(value / total);
+  return `${sent}, ${formatReportNumber(report.skippedCount)} skipped`;
 }

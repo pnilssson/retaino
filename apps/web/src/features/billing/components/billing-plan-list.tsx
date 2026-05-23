@@ -26,7 +26,7 @@ const PLAN_VIEW = {
     description: 'Best for regular monthly campaigns.',
   },
   scale: {
-    cta: 'Choose Scale capacity',
+    cta: 'Start with Scale',
     description: 'For larger lists or several campaigns.',
   },
 } as const satisfies Record<
@@ -75,9 +75,10 @@ export function BillingPlanList({
           Compare monthly plans
         </h2>
         <p className={cn('max-w-3xl', textStyles.mutedBody)}>
-          All plans include the same workflow. Credits are the only difference.
-          Prices are ex VAT, tax is calculated in checkout, and there are no
-          surprise usage invoices.
+          All plans include campaign creation, contact imports, tracking links,
+          and reporting. Higher plans include more monthly SMS credits. Prices
+          are ex VAT, tax is calculated in checkout, and there are no surprise
+          usage invoices.
         </p>
       </header>
 
@@ -164,6 +165,26 @@ export function BillingPlanList({
                     >
                       {view.description}
                     </p>
+                    <p
+                      className={cn(
+                        'mt-3',
+                        textStyles.body,
+                        'font-medium',
+                        isSelectedPlan && 'text-primary-foreground',
+                      )}
+                    >
+                      Includes {formatCreditCount(plan.includedSmsCredits)} SMS credits
+                      <span
+                        className={cn(
+                          'font-normal',
+                          textStyles.meta,
+                          isSelectedPlan && 'text-primary-foreground/75',
+                        )}
+                      >
+                        {' '}
+                        / month
+                      </span>
+                    </p>
                   </div>
 
                   <ul
@@ -174,12 +195,10 @@ export function BillingPlanList({
                     )}
                   >
                     <PlanFeature isSelected={isSelectedPlan}>
-                      {formatCreditCount(plan.includedSmsCredits)} monthly
-                      credits,{' '}
                       {formatUnitSek(
                         plan.monthlyPriceSek / plan.includedSmsCredits,
                       )}{' '}
-                      per credit
+                      per SMS credit
                     </PlanFeature>
                     {SHARED_PLAN_FEATURES.map((feature) => (
                       <PlanFeature isSelected={isSelectedPlan} key={feature}>
@@ -190,7 +209,11 @@ export function BillingPlanList({
                 </div>
 
                 <Button
-                  className="w-full"
+                  className={cn(
+                    'w-full',
+                    isSelectedPlan &&
+                      'bg-primary-foreground text-primary hover:bg-primary-foreground/90 hover:text-primary',
+                  )}
                   disabled={buttonDisabled}
                   onClick={() => {
                     if (subscriptionLocked) {
@@ -201,7 +224,6 @@ export function BillingPlanList({
                     onSelectPlan(planKey);
                   }}
                   type="button"
-                  variant={isSelectedPlan ? 'secondary' : 'default'}
                 >
                   {isCurrentPlan ? (
                     <CheckCircle2 aria-hidden="true" data-icon="inline-start" />

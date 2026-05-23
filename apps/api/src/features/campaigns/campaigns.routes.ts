@@ -1,6 +1,7 @@
 import {
   countCampaignRecipients,
   createCampaignDraft,
+  createManualBookingReport,
   deleteCampaignDraft,
   getCampaignById,
   getCampaignReport,
@@ -11,12 +12,14 @@ import {
 import { createCampaignSmsPreview } from '@retaino/shared';
 import {
   campaignAudiencePreviewRequestSchema,
+  createManualBookingReportSchema,
   campaignSmsPreviewRequestSchema,
   campaignSmsTestSendRequestSchema,
   createCampaignDraftSchema,
   updateCampaignDraftSchema,
 } from '@retaino/shared/contracts';
 import { Hono, type Context } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import {
   BillingInsufficientCreditsError,
   BillingSubscriptionRequiredError,
@@ -35,6 +38,8 @@ import {
   sendCampaignTestSms,
   TEST_TRACKED_BOOKING_LINK,
 } from './campaigns.service';
+
+const MANUAL_BOOKING_REPORT_BODY_LIMIT_BYTES = 32 * 1024;
 
 export const campaignsRoutes = new Hono<AppEnv>()
   .get('/', async (c) => {
@@ -247,6 +252,64 @@ export const campaignsRoutes = new Hono<AppEnv>()
       }),
     });
   })
+  .post(
+    '/:id/booking-reports',
+    bodyLimit({
+      maxSize: MANUAL_BOOKING_REPORT_BODY_LIMIT_BYTES,
+      onError: (c) =>
+        c.json(
+          apiError(
+            'validation_failed',
+            'Booking report is too large. Save fewer bookings at a time.',
+          ),
+          413,
+        ),
+    }),
+    async (c) => {
+      const parsed = await parseJsonBody(
+        c,
+        createManualBookingReportSchema,
+        'Invalid booking report.',
+      );
+
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+
+      const result = await createManualBookingReport(c.get('db'), {
+        organizationId: c.get('organization').id,
+        campaignId: c.req.param('id'),
+        actorUserId: c.get('user').id,
+        input: parsed.data,
+        userAgent: c.req.header('user-agent') ?? null,
+      });
+
+      if (result.status === 'not_found') {
+        return c.json(apiError('not_found', 'Campaign was not found.'), 404);
+      }
+
+      if (result.status === 'not_reportable') {
+        return c.json(
+          apiError(
+            'conflict',
+            'Bookings can be reported after the campaign has finished sending.',
+          ),
+          409,
+        );
+      }
+
+      if (result.status === 'invalid_revenue') {
+        return c.json(
+          apiError('validation_failed', result.error, {
+            rowIndex: result.rowIndex,
+          }),
+          400,
+        );
+      }
+
+      return c.json({ bookingReport: result.report }, 201);
+    },
+  )
   .post('/:id/send', async (c) => {
     const gate = await requireCampaignEligibility(c);
 

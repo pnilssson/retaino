@@ -1,0 +1,1 @@
+ALTER TABLE "organization_profiles" RENAME COLUMN "reporting_currency" TO "currency";

@@ -17,6 +17,8 @@ export const contactsQueryKeys = {
     ['contact', organizationId, contactId] as const,
   importDetail: (organizationId: string, importId: string) =>
     ['contact-import', organizationId, importId] as const,
+  presence: (organizationId: string) =>
+    [...contactsQueryKeys.organization(organizationId), 'presence'] as const,
   list: (organizationId: string, query: ContactListQueryKeyInput) =>
     [
       ...contactsQueryKeys.organization(organizationId),

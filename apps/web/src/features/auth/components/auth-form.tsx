@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import { ItemNotice } from '@/components/item-notice';
 import { useEmailCodeAuth } from '@/features/auth/hooks/use-email-code-auth';
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
@@ -41,15 +42,13 @@ export function AuthForm() {
           )}
 
           {formError && auth.step !== 'requirements' ? (
-            <p
-              className={cn(
-                'mt-5 border border-destructive/25 bg-destructive/5 p-3',
-                textStyles.error,
-              )}
-              role="alert"
-            >
-              {formError}
-            </p>
+            <div className="mt-5">
+              <ItemNotice
+                description={formError}
+                title="Sign in could not continue"
+                variant="error"
+              />
+            </div>
           ) : null}
 
           <div id="clerk-captcha" />

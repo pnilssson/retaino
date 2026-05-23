@@ -6,16 +6,10 @@ import {
   type OrganizationSession,
 } from '@retaino/shared/contracts';
 import { useForm } from '@tanstack/react-form';
-import {
-  AlertCircle,
-  ArrowLeft,
-  CheckCircle2,
-  FileText,
-  Loader2,
-} from 'lucide-react';
+import { ArrowLeft, CheckCircle2, FileText, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -57,11 +51,13 @@ export function LegalOverviewScreen() {
   if (session.isError) {
     return (
       <main className="flex flex-1 items-center justify-center bg-background px-5 py-10">
-        <Alert className="max-w-lg" variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>Legal terms could not be loaded</AlertTitle>
-          <AlertDescription>{session.error.message}</AlertDescription>
-        </Alert>
+        <div className="max-w-lg">
+          <ItemNotice
+            description={session.error.message}
+            title="Legal terms could not be loaded"
+            variant="error"
+          />
+        </div>
       </main>
     );
   }
@@ -238,6 +234,14 @@ function LegalAcceptanceSection({
               void form.handleSubmit();
             }}
           >
+            {createLegalAcceptance.error ? (
+              <ItemNotice
+                description={createLegalAcceptance.error.message}
+                title="Legal terms could not be accepted"
+                variant="error"
+              />
+            ) : null}
+
             <form.Field
               name="authorization"
               validators={{
@@ -252,9 +256,7 @@ function LegalAcceptanceSection({
               }}
             >
               {(field) => {
-                const error =
-                  createLegalAcceptance.error?.message ??
-                  getFieldError(field.state.meta.errors);
+                const error = getFieldError(field.state.meta.errors);
 
                 return (
                   <div className="flex items-start gap-3">
@@ -329,14 +331,11 @@ function LegalAcceptanceSection({
 
   if (session.readiness.legalUpdatesRequired) {
     return (
-      <Alert>
-        <AlertCircle aria-hidden="true" />
-        <AlertTitle>Admin acceptance required</AlertTitle>
-        <AlertDescription>
-          An organization admin needs to accept the updated legal terms before
-          imports and campaigns can continue.
-        </AlertDescription>
-      </Alert>
+      <ItemNotice
+        description="An organization admin needs to accept the updated legal terms before imports and campaigns can continue."
+        title="Admin acceptance required"
+        variant="warning"
+      />
     );
   }
 

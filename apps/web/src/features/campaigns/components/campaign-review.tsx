@@ -1,14 +1,10 @@
 "use client";
 
 import type { ReactNode } from 'react';
-import { useForm } from '@tanstack/react-form';
 import type { Campaign } from '@retaino/shared/contracts';
 import { createCampaignSmsPreview } from '@retaino/shared';
-import { Send } from 'lucide-react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { ItemNotice } from '@/components/item-notice';
+import { StatusBadge } from '@/components/status-badge';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 import {
@@ -18,22 +14,20 @@ import {
 } from '../campaign-form-state';
 import { useCampaignAudiencePreview } from '../hooks/use-campaign-audience-preview';
 import { useCampaignRecipientSummary } from '../hooks/use-campaign-recipient-summary';
-import { useSendCampaignTestSms } from '../hooks/use-send-campaign-test-sms';
 import { MessageEstimate, MessagePreview } from './message-preview';
 
 export function CampaignReview({
   campaign,
-  campaignId,
   organizationId,
   senderReady,
   values,
 }: {
   campaign: Campaign | null;
-  campaignId: string | null;
   organizationId: string | null;
   senderReady: boolean;
   values: CampaignFormValues;
 }) {
+  const campaignId = campaign?.id ?? null;
   const audiencePreview = useCampaignAudiencePreview({
     audienceRule: values.audienceRule,
     enabled:
@@ -59,186 +53,191 @@ export function CampaignReview({
   const shouldShowReference =
     campaignReference &&
     campaignReference.toLowerCase() !== values.name.trim().toLowerCase();
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]">
-      <div className="grid content-start gap-6">
-        <ReviewSection title="Campaign">
-          <p className={textStyles.body}>{values.name || 'Not named'}</p>
-        </ReviewSection>
-
-        {shouldShowReference ? (
-          <ReviewSection title="Reference">
-            <p className={textStyles.body}>{campaignReference}</p>
-          </ReviewSection>
-        ) : null}
-
-        <ReviewSection title="Audience">
-          <p className={textStyles.body}>
-            {campaign && campaign.status !== 'draft'
-              ? frozenRecipientCount === null
-                ? recipientSummary.isLoading
-                  ? 'Loading selected recipients...'
-                  : 'Selected recipients unavailable.'
-                : `${frozenRecipientCount} selected ${frozenRecipientCount === 1 ? 'recipient' : 'recipients'}.`
-              : audiencePreview.isLoading
-                ? 'Checking eligible contacts...'
-                : eligibleCount === null
-                  ? 'Eligible contacts unavailable.'
-                  : `${eligibleCount} eligible ${eligibleCount === 1 ? 'contact' : 'contacts'}. Last booking at least ${values.audienceRule.lapsedDays} days ago. Contacts without booking date ${
-                      values.audienceRule.includeNoBookingDate
-                        ? 'included'
-                        : 'excluded'
-                    }.${
-                      audiencePreview.data
-                        ? ` ${audiencePreview.data.suppressedCount} suppressed, ${audiencePreview.data.incompleteCount} missing phone, ${audiencePreview.data.missingConsentCount} missing consent.`
-                        : ''
-                    }`}
-          </p>
-        </ReviewSection>
-
-        {campaign && campaign.status !== 'draft' ? (
-          <ReviewSection title="Send status">
-            <p className={textStyles.body}>
-              {campaignSendStatusText(campaign)}
-            </p>
-          </ReviewSection>
-        ) : null}
-
-        <ReviewSection title="Booking">
-          {values.bookingUrl ? (
-            <a
-              className={cn(
-                'break-words underline underline-offset-4',
-                textStyles.body,
-              )}
-              href={values.bookingUrl}
-              rel="noreferrer"
-              target="_blank"
-            >
-              {values.bookingUrl}
-            </a>
-          ) : (
-            <p className={textStyles.body}>Not added</p>
-          )}
-        </ReviewSection>
-
-        <ReviewSection title="Sender">
-          <p className={textStyles.body}>
-            {senderReady ? 'Ready for test SMS.' : 'Set up the sender first.'}
-          </p>
-        </ReviewSection>
-      </div>
-
-      <div className="grid content-start gap-6">
-        <ReviewSection title="Recipient preview">
-          <MessagePreview showLabel={false} smsBody={values.smsBody} />
-          <MessageEstimate smsBody={values.smsBody} />
-        </ReviewSection>
-
-        <ReviewSection title="Estimated usage">
-          <p className={textStyles.body}>
-            {estimatedCredits === null
-              ? 'Usage estimate unavailable.'
-              : `Up to ${estimatedCredits} SMS ${estimatedCredits === 1 ? 'credit' : 'credits'}`}
-          </p>
-        </ReviewSection>
-
-        <ReviewSection title="Test SMS">
-          <CampaignTestSend
-            campaignId={campaignId}
-            senderReady={senderReady}
-          />
-        </ReviewSection>
-      </div>
-    </div>
-  );
-}
-
-function CampaignTestSend({
-  campaignId,
-  senderReady,
-}: {
-  campaignId: string | null;
-  senderReady: boolean;
-}) {
-  const testSend = useSendCampaignTestSms(campaignId);
-  const form = useForm({
-    defaultValues: {
-      testPhone: '',
-    },
-    onSubmit: async ({ value }) => {
-      const response = await testSend.mutateAsync({
-        testPhone: value.testPhone.trim() || undefined,
-      });
-
-      toast.success('Test SMS sent.', {
-        description: `${response.testSend.chargedCredits} SMS ${
-          response.testSend.chargedCredits === 1 ? 'credit' : 'credits'
-        } used.`,
-      });
-    },
+  const audienceLabel =
+    usageRecipientCount === null
+      ? 'Audience unavailable'
+      : `${usageRecipientCount} ${
+          usageRecipientCount === 1 ? 'recipient' : 'recipients'
+        }`;
+  const usageLabel =
+    estimatedCredits === null
+      ? 'Usage unavailable'
+      : `Up to ${estimatedCredits} ${
+          estimatedCredits === 1 ? 'credit' : 'credits'
+        }`;
+  const audienceSummary = audienceReviewSummary({
+    audiencePreviewData: audiencePreview.data,
+    campaign,
+    eligibleCount,
+    frozenRecipientCount,
+    isAudienceLoading: audiencePreview.isLoading,
+    isRecipientSummaryLoading: recipientSummary.isLoading,
+    values,
   });
 
   return (
-    <div className="grid gap-3">
-      <form.Field name="testPhone">
-        {(field) => (
-          <div className="grid gap-2">
-            <Label htmlFor={field.name}>Test phone</Label>
-            <Input
-              autoComplete="off"
-              disabled={!senderReady || testSend.isPending}
-              id={field.name}
-              inputMode="tel"
-              name={field.name}
-              onBlur={field.handleBlur}
-              onChange={(event) => field.handleChange(event.target.value)}
-              placeholder="Use responsible phone..."
-              type="tel"
-              value={field.state.value}
-            />
-          </div>
-        )}
-      </form.Field>
+    <div className="grid gap-6">
+      <section className="grid gap-3">
+        <div className="grid gap-1">
+          <h3 className={textStyles.sectionTitle}>
+            {values.name || 'Not named'}
+          </h3>
+          {shouldShowReference ? (
+            <p className={textStyles.meta}>{campaignReference}</p>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <StatusBadge
+            label={senderReady ? 'Sender ready' : 'Sender not ready'}
+            tone={senderReady ? 'green' : 'amber'}
+          />
+          <StatusBadge label={audienceLabel} tone="blue" />
+          <StatusBadge
+            label={usageLabel}
+            tone={estimatedCredits === null ? 'amber' : 'gray'}
+          />
+        </div>
+      </section>
 
-      {testSend.isError ? (
-        <p aria-live="polite" className={textStyles.error}>
-          {testSend.error instanceof Error
-            ? testSend.error.message
-            : 'Test SMS could not be sent.'}
-        </p>
+      {!senderReady ? (
+        <ItemNotice
+          description="Set up the sender before launching this campaign."
+          title="Campaign is not ready to send"
+          variant="warning"
+        />
       ) : null}
 
-      <div className="flex justify-end">
-        <Button
-          disabled={
-            !campaignId ||
-            !senderReady ||
-            testSend.isPending
-          }
-          onClick={() => void form.handleSubmit()}
-          type="button"
-        >
-          <Send aria-hidden="true" data-icon="inline-start" />
-          {testSend.isPending ? 'Sending test SMS...' : 'Send test SMS'}
-        </Button>
+      <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)]">
+        <section className="grid content-start gap-4">
+          <ReviewItem
+            detail={audienceSummary.detail}
+            label="Audience rule"
+            value={audienceSummary.value}
+          />
+
+          <ReviewItem
+            detail="Used as the tracked destination in each SMS."
+            label="Booking link"
+            value={
+              values.bookingUrl ? (
+                <a
+                  className={cn(
+                    'break-words underline underline-offset-4',
+                    textStyles.body,
+                  )}
+                  href={values.bookingUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {values.bookingUrl}
+                </a>
+              ) : (
+                'Not added'
+              )
+            }
+          />
+
+          {shouldShowReference ? (
+            <ReviewItem label="Reference" value={campaignReference} />
+          ) : null}
+
+          {campaign && campaign.status !== 'draft' ? (
+            <ReviewItem
+              label="Send status"
+              value={campaignSendStatusText(campaign)}
+            />
+          ) : null}
+        </section>
+
+        <section className="grid content-start gap-3">
+          <h3 className={textStyles.itemTitle}>Message preview</h3>
+          <MessagePreview showLabel={false} smsBody={values.smsBody} />
+          <MessageEstimate smsBody={values.smsBody} />
+        </section>
       </div>
     </div>
   );
 }
 
-function ReviewSection({
-  children,
-  title,
+function ReviewItem({
+  detail,
+  label,
+  value,
 }: {
-  children: ReactNode;
-  title: string;
+  detail?: string;
+  label: string;
+  value: ReactNode;
 }) {
   return (
-    <section className="grid gap-2">
-      <h3 className={textStyles.itemTitle}>{title}</h3>
-      {children}
-    </section>
+    <div className="grid gap-1">
+      <h3 className={textStyles.itemTitle}>{label}</h3>
+      <div className={cn('min-w-0', textStyles.body)}>{value}</div>
+      {detail ? <p className={textStyles.meta}>{detail}</p> : null}
+    </div>
   );
+}
+
+function audienceReviewSummary({
+  audiencePreviewData,
+  campaign,
+  eligibleCount,
+  frozenRecipientCount,
+  isAudienceLoading,
+  isRecipientSummaryLoading,
+  values,
+}: {
+  audiencePreviewData:
+    | {
+        incompleteCount: number;
+        missingConsentCount: number;
+        suppressedCount: number;
+      }
+    | undefined;
+  campaign: Campaign | null;
+  eligibleCount: number | null;
+  frozenRecipientCount: number | null;
+  isAudienceLoading: boolean;
+  isRecipientSummaryLoading: boolean;
+  values: CampaignFormValues;
+}) {
+  if (campaign && campaign.status !== 'draft') {
+    if (frozenRecipientCount === null) {
+      return {
+        detail: undefined,
+        value: isRecipientSummaryLoading
+          ? 'Loading selected recipients.'
+          : 'Selected recipients unavailable.',
+      };
+    }
+
+    return {
+      detail: undefined,
+      value: 'Selected when this campaign was prepared.',
+    };
+  }
+
+  if (isAudienceLoading) {
+    return {
+      detail: undefined,
+      value: 'Checking eligible contacts.',
+    };
+  }
+
+  if (eligibleCount === null) {
+    return {
+      detail: undefined,
+      value: 'Eligible contacts unavailable.',
+    };
+  }
+
+  const issueText = audiencePreviewData
+    ? `${audiencePreviewData.suppressedCount} suppressed, ${audiencePreviewData.incompleteCount} missing phone, ${audiencePreviewData.missingConsentCount} missing consent.`
+    : null;
+
+  return {
+    detail: `Contacts without booking date ${
+      values.audienceRule.includeNoBookingDate ? 'included' : 'excluded'
+    }.${issueText ? ` ${issueText}` : ''}`,
+    value: `Last booking at least ${values.audienceRule.lapsedDays} days ago`,
+  };
 }

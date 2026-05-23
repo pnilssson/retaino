@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { idSchema, nonEmptyStringSchema, timestampSchema } from '../schemas';
+import { currencyCodeSchema } from '../money';
 import {
   legalBundleDocumentSnapshotSchema,
   type LegalBundle,
@@ -27,6 +28,7 @@ export const organizationProfileSchema = z.object({
   responsibleEmail: z.email(),
   responsiblePhone: nonEmptyStringSchema.nullable(),
   countryCode: countryCodeSchema,
+  currency: currencyCodeSchema,
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
 });
@@ -59,6 +61,7 @@ export const updateOrganizationProfileSchema = z
     responsibleEmail: z.email(),
     responsiblePhone: z.string().trim().min(1).optional(),
     countryCode: countryCodeSchema,
+    currency: currencyCodeSchema.default('SEK'),
   })
   .superRefine((value, context) => {
     if (!value.responsiblePhone) {
