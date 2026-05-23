@@ -566,11 +566,9 @@ describe('campaign query helpers', () => {
 
   it('marks campaigns sending with reserved credit counts', async () => {
     const now = new Date('2026-05-16T10:00:00.000Z');
-    const execute = vi.fn().mockResolvedValue({ rows: [] });
     const db = {
       transaction: async (callback: (inner: unknown) => unknown) =>
         callback({
-          execute,
           select: vi
             .fn()
             .mockReturnValueOnce({
@@ -620,13 +618,25 @@ describe('campaign query helpers', () => {
         reservedCreditCount: 3,
       },
     });
+  });
 
-    expect(execute).toHaveBeenCalledTimes(1);
-    const lockQuery = new PgDialect().sqlToQuery(
-      execute.mock.calls[0]?.[0] as SQL,
-    );
-    expect(lockQuery.sql).toContain('pg_advisory_xact_lock');
-    expect(lockQuery.params).toEqual([campaignRow.organizationId]);
+  it('reports an active campaign send when the database invariant is hit', async () => {
+    const db = {
+      transaction: async () => {
+        throw {
+          code: '23505',
+          constraint: 'campaigns_organization_sending_idx',
+        };
+      },
+    };
+
+    await expect(
+      startCampaignSend(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        reservedCreditCount: 3,
+      }),
+    ).resolves.toEqual({ status: 'active_send_exists' });
   });
 
   it('marks campaign recipients and campaigns after send attempts', async () => {

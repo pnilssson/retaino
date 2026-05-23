@@ -5,6 +5,7 @@ import {
   upsertUserByClerkId,
 } from '@retaino/db';
 import { createMiddleware } from 'hono/factory';
+import { connectAppDb } from '../lib/db';
 import { apiError } from '../lib/errors';
 import { parseConfiguredOrigins } from '../lib/origins';
 import type { AppEnv } from '../types';
@@ -61,7 +62,10 @@ export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
   }
 
   const role = 'orgRole' in auth && typeof auth.orgRole === 'string' ? auth.orgRole : 'org:member';
-  const db = c.get('db');
+  const db = await connectAppDb(c.env);
+
+  c.set('db', db);
+
   const clerkUser = await clerk.users.getUser(auth.userId);
   const email = primaryEmailAddress(
     clerkUser.emailAddresses,

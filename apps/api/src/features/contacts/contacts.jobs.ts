@@ -1,6 +1,6 @@
-import { createDb } from '@retaino/db';
 import { Inngest } from 'inngest';
 import type { AppEnv } from '../../types';
+import { connectAppDb } from '../../lib/db';
 import { inngest } from '../../lib/inngest';
 import { processContactImport } from './contacts.service';
 
@@ -49,13 +49,13 @@ export const processContactImportFunction: ReturnType<
       throw new Error('Contact import processing event is missing identifiers.');
     }
 
-    if (!bindings?.DATABASE_URL || !bindings.CONTACT_IMPORTS_BUCKET) {
+    if (!bindings || !bindings.CONTACT_IMPORTS_BUCKET) {
       throw new Error('Contact import processing is missing Worker bindings.');
     }
 
     await step.run('process contact import', async () => {
       await processContactImport({
-        db: createDb(bindings.DATABASE_URL),
+        db: await connectAppDb(bindings),
         bucket: bindings.CONTACT_IMPORTS_BUCKET,
         organizationId,
         contactImportId,

@@ -11,7 +11,6 @@ import {
   ne,
   not,
   or,
-  sql,
   type SQL,
 } from 'drizzle-orm';
 import type {
@@ -37,6 +36,7 @@ type CampaignRecipientRow = typeof campaignRecipients.$inferSelect;
 type CampaignRecipientInsert = typeof campaignRecipients.$inferInsert;
 
 const RECIPIENT_SNAPSHOT_INSERT_BATCH_SIZE = 1000;
+const ACTIVE_SEND_UNIQUE_INDEX = 'campaigns_organization_sending_idx';
 
 export type UpdateCampaignDraftResult =
   | { status: 'updated'; campaign: Campaign }
@@ -408,71 +408,75 @@ export async function startCampaignSend(
   assertOrganizationId(input.organizationId);
   const now = input.now ?? new Date();
 
-  return db.transaction(async (tx) => {
-    await tx.execute(
-      sql`select pg_advisory_xact_lock(hashtext(${input.organizationId}))`,
-    );
+  try {
+    return await db.transaction(async (tx) => {
+      const [activeSend] = await tx
+        .select({ id: campaigns.id })
+        .from(campaigns)
+        .where(
+          and(
+            eq(campaigns.organizationId, input.organizationId),
+            eq(campaigns.status, 'sending'),
+            ne(campaigns.id, input.campaignId),
+          ),
+        )
+        .limit(1);
 
-    const [activeSend] = await tx
-      .select({ id: campaigns.id })
-      .from(campaigns)
-      .where(
-        and(
-          eq(campaigns.organizationId, input.organizationId),
-          eq(campaigns.status, 'sending'),
-          ne(campaigns.id, input.campaignId),
-        ),
-      )
-      .limit(1);
+      if (activeSend) {
+        return { status: 'active_send_exists' };
+      }
 
-    if (activeSend) {
+      const [existing] = await tx
+        .select()
+        .from(campaigns)
+        .where(
+          and(
+            eq(campaigns.organizationId, input.organizationId),
+            eq(campaigns.id, input.campaignId),
+          ),
+        )
+        .limit(1);
+
+      if (!existing) {
+        return { status: 'not_found' };
+      }
+
+      if (existing.status === 'sending') {
+        return { status: 'started', campaign: campaignToContract(existing) };
+      }
+
+      if (existing.status !== 'ready_to_send') {
+        return { status: 'not_ready' };
+      }
+
+      const [updated] = await tx
+        .update(campaigns)
+        .set({
+          status: 'sending',
+          sendStartedAt: now,
+          reservedCreditCount: input.reservedCreditCount,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(campaigns.organizationId, input.organizationId),
+            eq(campaigns.id, input.campaignId),
+            eq(campaigns.status, 'ready_to_send'),
+          ),
+        )
+        .returning();
+
+      return updated
+        ? { status: 'started', campaign: campaignToContract(updated) }
+        : { status: 'not_ready' };
+    });
+  } catch (error) {
+    if (isUniqueConstraintViolation(error, ACTIVE_SEND_UNIQUE_INDEX)) {
       return { status: 'active_send_exists' };
     }
 
-    const [existing] = await tx
-      .select()
-      .from(campaigns)
-      .where(
-        and(
-          eq(campaigns.organizationId, input.organizationId),
-          eq(campaigns.id, input.campaignId),
-        ),
-      )
-      .limit(1);
-
-    if (!existing) {
-      return { status: 'not_found' };
-    }
-
-    if (existing.status === 'sending') {
-      return { status: 'started', campaign: campaignToContract(existing) };
-    }
-
-    if (existing.status !== 'ready_to_send') {
-      return { status: 'not_ready' };
-    }
-
-    const [updated] = await tx
-      .update(campaigns)
-      .set({
-        status: 'sending',
-        sendStartedAt: now,
-        reservedCreditCount: input.reservedCreditCount,
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(campaigns.organizationId, input.organizationId),
-          eq(campaigns.id, input.campaignId),
-          eq(campaigns.status, 'ready_to_send'),
-        ),
-      )
-      .returning();
-
-    return updated
-      ? { status: 'started', campaign: campaignToContract(updated) }
-      : { status: 'not_ready' };
-  });
+    throw error;
+  }
 }
 
 export async function markCampaignRecipientSent(
@@ -826,6 +830,25 @@ function campaignUpdateValues(input: UpdateCampaignDraftInput) {
       ? { attributionWindowDays: input.attributionWindowDays }
       : {}),
   };
+}
+
+function isUniqueConstraintViolation(error: unknown, constraintName: string) {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    'constraint' in error &&
+    error.code === '23505' &&
+    error.constraint === constraintName
+  ) {
+    return true;
+  }
+
+  if (typeof error === 'object' && error !== null && 'cause' in error) {
+    return isUniqueConstraintViolation(error.cause, constraintName);
+  }
+
+  return false;
 }
 
 function campaignAudienceDateWhere(rule: CampaignAudienceRule, now: Date) {

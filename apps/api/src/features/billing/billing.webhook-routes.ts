@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import { createDb } from '@retaino/db';
 import Stripe from 'stripe';
+import { connectAppDb } from '../../lib/db';
 import { apiError } from '../../lib/errors';
 import { getStripeWebhookSecret } from '../../lib/stripe';
 import type { AppEnv } from '../../types';
@@ -32,9 +32,8 @@ export const billingWebhookRoutes = new Hono<AppEnv>().post(
       return c.json(apiError('validation_failed', 'Invalid Stripe signature.'), 400);
     }
 
-    const db = createDb(c.env.DATABASE_URL);
     const result = await processStripeBillingWebhook({
-      db,
+      db: await connectAppDb(c.env),
       event,
     });
 

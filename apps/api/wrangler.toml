@@ -25,6 +25,10 @@ namespace_id = "2026052002"
   limit = 1500
   period = 60
 
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "0bb96ea0a69d413aafc37de40e99ba76"
+
 [[routes]]
 pattern = "api.retaino.io"
 custom_domain = true

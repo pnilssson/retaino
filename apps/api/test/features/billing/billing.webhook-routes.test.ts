@@ -5,6 +5,14 @@ import { processStripeBillingWebhook } from '../../../src/features/billing/billi
 import { billingWebhookRoutes } from '../../../src/features/billing/billing.webhook-routes';
 import type { AppEnv } from '../../../src/types';
 
+const dbMocks = vi.hoisted(() => ({
+  connectDb: vi.fn(),
+}));
+
+vi.mock('@retaino/db', () => ({
+  connectDb: dbMocks.connectDb,
+}));
+
 vi.mock('../../../src/features/billing/billing.webhooks', async (importOriginal) => {
   const actual = await importOriginal<
     typeof import('../../../src/features/billing/billing.webhooks')
@@ -17,7 +25,9 @@ vi.mock('../../../src/features/billing/billing.webhooks', async (importOriginal)
 });
 
 const env = {
-  DATABASE_URL: 'postgresql://user:password@example.test/retaino',
+  HYPERDRIVE: {
+    connectionString: 'postgresql://user:password@example.test/retaino',
+  },
   STRIPE_CANCEL_URL: 'https://retaino.test/app/settings/billing',
   STRIPE_PRICE_CREDITS_1500_ID: 'price_credits_1500',
   STRIPE_PRICE_CREDITS_5000_ID: 'price_credits_5000',
@@ -49,6 +59,8 @@ describe('billing webhook routes', () => {
     vi.mocked(processStripeBillingWebhook).mockResolvedValue({
       status: 'processed',
     });
+    dbMocks.connectDb.mockReset();
+    dbMocks.connectDb.mockResolvedValue({ db: {}, close: vi.fn() });
   });
 
   it('rejects requests without a valid Stripe signature', async () => {
@@ -63,6 +75,7 @@ describe('billing webhook routes', () => {
 
     expect(response.status).toBe(400);
     expect(processStripeBillingWebhook).not.toHaveBeenCalled();
+    expect(dbMocks.connectDb).not.toHaveBeenCalled();
   });
 
   it('accepts signed Stripe webhook requests before Clerk auth', async () => {
@@ -90,6 +103,9 @@ describe('billing webhook routes', () => {
     );
 
     expect(response.status).toBe(200);
+    expect(dbMocks.connectDb).toHaveBeenCalledWith(
+      env.HYPERDRIVE.connectionString,
+    );
     expect(processStripeBillingWebhook).toHaveBeenCalledWith({
       db: expect.anything(),
       event: expect.objectContaining({

@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   index,
   integer,
@@ -5,6 +6,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 import type { CampaignAudienceRule } from '@retaino/shared/contracts';
@@ -57,6 +59,9 @@ export const campaigns = pgTable(
       table.organizationId,
       table.status,
     ),
+    uniqueIndex('campaigns_organization_sending_idx')
+      .on(table.organizationId)
+      .where(sql`${table.status} = 'sending'`),
   ],
 );
 
@@ -105,6 +110,9 @@ export const campaignRecipients = pgTable(
       table.phoneHash,
       table.sentAt,
     ),
+    uniqueIndex('campaign_recipients_campaign_contact_idx')
+      .on(table.campaignId, table.contactId)
+      .where(sql`${table.contactId} is not null`),
   ],
 );
 

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { and, eq, sql } from 'drizzle-orm';
 import { legalDocuments as manifest } from '../../legal/manifest';
-import { createDb } from '../client';
+import { connectDb } from '../client';
 import { legalDocuments, legalDocumentVersions } from '../schema';
 
 const packageRoot = path.resolve(
@@ -22,81 +22,85 @@ async function main() {
     throw new Error('DATABASE_URL is required to publish legal documents.');
   }
 
-  const db = createDb(databaseUrl);
+  const connection = await connectDb(databaseUrl);
 
-  for (const document of manifest) {
-    const bodyMdx = await readLegalBody(document.path);
-    const contentHash = hashLegalBody(bodyMdx);
-    const [legalDocument] = await db
-      .insert(legalDocuments)
-      .values({
-        documentType: document.documentType,
-        slug: document.slug,
-        title: document.title,
-        publicVisible: document.publicVisible,
-        acceptanceRequired: document.acceptanceRequired,
-        sortOrder: document.sortOrder,
-      })
-      .onConflictDoUpdate({
-        target: legalDocuments.documentType,
-        set: {
+  try {
+    for (const document of manifest) {
+      const bodyMdx = await readLegalBody(document.path);
+      const contentHash = hashLegalBody(bodyMdx);
+      const [legalDocument] = await connection.db
+        .insert(legalDocuments)
+        .values({
+          documentType: document.documentType,
           slug: document.slug,
           title: document.title,
           publicVisible: document.publicVisible,
           acceptanceRequired: document.acceptanceRequired,
           sortOrder: document.sortOrder,
-          updatedAt: sql`now()`,
-        },
-      })
-      .returning();
+        })
+        .onConflictDoUpdate({
+          target: legalDocuments.documentType,
+          set: {
+            slug: document.slug,
+            title: document.title,
+            publicVisible: document.publicVisible,
+            acceptanceRequired: document.acceptanceRequired,
+            sortOrder: document.sortOrder,
+            updatedAt: sql`now()`,
+          },
+        })
+        .returning();
 
-    if (!legalDocument) {
-      throw new Error(`Failed to upsert ${document.documentType}.`);
-    }
-
-    const [existingVersion] = await db
-      .select()
-      .from(legalDocumentVersions)
-      .where(
-        and(
-          eq(legalDocumentVersions.documentType, document.documentType),
-          eq(legalDocumentVersions.documentVersion, document.version),
-        ),
-      )
-      .limit(1);
-
-    if (existingVersion) {
-      if (existingVersion.contentHash !== contentHash) {
-        throw new Error(
-          [
-            `Published legal document changed without a new version: ${document.documentType} ${document.version}.`,
-            `Database hash: ${existingVersion.contentHash}.`,
-            `Manifest hash: ${contentHash}.`,
-          ].join(' '),
-        );
+      if (!legalDocument) {
+        throw new Error(`Failed to upsert ${document.documentType}.`);
       }
 
+      const [existingVersion] = await connection.db
+        .select()
+        .from(legalDocumentVersions)
+        .where(
+          and(
+            eq(legalDocumentVersions.documentType, document.documentType),
+            eq(legalDocumentVersions.documentVersion, document.version),
+          ),
+        )
+        .limit(1);
+
+      if (existingVersion) {
+        if (existingVersion.contentHash !== contentHash) {
+          throw new Error(
+            [
+              `Published legal document changed without a new version: ${document.documentType} ${document.version}.`,
+              `Database hash: ${existingVersion.contentHash}.`,
+              `Manifest hash: ${contentHash}.`,
+            ].join(' '),
+          );
+        }
+
+        console.log(
+          `Legal document already published: ${document.documentType} ${document.version}`,
+        );
+        continue;
+      }
+
+      await connection.db.insert(legalDocumentVersions).values({
+        legalDocumentId: legalDocument.id,
+        documentType: document.documentType,
+        documentVersion: document.version,
+        title: document.title,
+        bodyMdx,
+        contentHash,
+        status: 'published',
+        effectiveDate: document.effectiveDate,
+        publishedAt: new Date(`${document.effectiveDate}T00:00:00.000Z`),
+      });
+
       console.log(
-        `Legal document already published: ${document.documentType} ${document.version}`,
+        `Published legal document: ${document.documentType} ${document.version}`,
       );
-      continue;
     }
-
-    await db.insert(legalDocumentVersions).values({
-      legalDocumentId: legalDocument.id,
-      documentType: document.documentType,
-      documentVersion: document.version,
-      title: document.title,
-      bodyMdx,
-      contentHash,
-      status: 'published',
-      effectiveDate: document.effectiveDate,
-      publishedAt: new Date(`${document.effectiveDate}T00:00:00.000Z`),
-    });
-
-    console.log(
-      `Published legal document: ${document.documentType} ${document.version}`,
-    );
+  } finally {
+    await connection.close();
   }
 }
 
