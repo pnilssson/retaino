@@ -48,12 +48,36 @@ export function createCampaignReportFunnel(report: CampaignReport): {
       { source: 1, target: 5, value: report.queuedCount },
     ],
     summary: [
-      { label: 'Selected', value: report.selectedCount },
-      { label: 'Sent', value: report.sentCount },
-      { label: 'Delivered', value: report.deliveredCount },
-      { label: 'In progress', value: report.queuedCount },
-      { label: 'Failed', value: report.failedCount },
-      { label: 'Skipped', value: report.skippedCount },
+      {
+        detail: 'Recipients selected for this send.',
+        label: 'Selected',
+        value: report.selectedCount,
+      },
+      {
+        detail: 'Messages sent from Retaino.',
+        label: 'Sent',
+        value: report.sentCount,
+      },
+      {
+        detail: 'Messages confirmed delivered.',
+        label: 'Delivered',
+        value: report.deliveredCount,
+      },
+      {
+        detail: 'Messages waiting for status update.',
+        label: 'In progress',
+        value: report.queuedCount,
+      },
+      {
+        detail: 'Messages that could not be delivered.',
+        label: 'Failed',
+        value: report.failedCount,
+      },
+      {
+        detail: 'Recipients excluded before send.',
+        label: 'Skipped',
+        value: report.skippedCount,
+      },
     ],
   };
 }

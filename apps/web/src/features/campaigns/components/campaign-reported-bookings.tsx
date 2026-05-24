@@ -1,5 +1,14 @@
+"use client";
+
 import type { Campaign, CampaignReport } from '@retaino/shared/contracts';
+import {
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+} from '@tanstack/react-table';
 import { CalendarCheck, Info } from 'lucide-react';
+import { useState } from 'react';
+import { DataTable, PaginationControls } from '@/components/data-table';
 import { AppPageSection } from '@/features/appshell/components/app-page-content';
 import { textStyles } from '@/lib/text-styles';
 import {
@@ -7,6 +16,15 @@ import {
   formatReportDate,
 } from '../campaign-report-format';
 import { BookingReportDialog } from './campaign-booking-report-dialog';
+
+const REPORTED_BOOKINGS_PAGE_SIZE = 10;
+
+type ReportedBookingRow =
+  CampaignReport['bookingReports'][number]['bookings'][number] & {
+    checkedThroughDate: string | null;
+    reportId: string;
+    reportNote: string | null;
+  };
 
 export function ReportedBookingsSection({
   campaign,
@@ -17,17 +35,27 @@ export function ReportedBookingsSection({
   organizationId: string | null;
   report: CampaignReport;
 }) {
+  const [page, setPage] = useState(1);
   const canCreateBookingReport =
     campaign.status === 'sent' || campaign.status === 'failed';
   const bookings = report.bookingReports.flatMap((bookingReport) =>
     bookingReport.bookings.map((booking) => ({
       ...booking,
       checkedThroughDate: bookingReport.checkedThroughDate,
-      reportNote: bookingReport.note,
       reportId: bookingReport.id,
+      reportNote: bookingReport.note,
     })),
   );
   const hasBookings = bookings.length > 0;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(bookings.length / REPORTED_BOOKINGS_PAGE_SIZE),
+  );
+  const currentPage = Math.min(page, totalPages);
+  const visibleBookings = bookings.slice(
+    (currentPage - 1) * REPORTED_BOOKINGS_PAGE_SIZE,
+    currentPage * REPORTED_BOOKINGS_PAGE_SIZE,
+  );
 
   return (
     <AppPageSection
@@ -41,49 +69,17 @@ export function ReportedBookingsSection({
         ) : null
       }
       description="Add booking outcomes from this campaign."
+      framed={false}
+      id="reported-bookings"
       title="Reported bookings"
     >
       {hasBookings ? (
-        <div className="grid gap-3">
-          {bookings.map((booking) => {
-            const reportContext = bookingReportContext(booking);
-
-            return (
-              <div
-                className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-                key={`${booking.reportId}-${booking.id}`}
-              >
-                <div className="min-w-0">
-                  <p className={textStyles.itemTitle}>{bookingTitle(booking)}</p>
-                  <p className={textStyles.meta}>
-                    {[
-                      formatReportDate(booking.bookingDate),
-                      booking.service,
-                      booking.phone,
-                      booking.email,
-                    ]
-                      .filter(Boolean)
-                      .join(', ')}
-                  </p>
-                  {booking.note ? (
-                    <p className={textStyles.mutedBody}>{booking.note}</p>
-                  ) : null}
-                  {reportContext ? (
-                    <p className={textStyles.meta}>{reportContext}</p>
-                  ) : null}
-                </div>
-                {booking.revenueAmountMinor !== null ? (
-                  <div className="text-sm font-medium tabular-nums sm:text-right">
-                    {formatReportCurrency(
-                      booking.revenueAmountMinor,
-                      booking.currency,
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
+        <ReportedBookingsTable
+          bookings={visibleBookings}
+          currentPage={currentPage}
+          onPageChange={setPage}
+          totalBookings={bookings.length}
+        />
       ) : (
         <BookingReportEmptyState
           campaign={campaign}
@@ -96,26 +92,92 @@ export function ReportedBookingsSection({
   );
 }
 
-function bookingTitle(
-  booking: CampaignReport['bookingReports'][number]['bookings'][number],
-) {
-  return booking.customerName ?? booking.phone ?? booking.email ?? 'Booking';
+function ReportedBookingsTable({
+  bookings,
+  currentPage,
+  onPageChange,
+  totalBookings,
+}: {
+  bookings: ReportedBookingRow[];
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  totalBookings: number;
+}) {
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const table = useReactTable({
+    columns: reportedBookingColumns,
+    data: bookings,
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: (row) => `${row.reportId}-${row.id}`,
+    manualPagination: true,
+  });
+
+  return (
+    <div className="grid gap-3">
+      <DataTable
+        cellClassName="p-2"
+        rowClassName="group"
+        table={table}
+      />
+      {totalBookings > REPORTED_BOOKINGS_PAGE_SIZE ? (
+        <PaginationControls
+          itemLabel="bookings"
+          onPageChange={onPageChange}
+          page={currentPage}
+          pageSize={REPORTED_BOOKINGS_PAGE_SIZE}
+          total={totalBookings}
+        />
+      ) : null}
+    </div>
+  );
 }
 
-function bookingReportContext(
-  booking: CampaignReport['bookingReports'][number]['bookings'][number] & {
-    checkedThroughDate: string | null;
-    reportNote: string | null;
+const reportedBookingColumns: ColumnDef<ReportedBookingRow>[] = [
+  {
+    accessorKey: 'customerName',
+    header: 'Customer',
+    cell: ({ row }) => (
+      <span className="font-medium">{bookingTitle(row.original)}</span>
+    ),
   },
-) {
-  return [
-    booking.checkedThroughDate
-      ? `Checked until ${formatReportDate(booking.checkedThroughDate)}`
-      : null,
-    booking.reportNote ? `Report note: ${booking.reportNote}` : null,
-  ]
-    .filter(Boolean)
-    .join(', ');
+  {
+    accessorKey: 'bookingDate',
+    header: 'Booking date',
+    cell: ({ row }) => formatReportDate(row.original.bookingDate),
+  },
+  {
+    accessorKey: 'service',
+    header: 'Service',
+    cell: ({ row }) => row.original.service ?? 'Not added',
+  },
+  {
+    accessorKey: 'phone',
+    header: 'Phone',
+    cell: ({ row }) => row.original.phone ?? 'Not added',
+  },
+  {
+    accessorKey: 'email',
+    header: 'Email',
+    cell: ({ row }) => row.original.email ?? 'Not added',
+  },
+  {
+    accessorKey: 'revenueAmountMinor',
+    header: () => <div className="text-right">Revenue</div>,
+    cell: ({ row }) => (
+      <div className="text-right font-medium tabular-nums">
+        {row.original.revenueAmountMinor === null
+          ? 'Not added'
+          : formatReportCurrency(
+              row.original.revenueAmountMinor,
+              row.original.currency,
+            )}
+      </div>
+    ),
+  },
+];
+
+function bookingTitle(booking: ReportedBookingRow) {
+  return booking.customerName ?? booking.phone ?? booking.email ?? 'Booking';
 }
 
 function BookingReportEmptyState({

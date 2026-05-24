@@ -26,10 +26,6 @@ export function CampaignOverview({
   sendAccepted?: boolean;
 }) {
   const values = campaignToFormValues(campaign);
-  const shouldShowReference =
-    values.campaignCode.trim() &&
-    values.campaignCode.trim().toLowerCase() !==
-      values.name.trim().toLowerCase();
 
   return (
     <div className="grid gap-5">
@@ -40,62 +36,46 @@ export function CampaignOverview({
       />
 
       <AppPageContent>
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
           <AppPageSection
             description="Audience, destination, and send details."
             title="Campaign details"
           >
-            <div className="grid gap-6 sm:grid-cols-2">
-              <dl className="grid content-start gap-4">
-                <OverviewDetail
-                  label="Audience rule"
-                  tooltip={audienceRuleDetail(campaign)}
-                  value={audienceRuleValue(campaign)}
-                />
+            <dl className="grid content-start gap-4">
+              <OverviewDetail
+                label="Audience rule"
+                tooltip={audienceRuleDetail(campaign)}
+                value={audienceRuleValue(campaign)}
+              />
 
-                <OverviewDetail
-                  label="Booking link"
-                  tooltip="Tracked destination in each SMS."
-                  value={
-                    campaign.bookingUrl ? (
-                      <a
-                        className="break-words underline underline-offset-4"
-                        href={campaign.bookingUrl}
-                        rel="noreferrer"
-                        target="_blank"
-                      >
-                        {campaign.bookingUrl}
-                      </a>
-                    ) : (
-                      'Not added'
-                    )
-                  }
-                />
+              <OverviewDetail
+                label="Booking link"
+                tooltip="Tracked destination in each SMS."
+                value={
+                  campaign.bookingUrl ? (
+                    <a
+                      className="break-words underline underline-offset-4"
+                      href={campaign.bookingUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      {campaign.bookingUrl}
+                    </a>
+                  ) : (
+                    'Not added'
+                  )
+                }
+              />
 
-                <OverviewDetail
-                  label="Sent"
-                  value={
-                    sendAccepted
-                      ? 'Send accepted. Waiting for delivery activity.'
-                      : campaignSendStatusText(campaign)
-                  }
-                />
-              </dl>
-
-              <dl className="grid content-start gap-4">
-                {shouldShowReference ? (
-                  <OverviewDetail
-                    label="Reference"
-                    value={values.campaignCode}
-                  />
-                ) : null}
-
-                <OverviewDetail
-                  label="Credits"
-                  value={creditLabel(campaign)}
-                />
-              </dl>
-            </div>
+              <OverviewDetail
+                label="Sent"
+                value={
+                  sendAccepted
+                    ? 'Send accepted. Waiting for delivery activity.'
+                    : campaignSendStatusText(campaign)
+                }
+              />
+            </dl>
           </AppPageSection>
 
           <AppPageSection
@@ -140,16 +120,4 @@ function audienceRuleDetail(campaign: Campaign) {
   return campaign.audienceRule.includeNoBookingDate
     ? 'Contacts without a booking date were included.'
     : 'Contacts without a booking date were excluded.';
-}
-
-function creditLabel(campaign: Campaign) {
-  const credits = campaign.actualCreditCount ?? campaign.reservedCreditCount;
-
-  if (credits === null) {
-    return 'Not available';
-  }
-
-  const status = campaign.actualCreditCount !== null ? 'used' : 'reserved';
-
-  return `${credits} ${credits === 1 ? 'credit' : 'credits'} ${status}`;
 }

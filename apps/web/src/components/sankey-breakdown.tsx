@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Layer,
@@ -30,6 +31,7 @@ export type SankeyBreakdownLink = {
 };
 
 export type SankeyBreakdownSummaryItem = {
+  detail?: ReactNode;
   icon?: LucideIcon;
   iconClassName?: string;
   label: string;
@@ -99,28 +101,30 @@ export function SankeyBreakdown({
         </dl>
 
         {data ? (
-          <ChartContainer
-            className="hidden h-72 w-full sm:block"
-            config={chartConfig}
-            initialDimension={{ width: 520, height: 260 }}
-          >
-            <Sankey
-              align="justify"
-              data={data}
-              iterations={48}
-              link={{ stroke: 'var(--chart-2)', strokeOpacity: 0.22 }}
-              linkCurvature={0.55}
-              margin={{ bottom: 24, left: 144, right: 112, top: 24 }}
-              node={SankeyNode}
-              nodePadding={22}
-              nodeWidth={10}
-              sort={false}
+          <div className="hidden justify-center sm:flex">
+            <ChartContainer
+              className="h-40 w-full max-w-4xl"
+              config={chartConfig}
+              initialDimension={{ width: 760, height: 148 }}
             >
-              <ChartTooltip
-                content={<ChartTooltipContent hideLabel indicator="line" />}
-              />
-            </Sankey>
-          </ChartContainer>
+              <Sankey
+                align="justify"
+                data={data}
+                iterations={48}
+                link={{ stroke: 'var(--chart-2)', strokeOpacity: 0.22 }}
+                linkCurvature={0.55}
+                margin={{ bottom: 8, left: 124, right: 96, top: 8 }}
+                node={SankeyNode}
+                nodePadding={14}
+                nodeWidth={10}
+                sort={false}
+              >
+                <ChartTooltip
+                  content={<ChartTooltipContent hideLabel indicator="line" />}
+                />
+              </Sankey>
+            </ChartContainer>
+          </div>
         ) : null}
       </div>
     </div>

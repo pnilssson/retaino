@@ -1,6 +1,6 @@
 "use client";
 
-import type { OrganizationSession } from '@retaino/shared/contracts';
+import type { Campaign, OrganizationSession } from '@retaino/shared/contracts';
 import { ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -79,7 +79,7 @@ export function CampaignBuilderScreen({
     latestCampaign?.status !== 'failed';
   const refetchCampaign = campaign.refetch;
   const title = campaignId
-    ? latestCampaign?.name ?? 'Campaign'
+    ? campaignOverviewTitle(latestCampaign)
     : 'New campaign';
 
   useEffect(() => {
@@ -242,4 +242,18 @@ function BlockedCampaignBuilder({ session }: { session: OrganizationSession }) {
 
 function hasOverviewStatus(status: string) {
   return status === 'sending' || status === 'sent' || status === 'failed';
+}
+
+function campaignOverviewTitle(campaign: Campaign | null) {
+  if (!campaign) {
+    return 'Campaign';
+  }
+
+  const reference = campaign.campaignCode?.trim();
+
+  if (!reference || reference.toLowerCase() === campaign.name.trim().toLowerCase()) {
+    return campaign.name;
+  }
+
+  return `${campaign.name} (${reference})`;
 }

@@ -122,31 +122,26 @@ export function ContactImportProgress({
         description={header.description}
         title={header.title}
       >
-          {showMetrics ? (
-            <ImportFunnel importRow={latestImport} summary={importSummary} />
-          ) : null}
+        {showMetrics ? (
+          <ImportFunnel importRow={latestImport} summary={importSummary} />
+        ) : null}
       </AppPageSection>
 
       {importSummary.length > 0 ? (
-        <div className="hidden min-w-0 gap-5 sm:grid sm:grid-cols-2 xl:grid-cols-3">
+        <div className="hidden min-w-0 gap-4 sm:grid sm:grid-cols-2 xl:grid-cols-3">
           {importSummary.map((metric) => (
             <ImportMetricItem key={metric.label} metric={metric} />
           ))}
         </div>
       ) : null}
 
-      {showIssues || showActions ? (
-        <AppPageItem asChild>
-          <section className="grid gap-5">
-            {showIssues ? <ImportIssues importRow={latestImport} /> : null}
-            {showActions ? (
-              <ImportActions
-                importStatus={latestImport.status}
-                onImportAnother={onImportAnother}
-              />
-            ) : null}
-          </section>
-        </AppPageItem>
+      {showIssues ? <ImportIssuesSection importRow={latestImport} /> : null}
+
+      {showActions ? (
+        <ImportActions
+          importStatus={latestImport.status}
+          onImportAnother={onImportAnother}
+        />
       ) : null}
     </AppPageContent>
   );
@@ -213,6 +208,7 @@ function ImportMetric({ metric }: { metric: SankeyBreakdownSummaryItem }) {
   return (
     <MetricSummaryEntry
       className="min-h-0 border-t-0 p-0"
+      detail={metric.detail}
       icon={metric.icon}
       iconClassName={metric.iconClassName}
       label={metric.label}
@@ -250,7 +246,7 @@ function shouldShowImportMetrics(importRow: ContactImportDetail) {
   return importRow.status !== 'processing' || importRow.processedRows > 0;
 }
 
-function ImportIssues({ importRow }: { importRow: ContactImportDetail }) {
+function ImportIssuesSection({ importRow }: { importRow: ContactImportDetail }) {
   if (importRow.errorSummary.length === 0) {
     return null;
   }
@@ -260,22 +256,27 @@ function ImportIssues({ importRow }: { importRow: ContactImportDetail }) {
   const issueTone = isFailed ? 'red' : 'amber';
 
   return (
-    <div className="grid gap-2" role={isFailed ? 'alert' : 'status'}>
-      <div className="flex items-center gap-2">
-        <IssueIcon
-          aria-hidden="true"
-          className={cn(
-            'size-4 shrink-0',
-            isFailed
-              ? 'text-destructive'
-              : 'text-amber-600 dark:text-amber-400',
-          )}
-        />
-        <h3 className={textStyles.itemTitle}>
+    <AppPageSection
+      description="Rows that need review before they can be used."
+      title={
+        <span className="inline-flex items-center gap-2">
+          <IssueIcon
+            aria-hidden="true"
+            className={cn(
+              'size-4 shrink-0',
+              isFailed
+                ? 'text-destructive'
+                : 'text-amber-600 dark:text-amber-400',
+            )}
+          />
           {isFailed ? 'Import failed' : 'Rows need attention'}
-        </h3>
-      </div>
-      <div className="flex flex-wrap gap-2">
+        </span>
+      }
+    >
+      <div
+        className="flex flex-wrap gap-2"
+        role={isFailed ? 'alert' : 'status'}
+      >
         {importRow.errorSummary.map((issue) => (
           <StatusBadge
             key={issue}
@@ -284,7 +285,7 @@ function ImportIssues({ importRow }: { importRow: ContactImportDetail }) {
           />
         ))}
       </div>
-    </div>
+    </AppPageSection>
   );
 }
 
@@ -360,36 +361,42 @@ function createImportSummary(
 ): SankeyBreakdownSummaryItem[] {
   return [
     {
+      detail: 'New contacts imported.',
       icon: UserPlus,
       iconClassName: 'bg-emerald-50 text-emerald-700',
       label: 'Created',
       value: importRow.createdCount,
     },
     {
+      detail: 'Existing contacts updated.',
       icon: RefreshCw,
       iconClassName: 'bg-blue-50 text-blue-700',
       label: 'Updated',
       value: importRow.updatedCount,
     },
     {
+      detail: 'Contacts excluded from SMS.',
       icon: ShieldOff,
       iconClassName: 'bg-rose-50 text-rose-700',
       label: 'Suppressed',
       value: importRow.suppressedCount,
     },
     {
+      detail: 'Rows not imported.',
       icon: CircleSlash,
       iconClassName: 'bg-zinc-100 text-zinc-700',
       label: 'Skipped',
       value: importRow.skippedCount,
     },
     {
+      detail: 'Rows with invalid data.',
       icon: AlertCircle,
       iconClassName: 'bg-rose-50 text-rose-700',
       label: 'Invalid',
       value: importRow.invalidCount,
     },
     {
+      detail: 'Duplicate rows found.',
       icon: Copy,
       iconClassName: 'bg-amber-50 text-amber-700',
       label: 'Duplicate',
