@@ -197,6 +197,20 @@ export const campaignReportSchema = z.object({
       hasMixedCurrencies: z.boolean(),
       createdByUserId: idSchema,
       createdAt: timestampSchema,
+      bookings: z.array(
+        z.object({
+          id: idSchema,
+          bookingDate: z.iso.date(),
+          customerName: nonEmptyStringSchema.nullable(),
+          phone: nonEmptyStringSchema.nullable(),
+          email: nonEmptyStringSchema.nullable(),
+          revenueAmountMinor: z.number().int().nonnegative().nullable(),
+          currency: currencyCodeSchema,
+          service: nonEmptyStringSchema.nullable(),
+          note: nonEmptyStringSchema.nullable(),
+          createdAt: timestampSchema,
+        }),
+      ),
     }),
   ),
 });
@@ -432,6 +446,17 @@ export const campaignRecipientSummaryResponseSchema = z.object({
   recipientCount: z.number().int().nonnegative(),
 });
 
+export const campaignRecipientSearchItemSchema = z.object({
+  id: idSchema,
+  name: nonEmptyStringSchema.nullable(),
+  phone: nonEmptyStringSchema.nullable(),
+  email: nonEmptyStringSchema.nullable(),
+});
+
+export const campaignRecipientSearchResponseSchema = z.object({
+  recipients: z.array(campaignRecipientSearchItemSchema),
+});
+
 export const campaignSendResponseSchema = z.object({
   campaign: campaignSchema,
   recipientCount: z.number().int().nonnegative(),
@@ -501,6 +526,12 @@ export type CampaignSmsTestSendResponse = z.infer<
 >;
 export type CampaignRecipientSummaryResponse = z.infer<
   typeof campaignRecipientSummaryResponseSchema
+>;
+export type CampaignRecipientSearchItem = z.infer<
+  typeof campaignRecipientSearchItemSchema
+>;
+export type CampaignRecipientSearchResponse = z.infer<
+  typeof campaignRecipientSearchResponseSchema
 >;
 export type CampaignSendResponse = z.infer<typeof campaignSendResponseSchema>;
 export type CreateManualBookingReportInput = z.infer<

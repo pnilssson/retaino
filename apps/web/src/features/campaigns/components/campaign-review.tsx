@@ -79,7 +79,7 @@ export function CampaignReview({
     <div className="grid gap-6">
       <section className="grid gap-3">
         <div className="grid gap-1">
-          <h3 className={textStyles.sectionTitle}>
+          <h3 className={textStyles.itemTitle}>
             {values.name || 'Not named'}
           </h3>
           {shouldShowReference ? (

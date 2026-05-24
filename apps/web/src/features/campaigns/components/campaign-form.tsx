@@ -7,6 +7,7 @@ import {
 import { useForm } from '@tanstack/react-form';
 import type {
   Campaign,
+  CampaignSendResponse,
   CreateCampaignDraftInput,
   UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
@@ -78,11 +79,13 @@ export function CampaignForm({
   campaign,
   initialStep,
   onCreated,
+  onSent,
   organizationId,
 }: {
   campaign: Campaign | null;
   initialStep?: CampaignStepId;
   onCreated: (campaignId: string, initialStep: CampaignStepId) => void;
+  onSent?: (response: CampaignSendResponse) => void;
   organizationId: string | null;
 }) {
   const campaignIsDraft = !campaign || campaign.status === 'draft';
@@ -538,6 +541,7 @@ export function CampaignForm({
                                           : 'recipients'
                                       } selected.`,
                                     });
+                                    onSent?.(response);
                                   },
                                 });
                               }}

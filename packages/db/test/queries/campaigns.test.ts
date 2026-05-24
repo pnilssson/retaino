@@ -13,6 +13,7 @@ import {
   markCampaignRecipientSent,
   markCampaignSendCompleted,
   markCampaignSendFailed,
+  searchCampaignRecipientsForBookingReport,
   startCampaignSend,
   updateCampaignDraft,
 } from '../../src/queries/campaigns';
@@ -460,6 +461,79 @@ describe('campaign query helpers', () => {
     expect(query.sql).toContain('"campaign_recipients"."organization_id" = $1');
     expect(query.sql).toContain('"campaign_recipients"."campaign_id" = $2');
     expect(query.params).toEqual([campaignRow.organizationId, campaignRow.id]);
+  });
+
+  it('searches campaign recipients by name phone or email for booking reports', async () => {
+    let whereCondition: SQL | undefined;
+    const db = {
+      select: () => ({
+        from: () => ({
+          where: (condition: SQL | undefined) => {
+            whereCondition = condition;
+
+            return {
+              orderBy: () => ({
+                limit: () => [
+                  {
+                    id: recipientRow.id,
+                    name: recipientRow.name,
+                    phone: recipientRow.phone,
+                    email: recipientRow.email,
+                  },
+                ],
+              }),
+            };
+          },
+        }),
+      }),
+    };
+
+    await expect(
+      searchCampaignRecipientsForBookingReport(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        search: 'ada',
+      }),
+    ).resolves.toEqual({
+      recipients: [
+        {
+          id: recipientRow.id,
+          name: recipientRow.name,
+          phone: recipientRow.phone,
+          email: recipientRow.email,
+        },
+      ],
+    });
+
+    if (!whereCondition) {
+      throw new Error('Expected recipient search to build a where condition.');
+    }
+
+    const query = new PgDialect().sqlToQuery(
+      sql`select 1 where ${whereCondition}`,
+    );
+
+    expect(query.sql).toContain('"campaign_recipients"."organization_id" = $1');
+    expect(query.sql).toContain('"campaign_recipients"."campaign_id" = $2');
+    expect(query.sql).toContain('"campaign_recipients"."status" in');
+    expect(query.sql).toContain('ilike');
+    expect(query.params).toContain('%ada%');
+  });
+
+  it('does not search campaign recipients for short booking report queries', async () => {
+    const db = {
+      select: vi.fn(),
+    };
+
+    await expect(
+      searchCampaignRecipientsForBookingReport(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        search: 'a',
+      }),
+    ).resolves.toEqual({ recipients: [] });
+
+    expect(db.select).not.toHaveBeenCalled();
   });
 
   it('loads send-attempt recipients for campaign sending', async () => {

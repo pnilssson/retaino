@@ -30,6 +30,18 @@ type CreateManualBookingReportResult =
         hasMixedCurrencies: boolean;
         createdByUserId: string;
         createdAt: string;
+        bookings: Array<{
+          id: string;
+          bookingDate: string;
+          customerName: string | null;
+          phone: string | null;
+          email: string | null;
+          revenueAmountMinor: number | null;
+          currency: string;
+          service: string | null;
+          note: string | null;
+          createdAt: string;
+        }>;
       };
     }
   | { status: 'not_found' }
@@ -153,7 +165,7 @@ export async function createManualBookingReport(
       throw new Error('Failed to create booking report.');
     }
 
-    await tx
+    const insertedBookings = await tx
       .insert(reportedBookings)
       .values(
         preparedRows.map(({ booking, contactMethods, revenueAmountMinor }) => ({
@@ -210,6 +222,18 @@ export async function createManualBookingReport(
         hasMixedCurrencies: false,
         createdByUserId: report.createdByUserId,
         createdAt: report.createdAt.toISOString(),
+        bookings: insertedBookings.map((booking) => ({
+          id: booking.id,
+          bookingDate: booking.bookingDate,
+          customerName: booking.customerName,
+          phone: booking.phone,
+          email: booking.email,
+          revenueAmountMinor: booking.revenueAmountMinor,
+          currency: booking.currency,
+          service: booking.service,
+          note: booking.note,
+          createdAt: booking.createdAt.toISOString(),
+        })),
       },
     };
   });

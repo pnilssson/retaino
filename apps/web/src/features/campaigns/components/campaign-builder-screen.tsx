@@ -4,7 +4,7 @@ import type { OrganizationSession } from '@retaino/shared/contracts';
 import { ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,8 @@ import {
   campaignsAllowed,
 } from '../campaign-readiness';
 import { CampaignForm, type CampaignStepId } from './campaign-form';
-import { CampaignReportPanel } from './campaign-report-panel';
+import { CampaignOverview } from './campaign-overview';
+import { CampaignStatusBadge } from './campaign-status-badge';
 import { useCampaign } from '../hooks/use-campaign';
 
 const CREATED_CAMPAIGN_INITIAL_STEP_STORAGE_KEY =
@@ -53,6 +54,8 @@ export function CampaignBuilderScreen({
       return isCampaignStepId(initialStep) ? initialStep : undefined;
     },
   );
+  const [overviewAfterSendCampaignId, setOverviewAfterSendCampaignId] =
+    useState<string | null>(null);
   const session = useOrganizationSession();
   const organizationId = session.data?.organization.id ?? null;
   const campaign = useCampaign({
@@ -60,6 +63,35 @@ export function CampaignBuilderScreen({
     enabled: Boolean(session.data?.readiness.ready && campaignId),
     organizationId,
   });
+  const latestCampaign = campaign.data?.campaign ?? null;
+  const showOverview =
+    latestCampaign &&
+    (hasOverviewStatus(latestCampaign.status) ||
+      overviewAfterSendCampaignId === latestCampaign.id);
+  const sendAccepted =
+    Boolean(latestCampaign) &&
+    overviewAfterSendCampaignId === latestCampaign?.id &&
+    latestCampaign?.status === 'ready_to_send';
+  const shouldPollCampaign =
+    Boolean(showOverview) &&
+    latestCampaign?.status !== 'sent' &&
+    latestCampaign?.status !== 'failed';
+  const refetchCampaign = campaign.refetch;
+  const title = campaignId
+    ? latestCampaign?.name ?? 'Campaign'
+    : 'New campaign';
+
+  useEffect(() => {
+    if (!shouldPollCampaign) {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => {
+      void refetchCampaign();
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [refetchCampaign, shouldPollCampaign]);
 
   if (session.isLoading) {
     return (
@@ -93,11 +125,6 @@ export function CampaignBuilderScreen({
     return <BlockedCampaignBuilder session={session.data} />;
   }
 
-  const latestCampaign = campaign.data?.campaign ?? null;
-  const title = campaignId
-    ? latestCampaign?.name ?? 'Campaign'
-    : 'New campaign';
-
   return (
     <main className="flex flex-1 items-start bg-background">
       <section className="mx-auto grid w-full max-w-5xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
@@ -110,7 +137,16 @@ export function CampaignBuilderScreen({
               </Link>
             </Button>
           }
-          eyebrow="Campaign builder"
+          badge={
+            showOverview && latestCampaign ? (
+              sendAccepted ? (
+                <StatusBadge label="Send queued" tone="amber" />
+              ) : (
+                <CampaignStatusBadge status={latestCampaign.status} />
+              )
+            ) : undefined
+          }
+          eyebrow={showOverview ? 'Campaign overview' : 'Campaign builder'}
           title={title}
         />
 
@@ -126,6 +162,12 @@ export function CampaignBuilderScreen({
           />
         ) : campaignId && campaign.isLoading ? (
           <p className={textStyles.mutedBody}>Loading campaign…</p>
+        ) : showOverview && latestCampaign ? (
+          <CampaignOverview
+            campaign={latestCampaign}
+            organizationId={organizationId}
+            sendAccepted={sendAccepted}
+          />
         ) : (
           <>
             <CampaignForm
@@ -139,14 +181,11 @@ export function CampaignBuilderScreen({
                 );
                 router.replace(routes.campaign(createdCampaignId));
               }}
+              onSent={(response) => {
+                setOverviewAfterSendCampaignId(response.campaign.id);
+              }}
               organizationId={organizationId}
             />
-            {latestCampaign && hasReportStatus(latestCampaign.status) ? (
-              <CampaignReportPanel
-                campaign={latestCampaign}
-                organizationId={organizationId}
-              />
-            ) : null}
           </>
         )}
       </section>
@@ -206,6 +245,6 @@ function BlockedCampaignBuilder({ session }: { session: OrganizationSession }) {
   );
 }
 
-function hasReportStatus(status: string) {
+function hasOverviewStatus(status: string) {
   return status === 'sending' || status === 'sent' || status === 'failed';
 }

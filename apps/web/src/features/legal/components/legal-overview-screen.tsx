@@ -14,15 +14,13 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   ItemActions,
-  ItemContent,
   ItemDescription,
-  ItemHeader,
   ItemTitle,
 } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
 import {
   AppPageContent,
-  AppPageItem,
+  AppPageSection,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useCreateCurrentOrganizationLegalAcceptance } from '@/features/onboarding/hooks/use-create-current-organization-legal-acceptance';
@@ -107,17 +105,10 @@ export function LegalOverviewScreen() {
 
 function LegalBundleSection({ session }: { session: OrganizationSession }) {
   return (
-    <AppPageItem asChild>
-      <section>
-        <ItemHeader className="items-start">
-          <ItemContent className="gap-2">
-            <ItemTitle className="text-base">Current bundle</ItemTitle>
-            <ItemDescription className="max-w-2xl">
-              These are the current documents that govern this organization.
-            </ItemDescription>
-          </ItemContent>
-        </ItemHeader>
-
+    <AppPageSection
+      description="These are the current documents that govern this organization."
+      title="Current bundle"
+    >
         <dl className="grid gap-4 py-2 text-sm sm:grid-cols-3">
           <LegalMetadata
             label="Bundle version"
@@ -180,16 +171,15 @@ function LegalBundleSection({ session }: { session: OrganizationSession }) {
             })}
           </ul>
         </div>
-      </section>
-    </AppPageItem>
+    </AppPageSection>
   );
 }
 
 function LegalMetadata({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid min-w-0 gap-1">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 truncate font-medium">{value}</dd>
+      <dt className={textStyles.meta}>{label}</dt>
+      <dd className={textStyles.itemTitle}>{value}</dd>
     </div>
   );
 }
@@ -214,17 +204,10 @@ function LegalAcceptanceSection({
 
   if (session.readiness.legalUpdatesRequired && canManageSetup) {
     return (
-      <AppPageItem asChild>
-        <section>
-          <ItemHeader className="items-start">
-            <ItemContent className="gap-2">
-              <ItemTitle className="text-base">Accept updated terms</ItemTitle>
-              <ItemDescription className="max-w-2xl">
-                Imports are blocked until the current legal bundle is accepted.
-              </ItemDescription>
-            </ItemContent>
-          </ItemHeader>
-
+      <AppPageSection
+        description="Imports are blocked until the current legal bundle is accepted."
+        title="Accept updated terms"
+      >
           <form
             className="grid gap-4"
             noValidate
@@ -324,8 +307,7 @@ function LegalAcceptanceSection({
               </form.Subscribe>
             </div>
           </form>
-        </section>
-      </AppPageItem>
+      </AppPageSection>
     );
   }
 

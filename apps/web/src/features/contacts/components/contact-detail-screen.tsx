@@ -4,13 +4,11 @@ import { useForm } from '@tanstack/react-form';
 import {
   ArrowLeft,
   Ban,
-  CalendarIcon,
   Loader2,
   MailX,
   Pencil,
   Trash2,
   Undo2,
-  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -22,26 +20,15 @@ import {
 } from '@retaino/shared/contracts';
 import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { DatePickerInput } from '@/components/date-picker-input';
 import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/phone-input';
-import {
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemHeader,
-  ItemTitle,
-} from '@/components/ui/item';
+import { ItemTitle } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
   AppPageContent,
-  AppPageItem,
+  AppPageSection,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useContact } from '@/features/contacts/hooks/use-contact';
@@ -51,6 +38,8 @@ import { useSuppressContact } from '@/features/contacts/hooks/use-suppress-conta
 import { useUpdateContact } from '@/features/contacts/hooks/use-update-contact';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 import { BlockedContacts } from './blocked-contacts';
 import {
   formatContactIssue,
@@ -156,17 +145,9 @@ function ContactDetailContent({
 
   return (
     <AppPageContent>
-      <AppPageItem asChild>
-        <section>
-          <ItemHeader className="items-start">
-            <ItemContent className="gap-2">
-              <ItemTitle className="text-base">Contact details</ItemTitle>
-              <ItemDescription>
-                Core identity and contact information.
-              </ItemDescription>
-            </ItemContent>
-            {!isEditing ? (
-              <ItemActions>
+      <AppPageSection
+        actions={
+          !isEditing ? (
                 <Button
                   onClick={() => setIsEditing(true)}
                   type="button"
@@ -175,10 +156,11 @@ function ContactDetailContent({
                   <Pencil aria-hidden="true" data-icon="inline-start" />
                   Edit contact
                 </Button>
-              </ItemActions>
-            ) : null}
-          </ItemHeader>
-
+          ) : null
+        }
+        description="Core identity and contact information."
+        title="Contact details"
+      >
           {isEditing ? (
             <ContactEditForm
               contact={contact}
@@ -187,33 +169,31 @@ function ContactDetailContent({
               phoneCountryCode={phoneCountryCode}
             />
           ) : (
-            <dl className="grid gap-3 text-sm sm:grid-cols-2">
+            <dl className="grid gap-3 sm:grid-cols-2">
               <DetailField label="Name" value={contact.name ?? 'Unnamed'} />
               <DetailField label="Phone" value={contact.phone ?? 'No phone'} />
               <DetailField label="Email" value={contact.email ?? 'No email'} />
             </dl>
           )}
-        </section>
-      </AppPageItem>
+      </AppPageSection>
 
-      <AppPageItem asChild>
-        <section>
-          <ItemHeader className="items-start">
-            <ItemContent className="gap-2">
-              <ItemTitle className="flex flex-wrap items-center gap-2 text-base">
-                SMS readiness
-                <ContactStatusBadge status={contact.contactStatus} />
-              </ItemTitle>
-              <ItemDescription>
-                Why this contact can or cannot receive SMS campaigns.
-              </ItemDescription>
-            </ItemContent>
-          </ItemHeader>
+      <AppPageSection
+        description="Why this contact can or cannot receive SMS campaigns."
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            SMS readiness
+            <ContactStatusBadge status={contact.contactStatus} />
+          </span>
+        }
+      >
           {contact.contactIssues.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {contact.contactIssues.map((issue) => (
                 <span
-                  className="rounded-md bg-muted px-2 py-1 text-sm text-muted-foreground"
+                  className={cn(
+                    'rounded-md bg-muted px-2 py-1',
+                    textStyles.mutedBody,
+                  )}
                   key={issue}
                 >
                   {formatContactIssue(issue)}
@@ -221,31 +201,23 @@ function ContactDetailContent({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className={textStyles.mutedBody}>
               This contact has a valid phone number and no phone suppression.
             </p>
           )}
-        </section>
-      </AppPageItem>
+      </AppPageSection>
 
-      <AppPageItem asChild>
-        <section>
-          <ItemHeader className="items-start">
-            <ItemContent className="gap-2">
-              <ItemTitle className="text-base">Activity</ItemTitle>
-              <ItemDescription>
-                Import and booking context for this contact.
-              </ItemDescription>
-            </ItemContent>
-          </ItemHeader>
-          <dl className="grid gap-3 text-sm sm:grid-cols-2">
+      <AppPageSection
+        description="Import and booking context for this contact."
+        title="Activity"
+      >
+          <dl className="grid gap-3 sm:grid-cols-2">
             <DetailField label="Last booking" value={formatDate(contact.lastBookingAt)} />
             <DetailField label="Last contacted" value={formatDate(contact.lastContactedAt)} />
             <DetailField label="Imported" value={formatDateTime(contact.createdAt)} />
             <DetailField label="Updated" value={formatDateTime(contact.updatedAt)} />
           </dl>
-        </section>
-      </AppPageItem>
+      </AppPageSection>
 
       <ContactSuppressionSection
         contact={contact}
@@ -390,16 +362,10 @@ function ContactSuppressionSection({
   );
 
   return (
-    <AppPageItem asChild>
-      <section>
-        <ItemHeader className="items-start">
-          <ItemContent className="gap-2">
-            <ItemTitle className="text-base">Suppressions</ItemTitle>
-            <ItemDescription>
-              Methods excluded from future outreach.
-            </ItemDescription>
-          </ItemContent>
-        </ItemHeader>
+    <AppPageSection
+      description="Methods excluded from future outreach."
+      title="Suppressions"
+    >
         {contact.suppressions.length > 0 ? (
           <div className="divide-y">
             {contact.suppressions.map((suppression) => (
@@ -415,7 +381,7 @@ function ContactSuppressionSection({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className={textStyles.mutedBody}>
             No contact methods are suppressed.
           </p>
         )}
@@ -446,8 +412,7 @@ function ContactSuppressionSection({
             variant="error"
           />
         ) : null}
-      </section>
-    </AppPageItem>
+    </AppPageSection>
   );
 }
 
@@ -466,8 +431,8 @@ function SuppressionRow({
     <div className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
       <div className="grid min-w-0 gap-1">
         <ItemTitle>{method}</ItemTitle>
-        <p className="break-all text-sm">{suppression.value}</p>
-        <p className="text-xs text-muted-foreground">
+        <p className={cn('break-all', textStyles.body)}>{suppression.value}</p>
+        <p className={textStyles.meta}>
           {formatSuppressionReason(suppression.reason)},{' '}
           {formatDateTime(suppression.createdAt)}
         </p>
@@ -498,16 +463,8 @@ function DeleteContactSection({ contact }: { contact: ContactDetail }) {
   const deleteContact = useDeleteContact(contact.organizationId, contact.id);
 
   return (
-    <AppPageItem asChild>
-      <section>
-        <ItemHeader className="items-start">
-          <ItemContent className="gap-2">
-            <ItemTitle className="text-base">Delete contact</ItemTitle>
-            <ItemDescription>
-              Remove this contact from the organization.
-            </ItemDescription>
-          </ItemContent>
-          <ItemActions>
+    <AppPageSection
+      actions={
             <ConfirmDialog
               confirmLabel="Delete permanently"
               description="This permanently deletes the contact from this organization."
@@ -522,8 +479,10 @@ function DeleteContactSection({ contact }: { contact: ContactDetail }) {
               }
               variant="destructive"
             />
-          </ItemActions>
-        </ItemHeader>
+      }
+      description="Remove this contact from the organization."
+      title="Delete contact"
+    >
         {deleteContact.error ? (
           <ItemNotice
             description={deleteContact.error}
@@ -531,8 +490,7 @@ function DeleteContactSection({ contact }: { contact: ContactDetail }) {
             variant="error"
           />
         ) : null}
-      </section>
-    </AppPageItem>
+    </AppPageSection>
   );
 }
 
@@ -545,59 +503,22 @@ function LastBookingDatePicker({
   onChange: (value: string) => void;
   value: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const selectedDate = dateInputToLocalDate(value);
-
   return (
-    <Popover onOpenChange={setOpen} open={open}>
-      <PopoverTrigger asChild>
-        <Button
-          aria-label="Select last booking date"
-          className="w-full justify-start"
-          id={name}
-          type="button"
-          variant="outline"
-        >
-          <CalendarIcon aria-hidden="true" data-icon="inline-start" />
-          {selectedDate ? formatDateInputLabel(value) : 'Select date'}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto p-0">
-        <Calendar
-          captionLayout="dropdown"
-          mode="single"
-          onSelect={(date) => {
-            onChange(date ? localDateToDateInput(date) : '');
-            setOpen(false);
-          }}
-          selected={selectedDate}
-        />
-        {selectedDate ? (
-          <div className="flex justify-end border-t p-2">
-            <Button
-              onClick={() => {
-                onChange('');
-                setOpen(false);
-              }}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              <X aria-hidden="true" data-icon="inline-start" />
-              Clear
-            </Button>
-          </div>
-        ) : null}
-      </PopoverContent>
-    </Popover>
+    <DatePickerInput
+      id={name}
+      name={name}
+      onChange={onChange}
+      placeholder="Select date"
+      value={value}
+    />
   );
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid gap-1">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{value}</dd>
+      <dt className={textStyles.meta}>{label}</dt>
+      <dd className={textStyles.itemTitle}>{value}</dd>
     </div>
   );
 }
@@ -657,34 +578,6 @@ function dateInputValue(value: string | null) {
   }
 
   return value.slice(0, 10);
-}
-
-function dateInputToLocalDate(value: string) {
-  const [year, month, day] = value.split('-').map(Number);
-
-  if (!year || !month || !day) {
-    return undefined;
-  }
-
-  return new Date(year, month - 1, day);
-}
-
-function localDateToDateInput(value: Date) {
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, '0');
-  const day = String(value.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-}
-
-function formatDateInputLabel(value: string) {
-  const date = dateInputToLocalDate(value);
-
-  if (!date) {
-    return 'Select date';
-  }
-
-  return new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(date);
 }
 
 function nullablePhoneFormValue(value: string, countryCode: string) {

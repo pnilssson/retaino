@@ -1,20 +1,16 @@
 import type { ReactNode } from 'react';
+import { Check, CircleAlert, CircleDashed, CircleDot, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 export type StatusBadgeTone = 'amber' | 'blue' | 'gray' | 'green' | 'red';
 
-const toneClasses: Record<StatusBadgeTone, string> = {
-  amber:
-    'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300',
-  blue:
-    'border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900/60 dark:bg-sky-950/35 dark:text-sky-300',
-  gray:
-    'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300',
-  green:
-    'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300',
-  red:
-    'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/35 dark:text-rose-300',
+const toneIconClasses: Record<StatusBadgeTone, string> = {
+  amber: 'text-amber-500',
+  blue: 'text-sky-500',
+  gray: 'text-muted-foreground',
+  green: 'text-emerald-500',
+  red: 'text-rose-500',
 };
 
 export function StatusBadge({
@@ -31,14 +27,39 @@ export function StatusBadge({
   return (
     <Badge
       className={cn(
-        'inline-flex items-center gap-1.5 border px-2.5 font-medium shadow-none',
-        toneClasses[tone],
+        'inline-flex items-center gap-1.5 border-border bg-background px-2.5 font-medium text-muted-foreground shadow-none',
         className,
       )}
       variant="outline"
     >
-      {icon}
+      <span className={cn('inline-flex shrink-0', toneIconClasses[tone])}>
+        {icon ?? <StatusBadgeIcon tone={tone} />}
+      </span>
       {label}
     </Badge>
   );
+}
+
+function StatusBadgeIcon({ tone }: { tone: StatusBadgeTone }) {
+  if (tone === 'green') {
+    return (
+      <span className="inline-flex size-3 items-center justify-center rounded-full bg-emerald-500 text-white">
+        <Check aria-hidden="true" className="size-2" strokeWidth={3} />
+      </span>
+    );
+  }
+
+  if (tone === 'red') {
+    return <CircleAlert aria-hidden="true" className="size-3" />;
+  }
+
+  if (tone === 'amber') {
+    return <Info aria-hidden="true" className="size-3" />;
+  }
+
+  if (tone === 'blue') {
+    return <CircleDashed aria-hidden="true" className="size-3" />;
+  }
+
+  return <CircleDot aria-hidden="true" className="size-3" />;
 }

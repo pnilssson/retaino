@@ -4,6 +4,7 @@ import {
   count,
   desc,
   eq,
+  ilike,
   inArray,
   isNotNull,
   isNull,
@@ -18,6 +19,7 @@ import type {
   CampaignAudienceRule,
   CampaignAudiencePreviewResponse,
   CampaignRecipientStatus,
+  CampaignRecipientSearchItem,
   CampaignStatus,
   CreateCampaignDraftInput,
   UpdateCampaignDraftInput,
@@ -352,6 +354,43 @@ export async function countCampaignRecipients(
     );
 
   return { recipientCount: row?.total ?? 0 };
+}
+
+export async function searchCampaignRecipientsForBookingReport(
+  db: DbClient,
+  input: { organizationId: string; campaignId: string; search: string },
+): Promise<{ recipients: CampaignRecipientSearchItem[] }> {
+  assertOrganizationId(input.organizationId);
+  const search = input.search.trim();
+
+  if (search.length < 2) {
+    return { recipients: [] };
+  }
+
+  const rows = await db
+    .select({
+      id: campaignRecipients.id,
+      name: campaignRecipients.name,
+      phone: campaignRecipients.phone,
+      email: campaignRecipients.email,
+    })
+    .from(campaignRecipients)
+    .where(
+      and(
+        eq(campaignRecipients.organizationId, input.organizationId),
+        eq(campaignRecipients.campaignId, input.campaignId),
+        inArray(campaignRecipients.status, ['selected', 'queued', 'sent']),
+        or(
+          ilike(campaignRecipients.name, `%${search}%`),
+          ilike(campaignRecipients.phone, `%${search}%`),
+          ilike(campaignRecipients.email, `%${search}%`),
+        ),
+      ),
+    )
+    .orderBy(asc(campaignRecipients.name), asc(campaignRecipients.createdAt))
+    .limit(8);
+
+  return { recipients: rows };
 }
 
 export async function listSelectedCampaignRecipientsForSend(

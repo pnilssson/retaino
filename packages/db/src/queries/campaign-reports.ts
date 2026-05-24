@@ -112,6 +112,7 @@ export async function getCampaignReport(
     booking_report_rows as (
       select
         ${bookingReports.id},
+        ${bookingReports.organizationId},
         ${bookingReports.campaignId},
         ${bookingReports.source},
         ${bookingReports.status},
@@ -148,6 +149,7 @@ export async function getCampaignReport(
         and ${bookingReports.organizationId} = input.organization_id
       group by
         ${bookingReports.id},
+        ${bookingReports.organizationId},
         ${bookingReports.campaignId},
         ${bookingReports.source},
         ${bookingReports.status},
@@ -156,7 +158,25 @@ export async function getCampaignReport(
         ${bookingReports.createdByUserId},
         ${bookingReports.createdAt}
       order by ${bookingReports.createdAt} desc
-      limit 10
+    ),
+    reported_booking_rows as (
+      select
+        ${reportedBookings.id},
+        ${reportedBookings.bookingReportId},
+        ${reportedBookings.bookingDate},
+        ${reportedBookings.customerName},
+        ${reportedBookings.phone},
+        ${reportedBookings.email},
+        ${reportedBookings.revenueAmountMinor},
+        ${reportedBookings.currency},
+        ${reportedBookings.service},
+        ${reportedBookings.note},
+        ${reportedBookings.createdAt}
+      from ${reportedBookings}
+      join booking_report_rows
+        on ${reportedBookings.bookingReportId} = booking_report_rows.id
+        and ${reportedBookings.organizationId} =
+          booking_report_rows.organization_id
     ),
     booking_report_summaries as (
       select coalesce(
@@ -173,7 +193,32 @@ export async function getCampaignReport(
             'currency', booking_report_rows.currency,
             'hasMixedCurrencies', booking_report_rows.has_mixed_currencies,
             'createdByUserId', booking_report_rows.created_by_user_id,
-            'createdAt', booking_report_rows.created_at
+            'createdAt', booking_report_rows.created_at,
+            'bookings', coalesce(
+              (
+                select json_agg(
+                  json_build_object(
+                    'id', reported_booking_rows.id,
+                    'bookingDate', reported_booking_rows.booking_date,
+                    'customerName', reported_booking_rows.customer_name,
+                    'phone', reported_booking_rows.phone,
+                    'email', reported_booking_rows.email,
+                    'revenueAmountMinor',
+                      reported_booking_rows.revenue_amount_minor,
+                    'currency', reported_booking_rows.currency,
+                    'service', reported_booking_rows.service,
+                    'note', reported_booking_rows.note,
+                    'createdAt', reported_booking_rows.created_at
+                  )
+                  order by reported_booking_rows.booking_date desc,
+                    reported_booking_rows.created_at desc
+                )
+                from reported_booking_rows
+                where reported_booking_rows.booking_report_id =
+                  booking_report_rows.id
+              ),
+              '[]'::json
+            )
           )
           order by booking_report_rows.created_at desc
         ),
@@ -268,6 +313,35 @@ function bookingReportsValue(value: unknown): CampaignReport['bookingReports'] {
         report.createdAt instanceof Date
           ? report.createdAt.toISOString()
           : stringValue(report.createdAt) ?? '',
+      bookings: reportedBookingsValue(report.bookings),
+    };
+  });
+}
+
+function reportedBookingsValue(
+  value: unknown,
+): CampaignReport['bookingReports'][number]['bookings'] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map((row) => {
+    const booking = row as Record<string, unknown>;
+
+    return {
+      id: stringValue(booking.id) ?? '',
+      bookingDate: stringValue(booking.bookingDate) ?? '',
+      customerName: stringValue(booking.customerName),
+      phone: stringValue(booking.phone),
+      email: stringValue(booking.email),
+      revenueAmountMinor: nullableIntValue(booking.revenueAmountMinor),
+      currency: stringValue(booking.currency) ?? 'SEK',
+      service: stringValue(booking.service),
+      note: stringValue(booking.note),
+      createdAt:
+        booking.createdAt instanceof Date
+          ? booking.createdAt.toISOString()
+          : stringValue(booking.createdAt) ?? '',
     };
   });
 }

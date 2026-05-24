@@ -30,12 +30,12 @@ export function DataTable<TData>({
   table: TanStackTable<TData>;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-hidden rounded-lg border border-border">
       <Table>
-        <TableHeader className="[&_tr]:border-0">
+        <TableHeader className="bg-muted/60">
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow
-              className="border-0 hover:bg-transparent"
+              className="border-border hover:bg-transparent"
               key={headerGroup.id}
             >
               {headerGroup.headers.map((header) => (
@@ -54,7 +54,7 @@ export function DataTable<TData>({
         <TableBody>
           {table.getRowModel().rows.map((row) => (
             <TableRow
-              className={cn('border-0 hover:bg-transparent', rowClassName)}
+              className={cn('border-border hover:bg-muted/40', rowClassName)}
               key={row.id}
             >
               {row.getVisibleCells().map((cell) => (

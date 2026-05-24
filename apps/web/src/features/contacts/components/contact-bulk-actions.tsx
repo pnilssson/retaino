@@ -1,9 +1,16 @@
 "use client";
 
-import { Ban, Trash2, X } from 'lucide-react';
-import { ItemNotice } from '@/components/item-notice';
+import { Ban, MoreVertical, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useBulkDeleteContacts } from '@/features/contacts/hooks/use-bulk-delete-contacts';
 import { useBulkSuppressContacts } from '@/features/contacts/hooks/use-bulk-suppress-contacts';
 
@@ -29,8 +36,15 @@ export function ContactBulkActions({
       return;
     }
 
-    await bulkSuppress.mutation.mutateAsync({ contactIds, type: 'phone' });
-    onClear();
+    try {
+      await bulkSuppress.mutation.mutateAsync({ contactIds, type: 'phone' });
+      onClear();
+    } catch (error) {
+      toast.error('Contacts could not be suppressed', {
+        description:
+          error instanceof Error ? error.message : 'Try again in a moment.',
+      });
+    }
   }
 
   async function deleteSelectedContacts() {
@@ -38,75 +52,63 @@ export function ContactBulkActions({
       return;
     }
 
-    await bulkDelete.mutation.mutateAsync({ contactIds });
-    onClear();
+    try {
+      await bulkDelete.mutation.mutateAsync({ contactIds });
+      onClear();
+    } catch (error) {
+      toast.error('Contacts could not be deleted', {
+        description:
+          error instanceof Error ? error.message : 'Try again in a moment.',
+      });
+    }
   }
 
   return (
-    <div className="grid gap-3 py-1">
-      <div className="flex min-h-10 flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          {selectedCount} selected
-        </p>
-        {hasSelection ? (
-          <div className="flex flex-wrap gap-2">
-            <ConfirmDialog
-              confirmLabel="Suppress SMS"
-              description="This adds manual SMS suppressions for the selected contacts that have usable phone data."
-              isPending={bulkSuppress.mutation.isPending}
-              onConfirm={suppressSelectedContacts}
-              title="Suppress selected contacts?"
-              trigger={
-                <Button
-                  disabled={isPending}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  <Ban aria-hidden="true" data-icon="inline-start" />
-                  Suppress SMS
-                </Button>
-              }
-            />
-            <ConfirmDialog
-              confirmLabel="Delete contacts"
-              description="This permanently deletes the selected contacts from this organization."
-              isPending={bulkDelete.mutation.isPending}
-              onConfirm={deleteSelectedContacts}
-              title="Delete selected contacts?"
-              trigger={
-                <Button
-                  disabled={isPending}
-                  size="sm"
-                  type="button"
-                  variant="destructive"
-                >
-                  <Trash2 aria-hidden="true" data-icon="inline-start" />
-                  Delete
-                </Button>
-              }
-              variant="destructive"
-            />
-            <Button
-              disabled={isPending}
-              onClick={onClear}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              <X aria-hidden="true" data-icon="inline-start" />
-              Clear
-            </Button>
-          </div>
-        ) : null}
-      </div>
-      {bulkDelete.error || bulkSuppress.error ? (
-        <ItemNotice
-          description={bulkDelete.error ?? bulkSuppress.error}
-          title="Bulk action failed"
-          variant="error"
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          aria-label="Open contact actions"
+          disabled={!hasSelection || isPending}
+          size="icon-sm"
+          type="button"
+          variant="ghost"
+        >
+          <MoreVertical aria-hidden="true" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <ConfirmDialog
+          confirmLabel="Suppress SMS"
+          description="This adds manual SMS suppressions for the selected contacts that have usable phone data."
+          isPending={bulkSuppress.mutation.isPending}
+          onConfirm={suppressSelectedContacts}
+          title="Suppress selected contacts?"
+          trigger={
+            <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
+              <Ban aria-hidden="true" />
+              Suppress SMS
+            </DropdownMenuItem>
+          }
         />
-      ) : null}
-    </div>
+        <ConfirmDialog
+          confirmLabel="Delete contacts"
+          description="This permanently deletes the selected contacts from this organization."
+          isPending={bulkDelete.mutation.isPending}
+          onConfirm={deleteSelectedContacts}
+          title="Delete selected contacts?"
+          trigger={
+            <DropdownMenuItem
+              onSelect={(event) => event.preventDefault()}
+              variant="destructive"
+            >
+              <Trash2 aria-hidden="true" />
+              Delete
+            </DropdownMenuItem>
+          }
+          variant="destructive"
+        />
+        <DropdownMenuLabel>{selectedCount} selected</DropdownMenuLabel>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

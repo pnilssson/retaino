@@ -2,14 +2,7 @@ import type { OrganizationSession } from '@retaino/shared/contracts';
 import { FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import {
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemHeader,
-  ItemTitle,
-} from '@/components/ui/item';
-import { AppPageItem } from '@/features/appshell/components/app-page-content';
+import { AppPageSection } from '@/features/appshell/components/app-page-content';
 import { routes } from '@/lib/routes';
 
 export function ComplianceSection({
@@ -20,26 +13,19 @@ export function ComplianceSection({
   const status = legalAgreementStatus(session);
 
   return (
-    <AppPageItem asChild>
-      <section id="legal-agreement">
-        <ItemHeader className="items-start">
-          <ItemContent className="gap-2">
-            <ItemTitle className="text-base">Legal agreement</ItemTitle>
-            <ItemDescription className="max-w-2xl">
-              {status.description}
-            </ItemDescription>
-          </ItemContent>
-          <ItemActions>
+    <AppPageSection
+      actions={
             <Button asChild type="button" variant="outline">
               <Link href={routes.legal}>
                 <FileText aria-hidden="true" data-icon="inline-start" />
                 View legal
               </Link>
             </Button>
-          </ItemActions>
-        </ItemHeader>
-      </section>
-    </AppPageItem>
+      }
+      description={status.description}
+      id="legal-agreement"
+      title="Legal agreement"
+    />
   );
 }
 

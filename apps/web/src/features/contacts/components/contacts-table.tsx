@@ -5,10 +5,11 @@ import {
   type OnChangeFn,
   type RowSelectionState,
 } from '@tanstack/react-table';
+import type { ReactNode } from 'react';
 import type { Contact } from '@retaino/shared/contracts';
 import { DataTable } from '@/components/data-table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { contactColumns } from './contact-columns';
+import { createContactColumns } from './contact-columns';
 
 const selectionColumn: ColumnDef<Contact> = {
   id: 'select',
@@ -46,25 +47,23 @@ const selectionColumn: ColumnDef<Contact> = {
 export function ContactsTable({
   contacts,
   onRowSelectionChange,
-  page,
-  pageSize,
   rowSelection,
   selectable = false,
+  tableActions,
 }: {
   contacts: Contact[];
   onRowSelectionChange?: OnChangeFn<RowSelectionState>;
-  page: number;
-  pageSize: number;
   rowSelection?: RowSelectionState;
   selectable?: boolean;
+  tableActions?: ReactNode;
 }) {
-  const rowNumberColumn = createRowNumberColumn(page, pageSize);
+  const contactColumns = createContactColumns({ tableActions });
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     columns: selectable
-      ? [selectionColumn, rowNumberColumn, ...contactColumns]
-      : [rowNumberColumn, ...contactColumns],
+      ? [selectionColumn, ...contactColumns]
+      : contactColumns,
     data: contacts,
     enableRowSelection: selectable,
     getCoreRowModel: getCoreRowModel(),
@@ -77,30 +76,8 @@ export function ContactsTable({
   return (
     <DataTable
       cellClassName="p-0"
-      rowClassName="group odd:bg-muted/20 hover:bg-muted/40"
+      rowClassName="group"
       table={table}
     />
   );
-}
-
-function createRowNumberColumn(
-  page: number,
-  pageSize: number,
-): ColumnDef<Contact> {
-  const firstRowNumber = (page - 1) * pageSize + 1;
-
-  return {
-    id: 'rowNumber',
-    header: () => <span className="sr-only">Row number</span>,
-    cell: ({ row }) => (
-      <div className="flex w-10 items-center justify-end p-2 text-xs tabular-nums text-muted-foreground">
-        {firstRowNumber + row.index}
-      </div>
-    ),
-    enableHiding: false,
-    enableSorting: false,
-    maxSize: 40,
-    minSize: 40,
-    size: 40,
-  };
 }

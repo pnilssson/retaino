@@ -66,10 +66,18 @@ describe('booking report query helpers', () => {
           }
 
           if (table === reportedBookings) {
-            insertedBookings.push(...(values as unknown[]));
+            const rows = (values as Array<Record<string, unknown>>).map(
+              (value, index) => ({
+                ...value,
+                id: `bbbbbbbb-bbbb-4bbb-8bbb-${String(index).padStart(12, 'b')}`,
+                createdAt: now,
+                updatedAt: now,
+              }),
+            );
+            insertedBookings.push(...rows);
 
             return {
-              returning: () => values,
+              returning: () => rows,
             };
           }
 
@@ -117,6 +125,14 @@ describe('booking report query helpers', () => {
         revenueAmountMinor: 125050,
         currency: 'SEK',
         hasMixedCurrencies: false,
+        bookings: [
+          {
+            bookingDate: '2026-05-21',
+            customerName: 'Ada Lovelace',
+            revenueAmountMinor: 125050,
+            currency: 'SEK',
+          },
+        ],
       },
     });
 

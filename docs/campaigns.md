@@ -17,6 +17,9 @@ campaign.
 Draft is an internal persistence status. User-facing copy should focus on
 building and sending the campaign, not "creating a draft".
 
+After a campaign has been sent, show the campaign overview and report. Do not
+show the campaign builder stepper or setup controls for locked campaigns.
+
 ## Send Rules
 
 - The final `Send campaign` action owns launch behavior.

@@ -2,12 +2,21 @@
 
 import { useForm } from '@tanstack/react-form';
 import { MAX_MANUAL_BOOKING_REPORT_ROWS } from '@retaino/shared';
-import type { Campaign } from '@retaino/shared/contracts';
+import type {
+  Campaign,
+  CampaignRecipientSearchItem,
+} from '@retaino/shared/contracts';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ItemNotice } from '@/components/item-notice';
+import { InfoTooltip } from '@/components/info-tooltip';
+import {
+  SearchableCombobox,
+  type SearchableComboboxOption,
+} from '@/components/searchable-combobox';
 import { Button } from '@/components/ui/button';
+import { DatePickerInput } from '@/components/date-picker-input';
 import {
   Dialog,
   DialogContent,
@@ -17,8 +26,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { textStyles } from '@/lib/text-styles';
 import {
@@ -30,6 +39,7 @@ import {
   type BookingReportRowValues,
 } from '../booking-report-form';
 import { useCreateBookingReport } from '../hooks/use-create-booking-report';
+import { useCampaignRecipientSearch } from '../hooks/use-campaign-recipient-search';
 
 export function BookingReportDialog({
   campaign,
@@ -82,7 +92,7 @@ export function BookingReportDialog({
         <DialogHeader>
           <DialogTitle>New booking report</DialogTitle>
           <DialogDescription>
-            Add bookings you believe came from {campaign.name}.
+            Add booking outcomes from {campaign.name}.
           </DialogDescription>
         </DialogHeader>
 
@@ -97,13 +107,17 @@ export function BookingReportDialog({
             <form.Field name="checkedThroughDate">
               {(field) => (
                 <div className="grid gap-2">
-                  <Label htmlFor={field.name}>Checked through</Label>
-                  <Input
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor={field.name}>Checked until</Label>
+                    <InfoTooltip label="Checked until details">
+                      The report includes bookings checked up to this date.
+                    </InfoTooltip>
+                  </div>
+                  <DatePickerInput
                     id={field.name}
                     name={field.name}
                     onBlur={field.handleBlur}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                    type="date"
+                    onChange={field.handleChange}
                     value={field.state.value}
                   />
                 </div>
@@ -118,7 +132,7 @@ export function BookingReportDialog({
                     name={field.name}
                     onBlur={field.handleBlur}
                     onChange={(event) => field.handleChange(event.target.value)}
-                    placeholder="Checked campaign code, replies, or booking system"
+                    placeholder="Campaign code, replies, calls, or booking filter"
                     value={field.state.value}
                   />
                 </div>
@@ -132,8 +146,10 @@ export function BookingReportDialog({
                 {bookings.map((booking, index) => (
                   <BookingReportRow
                     booking={booking}
+                    campaign={campaign}
                     currency={currency}
                     index={index}
+                    organizationId={organizationId}
                     key={index}
                     onChange={(nextBooking) => {
                       const nextBookings = [...bookings];
@@ -162,7 +178,7 @@ export function BookingReportDialog({
                     variant="outline"
                   >
                     <Plus aria-hidden="true" data-icon="inline-start" />
-                    Add row
+                    Add booking
                   </Button>
                 </div>
               </div>
@@ -197,19 +213,32 @@ export function BookingReportDialog({
 
 function BookingReportRow({
   booking,
+  campaign,
   currency,
   index,
+  organizationId,
   onChange,
   onRemove,
   removable,
 }: {
   booking: BookingReportRowValues;
+  campaign: Campaign;
   currency: string;
   index: number;
+  organizationId: string | null;
   onChange: (booking: BookingReportRowValues) => void;
   onRemove: () => void;
   removable: boolean;
 }) {
+  const [recipientSearch, setRecipientSearch] = useState('');
+  const [activeRecipientField, setActiveRecipientField] = useState<
+    'customerName' | 'email' | 'phone' | null
+  >(null);
+  const recipients = useCampaignRecipientSearch({
+    campaignId: campaign.id,
+    organizationId,
+    search: recipientSearch,
+  });
   const revenueError =
     booking.revenueAmount &&
     !isValidBookingRevenueAmount(booking.revenueAmount, currency)
@@ -217,41 +246,100 @@ function BookingReportRow({
       : null;
 
   return (
-    <fieldset className="grid gap-3 border-t border-border pt-3">
-      <legend className={textStyles.metaStrong}>Booking {index + 1}</legend>
-      <div className="grid gap-3 md:grid-cols-4">
+    <fieldset className="grid gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <legend className={textStyles.metaStrong}>Booking {index + 1}</legend>
+        <Button
+          aria-label={`Remove booking ${index + 1}`}
+          disabled={!removable}
+          onClick={onRemove}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          <Trash2 aria-hidden="true" data-icon="inline-start" />
+          Remove booking
+        </Button>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <BookingRecipientInput
+          active={activeRecipientField === 'customerName'}
+          id={`booking-${index}-customer`}
+          isLoading={recipients.isFetching}
+          label="Customer"
+          onChange={(value) => {
+            setRecipientSearch(value);
+            onChange({ ...booking, customerName: value });
+          }}
+          onOpenChange={(open) => {
+            setActiveRecipientField(open ? 'customerName' : null);
+            setRecipientSearch(open ? booking.customerName : '');
+          }}
+          onSelect={(recipient) => {
+            onChange(fillBookingRecipient(booking, recipient));
+            setActiveRecipientField(null);
+            setRecipientSearch('');
+          }}
+          placeholder="Name"
+          recipients={recipients.data?.recipients ?? []}
+          search={recipientSearch}
+          value={booking.customerName}
+        />
+        <BookingRecipientInput
+          active={activeRecipientField === 'phone'}
+          id={`booking-${index}-phone`}
+          isLoading={recipients.isFetching}
+          label="Phone"
+          onChange={(value) => {
+            setRecipientSearch(value);
+            onChange({ ...booking, phone: value });
+          }}
+          onOpenChange={(open) => {
+            setActiveRecipientField(open ? 'phone' : null);
+            setRecipientSearch(open ? booking.phone : '');
+          }}
+          onSelect={(recipient) => {
+            onChange(fillBookingRecipient(booking, recipient));
+            setActiveRecipientField(null);
+            setRecipientSearch('');
+          }}
+          placeholder="+46..."
+          recipients={recipients.data?.recipients ?? []}
+          search={recipientSearch}
+          value={booking.phone}
+        />
+        <BookingRecipientInput
+          active={activeRecipientField === 'email'}
+          id={`booking-${index}-email`}
+          isLoading={recipients.isFetching}
+          label="Email"
+          onChange={(value) => {
+            setRecipientSearch(value);
+            onChange({ ...booking, email: value });
+          }}
+          onOpenChange={(open) => {
+            setActiveRecipientField(open ? 'email' : null);
+            setRecipientSearch(open ? booking.email : '');
+          }}
+          onSelect={(recipient) => {
+            onChange(fillBookingRecipient(booking, recipient));
+            setActiveRecipientField(null);
+            setRecipientSearch('');
+          }}
+          placeholder="name@example.com"
+          recipients={recipients.data?.recipients ?? []}
+          search={recipientSearch}
+          value={booking.email}
+        />
+      </div>
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_10rem_minmax(0,2fr)]">
         <BookingRowInput
           id={`booking-${index}-date`}
           label="Booking date"
           onChange={(value) => onChange({ ...booking, bookingDate: value })}
-          type="date"
           value={booking.bookingDate}
+          variant="date"
         />
-        <BookingRowInput
-          id={`booking-${index}-customer`}
-          label="Customer"
-          onChange={(value) => onChange({ ...booking, customerName: value })}
-          placeholder="Name"
-          value={booking.customerName}
-        />
-        <BookingRowInput
-          id={`booking-${index}-phone`}
-          label="Phone"
-          onChange={(value) => onChange({ ...booking, phone: value })}
-          placeholder="+46..."
-          type="tel"
-          value={booking.phone}
-        />
-        <BookingRowInput
-          id={`booking-${index}-email`}
-          label="Email"
-          onChange={(value) => onChange({ ...booking, email: value })}
-          placeholder="name@example.com"
-          type="email"
-          value={booking.email}
-        />
-      </div>
-      <div className="grid gap-3 md:grid-cols-[10rem_1fr_2.5rem]">
         <BookingRowInput
           error={revenueError}
           id={`booking-${index}-revenue`}
@@ -267,18 +355,6 @@ function BookingReportRow({
           placeholder="Service or treatment"
           value={booking.service}
         />
-        <div className="flex items-end">
-          <Button
-            aria-label={`Remove booking ${index + 1}`}
-            disabled={!removable}
-            onClick={onRemove}
-            size="icon"
-            type="button"
-            variant="ghost"
-          >
-            <Trash2 aria-hidden="true" />
-          </Button>
-        </div>
       </div>
       <BookingRowTextarea
         id={`booking-${index}-note`}
@@ -291,6 +367,79 @@ function BookingReportRow({
   );
 }
 
+function BookingRecipientInput({
+  active,
+  id,
+  isLoading,
+  label,
+  onChange,
+  onOpenChange,
+  onSelect,
+  placeholder,
+  recipients,
+  search,
+  value,
+}: {
+  active: boolean;
+  id: string;
+  isLoading: boolean;
+  label: string;
+  onChange: (value: string) => void;
+  onOpenChange: (open: boolean) => void;
+  onSelect: (recipient: CampaignRecipientSearchItem) => void;
+  placeholder?: string;
+  recipients: CampaignRecipientSearchItem[];
+  search: string;
+  value: string;
+}) {
+  const options: Array<SearchableComboboxOption<CampaignRecipientSearchItem>> =
+    recipients.map((recipient) => ({
+      description: [recipient.phone, recipient.email].filter(Boolean).join(', '),
+      key: recipient.id,
+      label: recipient.name ?? recipient.phone ?? recipient.email,
+      searchText: [
+        recipient.name,
+        recipient.phone,
+        recipient.email,
+      ].filter(Boolean).join(' '),
+      value: recipient,
+    }));
+
+  return (
+    <div className="grid min-w-0 gap-2">
+      <Label htmlFor={id}>{label}</Label>
+      <SearchableCombobox
+        clearQueryOnClose={false}
+        displayValue={value || undefined}
+        emptyText="No campaign recipients found."
+        id={id}
+        isLoading={isLoading}
+        loadingText="Searching recipients..."
+        onOpenChange={onOpenChange}
+        onQueryChange={onChange}
+        onSelect={(option) => onSelect(option.value)}
+        open={active}
+        options={options}
+        placeholder={placeholder ?? 'Search campaign recipients'}
+        query={search}
+        searchPlaceholder={placeholder ?? 'Search campaign recipients'}
+      />
+    </div>
+  );
+}
+
+function fillBookingRecipient(
+  booking: BookingReportRowValues,
+  recipient: CampaignRecipientSearchItem,
+): BookingReportRowValues {
+  return {
+    ...booking,
+    customerName: recipient.name ?? booking.customerName,
+    email: recipient.email ?? booking.email,
+    phone: recipient.phone ?? booking.phone,
+  };
+}
+
 function BookingRowInput({
   error,
   id,
@@ -299,6 +448,7 @@ function BookingRowInput({
   placeholder,
   type = 'text',
   value,
+  variant = 'text',
 }: {
   error?: string | null;
   id: string;
@@ -307,18 +457,29 @@ function BookingRowInput({
   placeholder?: string;
   type?: string;
   value: string;
+  variant?: 'date' | 'text';
 }) {
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <Label htmlFor={id}>{label}</Label>
-      <Input
-        aria-invalid={Boolean(error)}
-        id={id}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        type={type}
-        value={value}
-      />
+      {variant === 'date' ? (
+        <DatePickerInput
+          aria-invalid={Boolean(error)}
+          id={id}
+          onChange={onChange}
+          placeholder="Select date"
+          value={value}
+        />
+      ) : (
+        <Input
+          aria-invalid={Boolean(error)}
+          id={id}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          type={type}
+          value={value}
+        />
+      )}
       {error ? <p className={textStyles.error}>{error}</p> : null}
     </div>
   );

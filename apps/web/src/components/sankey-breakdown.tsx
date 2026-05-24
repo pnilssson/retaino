@@ -1,5 +1,6 @@
 "use client";
 
+import type { LucideIcon } from 'lucide-react';
 import {
   Layer,
   Rectangle,
@@ -13,6 +14,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart';
+import { MetricSummaryEntry } from '@/components/metric-summary-entry';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +30,8 @@ export type SankeyBreakdownLink = {
 };
 
 export type SankeyBreakdownSummaryItem = {
+  icon?: LucideIcon;
+  iconClassName?: string;
   label: string;
   value: number;
 };
@@ -80,36 +84,60 @@ export function SankeyBreakdown({
         </dl>
       </div>
 
-      {data ? (
-        <ChartContainer
-          className="h-64 w-full sm:h-72"
-          config={chartConfig}
-          initialDimension={{ width: 520, height: 260 }}
-        >
-          <Sankey
-            align="justify"
-            data={data}
-            iterations={48}
-            link={{ stroke: 'var(--chart-2)', strokeOpacity: 0.22 }}
-            linkCurvature={0.55}
-            margin={{ bottom: 24, left: 144, right: 112, top: 24 }}
-            node={SankeyNode}
-            nodePadding={22}
-            nodeWidth={10}
-            sort={false}
-          >
-            <ChartTooltip
-              content={<ChartTooltipContent hideLabel indicator="line" />}
+      <div className="grid gap-3">
+        <dl className="grid grid-cols-2 gap-x-4 sm:hidden">
+          {summary.map((item, index) => (
+            <MetricSummaryEntry
+              className={cn(index < 2 && 'border-t-0 pt-0')}
+              icon={item.icon}
+              iconClassName={item.iconClassName}
+              key={item.label}
+              label={item.label}
+              value={formatCount(item.value)}
             />
-          </Sankey>
-        </ChartContainer>
-      ) : null}
+          ))}
+        </dl>
 
+        {data ? (
+          <ChartContainer
+            className="hidden h-72 w-full sm:block"
+            config={chartConfig}
+            initialDimension={{ width: 520, height: 260 }}
+          >
+            <Sankey
+              align="justify"
+              data={data}
+              iterations={48}
+              link={{ stroke: 'var(--chart-2)', strokeOpacity: 0.22 }}
+              linkCurvature={0.55}
+              margin={{ bottom: 24, left: 144, right: 112, top: 24 }}
+              node={SankeyNode}
+              nodePadding={22}
+              nodeWidth={10}
+              sort={false}
+            >
+              <ChartTooltip
+                content={<ChartTooltipContent hideLabel indicator="line" />}
+              />
+            </Sankey>
+          </ChartContainer>
+        ) : null}
+      </div>
     </div>
   );
 }
 
-function SankeyNode({ height, payload, width, x, y }: SankeyNodeProps) {
+function SankeyNode(props: SankeyNodeProps) {
+  return <SankeyNodeContent {...props} />;
+}
+
+function SankeyNodeContent({
+  height,
+  payload,
+  width,
+  x,
+  y,
+}: SankeyNodeProps) {
   const node = payload as unknown as SankeyBreakdownNode & {
     sourceNodes?: number[];
     targetNodes?: number[];

@@ -7,6 +7,7 @@ import {
   getCampaignReport,
   listCampaigns,
   previewCampaignAudience,
+  searchCampaignRecipientsForBookingReport,
   updateCampaignDraft,
 } from '@retaino/db';
 import { createCampaignSmsPreview } from '@retaino/shared';
@@ -232,6 +233,24 @@ export const campaignsRoutes = new Hono<AppEnv>()
       await countCampaignRecipients(c.get('db'), {
         organizationId: c.get('organization').id,
         campaignId: c.req.param('id'),
+      }),
+    );
+  })
+  .get('/:id/recipients/search', async (c) => {
+    const campaign = await getCampaignById(c.get('db'), {
+      organizationId: c.get('organization').id,
+      campaignId: c.req.param('id'),
+    });
+
+    if (!campaign) {
+      return c.json(apiError('not_found', 'Campaign was not found.'), 404);
+    }
+
+    return c.json(
+      await searchCampaignRecipientsForBookingReport(c.get('db'), {
+        organizationId: c.get('organization').id,
+        campaignId: c.req.param('id'),
+        search: c.req.query('search') ?? '',
       }),
     );
   })

@@ -71,10 +71,10 @@ export function BillingPlanList({
   return (
     <section className="grid gap-5" aria-labelledby="billing-plans-title">
       <header className="grid gap-1.5">
-        <h2 className={textStyles.sectionTitle} id="billing-plans-title">
+        <h2 className={textStyles.itemTitle} id="billing-plans-title">
           Compare monthly plans
         </h2>
-        <p className={cn('max-w-3xl', textStyles.mutedBody)}>
+        <p className={cn('max-w-2xl', textStyles.mutedBody)}>
           All plans include campaign creation, contact imports, tracking links,
           and reporting. Higher plans include more monthly SMS credits. Prices
           are ex VAT, tax is calculated in checkout, and there are no surprise
@@ -119,7 +119,7 @@ export function BillingPlanList({
               <article>
                 <div className="grid gap-5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className={textStyles.sectionTitle}>{plan.label}</h3>
+                    <h3 className={textStyles.itemTitle}>{plan.label}</h3>
                     {isRecommendedPlan ? (
                       <StatusBadge
                         className={cn(
@@ -263,7 +263,7 @@ function planActionLabel({
   }
 
   if (subscriptionLocked) {
-    return isPortalPending ? 'Opening Stripe' : 'Manage in Stripe';
+    return isPortalPending ? 'Opening' : 'Manage';
   }
 
   return planCta;

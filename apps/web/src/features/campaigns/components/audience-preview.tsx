@@ -1,6 +1,7 @@
 "use client";
 
 import type { CampaignAudienceRule } from '@retaino/shared/contracts';
+import { AlertCircle, CheckCircle2, PhoneOff, ShieldOff } from 'lucide-react';
 import { ItemNotice } from '@/components/item-notice';
 import {
   SankeyBreakdown,
@@ -136,18 +137,26 @@ function createAudienceSummary(
 ): SankeyBreakdownSummaryItem[] {
   return [
     {
+      icon: CheckCircle2,
+      iconClassName: 'bg-emerald-50 text-emerald-700',
       label: 'Eligible',
       value: data.eligibleCount,
     },
     {
+      icon: ShieldOff,
+      iconClassName: 'bg-rose-50 text-rose-700',
       label: 'Suppressed',
       value: data.suppressedCount,
     },
     {
+      icon: PhoneOff,
+      iconClassName: 'bg-amber-50 text-amber-700',
       label: 'Missing phone',
       value: data.incompleteCount,
     },
     {
+      icon: AlertCircle,
+      iconClassName: 'bg-rose-50 text-rose-700',
       label: 'Missing consent',
       value: data.missingConsentCount,
     },

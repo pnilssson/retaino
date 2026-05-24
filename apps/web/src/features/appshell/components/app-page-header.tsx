@@ -14,21 +14,17 @@ export function AppPageHeader({
   actions,
   badge,
   description,
-  eyebrow,
   title
 }: AppPageHeaderProps) {
   return (
     <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
-        {eyebrow || badge ? (
+        {badge ? (
           <div className="flex flex-wrap items-center gap-2">
-            {eyebrow ? (
-              <p className={textStyles.meta}>{eyebrow}</p>
-            ) : null}
             {badge}
           </div>
         ) : null}
-        <h1 className={cn('mt-2 truncate', textStyles.pageTitle)}>
+        <h1 className={cn(badge && 'mt-2', 'truncate', textStyles.pageTitle)}>
           {title}
         </h1>
         {description ? (
