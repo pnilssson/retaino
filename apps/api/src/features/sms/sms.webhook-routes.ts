@@ -11,7 +11,7 @@ import {
   hashContactValue,
   normalizePhoneNumber,
 } from '@retaino/shared/contracts';
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { apiError } from '../../lib/errors';
 import { createSmsProvider } from '../../lib/sms-provider';
 import { providerCostMinor } from '../../lib/sms-cost';
@@ -94,13 +94,22 @@ export const twilioMessagingWebhookRoutes = new Hono<AppEnv>()
     });
 
     if (!sender) {
-      return c.json({ received: true, status: 'ignored' });
+      console.warn('Ignored inbound SMS webhook for unknown sender.', {
+        provider: provider.name,
+        providerSenderReference: inbound.providerSenderReference,
+      });
+      return emptyTwimlResponse(c);
     }
 
     const phoneIdentity = await inboundPhoneIdentity(
       inbound.from,
       sender.countryCode ?? 'SE',
     );
+
+    if (!phoneIdentity) {
+      return emptyTwimlResponse(c);
+    }
+
     const recipient = phoneIdentity
       ? await getLatestCampaignRecipientByPhoneHash(c.get('db'), {
           organizationId: sender.organizationId,
@@ -118,6 +127,8 @@ export const twilioMessagingWebhookRoutes = new Hono<AppEnv>()
       providerPhoneNumberId: null,
       fromPhone: inbound.from,
       toPhone: inbound.to,
+      normalizedPhone: phoneIdentity.normalizedValue,
+      phoneHash: phoneIdentity.valueHash,
       body: inbound.body,
       receivedAt: inbound.receivedAt,
     });
@@ -125,7 +136,7 @@ export const twilioMessagingWebhookRoutes = new Hono<AppEnv>()
     const eventType =
       optOutType === 'STOP' || isStopReply(inbound.body) ? 'opt_out' : 'reply';
 
-    if (eventType === 'opt_out' && phoneIdentity) {
+    if (eventType === 'opt_out') {
       await upsertSuppressionByHash(c.get('db'), {
         organizationId: sender.organizationId,
         type: 'phone',
@@ -152,7 +163,7 @@ export const twilioMessagingWebhookRoutes = new Hono<AppEnv>()
       });
     }
 
-    return c.json({ received: true, status: 'processed' });
+    return emptyTwimlResponse(c);
   });
 
 function parseWebhookPayload(rawBody: string, contentType: string | undefined) {
@@ -181,6 +192,12 @@ function providerOptOutType(payload: Record<string, unknown>) {
   return normalized === 'STOP' || normalized === 'START' || normalized === 'HELP'
     ? normalized
     : null;
+}
+
+function emptyTwimlResponse(c: Context<AppEnv>) {
+  return c.body('<Response></Response>', 200, {
+    'content-type': 'text/xml; charset=utf-8',
+  });
 }
 
 async function inboundPhoneIdentity(value: string, countryCode: string) {

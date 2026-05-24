@@ -258,7 +258,7 @@ export async function debitSmsCreditUsage(input: {
   description?: string;
   source?: Extract<
     SmsCreditTransactionSource,
-    'campaign_send' | 'campaign_test_send'
+    'campaign_send' | 'campaign_test_send' | 'manual_reply'
   >;
   sourceId: string;
 }) {
@@ -328,7 +328,7 @@ export async function releaseSmsCreditUsage(input: {
   reservedTransactions: SmsCreditTransaction[];
   source: Extract<
     SmsCreditTransactionSource,
-    'campaign_send' | 'campaign_test_send'
+    'campaign_send' | 'campaign_test_send' | 'manual_reply'
   >;
   sourceId: string;
 }) {

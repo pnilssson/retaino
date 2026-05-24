@@ -67,7 +67,7 @@ export type ReserveSmsCreditsIfSufficientInput = {
   credits: number;
   source: Extract<
     SmsCreditTransactionSource,
-    'campaign_send' | 'campaign_test_send'
+    'campaign_send' | 'campaign_test_send' | 'manual_reply'
   >;
   sourceId: string;
   description: string;

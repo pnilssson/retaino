@@ -15,6 +15,7 @@ import {
   trackingLinks,
 } from '../schema';
 import { assertOrganizationId } from './contacts';
+import { upsertSmsConversationForMessage } from './inbox';
 
 type SmsMessageRow = typeof smsMessages.$inferSelect;
 type TrackingLinkRow = typeof trackingLinks.$inferSelect;
@@ -48,6 +49,9 @@ function smsMessageToContract(row: SmsMessageRow) {
     providerPhoneNumberId: row.providerPhoneNumberId,
     fromPhone: row.fromPhone,
     toPhone: row.toPhone,
+    normalizedPhone: row.normalizedPhone,
+    phoneHash: row.phoneHash,
+    idempotencyKey: row.idempotencyKey,
     body: row.body,
     status: row.status,
     estimatedSegmentCount: row.estimatedSegmentCount,
@@ -176,6 +180,9 @@ export async function createOutboundSmsMessage(
     provider: SmsSenderProvider;
     fromPhone: string | null;
     toPhone: string;
+    normalizedPhone: string;
+    phoneHash: string;
+    idempotencyKey: string;
     body: string;
     estimatedSegmentCount: number;
     currency: string | null;
@@ -198,6 +205,9 @@ export async function createOutboundSmsMessage(
       provider: input.provider,
       fromPhone: input.fromPhone,
       toPhone: input.toPhone,
+      normalizedPhone: input.normalizedPhone,
+      phoneHash: input.phoneHash,
+      idempotencyKey: input.idempotencyKey,
       body: input.body,
       status: 'queued',
       estimatedSegmentCount: input.estimatedSegmentCount,
@@ -209,14 +219,19 @@ export async function createOutboundSmsMessage(
     .onConflictDoNothing({
       target: [
         smsMessages.organizationId,
-        smsMessages.campaignId,
-        smsMessages.recipientId,
-        smsMessages.direction,
+        smsMessages.idempotencyKey,
       ],
     })
     .returning();
 
   if (created) {
+    await upsertSmsConversationForMessage(db, {
+      organizationId: input.organizationId,
+      phoneHash: input.phoneHash,
+      normalizedPhone: input.normalizedPhone,
+      now,
+    });
+
     return { status: 'created', message: smsMessageToContract(created) };
   }
 
@@ -226,9 +241,7 @@ export async function createOutboundSmsMessage(
     .where(
       and(
         eq(smsMessages.organizationId, input.organizationId),
-        eq(smsMessages.campaignId, input.campaignId),
-        eq(smsMessages.recipientId, input.recipientId),
-        eq(smsMessages.direction, 'outbound'),
+        eq(smsMessages.idempotencyKey, input.idempotencyKey),
       ),
     )
     .limit(1);
@@ -236,6 +249,13 @@ export async function createOutboundSmsMessage(
   if (!existing) {
     throw new Error('Outbound SMS message was not created or found.');
   }
+
+  await upsertSmsConversationForMessage(db, {
+    organizationId: input.organizationId,
+    phoneHash: input.phoneHash,
+    normalizedPhone: input.normalizedPhone,
+    now,
+  });
 
   return { status: 'existing', message: smsMessageToContract(existing) };
 }
@@ -271,6 +291,8 @@ export async function createInboundSmsMessage(
     providerPhoneNumberId: string | null;
     fromPhone: string;
     toPhone: string;
+    normalizedPhone: string;
+    phoneHash: string;
     body: string;
     receivedAt: Date;
   },
@@ -291,6 +313,8 @@ export async function createInboundSmsMessage(
       providerPhoneNumberId: input.providerPhoneNumberId,
       fromPhone: input.fromPhone,
       toPhone: input.toPhone,
+      normalizedPhone: input.normalizedPhone,
+      phoneHash: input.phoneHash,
       body: input.body,
       status: 'received',
       estimatedSegmentCount: 0,
@@ -306,13 +330,29 @@ export async function createInboundSmsMessage(
     .returning();
 
   if (row) {
+    await upsertSmsConversationForMessage(db, {
+      organizationId: input.organizationId,
+      phoneHash: input.phoneHash,
+      normalizedPhone: input.normalizedPhone,
+      now,
+    });
+
     return smsMessageToContract(row);
   }
 
-  return getSmsMessageByProviderMessageId(db, {
+  const existing = await getSmsMessageByProviderMessageId(db, {
     provider: input.provider,
     providerMessageId: input.providerMessageId,
   });
+
+  await upsertSmsConversationForMessage(db, {
+    organizationId: input.organizationId,
+    phoneHash: input.phoneHash,
+    normalizedPhone: input.normalizedPhone,
+    now,
+  });
+
+  return existing;
 }
 
 export async function recordCampaignMessageEvent(

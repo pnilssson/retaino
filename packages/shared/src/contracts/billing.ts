@@ -26,6 +26,7 @@ export const SMS_CREDIT_TRANSACTION_SOURCES = [
   'stripe_checkout_session',
   'campaign_send',
   'campaign_test_send',
+  'manual_reply',
   'stripe_refund',
   'stripe_credit_note',
   'manual_adjustment',

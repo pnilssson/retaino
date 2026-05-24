@@ -1,15 +1,12 @@
 # Product
 
-Retaino v1 is a vertical SaaS for SMS-based customer reactivation. It is not a
-generic SMS gateway, CRM, or booking system.
+Retaino v1 is a vertical SaaS for SMS-based customer reactivation. It is not a generic SMS gateway, CRM, or booking system.
 
-Product promise: reactivate previous customers and show bookings and revenue,
-not just sent SMS.
+Product promise: reactivate previous customers and show bookings and revenue, not just sent SMS.
 
 ## Target Customers
 
-Start with service businesses where one recovered booking has clear margin
-value and the business already has customer relationships:
+Start with service businesses where one recovered booking has clear margin value and the business already has customer relationships:
 
 - salons and beauty businesses
 - aesthetic clinics, without health notes or journal data
@@ -18,130 +15,155 @@ value and the business already has customer relationships:
 
 Avoid broad SMB positioning in v1.
 
-## Core Workflow
-
-The user imports contacts, creates a campaign, chooses eligible lapsed
-customers, writes an SMS offer, sends it, and later reports bookings and
-revenue.
-
-The dashboard should answer: how much campaign activity happened, and what
-bookings and revenue did the team report afterward?
-
-## Build Order
-
-1. Organization setup, legal bundle acceptance, and team access.
-2. Billing setup with Stripe subscriptions, credit packs, and SMS balance.
-3. Contact import with permission attestation, validation, dedupe, and
-   suppression checks.
-4. Campaign creation with internal draft persistence and campaign-owned
-   lapsed-customer audience rules.
-5. Dedicated organization SMS sender setup, SMS preview, segment counting, and
-   test sends.
-6. Campaign launch with recipient snapshots, short links, and send execution.
-7. Reported bookings for campaign outcome reporting.
-8. Spreadsheet booking import and reconciliation after manual reporting proves
-   useful.
-
 ## MVP Scope
 
 Required:
 
 - organization-scoped product data and access control
-- self-serve onboarding with legal company profile, billing details,
-  responsible contact, sender-compliance company fields, and one legal bundle
-  acceptance
-- self-serve billing with Stripe subscriptions, credit packs, and portal access
-- CSV contact import with field mapping, validation, dedupe, and suppression
-  checks
-- contact permission attestation inside the import flow
-- campaign-owned lapsed-customer audience rules with internal draft
-  persistence
-- one dedicated SMS-capable sender number and Messaging Service per
-  organization
+- self-serve onboarding with legal company profile, billing details, responsible contact, sender-compliance company fields, and legal bundle acceptance
+- self-serve Stripe billing with subscriptions, credit packs, and portal access
+- CSV contact import with field mapping, validation, dedupe, suppression checks, and permission attestation
+- campaign-owned lapsed-customer audience rules with internal draft persistence
+- one dedicated two-way SMS-capable sender number and Messaging Service per organization
 - SMS editor with GSM-7 and Unicode segment counter plus credit preview
 - per-recipient short links
 - campaign code, offer code, or campaign reference for manual outcome reporting
-- STOP handling, suppression lists, and retention of other inbound replies for
-  future inbox support
+- STOP handling and suppression lists
+- shared organization inbox for inbound replies and manual SMS replies
 - reported bookings for campaign bookings and revenue
-- campaign dashboard for delivery, clicks, replies, opt-outs, reported
-  bookings, and reported revenue
+- campaign dashboard for delivery, clicks, replies, opt-outs, reported bookings, and reported revenue
 
 Deferred:
 
-- full shared inbox, manual replies, assignments, and notifications
+- per-user inbox assignments, notes, labels, and read state
 - email, WhatsApp, RCS, and broad omni-channel flows
-- advanced automation, CDP behavior, AI copy generation, and experiments
+- advanced automation, journeys, CDP behavior, AI copy generation, and experiments
 - generic CRM features
 - more than one or two booking integrations
-- spreadsheet booking import and automatic reconciliation until manual outcome
-  reporting proves the workflow
+- spreadsheet booking import and automatic reconciliation until manual reporting proves useful
 - saved reusable segments until campaign-owned audience rules prove repetitive
-- import of medical notes, journal data, treatment notes, or sensitive
-  unsupported fields
+- medical notes, journal data, treatment notes, and sensitive unsupported fields
 
-## Main Flows
+## Core Workflow
 
-Onboarding:
+The user imports contacts, creates a campaign, chooses eligible lapsed customers, writes an SMS offer, sends it, handles replies in the inbox, and reports bookings and revenue.
 
-1. User signs up or accepts an organization invitation.
-2. Retaino ensures the user has an active organization.
-3. User enters legal company identity, billing details, responsible contact,
-   and sender-compliance company fields Retaino can know upfront.
-4. User accepts the current organization legal bundle.
-5. Retaino enables forced STOP text and suppression handling.
+The dashboard should answer how much campaign activity happened and what bookings and revenue the team reported afterward.
 
-Billing:
+## Campaigns
 
-1. Admin chooses Starter, Growth, or Scale in Stripe Checkout.
-2. Retaino grants included monthly SMS credits after Stripe confirms payment.
-3. Admin can buy one-time credit packs when more credits are needed.
-4. Billing shows subscription status, SMS balance, renewal timing, plans, credit
-   packs, and portal access.
-5. Retaino does not provision a Twilio sender during checkout. Sender setup
-   happens later when a user prepares the first campaign for sending.
+Keep campaigns focused on one audience, one SMS message, and one booking destination.
 
-Contact import:
+User flow:
 
-1. User uploads a CSV customer list.
-2. Retaino maps name, phone, email, and last booking date when available.
-3. User confirms the contacts can lawfully receive marketing SMS.
-4. Retaino validates, deduplicates, removes suppressed contacts, and stores
-   normalized fields plus hashes for matching.
+1. Choose the lapsed-customer audience.
+2. Write the SMS.
+3. Add booking URL and optional campaign reference.
+4. Set up or confirm the organization sender.
+5. Review recipients, credits, sender, and message preview.
+6. Send a test SMS.
+7. Send the campaign.
 
-Campaign:
+Rules:
 
-1. User creates a campaign and chooses the eligible lapsed audience.
-2. User writes SMS copy.
-3. Retaino counts segments and shows the estimated SMS use in plain language.
-4. User chooses a booking URL and optional campaign code or reference that can
-   help with manual outcome reporting.
-5. User chooses the sender country based on recipient market and selects an
-   available two-way SMS number or accepts Retaino's recommendation.
-6. Retaino provisions the organization's dedicated sender if it does not exist.
-7. User reviews the final campaign, estimated credits, sender, and recipient
-   count.
-8. User sends a test SMS.
-9. User sends the campaign. Retaino then freezes the selected recipients,
-   creates one tracked link per recipient, reserves credits, and sends through a
-   background job.
+- Draft is an internal persistence status. User-facing copy should say campaign, not campaign draft, except in list status labels.
+- After send, show campaign overview and report. Do not show builder controls for locked campaigns.
+- The final `Send campaign` action owns launch behavior. There is no separate public launch or approve endpoint in MVP.
+- Final send freezes the campaign, snapshots eligible recipients, creates tracking links, reserves estimated SMS credits, and enqueues an Inngest job.
+- Campaign sends run in background jobs, never inside the HTTP request.
+- Suppression and sender readiness checks run before queueing and again before provider send.
+- Only one active live send per organization may run at a time.
+- Credit reservations are the database source of truth for send authorization. Inngest idempotency is useful, but not enough by itself.
 
-Reporting:
+## Audience
 
-1. Retaino records provider delivery state and clicks.
-2. User manually reports booking outcomes from the campaign.
-3. Retaino stores each reported booking row and totals bookings and revenue.
-4. Dashboard separates campaign activity from team-reported outcomes.
+Audience rules are campaign-owned, not saved reusable segments. MVP eligibility is based on lapsed booking window, usable phone number, marketing permission, and suppression status.
+
+Preview, recipient snapshot, and send execution must share the same eligibility rules. Do not implement separate audience logic in the web app.
+
+## SMS Content
+
+Supported personalization tokens:
+
+- `{first_name}`
+- `{last_booking_date}`
+
+Retaino appends the tracked booking link and required opt-out text. Reject unknown user-authored `{...}` tokens and user-authored unsubscribe, opt-out, or tracking-link placeholders.
+
+Segment estimates shown in the builder must match the body that will be sent as closely as possible. Store estimated and actual SMS segment counts.
+
+## Inbox
+
+The inbox is part of MVP because Retaino sells reactivation and retention, not one-way bulk SMS.
+
+Rules:
+
+- The inbox is organization-scoped and threaded by SMS phone identity, not by campaign.
+- A customer who receives campaign 1, replies, then later receives campaign 2 has one continuous conversation.
+- Campaign context appears as message metadata, not as the primary thread grouping.
+- Default view is `Needs reply`: latest inbound message is newer than latest outbound message and the phone is not suppressed.
+- Additional views are `Unread` and `All conversations`.
+- List order is newest message first. Thread order is oldest message first.
+- Sidebar shows unread conversation count.
+- Active thread is marked read when opened or when the user clicks a read action.
+- Manual replies send exactly the user-authored reply body. Do not append campaign booking links or campaign opt-out copy to manual replies.
+- Manual reply UI uses TanStack Form and keeps one `clientRequestId` for the current unchanged draft until it succeeds or the user changes or resets the message.
+- The reply box is disabled for suppressed conversations.
+- No email notifications, browser push notifications, or realtime WebSocket channel in MVP.
+
+## Tracking
+
+Every campaign SMS contains a unique short link for one campaign recipient, for example `https://go.retaino.com/r/0123456789abcdef`.
+
+The short link record stores organization ID, campaign ID, recipient ID, target booking URL, short code, and timestamps. Recipient hashes stay on the campaign recipient snapshot and are not duplicated on tracking links.
+
+Redirect flow:
+
+1. Recipient opens `/r/:code`.
+2. API looks up the link by short code.
+3. API verifies the stored booking URL still uses an allowed `http` or `https` scheme.
+4. API records a click event with timestamp, user agent, and organization ID.
+5. API redirects to the stored booking URL.
+
+Redirects favor the recipient reaching the booking page. If click storage fails after the target URL has been validated, the redirect still succeeds and the write failure is logged. MVP click tracking does not persist IP addresses or IP-derived metadata.
+
+Click tracking owns clicks only. It does not own reported bookings or attribution.
+
+## Reporting
+
+Retaino reports campaign activity and team-reported outcomes separately.
+
+Campaign activity includes selected recipients, sent messages, delivered messages, failed messages, skipped recipients, click count, unique clickers, replies, opt-outs, estimated SMS credits, and actual SMS credits.
+
+Reported outcomes include reported booking count, reported revenue, booking rate, and average booking revenue.
+
+Reported bookings store campaign, campaign recipient, contact, reporting user, booking date, source, optional service, optional revenue, and optional note. They do not duplicate contact names, phone numbers, or email addresses.
+
+Users enter normal currency amounts. Retaino stores revenue as integer minor units using the campaign outcome currency. If historical or imported data contains mixed revenue currencies for one campaign, reports must not show one summed revenue total.
+
+Reports must label team-reported outcomes clearly. Do not imply click tracking or manual reporting proves automatic attribution.
+
+## Future Attribution
+
+Never match across organizations. Internal `organizationId` is required in every query.
+
+Possible future matching inputs:
+
+- campaign code, offer code, or campaign reference
+- normalized phone or phone hash
+- normalized email or email hash
+- name plus phone suffix
+- booking date
+- service name
+- booking created time after sent time or click time
+
+When multiple campaigns match, prefer the most recent campaign inside the attribution window. When multiple recipients match one booking, choose strongest confidence, then closest click time, then closest sent time. Do not count the same booking twice.
 
 ## Product Principles
 
 - Sell reactivation and revenue reporting, not cheap SMS transport.
-- Be honest about outcomes. Do not present manually reported bookings as
-  automatic attribution.
-- Make SMS credit use visible before sending.
+- Be honest about outcomes. Do not present manually reported bookings as automatic attribution.
+- Make SMS credit use visible before sending and before manual replies.
 - Use prepaid credits only in MVP. Do not create surprise usage invoices.
 - Keep long-running work in background jobs.
-- Keep the product narrow until import, campaign, and reporting work end to end.
-- Use draft as a persistence status, not as the main campaign creation outcome.
-  User-facing copy should say campaign, not campaign draft, except in list
-  status labels.
+- Keep the product narrow until import, campaign, inbox, and reporting work end to end.

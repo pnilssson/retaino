@@ -11,6 +11,7 @@ export * from './organization-profiles';
 export * from './organizations';
 export * from './reported-bookings';
 export * from './sms-senders';
+export * from './sms-conversations';
 export * from './sms-messages';
 export * from './tracking-links';
 export * from './users';

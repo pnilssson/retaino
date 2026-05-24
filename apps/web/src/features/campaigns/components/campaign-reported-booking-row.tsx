@@ -72,7 +72,7 @@ export function ReportedBookingRow({
         </Button>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-2">
         <CampaignContactSelect
           id={`booking-${index}-contact`}
           isLoading={recipients.isFetching}
@@ -107,6 +107,13 @@ export function ReportedBookingRow({
           placeholder={currency}
           value={booking.revenueAmount}
         />
+        <BookingRowInput
+          id={`booking-${index}-service`}
+          label="Service"
+          onChange={(value) => onChange({ ...booking, service: value })}
+          placeholder="Service or treatment"
+          value={booking.service}
+        />
       </div>
 
       {booking.contactId ? (
@@ -116,22 +123,13 @@ export function ReportedBookingRow({
         </p>
       ) : null}
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <BookingRowInput
-          id={`booking-${index}-service`}
-          label="Service"
-          onChange={(value) => onChange({ ...booking, service: value })}
-          placeholder="Service or treatment"
-          value={booking.service}
-        />
-        <BookingRowTextarea
-          id={`booking-${index}-note`}
-          label="Note"
-          onChange={(value) => onChange({ ...booking, note: value })}
-          placeholder="Optional context"
-          value={booking.note}
-        />
-      </div>
+      <BookingRowTextarea
+        id={`booking-${index}-note`}
+        label="Note"
+        onChange={(value) => onChange({ ...booking, note: value })}
+        placeholder="Optional context"
+        value={booking.note}
+      />
     </fieldset>
   );
 }

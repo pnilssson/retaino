@@ -66,7 +66,6 @@ export function CreditPackList({
                   }
                   onClick={() => onSelectPack(packKey)}
                   type="button"
-                  variant="outline"
                 >
                   <PlusCircle aria-hidden="true" data-icon="inline-start" />
                   {packActionLabel({

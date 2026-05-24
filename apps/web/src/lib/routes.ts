@@ -12,6 +12,7 @@ export const routes = {
   contacts: '/app/contacts',
   contact: (id: string) => `/app/contacts/${id}`,
   contactsImport: '/app/contacts/import',
+  inbox: '/app/inbox',
   campaigns: '/app/campaigns',
   campaign: (id: string) => `/app/campaigns/${id}`,
   campaignNew: '/app/campaigns/new',

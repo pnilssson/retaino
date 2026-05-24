@@ -423,6 +423,10 @@ export async function processCampaignSend(input: {
         provider: provider.name,
         fromPhone: sender.phoneNumber,
         toPhone: prepared.recipient.normalizedPhone as string,
+        normalizedPhone: prepared.recipient.normalizedPhone as string,
+        phoneHash: prepared.recipient.phoneHash as string,
+        idempotencyKey:
+          `campaign-send:${input.campaignId}:recipient:${prepared.recipient.id}`,
         body: prepared.renderedBody,
         estimatedSegmentCount: prepared.estimatedSegments,
         currency: 'SEK',
