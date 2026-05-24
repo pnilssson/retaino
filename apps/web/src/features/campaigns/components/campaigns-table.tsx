@@ -100,16 +100,22 @@ function createCampaignColumns({
         const detailPath = routes.campaign(row.original.id);
 
         return (
-          <Link className="block min-w-56 p-2" href={detailPath}>
+          <Link className="block min-w-44 p-2" href={detailPath}>
             <span className="block break-words font-medium">
               {row.original.name}
-            </span>
-            <span className="mt-1 block break-words text-xs text-muted-foreground">
-              {row.original.campaignCode ?? 'No campaign reference'}
             </span>
           </Link>
         );
       },
+    },
+    {
+      id: 'reference',
+      header: 'Reference',
+      cell: ({ row }) => (
+        <LinkedCell campaign={row.original}>
+          {row.original.campaignCode ?? 'No reference'}
+        </LinkedCell>
+      ),
     },
     {
       id: 'audience',

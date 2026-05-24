@@ -33,7 +33,6 @@ export function SortableTableHeader({
       aria-label={`Sort by ${label.toLowerCase()} ${nextDirection === 'asc' ? 'ascending' : 'descending'}`}
       className={cn(
         '-ml-2 inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-left font-medium text-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        !active && 'text-muted-foreground',
       )}
       onClick={onSort}
       type="button"
