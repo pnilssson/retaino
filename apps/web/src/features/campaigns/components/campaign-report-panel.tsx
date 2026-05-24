@@ -1,6 +1,6 @@
 "use client";
 
-import type { Campaign } from '@retaino/shared/contracts';
+import type { Campaign, CampaignReport } from '@retaino/shared/contracts';
 import {
   AlertCircle,
   CalendarCheck,
@@ -15,6 +15,7 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
+import { InfoTooltip } from '@/components/info-tooltip';
 import { ItemNotice } from '@/components/item-notice';
 import { LoadingState } from '@/components/loading-state';
 import { MetricSummaryEntry } from '@/components/metric-summary-entry';
@@ -28,6 +29,7 @@ import {
   AppPageItem,
   AppPageSection,
 } from '@/features/appshell/components/app-page-content';
+import { textStyles } from '@/lib/text-styles';
 import {
   createCampaignReportFunnel,
   createCampaignReportMetrics,
@@ -111,18 +113,29 @@ export function CampaignReportPanel({
       sendAccepted || campaign.status === 'sending' ? 5000 : false,
   });
   const reportData = report.data?.report ?? null;
-  const funnel = reportData ? createCampaignReportFunnel(reportData) : null;
-  const funnelSummary = funnel
-    ? withFunnelSummaryIcons(funnel.summary)
-    : [];
   const metrics = reportData
     ? createCampaignReportMetrics(reportData)
     : [];
+  const lastUpdated = report.dataUpdatedAt
+    ? formatReportUpdatedAt(report.dataUpdatedAt)
+    : null;
+  const isUpdatingReport = report.isFetching && !report.isLoading;
 
   return (
     <AppPageContent>
       <AppPageSection
         actions={
+          <>
+            {isUpdatingReport ? (
+              <LoadingState label="Updating report" />
+            ) : lastUpdated ? (
+              <span
+                aria-live="polite"
+                className={`${textStyles.meta} flex min-h-9 items-center`}
+              >
+                Updated {lastUpdated}
+              </span>
+            ) : null}
             <Button
               disabled={report.isFetching}
               onClick={() => {
@@ -131,12 +144,18 @@ export function CampaignReportPanel({
               type="button"
               variant="outline"
             >
-              <RefreshCw aria-hidden="true" data-icon="inline-start" />
+              <RefreshCw
+                aria-hidden="true"
+                className={isUpdatingReport ? 'animate-spin' : undefined}
+                data-icon="inline-start"
+              />
               Refresh
             </Button>
+          </>
         }
-        description="See how selected recipients moved through delivery statuses."
-        title="Delivery funnel"
+        description="Delivery, engagement, and outcomes for this send."
+        framed={false}
+        title="Performance"
       >
         {report.isError ? (
           <ItemNotice
@@ -150,24 +169,16 @@ export function CampaignReportPanel({
           />
         ) : report.isLoading ? (
           <LoadingState className="py-6" label="Loading campaign report" />
-        ) : reportData && funnel ? (
-          <SankeyBreakdown
-            links={funnel.links}
-            nodes={funnel.nodes}
-            showHeader={false}
-            summary={funnelSummary}
-            title="Delivery funnel"
-          />
+        ) : metrics.length > 0 ? (
+          <div className="grid min-w-0 grid-cols-2 gap-4 lg:grid-cols-4">
+            {metrics.map((metric) => (
+              <ReportMetricItem key={metric.id} metric={metric} />
+            ))}
+          </div>
         ) : null}
       </AppPageSection>
 
-      {reportData && metrics.length > 0 ? (
-        <div className="hidden min-w-0 gap-5 sm:grid sm:grid-cols-2 xl:grid-cols-3">
-          {metrics.map((metric) => (
-            <ReportMetricItem key={metric.id} metric={metric} />
-          ))}
-        </div>
-      ) : null}
+      {reportData ? <DeliveryHealthSection report={reportData} /> : null}
 
       {reportData ? (
         <ReportedBookingsSection
@@ -204,6 +215,34 @@ function ReportMetric({ metric }: { metric: CampaignReportMetric }) {
   );
 }
 
+function DeliveryHealthSection({ report }: { report: CampaignReport }) {
+  const funnel = createCampaignReportFunnel(report);
+
+  return (
+    <AppPageSection
+      className="hidden sm:grid"
+      description="Selected recipients through delivery outcome."
+      title={
+        <span className="inline-flex items-center gap-1.5">
+          Delivery health
+          <InfoTooltip label="Delivery status information">
+            Delivery can keep updating after send while message statuses come
+            in.
+          </InfoTooltip>
+        </span>
+      }
+    >
+      <SankeyBreakdown
+        links={funnel.links}
+        nodes={funnel.nodes}
+        showHeader={false}
+        summary={withFunnelSummaryIcons(funnel.summary)}
+        title="Delivery health"
+      />
+    </AppPageSection>
+  );
+}
+
 function withFunnelSummaryIcons(
   summary: SankeyBreakdownSummaryItem[],
 ): SankeyBreakdownSummaryItem[] {
@@ -211,4 +250,11 @@ function withFunnelSummaryIcons(
     ...item,
     ...funnelSummaryMeta[item.label],
   }));
+}
+
+function formatReportUpdatedAt(updatedAt: number) {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(updatedAt));
 }

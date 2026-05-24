@@ -33,11 +33,17 @@ export function CampaignOverview({
 
   return (
     <div className="grid gap-5">
+      <CampaignReportPanel
+        campaign={campaign}
+        organizationId={organizationId}
+        sendAccepted={sendAccepted}
+      />
+
       <AppPageContent>
         <div className="grid gap-5 lg:grid-cols-2">
           <AppPageSection
-            description="Audience, destination, and send details for this campaign."
-            title="Campaign snapshot"
+            description="Audience, destination, and send details."
+            title="Campaign details"
           >
             <div className="grid gap-6 sm:grid-cols-2">
               <dl className="grid content-start gap-4">
@@ -67,7 +73,7 @@ export function CampaignOverview({
                 />
 
                 <OverviewDetail
-                  label="Send status"
+                  label="Sent"
                   value={
                     sendAccepted
                       ? 'Send accepted. Waiting for delivery activity.'
@@ -100,12 +106,6 @@ export function CampaignOverview({
           </AppPageSection>
         </div>
       </AppPageContent>
-
-      <CampaignReportPanel
-        campaign={campaign}
-        organizationId={organizationId}
-        sendAccepted={sendAccepted}
-      />
     </div>
   );
 }
