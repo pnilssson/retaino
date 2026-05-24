@@ -27,8 +27,8 @@ export function CreditPackList({
   return (
     <section className="grid gap-5">
       <header className="grid gap-1.5">
-        <h2 className={textStyles.sectionTitle}>Need more this month?</h2>
-        <p className={cn('max-w-3xl', textStyles.mutedBody)}>
+        <h2 className={textStyles.itemTitle}>Need more this month?</h2>
+        <p className={cn('max-w-2xl', textStyles.mutedBody)}>
           Monthly plan credits reset. Purchased credits roll over and do not
           expire.
         </p>

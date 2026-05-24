@@ -12,14 +12,9 @@ import {
   TableLoading,
 } from '@/components/data-table';
 import {
-  ItemContent,
-  ItemDescription,
-  ItemHeader,
-  ItemTitle,
-} from '@/components/ui/item';
-import {
   AppPageContent,
   AppPageItem,
+  AppPageSection,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useContactListQueryState } from '@/features/contacts/hooks/use-contact-list-query-state';
@@ -118,14 +113,13 @@ export function ContactsScreen() {
             ) : null
           }
           description="Review imported customers, find contacts ready for SMS, and catch data issues before campaigns."
-          eyebrow="Contacts"
           title="Contacts"
         />
 
         <AppPageContent>
-          <AppPageItem asChild>
-            <section>
-              {contactPresence.isError ? (
+          {contactPresence.isError ? (
+            <AppPageItem asChild>
+              <section>
                 <ItemNotice
                   description={
                     contactPresence.error instanceof Error
@@ -135,9 +129,15 @@ export function ContactsScreen() {
                   title="Contact status could not be checked"
                   variant="error"
                 />
-              ) : !contactPresenceLoaded || contacts.isLoading ? (
-                <TableLoading label="Loading contacts" />
-              ) : !hasContacts ? (
+              </section>
+            </AppPageItem>
+          ) : !contactPresenceLoaded || contacts.isLoading ? (
+            <section>
+              <TableLoading label="Loading contacts" />
+            </section>
+          ) : !hasContacts ? (
+            <AppPageItem asChild>
+              <section>
                 <EmptyState
                   action={
                     <Button asChild>
@@ -152,7 +152,11 @@ export function ContactsScreen() {
                   title="Import your first contacts"
                   variant="page"
                 />
-              ) : contacts.isError ? (
+              </section>
+            </AppPageItem>
+          ) : contacts.isError ? (
+            <AppPageItem asChild>
+              <section>
                 <ItemNotice
                   description={
                     contacts.error instanceof Error
@@ -162,16 +166,15 @@ export function ContactsScreen() {
                   title="Contacts could not be fetched"
                   variant="error"
                 />
-              ) : (
+              </section>
+            </AppPageItem>
+          ) : (
+            <AppPageSection
+              description="Filter by SMS readiness and data issues."
+              framed={false}
+              title="Contact list"
+            >
                 <>
-                  <ItemHeader className="items-start">
-                    <ItemContent className="gap-2">
-                      <ItemTitle className="text-base">Contacts</ItemTitle>
-                      <ItemDescription>
-                        Filter by SMS readiness and data issues.
-                      </ItemDescription>
-                    </ItemContent>
-                  </ItemHeader>
                   <ContactFilters
                     direction={query.direction}
                     issue={query.issue}
@@ -185,24 +188,19 @@ export function ContactsScreen() {
                   />
                   {contacts.data && contacts.data.contacts.length > 0 ? (
                     <>
-                  <ContactListPosition
-                    page={contacts.data.page}
-                    pageSize={contacts.data.pageSize}
-                    total={contacts.data.total}
-                  />
-                  <ContactBulkActions
-                    contactIds={selectedContactIds}
-                    onClear={() => setRowSelection({})}
-                    organizationId={session.data.organization.id}
-                    selectedCount={selectedContactIds.length}
-                  />
                   <ContactsTable
                     contacts={contacts.data.contacts}
                     onRowSelectionChange={setRowSelection}
-                    page={contacts.data.page}
-                    pageSize={contacts.data.pageSize}
                     rowSelection={rowSelection}
                     selectable
+                    tableActions={
+                      <ContactBulkActions
+                        contactIds={selectedContactIds}
+                        onClear={() => setRowSelection({})}
+                        organizationId={session.data.organization.id}
+                        selectedCount={selectedContactIds.length}
+                      />
+                    }
                   />
                   <PaginationControls
                     itemLabel="contacts"
@@ -222,34 +220,10 @@ export function ContactsScreen() {
                     />
                   )}
                 </>
-              )}
-            </section>
-          </AppPageItem>
+            </AppPageSection>
+          )}
         </AppPageContent>
       </section>
     </main>
-  );
-}
-
-function ContactListPosition({
-  page,
-  pageSize,
-  total,
-}: {
-  page: number;
-  pageSize: number;
-  total: number;
-}) {
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const start = (page - 1) * pageSize + 1;
-  const end = Math.min(total, page * pageSize);
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-sm">
-      <span className="font-medium text-foreground">
-        Showing {start}-{end} of {total} contacts
-      </span>
-      <span className="text-muted-foreground">Page {page} of {totalPages}</span>
-    </div>
   );
 }

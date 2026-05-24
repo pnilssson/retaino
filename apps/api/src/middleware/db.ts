@@ -1,8 +1,11 @@
-import { createDb } from '@retaino/db';
 import { createMiddleware } from 'hono/factory';
+import { connectAppDb } from '../lib/db';
 import type { AppEnv } from '../types';
 
 export const dbMiddleware = createMiddleware<AppEnv>(async (c, next) => {
-  c.set('db', createDb(c.env.DATABASE_URL));
+  const db = await connectAppDb(c.env);
+
+  c.set('db', db);
+
   await next();
 });

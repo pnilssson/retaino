@@ -1,5 +1,5 @@
-import { createDb } from '@retaino/db';
 import { Inngest } from 'inngest';
+import { connectAppDb } from '../../lib/db';
 import { inngest } from '../../lib/inngest';
 import type { AppEnv } from '../../types';
 import { processCampaignSend } from './campaigns.service';
@@ -54,13 +54,13 @@ export const processCampaignSendFunction: ReturnType<
       throw new Error('Campaign send processing event is missing identifiers.');
     }
 
-    if (!bindings?.DATABASE_URL) {
+    if (!bindings) {
       throw new Error('Campaign send processing is missing Worker bindings.');
     }
 
     await step.run('process campaign send', async () => {
       await processCampaignSend({
-        db: createDb(bindings.DATABASE_URL),
+        db: await connectAppDb(bindings),
         env: bindings,
         organizationId,
         campaignId,

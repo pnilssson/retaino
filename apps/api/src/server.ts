@@ -33,8 +33,9 @@ app.route('/r', trackingRoutes);
 
 app.use('/v1/*', corsMiddleware);
 app.route('/v1/billing', billingWebhookRoutes);
-app.use('/v1/*', dbMiddleware);
+app.use('/v1/legal/*', dbMiddleware);
 app.route('/v1/legal', legalRoutes);
+app.use('/v1/webhooks/twilio/messaging/*', dbMiddleware);
 app.route('/v1/webhooks/twilio/messaging', twilioMessagingWebhookRoutes);
 app.use('/v1/*', authMiddleware);
 

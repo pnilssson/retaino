@@ -401,7 +401,7 @@ describe('campaign send service', () => {
       queueCampaignSend({
         db,
         env: {
-          DATABASE_URL: 'postgres://retaino.test/db',
+          HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
           SMS_SENDING_MODE: 'test',
           TRACKING_BASE_URL: 'https://go.retaino.test',
         } as never,
@@ -425,7 +425,7 @@ describe('campaign send service', () => {
       queueCampaignSend({
         db,
         env: {
-          DATABASE_URL: 'postgres://retaino.test/db',
+          HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
           SMS_SENDING_MODE: 'test',
           TRACKING_BASE_URL: 'https://go.retaino.test',
         } as never,
@@ -462,7 +462,7 @@ describe('campaign send service', () => {
     await processCampaignSend({
       db,
       env: {
-        DATABASE_URL: 'postgres://retaino.test/db',
+        HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
         SMS_SENDING_MODE: 'test',
         TRACKING_BASE_URL: 'https://go.retaino.test',
       } as never,
@@ -591,7 +591,7 @@ describe('campaign send service', () => {
     await processCampaignSend({
       db,
       env: {
-        DATABASE_URL: 'postgres://retaino.test/db',
+        HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
         SMS_SENDING_MODE: 'test',
         TRACKING_BASE_URL: 'https://go.retaino.test',
       } as never,
@@ -662,7 +662,7 @@ describe('campaign send service', () => {
       processCampaignSend({
         db,
         env: {
-          DATABASE_URL: 'postgres://retaino.test/db',
+          HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
           SMS_SENDING_MODE: 'test',
           TRACKING_BASE_URL: 'https://go.retaino.test',
         } as never,
@@ -717,7 +717,7 @@ describe('campaign send service', () => {
     await processCampaignSend({
       db,
       env: {
-        DATABASE_URL: 'postgres://retaino.test/db',
+        HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
         SMS_SENDING_MODE: 'test',
         TRACKING_BASE_URL: 'https://go.retaino.test',
       } as never,
@@ -768,7 +768,7 @@ describe('campaign send service', () => {
     await processCampaignSend({
       db,
       env: {
-        DATABASE_URL: 'postgres://retaino.test/db',
+        HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
         SMS_SENDING_MODE: 'test',
         TRACKING_BASE_URL: 'https://go.retaino.test',
       } as never,
@@ -811,7 +811,7 @@ describe('campaign send service', () => {
     await processCampaignSend({
       db,
       env: {
-        DATABASE_URL: 'postgres://retaino.test/db',
+        HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
         SMS_SENDING_MODE: 'test',
         TRACKING_BASE_URL: 'https://go.retaino.test',
       } as never,
@@ -845,7 +845,7 @@ describe('campaign send service', () => {
       processCampaignSend({
         db,
         env: {
-          DATABASE_URL: 'postgres://retaino.test/db',
+          HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
           SMS_SENDING_MODE: 'test',
           TRACKING_BASE_URL: 'https://go.retaino.test',
         } as never,
@@ -879,7 +879,7 @@ describe('campaign send service', () => {
       processCampaignSend({
         db,
         env: {
-          DATABASE_URL: 'postgres://retaino.test/db',
+          HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
           SMS_SENDING_MODE: 'test',
           TRACKING_BASE_URL: 'https://go.retaino.test',
         } as never,
@@ -941,7 +941,7 @@ describe('campaign send service', () => {
     await processCampaignSend({
       db,
       env: {
-        DATABASE_URL: 'postgres://retaino.test/db',
+        HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
         SMS_SENDING_MODE: 'test',
         TRACKING_BASE_URL: 'https://go.retaino.test',
       } as never,

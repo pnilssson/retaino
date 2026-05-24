@@ -1,11 +1,10 @@
 import type { Campaign, CampaignReport } from '@retaino/shared/contracts';
-import { ItemNotice } from '@/components/item-notice';
+import { CalendarCheck, Info } from 'lucide-react';
+import { AppPageSection } from '@/features/appshell/components/app-page-content';
 import { textStyles } from '@/lib/text-styles';
 import {
   formatReportCurrency,
   formatReportDate,
-  formatReportDateTime,
-  formatReportNumber,
 } from '../campaign-report-format';
 import { BookingReportDialog } from './campaign-booking-report-dialog';
 
@@ -20,76 +19,144 @@ export function ReportedBookingsSection({
 }) {
   const canCreateBookingReport =
     campaign.status === 'sent' || campaign.status === 'failed';
+  const bookings = report.bookingReports.flatMap((bookingReport) =>
+    bookingReport.bookings.map((booking) => ({
+      ...booking,
+      checkedThroughDate: bookingReport.checkedThroughDate,
+      reportNote: bookingReport.note,
+      reportId: bookingReport.id,
+    })),
+  );
+  const hasBookings = bookings.length > 0;
 
   return (
-    <section className="grid gap-4 border-t border-border pt-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="grid gap-1">
-          <h3 className={textStyles.itemTitle}>Reported bookings</h3>
-          <p className={textStyles.mutedBody}>
-            Bookings your team believes came from this campaign.
-          </p>
-        </div>
-        {canCreateBookingReport ? (
+    <AppPageSection
+      actions={
+        canCreateBookingReport && hasBookings ? (
           <BookingReportDialog
             campaign={campaign}
             currency={report.manualOutcome.currency}
             organizationId={organizationId}
           />
-        ) : null}
-      </div>
+        ) : null
+      }
+      description="Add booking outcomes from this campaign."
+      title="Reported bookings"
+    >
+      {hasBookings ? (
+        <div className="grid gap-3">
+          {bookings.map((booking) => {
+            const reportContext = bookingReportContext(booking);
 
-      {report.bookingReports.length > 0 ? (
-        <div className="divide-y divide-border border-y border-border">
-          {report.bookingReports.map((bookingReport) => (
-            <div
-              className="grid gap-2 py-3 sm:grid-cols-[1fr_auto] sm:items-center"
-              key={bookingReport.id}
-            >
-              <div className="min-w-0">
-                <p className={textStyles.itemTitle}>
-                  {formatReportNumber(bookingReport.bookingCount)}{' '}
-                  {bookingReport.bookingCount === 1 ? 'booking' : 'bookings'}
-                </p>
-                <p className={textStyles.meta}>
-                  Reported {formatReportDateTime(bookingReport.createdAt)}
-                  {bookingReport.checkedThroughDate
-                    ? `, checked through ${formatReportDate(bookingReport.checkedThroughDate)}`
-                    : ''}
-                </p>
-                {bookingReport.note ? (
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    {bookingReport.note}
+            return (
+              <div
+                className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                key={`${booking.reportId}-${booking.id}`}
+              >
+                <div className="min-w-0">
+                  <p className={textStyles.itemTitle}>{bookingTitle(booking)}</p>
+                  <p className={textStyles.meta}>
+                    {[
+                      formatReportDate(booking.bookingDate),
+                      booking.service,
+                      booking.phone,
+                      booking.email,
+                    ]
+                      .filter(Boolean)
+                      .join(', ')}
                   </p>
+                  {booking.note ? (
+                    <p className={textStyles.mutedBody}>{booking.note}</p>
+                  ) : null}
+                  {reportContext ? (
+                    <p className={textStyles.meta}>{reportContext}</p>
+                  ) : null}
+                </div>
+                {booking.revenueAmountMinor !== null ? (
+                  <div className="text-sm font-medium tabular-nums sm:text-right">
+                    {formatReportCurrency(
+                      booking.revenueAmountMinor,
+                      booking.currency,
+                    )}
+                  </div>
                 ) : null}
               </div>
-              <div className="text-sm font-medium tabular-nums sm:text-right">
-                {bookingReport.hasMixedCurrencies
-                  ? 'Mixed'
-                  : formatReportCurrency(
-                      bookingReport.revenueAmountMinor ?? 0,
-                      bookingReport.currency,
-                    )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
-      ) : !canCreateBookingReport ? (
-        <ItemNotice
-          description="Campaign activity is still updating while messages are being sent."
-          title="Bookings can be reported after sending"
-        />
       ) : (
-        <ItemNotice
-          description="Add bookings after checking your booking system, replies, calls, or campaign code."
-          title="No bookings reported yet"
+        <BookingReportEmptyState
+          campaign={campaign}
+          canCreateBookingReport={canCreateBookingReport}
+          currency={report.manualOutcome.currency}
+          organizationId={organizationId}
         />
       )}
+    </AppPageSection>
+  );
+}
 
-      <p className="text-xs leading-5 text-muted-foreground">
-        Reported by your team. These numbers are not automatically matched to
-        booking-system data.
-      </p>
-    </section>
+function bookingTitle(
+  booking: CampaignReport['bookingReports'][number]['bookings'][number],
+) {
+  return booking.customerName ?? booking.phone ?? booking.email ?? 'Booking';
+}
+
+function bookingReportContext(
+  booking: CampaignReport['bookingReports'][number]['bookings'][number] & {
+    checkedThroughDate: string | null;
+    reportNote: string | null;
+  },
+) {
+  return [
+    booking.checkedThroughDate
+      ? `Checked until ${formatReportDate(booking.checkedThroughDate)}`
+      : null,
+    booking.reportNote ? `Report note: ${booking.reportNote}` : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
+}
+
+function BookingReportEmptyState({
+  campaign,
+  canCreateBookingReport,
+  currency,
+  organizationId,
+}: {
+  campaign: Campaign;
+  canCreateBookingReport: boolean;
+  currency: string;
+  organizationId: string | null;
+}) {
+  return (
+    <div className="flex min-h-44 flex-col items-center justify-center gap-4 px-4 py-8 text-center">
+      <div className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
+        {canCreateBookingReport ? (
+          <CalendarCheck aria-hidden="true" className="size-5" />
+        ) : (
+          <Info aria-hidden="true" className="size-5" />
+        )}
+      </div>
+      <div className="grid max-w-md gap-1">
+        <h3 className={textStyles.itemTitle}>
+          {canCreateBookingReport
+            ? 'No bookings reported yet'
+            : 'Bookings can be reported after sending'}
+        </h3>
+        <p className={textStyles.mutedBody}>
+          {canCreateBookingReport
+            ? 'Add bookings after checking your booking system, replies, calls, or campaign code.'
+            : 'Campaign activity is still updating while messages are being sent.'}
+        </p>
+      </div>
+      {canCreateBookingReport ? (
+        <BookingReportDialog
+          campaign={campaign}
+          currency={currency}
+          organizationId={organizationId}
+        />
+      ) : null}
+    </div>
   );
 }

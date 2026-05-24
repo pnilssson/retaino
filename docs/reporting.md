@@ -7,9 +7,10 @@ tracking. Outcome reporting comes from manual booking reports in MVP.
 ## Manual Booking Reports
 
 After a campaign has finished sending, the business can create a booking report
-and add one or more bookings it believes came from the campaign. Each row
-stores booking date, optional customer name, phone, email, service, revenue,
-and note.
+and add one or more booking outcomes from the campaign. Each row stores booking
+date, optional customer name, phone, email, service, revenue, and note.
+Report-level checked date and note stay attached to the booking rows when
+displayed.
 
 Users enter normal currency amounts. Retaino stores revenue as integer minor
 units using the organization's currency and displays formatted money
@@ -37,6 +38,10 @@ to a booking report and do not duplicate the campaign relationship.
 Campaign reports are the composition point. They may show delivery metrics,
 click metrics, replies, opt-outs, reported bookings, and reported revenue
 together, but the underlying storage remains separated by domain.
+
+The delivery funnel must only show additive delivery-state flow. Engagement,
+opt-outs, bookings, revenue, and credits are separate metrics because they can
+overlap and must not be treated as mutually exclusive recipient movement.
 
 ## Future Matching
 

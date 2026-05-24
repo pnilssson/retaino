@@ -5,6 +5,10 @@ import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 
 export function MessageEstimate({ smsBody }: { smsBody: string }) {
+  return <p className={textStyles.meta}>{messageEstimateText(smsBody)}</p>;
+}
+
+export function messageEstimateText(smsBody: string) {
   const preview = createCampaignSmsPreview({ smsBody });
   const hasBody = Boolean(smsBody.trim());
   const estimatedCreditLabel = hasBody
@@ -13,13 +17,7 @@ export function MessageEstimate({ smsBody }: { smsBody: string }) {
       } per recipient`
     : 'Not ready';
 
-  return (
-    <p className={textStyles.meta}>
-      {hasBody ? preview.smsLength : 0} characters
-      {', '}
-      {estimatedCreditLabel}
-    </p>
-  );
+  return `${hasBody ? preview.smsLength : 0} characters, ${estimatedCreditLabel}`;
 }
 
 export function MessagePreview({

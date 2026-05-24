@@ -52,6 +52,15 @@ MVP roles:
 - Cross-app schemas, constants, and helpers belong in `packages/shared`.
 - Database access comes from `packages/db`, not inline route SQL.
 
+## Database Runtime
+
+The Cloudflare API runtime connects to Neon through the `HYPERDRIVE` binding
+using `pg` and Drizzle's node-postgres adapter. Local API development uses
+Hyperdrive's local connection-string override in `apps/api/.env.local`.
+
+Drizzle Kit migrations and database scripts use `packages/db` with a direct
+`DATABASE_URL`. Do not run migrations through Hyperdrive.
+
 ## Background Jobs
 
 Long-running work runs in Inngest jobs, not HTTP requests.
@@ -153,6 +162,8 @@ Application forms use TanStack Form unless an explicit exception is approved.
 ## App UI Rules
 
 - Use `ItemTitle` and `ItemDescription` for standard item title/subtitle text.
+- Put item title/subtitle text above the framed content when the content is a
+  self-contained panel. Keep the panel focused on the content.
 - Use `ItemNotice` for inline item notices instead of `Alert` inside app items.
 - Use `textStyles` from `src/lib/text-styles.ts` for repeated text roles.
   Available roles are:
@@ -169,6 +180,10 @@ Application forms use TanStack Form unless an explicit exception is approved.
   - `error`
 - Never design cards inside cards. Use sections, lists, tables, split layouts,
   or direct item content.
+- Lists and tables should own their border directly, not sit inside another
+  framed item.
+- Status badges use a neutral pill with state carried by the icon.
+- Do not repeat the page title as a page-header eyebrow.
 - Use the plain shadcn Sonner wrapper with state-specific toast calls. Do not
   add custom Sonner icons, rich colors, toast class overrides, or extra radius
   styling.

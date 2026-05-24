@@ -21,6 +21,7 @@ import {
   listCampaigns,
   previewCampaignAudience,
   reserveSmsCreditsIfSufficient,
+  searchCampaignRecipientsForBookingReport,
   updateCampaignDraft,
 } from '@retaino/db';
 import type {
@@ -54,6 +55,7 @@ vi.mock('@retaino/db', () => ({
   listCampaigns: vi.fn(),
   previewCampaignAudience: vi.fn(),
   reserveSmsCreditsIfSufficient: vi.fn(),
+  searchCampaignRecipientsForBookingReport: vi.fn(),
   updateCampaignDraft: vi.fn(),
 }));
 
@@ -227,6 +229,7 @@ describe('campaignsRoutes', () => {
     vi.mocked(listSelectedCampaignRecipientsForSend).mockReset();
     vi.mocked(listCampaigns).mockReset();
     vi.mocked(previewCampaignAudience).mockReset();
+    vi.mocked(searchCampaignRecipientsForBookingReport).mockReset();
     vi.mocked(updateCampaignDraft).mockReset();
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(profile);
     vi.mocked(getCurrentLegalBundle).mockResolvedValue(legalBundle);
@@ -630,6 +633,58 @@ describe('campaignsRoutes', () => {
     });
   });
 
+  it('lets members search campaign recipients for booking reports', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue({
+      ...campaign,
+      status: 'sent',
+    });
+    vi.mocked(searchCampaignRecipientsForBookingReport).mockResolvedValue({
+      recipients: [
+        {
+          id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          name: 'Ada Lovelace',
+          phone: '+46700000000',
+          email: 'ada@example.com',
+        },
+      ],
+    });
+
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/recipients/search?search=ada`,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      recipients: [
+        {
+          id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          name: 'Ada Lovelace',
+          phone: '+46700000000',
+          email: 'ada@example.com',
+        },
+      ],
+    });
+    expect(searchCampaignRecipientsForBookingReport).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        organizationId: organization.id,
+        campaignId: campaign.id,
+        search: 'ada',
+      },
+    );
+  });
+
+  it('returns not found when searching recipients for a missing campaign', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue(null);
+
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/recipients/search?search=ada`,
+    );
+
+    expect(response.status).toBe(404);
+    expect(searchCampaignRecipientsForBookingReport).not.toHaveBeenCalled();
+  });
+
   it('lets members read tenant-scoped campaign reports', async () => {
     vi.mocked(getCampaignById).mockResolvedValue({
       ...campaign,
@@ -672,6 +727,20 @@ describe('campaignsRoutes', () => {
           hasMixedCurrencies: false,
           createdByUserId: user.id,
           createdAt: '2026-05-22T10:00:00.000Z',
+          bookings: [
+            {
+              id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+              bookingDate: '2026-05-21',
+              customerName: 'Ada Lovelace',
+              phone: '+46700000000',
+              email: 'ada@example.com',
+              revenueAmountMinor: 125050,
+              currency: 'SEK',
+              service: 'Cut and color',
+              note: null,
+              createdAt: '2026-05-22T10:00:00.000Z',
+            },
+          ],
         },
       ],
     });
@@ -724,6 +793,20 @@ describe('campaignsRoutes', () => {
         hasMixedCurrencies: false,
         createdByUserId: user.id,
         createdAt: '2026-05-22T10:00:00.000Z',
+        bookings: [
+          {
+            id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            bookingDate: '2026-05-21',
+            customerName: 'Ada Lovelace',
+            phone: null,
+            email: null,
+            revenueAmountMinor: 125050,
+            currency: 'SEK',
+            service: null,
+            note: null,
+            createdAt: '2026-05-22T10:00:00.000Z',
+          },
+        ],
       },
     });
 
@@ -764,6 +847,20 @@ describe('campaignsRoutes', () => {
         hasMixedCurrencies: false,
         createdByUserId: user.id,
         createdAt: '2026-05-22T10:00:00.000Z',
+        bookings: [
+          {
+            id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            bookingDate: '2026-05-21',
+            customerName: 'Ada Lovelace',
+            phone: null,
+            email: null,
+            revenueAmountMinor: 125050,
+            currency: 'SEK',
+            service: null,
+            note: null,
+            createdAt: '2026-05-22T10:00:00.000Z',
+          },
+        ],
       },
     });
     expect(createManualBookingReport).toHaveBeenCalledWith(expect.anything(), {

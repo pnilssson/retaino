@@ -1,20 +1,15 @@
 "use client";
 
 import { useForm } from '@tanstack/react-form';
-import { ArrowLeft, ArrowRight, Info, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { CountryCombobox } from '@/components/country-combobox';
 import { CurrencyCombobox } from '@/components/currency-combobox';
 import { GuidedFlowActions } from '@/components/guided-flow';
+import { InfoTooltip } from '@/components/info-tooltip';
 import { ItemNotice } from '@/components/item-notice';
 import { PhoneInput } from '@/components/phone-input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import {
   type OrganizationProfileFormValues as ProfileDraft,
   validateCountryCode,
@@ -255,22 +250,9 @@ function CountryInput({
     <div className="grid gap-2">
       <div className="flex items-center gap-1.5">
         <Label htmlFor={name}>{label}</Label>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                aria-label="Default phone country details"
-                className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-                type="button"
-              >
-                <Info aria-hidden="true" className="size-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-72">
-              Used when imported phone numbers have no country prefix.
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <InfoTooltip label="Default phone country details">
+          Used when imported phone numbers have no country prefix.
+        </InfoTooltip>
       </div>
       <CountryCombobox
         aria-invalid={Boolean(error)}

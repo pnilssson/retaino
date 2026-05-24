@@ -1,19 +1,36 @@
 "use client";
 
 import type { ContactImportDetail } from '@retaino/shared/contracts';
-import { CheckCircle2, FileUp } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  CircleSlash,
+  Copy,
+  FileUp,
+  RefreshCw,
+  ShieldOff,
+  TriangleAlert,
+  UserPlus,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { ItemNotice } from '@/components/item-notice';
+import { MetricSummaryEntry } from '@/components/metric-summary-entry';
 import {
   SankeyBreakdown,
   type SankeyBreakdownLink,
   type SankeyBreakdownNode,
   type SankeyBreakdownSummaryItem,
 } from '@/components/sankey-breakdown';
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { GuidedFlowActions } from '@/components/guided-flow';
+import {
+  AppPageContent,
+  AppPageItem,
+  AppPageSection,
+} from '@/features/appshell/components/app-page-content';
 import { useContactImport } from '@/features/contacts/hooks/use-contact-import';
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
@@ -22,12 +39,10 @@ import { formatImportIssue } from '../contacts-format';
 import { ImportStatusBadge } from './status-badge';
 
 export function ContactImportProgress({
-  fileName,
   importId,
   onImportAnother,
   organizationId,
 }: {
-  fileName: string | null;
   importId: string;
   onImportAnother: () => void;
   organizationId: string;
@@ -93,43 +108,51 @@ export function ContactImportProgress({
     );
   }
 
+  const showMetrics = shouldShowImportMetrics(latestImport);
+  const importSummary = showMetrics ? createImportSummary(latestImport) : [];
+  const showActions =
+    latestImport.status === 'completed' || latestImport.status === 'failed';
+  const showIssues = latestImport.errorSummary.length > 0;
+  const header = importProgressHeaderView(latestImport);
+
   return (
-    <section className="grid gap-5">
-      <ImportProgressHeader
-        fileName={fileName}
-        importRow={latestImport}
-      />
-      {shouldShowImportMetrics(latestImport) ? (
-        <ImportMetrics importRow={latestImport} />
-      ) : null}
-      <ImportIssues importRow={latestImport} />
-      {latestImport.status === 'completed' || latestImport.status === 'failed' ? (
-        <GuidedFlowActions>
-          <Button onClick={onImportAnother} type="button" variant="outline">
-            <FileUp aria-hidden="true" data-icon="inline-start" />
-            Import another CSV
-          </Button>
-          {latestImport.status === 'completed' ? (
-            <Button asChild>
-              <Link href={routes.contacts}>
-                <CheckCircle2 aria-hidden="true" data-icon="inline-start" />
-                View contacts
-              </Link>
-            </Button>
+    <AppPageContent>
+      <AppPageSection
+        actions={<ImportStatusBadge status={latestImport.status} />}
+        description={header.description}
+        title={header.title}
+      >
+          {showMetrics ? (
+            <ImportFunnel importRow={latestImport} summary={importSummary} />
           ) : null}
-        </GuidedFlowActions>
+      </AppPageSection>
+
+      {importSummary.length > 0 ? (
+        <div className="hidden min-w-0 gap-5 sm:grid sm:grid-cols-2 xl:grid-cols-3">
+          {importSummary.map((metric) => (
+            <ImportMetricItem key={metric.label} metric={metric} />
+          ))}
+        </div>
       ) : null}
-    </section>
+
+      {showIssues || showActions ? (
+        <AppPageItem asChild>
+          <section className="grid gap-5">
+            {showIssues ? <ImportIssues importRow={latestImport} /> : null}
+            {showActions ? (
+              <ImportActions
+                importStatus={latestImport.status}
+                onImportAnother={onImportAnother}
+              />
+            ) : null}
+          </section>
+        </AppPageItem>
+      ) : null}
+    </AppPageContent>
   );
 }
 
-function ImportProgressHeader({
-  fileName,
-  importRow,
-}: {
-  fileName: string | null;
-  importRow: ContactImportDetail;
-}) {
+function importProgressHeaderView(importRow: ContactImportDetail) {
   const issueCount = importIssueCount(importRow);
   const title =
     importRow.status === 'processing'
@@ -148,39 +171,78 @@ function ImportProgressHeader({
           ? 'Contacts were imported, but some rows need attention.'
           : 'Contacts were imported.';
 
-  return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <div className="grid min-w-0 gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <h3 className={textStyles.sectionTitle}>{title}</h3>
-        </div>
-        <p className={cn('max-w-2xl', textStyles.mutedBody)}>
-          {description}
-        </p>
-        {fileName ? (
-          <p className={cn('truncate', textStyles.meta)}>
-            {fileName}
-          </p>
-        ) : null}
-      </div>
-      <ImportStatusBadge status={importRow.status} />
-    </div>
-  );
+  return { description, title };
 }
 
-function ImportMetrics({ importRow }: { importRow: ContactImportDetail }) {
+function ImportFunnel({
+  importRow,
+  summary,
+}: {
+  importRow: ContactImportDetail;
+  summary: SankeyBreakdownSummaryItem[];
+}) {
   const importNodes = createImportNodes();
   const importLinks = createImportLinks(importRow);
-  const importSummary = createImportSummary(importRow);
 
   return (
     <SankeyBreakdown
       links={importLinks}
       nodes={importNodes}
       showHeader={false}
-      summary={importSummary}
+      summary={summary}
       title="Import results"
     />
+  );
+}
+
+function ImportMetricItem({
+  metric,
+}: {
+  metric: SankeyBreakdownSummaryItem;
+}) {
+  return (
+    <AppPageItem asChild>
+      <dl>
+        <ImportMetric metric={metric} />
+      </dl>
+    </AppPageItem>
+  );
+}
+
+function ImportMetric({ metric }: { metric: SankeyBreakdownSummaryItem }) {
+  return (
+    <MetricSummaryEntry
+      className="min-h-0 border-t-0 p-0"
+      icon={metric.icon}
+      iconClassName={metric.iconClassName}
+      label={metric.label}
+      value={metric.value}
+    />
+  );
+}
+
+function ImportActions({
+  importStatus,
+  onImportAnother,
+}: {
+  importStatus: ContactImportDetail['status'];
+  onImportAnother: () => void;
+}) {
+  return (
+    <GuidedFlowActions>
+      <Button onClick={onImportAnother} type="button" variant="outline">
+        <FileUp aria-hidden="true" data-icon="inline-start" />
+        Import another CSV
+      </Button>
+      {importStatus === 'completed' ? (
+        <Button asChild>
+          <Link href={routes.contacts}>
+            <CheckCircle2 aria-hidden="true" data-icon="inline-start" />
+            View contacts
+          </Link>
+        </Button>
+      ) : null}
+    </GuidedFlowActions>
   );
 }
 
@@ -193,25 +255,36 @@ function ImportIssues({ importRow }: { importRow: ContactImportDetail }) {
     return null;
   }
 
+  const isFailed = importRow.status === 'failed';
+  const IssueIcon = isFailed ? AlertCircle : TriangleAlert;
+  const issueTone = isFailed ? 'red' : 'amber';
+
   return (
-    <ItemNotice
-      description={
-        <div className="flex flex-wrap gap-2">
-          {importRow.errorSummary.map((issue) => (
-            <span
-              className={cn('rounded-md bg-muted px-2 py-1', textStyles.mutedBody)}
-              key={issue}
-            >
-              {formatImportIssue(issue)}
-            </span>
-          ))}
-        </div>
-      }
-      title={
-        importRow.status === 'failed' ? 'Import failed' : 'Rows need attention'
-      }
-      variant={importRow.status === 'failed' ? 'error' : 'warning'}
-    />
+    <div className="grid gap-2" role={isFailed ? 'alert' : 'status'}>
+      <div className="flex items-center gap-2">
+        <IssueIcon
+          aria-hidden="true"
+          className={cn(
+            'size-4 shrink-0',
+            isFailed
+              ? 'text-destructive'
+              : 'text-amber-600 dark:text-amber-400',
+          )}
+        />
+        <h3 className={textStyles.itemTitle}>
+          {isFailed ? 'Import failed' : 'Rows need attention'}
+        </h3>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {importRow.errorSummary.map((issue) => (
+          <StatusBadge
+            key={issue}
+            label={formatImportIssue(issue)}
+            tone={issueTone}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -287,26 +360,38 @@ function createImportSummary(
 ): SankeyBreakdownSummaryItem[] {
   return [
     {
+      icon: UserPlus,
+      iconClassName: 'bg-emerald-50 text-emerald-700',
       label: 'Created',
       value: importRow.createdCount,
     },
     {
+      icon: RefreshCw,
+      iconClassName: 'bg-blue-50 text-blue-700',
       label: 'Updated',
       value: importRow.updatedCount,
     },
     {
+      icon: ShieldOff,
+      iconClassName: 'bg-rose-50 text-rose-700',
       label: 'Suppressed',
       value: importRow.suppressedCount,
     },
     {
+      icon: CircleSlash,
+      iconClassName: 'bg-zinc-100 text-zinc-700',
       label: 'Skipped',
       value: importRow.skippedCount,
     },
     {
+      icon: AlertCircle,
+      iconClassName: 'bg-rose-50 text-rose-700',
       label: 'Invalid',
       value: importRow.invalidCount,
     },
     {
+      icon: Copy,
+      iconClassName: 'bg-amber-50 text-amber-700',
       label: 'Duplicate',
       value: importRow.duplicateCount,
     },

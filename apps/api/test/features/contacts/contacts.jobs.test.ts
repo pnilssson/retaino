@@ -4,7 +4,7 @@ const send = vi.fn();
 const setEnvVars = vi.fn(function setEnvVars(this: unknown) {
   return this;
 });
-const createDb = vi.fn(() => 'db');
+const connectDb = vi.fn(async () => ({ db: 'db', close: vi.fn() }));
 const processContactImport = vi.fn();
 let functionHandler: ((input: unknown) => Promise<void>) | undefined;
 const createFunction = vi.fn((_config, handler) => {
@@ -19,7 +19,7 @@ const instances: Array<{
 }> = [];
 
 vi.mock('@retaino/db', () => ({
-  createDb,
+  connectDb,
 }));
 
 vi.mock('inngest', () => ({
@@ -42,7 +42,7 @@ describe('contacts jobs', () => {
     vi.resetModules();
     send.mockReset();
     setEnvVars.mockClear();
-    createDb.mockClear();
+    connectDb.mockClear();
     createFunction.mockClear();
     processContactImport.mockReset();
     functionHandler = undefined;
@@ -100,12 +100,12 @@ describe('contacts jobs', () => {
       },
       step,
       env: {
-        DATABASE_URL: 'postgres://retaino.test/db',
+        HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
         CONTACT_IMPORTS_BUCKET: bucket,
       },
     });
 
-    expect(createDb).toHaveBeenCalledWith('postgres://retaino.test/db');
+    expect(connectDb).toHaveBeenCalledWith('postgres://retaino.test/db');
     expect(processContactImport).toHaveBeenCalledWith({
       db: 'db',
       bucket,

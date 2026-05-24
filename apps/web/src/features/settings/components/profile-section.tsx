@@ -6,29 +6,17 @@ import {
   type OrganizationSession,
 } from '@retaino/shared/contracts';
 import { formatCurrencyLabel } from '@retaino/shared';
-import { Info, Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { CountryCombobox } from '@/components/country-combobox';
 import { CurrencyCombobox } from '@/components/currency-combobox';
+import { InfoTooltip } from '@/components/info-tooltip';
 import { ItemNotice } from '@/components/item-notice';
 import { PhoneInput } from '@/components/phone-input';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import {
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemHeader,
-  ItemTitle,
-} from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { AppPageItem } from '@/features/appshell/components/app-page-content';
+import { AppPageSection } from '@/features/appshell/components/app-page-content';
 import { useUpdateOrganizationProfile } from '@/features/onboarding/hooks/use-update-organization-profile';
 import {
   organizationProfileFormValuesFromSession,
@@ -43,6 +31,7 @@ import {
 import { ProfileInput } from '@/features/organization-profile/profile-input';
 import { getFieldError } from '@/lib/form-errors';
 import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 
 export function ProfileSection({
   canManageSetup,
@@ -64,29 +53,24 @@ export function ProfileSection({
   }
 
   return (
-    <AppPageItem asChild>
-      <section id="organization-profile">
-        <ItemHeader className="items-start">
-          <ItemContent className="gap-2">
-            <ItemTitle className="flex flex-wrap items-center gap-2 text-base">
-              Organization profile
-              <StatusBadge label={status.label} tone={status.tone} />
-            </ItemTitle>
-            <ItemDescription className="max-w-2xl">
-              Legal, billing, and responsible contact details for this
-              organization.
-            </ItemDescription>
-          </ItemContent>
-          {canManageSetup && !isEditing ? (
-            <ItemActions>
+    <AppPageSection
+      actions={
+        canManageSetup && !isEditing ? (
               <Button onClick={openEditMode} type="button" variant="outline">
                 <Pencil aria-hidden="true" data-icon="inline-start" />
                 {profile ? 'Edit profile' : 'Complete profile'}
               </Button>
-            </ItemActions>
-          ) : null}
-        </ItemHeader>
-
+        ) : null
+      }
+      description="Legal, billing, and responsible contact details for this organization."
+      id="organization-profile"
+      title={
+        <span className="flex flex-wrap items-center gap-2">
+          Organization profile
+          <StatusBadge label={status.label} tone={status.tone} />
+        </span>
+      }
+    >
         {isEditing ? (
           <ProfileEditor
             onCancel={closeEditMode}
@@ -102,8 +86,7 @@ export function ProfileSection({
             variant="warning"
           />
         )}
-      </section>
-    </AppPageItem>
+    </AppPageSection>
   );
 }
 
@@ -410,22 +393,9 @@ function ProfileCountryInput({
     <div className="grid gap-2">
       <div className="flex items-center gap-1.5">
         <Label htmlFor={name}>{label}</Label>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                aria-label="Default phone country details"
-                className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-                type="button"
-              >
-                <Info aria-hidden="true" className="size-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-72">
-              Used when imported phone numbers have no country prefix.
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <InfoTooltip label="Default phone country details">
+          Used when imported phone numbers have no country prefix.
+        </InfoTooltip>
       </div>
       <CountryCombobox
         aria-invalid={Boolean(error)}
@@ -524,7 +494,9 @@ function ProfileRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid min-w-0 gap-1">
       <dt className={textStyles.meta}>{label}</dt>
-      <dd className="min-w-0 truncate text-sm font-medium">{value}</dd>
+      <dd className={cn('min-w-0 truncate', textStyles.itemTitle)}>
+        {value}
+      </dd>
     </div>
   );
 }

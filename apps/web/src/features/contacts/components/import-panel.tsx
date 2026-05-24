@@ -151,7 +151,6 @@ function ImportForm({
   organizationId: string;
 }) {
   const [activeStep, setActiveStep] = useState<ImportStepId>('upload');
-  const [activeFileName, setActiveFileName] = useState<string | null>(null);
   const [preview, setPreview] = useState<CsvPreview | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
   const upload = useStartContactImport({
@@ -169,20 +168,12 @@ function ImportForm({
       if (!value.file || parseError || !contactImportMappingReady(value.mapping)) {
         return;
       }
-
-      setActiveFileName(value.file.name);
-
-      try {
-        await upload.mutation.mutateAsync({
-          file: value.file,
-          mapping: value.mapping,
-          phoneCountryCode: value.phoneCountryCode,
-          permissionAttestation: value.permissionAttestation,
-        });
-      } catch (error) {
-        setActiveFileName(null);
-        throw error;
-      }
+      await upload.mutation.mutateAsync({
+        file: value.file,
+        mapping: value.mapping,
+        phoneCountryCode: value.phoneCountryCode,
+        permissionAttestation: value.permissionAttestation,
+      });
     },
   });
 
@@ -194,26 +185,18 @@ function ImportForm({
         progressLabel="Contact import"
         steps={importSteps}
       >
-      <AppPageContent>
-        <AppPageItem asChild>
-          <section className="grid gap-5">
-            <ContactImportProgress
-              fileName={activeFileName}
-              importId={currentImportId}
-              onImportAnother={() => {
-                form.reset();
-                upload.mutation.reset();
-                setActiveFileName(null);
-                setParseError(null);
-                setPreview(null);
-                setActiveStep('upload');
-                onCurrentImportChange(null);
-              }}
-              organizationId={organizationId}
-            />
-          </section>
-          </AppPageItem>
-        </AppPageContent>
+        <ContactImportProgress
+          importId={currentImportId}
+          onImportAnother={() => {
+            form.reset();
+            upload.mutation.reset();
+            setParseError(null);
+            setPreview(null);
+            setActiveStep('upload');
+            onCurrentImportChange(null);
+          }}
+          organizationId={organizationId}
+        />
       </GuidedFlowFrame>
     );
   }

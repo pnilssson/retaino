@@ -39,15 +39,15 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
   const subscriptionCheckout = useMutation({
     mutationFn: (planKey: BillingPlanKey) =>
       createSubscriptionCheckout(api, planKey),
-    onSuccess: redirectToStripe,
+    onSuccess: redirectToCheckout,
   });
   const creditCheckout = useMutation({
     mutationFn: (packKey: CreditPackKey) => createCreditCheckout(api, packKey),
-    onSuccess: redirectToStripe,
+    onSuccess: redirectToCheckout,
   });
   const portal = useMutation({
     mutationFn: () => createBillingPortalSession(api),
-    onSuccess: redirectToStripe,
+    onSuccess: redirectToCheckout,
   });
   const actionError =
     subscriptionCheckout.error ?? creditCheckout.error ?? portal.error;
@@ -108,7 +108,7 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
               Refresh
             </Button>
           }
-          description="Choose a plan, buy extra credits, and manage payment details in Stripe."
+          description="Choose a plan, buy extra credits, and manage payment details."
           eyebrow="Billing"
           title="Billing"
         />
@@ -128,7 +128,7 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
 
           {!canManageBilling ? (
             <ItemNotice
-              description="You can view billing status, but only organization admins can start checkout or open the Stripe portal."
+              description="You can view billing status, but only organization admins can start checkout or manage payment details."
               title="Admin access required for billing changes"
               variant="warning"
             />
@@ -186,6 +186,6 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
   );
 }
 
-function redirectToStripe(response: { url: string }) {
+function redirectToCheckout(response: { url: string }) {
   window.location.assign(response.url);
 }

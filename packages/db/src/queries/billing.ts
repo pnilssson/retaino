@@ -234,178 +234,177 @@ export async function reserveSmsCreditsIfSufficient(
 ) {
   assertOrganizationId(input.organizationId);
 
-  const result = await db.execute(sql`
-    with lock as (
-      select pg_advisory_xact_lock(hashtext(${input.organizationId}))
-    ),
-    active_profile as (
-      select
-        ${organizationBillingProfiles.organizationId} as organization_id,
-        ${organizationBillingProfiles.currentPeriodStart} as current_period_start,
-        ${organizationBillingProfiles.currentPeriodEnd} as current_period_end
-      from ${organizationBillingProfiles}, lock
-      where ${organizationBillingProfiles.organizationId} = ${input.organizationId}
-        and ${organizationBillingProfiles.subscriptionStatus} = ${'active'}
-      limit 1
-    ),
-    balances as (
-      select
-        active_profile.organization_id,
-        active_profile.current_period_start,
-        active_profile.current_period_end,
-        coalesce(
-          sum(${smsCreditTransactions.credits}) filter (
-            where ${smsCreditTransactions.creditBucket} = ${'subscription_period'}
-              and ${smsCreditTransactions.periodStart} <= now()
-              and ${smsCreditTransactions.periodEnd} > now()
-          ),
-          0
-        )::integer as subscription_period,
-        coalesce(
-          sum(${smsCreditTransactions.credits}) filter (
-            where ${smsCreditTransactions.creditBucket} = ${'purchased'}
-          ),
-          0
-        )::integer as purchased
-      from active_profile
-      left join ${smsCreditTransactions}
-        on ${smsCreditTransactions.organizationId} = active_profile.organization_id
-      group by
-        active_profile.organization_id,
-        active_profile.current_period_start,
-        active_profile.current_period_end
-    ),
-    allocation as (
-      select
-        balances.organization_id,
-        balances.current_period_start,
-        balances.current_period_end,
-        (balances.subscription_period + balances.purchased)::integer as total,
-        least(${input.credits}, greatest(balances.subscription_period, 0))::integer
-          as subscription_debit,
-        (
-          ${input.credits} -
-          least(${input.credits}, greatest(balances.subscription_period, 0))
-        )::integer as purchased_debit
-      from balances
-      where (balances.subscription_period + balances.purchased) >= ${input.credits}
-        and not exists (
-          select 1
-          from ${smsCreditTransactions}
-          where ${smsCreditTransactions.source} = ${input.source}
-            and ${smsCreditTransactions.sourceId} = ${input.sourceId}
+  return db.transaction(async (tx) => {
+    const result = await tx.execute(sql`
+      with active_profile as (
+        select
+          ${organizationBillingProfiles.organizationId} as organization_id,
+          ${organizationBillingProfiles.currentPeriodStart} as current_period_start,
+          ${organizationBillingProfiles.currentPeriodEnd} as current_period_end
+        from ${organizationBillingProfiles}
+        where ${organizationBillingProfiles.organizationId} = ${input.organizationId}
+          and ${organizationBillingProfiles.subscriptionStatus} = ${'active'}
+        for update
+      ),
+      balances as (
+        select
+          active_profile.organization_id,
+          active_profile.current_period_start,
+          active_profile.current_period_end,
+          coalesce(
+            sum(${smsCreditTransactions.credits}) filter (
+              where ${smsCreditTransactions.creditBucket} = ${'subscription_period'}
+                and ${smsCreditTransactions.periodStart} <= now()
+                and ${smsCreditTransactions.periodEnd} > now()
+            ),
+            0
+          )::integer as subscription_period,
+          coalesce(
+            sum(${smsCreditTransactions.credits}) filter (
+              where ${smsCreditTransactions.creditBucket} = ${'purchased'}
+            ),
+            0
+          )::integer as purchased
+        from active_profile
+        left join ${smsCreditTransactions}
+          on ${smsCreditTransactions.organizationId} = active_profile.organization_id
+        group by
+          active_profile.organization_id,
+          active_profile.current_period_start,
+          active_profile.current_period_end
+      ),
+      allocation as (
+        select
+          balances.organization_id,
+          balances.current_period_start,
+          balances.current_period_end,
+          (balances.subscription_period + balances.purchased)::integer as total,
+          least(${input.credits}, greatest(balances.subscription_period, 0))::integer
+            as subscription_debit,
+          (
+            ${input.credits} -
+            least(${input.credits}, greatest(balances.subscription_period, 0))
+          )::integer as purchased_debit
+        from balances
+        where (balances.subscription_period + balances.purchased) >= ${input.credits}
+          and not exists (
+            select 1
+            from ${smsCreditTransactions}
+            where ${smsCreditTransactions.source} = ${input.source}
+              and ${smsCreditTransactions.sourceId} = ${input.sourceId}
+          )
+      ),
+      inserted_subscription as (
+        insert into ${smsCreditTransactions} (
+          organization_id,
+          transaction_type,
+          credits,
+          source,
+          source_id,
+          credit_bucket,
+          period_start,
+          period_end,
+          description
         )
-    ),
-    inserted_subscription as (
-      insert into ${smsCreditTransactions} (
-        organization_id,
-        transaction_type,
-        credits,
-        source,
-        source_id,
-        credit_bucket,
-        period_start,
-        period_end,
-        description
+        select
+          ${input.organizationId},
+          ${'debit'},
+          -allocation.subscription_debit,
+          ${input.source},
+          ${input.sourceId},
+          ${'subscription_period'},
+          allocation.current_period_start,
+          allocation.current_period_end,
+          ${input.description}
+        from allocation
+        where allocation.subscription_debit > 0
+          and allocation.current_period_start is not null
+          and allocation.current_period_end is not null
+        on conflict do nothing
+        returning
+          transaction_type,
+          credits,
+          source,
+          source_id,
+          credit_bucket,
+          period_start,
+          period_end,
+          description,
+          created_at
+      ),
+      inserted_purchased as (
+        insert into ${smsCreditTransactions} (
+          organization_id,
+          transaction_type,
+          credits,
+          source,
+          source_id,
+          credit_bucket,
+          period_start,
+          period_end,
+          description
+        )
+        select
+          ${input.organizationId},
+          ${'debit'},
+          -allocation.purchased_debit,
+          ${input.source},
+          ${input.sourceId},
+          ${'purchased'},
+          null,
+          null,
+          ${input.description}
+        from allocation
+        where allocation.purchased_debit > 0
+        on conflict do nothing
+        returning
+          transaction_type,
+          credits,
+          source,
+          source_id,
+          credit_bucket,
+          period_start,
+          period_end,
+          description,
+          created_at
       )
-      select
-        ${input.organizationId},
-        ${'debit'},
-        -allocation.subscription_debit,
-        ${input.source},
-        ${input.sourceId},
-        ${'subscription_period'},
-        allocation.current_period_start,
-        allocation.current_period_end,
-        ${input.description}
-      from allocation
-      where allocation.subscription_debit > 0
-        and allocation.current_period_start is not null
-        and allocation.current_period_end is not null
-      on conflict do nothing
-      returning
-        transaction_type,
-        credits,
-        source,
-        source_id,
-        credit_bucket,
-        period_start,
-        period_end,
-        description,
-        created_at
-    ),
-    inserted_purchased as (
-      insert into ${smsCreditTransactions} (
-        organization_id,
-        transaction_type,
-        credits,
-        source,
-        source_id,
-        credit_bucket,
-        period_start,
-        period_end,
-        description
-      )
-      select
-        ${input.organizationId},
-        ${'debit'},
-        -allocation.purchased_debit,
-        ${input.source},
-        ${input.sourceId},
-        ${'purchased'},
-        null,
-        null,
-        ${input.description}
-      from allocation
-      where allocation.purchased_debit > 0
-      on conflict do nothing
-      returning
-        transaction_type,
-        credits,
-        source,
-        source_id,
-        credit_bucket,
-        period_start,
-        period_end,
-        description,
-        created_at
-    )
-    select * from inserted_subscription
-    union all
-    select * from inserted_purchased
-  `);
-  const rows = Array.from(result.rows ?? []) as RawSmsCreditTransactionRow[];
-  const debitedCredits = rows.reduce((total, row) => {
-    return total + Math.abs(row.credits);
-  }, 0);
-
-  if (debitedCredits === 0) {
-    const existingRows = await db
-      .select()
-      .from(smsCreditTransactions)
-      .where(
-        and(
-          eq(smsCreditTransactions.organizationId, input.organizationId),
-          eq(smsCreditTransactions.source, input.source),
-          eq(smsCreditTransactions.sourceId, input.sourceId),
-        ),
-      );
-    const existingDebitedCredits = existingRows.reduce((total, row) => {
-      return total + (row.credits < 0 ? Math.abs(row.credits) : 0);
+      select * from inserted_subscription
+      union all
+      select * from inserted_purchased
+    `);
+    const rows = Array.from(result.rows ?? []) as RawSmsCreditTransactionRow[];
+    const debitedCredits = rows.reduce((total, row) => {
+      return total + Math.abs(row.credits);
     }, 0);
 
-    if (existingDebitedCredits > 0) {
-      return {
-        debitedCredits: existingDebitedCredits,
-        transactions: existingRows.map(smsCreditTransactionToContract),
-      };
-    }
-  }
+    if (debitedCredits === 0) {
+      const existingRows = await tx
+        .select()
+        .from(smsCreditTransactions)
+        .where(
+          and(
+            eq(smsCreditTransactions.organizationId, input.organizationId),
+            eq(smsCreditTransactions.source, input.source),
+            eq(smsCreditTransactions.sourceId, input.sourceId),
+          ),
+        );
+      const existingDebitedCredits = existingRows.reduce((total, row) => {
+        return total + (row.credits < 0 ? Math.abs(row.credits) : 0);
+      }, 0);
 
-  return {
-    debitedCredits,
-    transactions: rows.map(rawSmsCreditTransactionToContract),
-  };
+      if (existingDebitedCredits > 0) {
+        return {
+          debitedCredits: existingDebitedCredits,
+          transactions: existingRows.map(smsCreditTransactionToContract),
+        };
+      }
+    }
+
+    return {
+      debitedCredits,
+      transactions: rows.map(rawSmsCreditTransactionToContract),
+    };
+  });
 }
 
 export async function getSmsCreditReservationState(

@@ -13,6 +13,7 @@ import {
   markCampaignRecipientSent,
   markCampaignSendCompleted,
   markCampaignSendFailed,
+  searchCampaignRecipientsForBookingReport,
   startCampaignSend,
   updateCampaignDraft,
 } from '../../src/queries/campaigns';
@@ -462,6 +463,79 @@ describe('campaign query helpers', () => {
     expect(query.params).toEqual([campaignRow.organizationId, campaignRow.id]);
   });
 
+  it('searches campaign recipients by name phone or email for booking reports', async () => {
+    let whereCondition: SQL | undefined;
+    const db = {
+      select: () => ({
+        from: () => ({
+          where: (condition: SQL | undefined) => {
+            whereCondition = condition;
+
+            return {
+              orderBy: () => ({
+                limit: () => [
+                  {
+                    id: recipientRow.id,
+                    name: recipientRow.name,
+                    phone: recipientRow.phone,
+                    email: recipientRow.email,
+                  },
+                ],
+              }),
+            };
+          },
+        }),
+      }),
+    };
+
+    await expect(
+      searchCampaignRecipientsForBookingReport(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        search: 'ada',
+      }),
+    ).resolves.toEqual({
+      recipients: [
+        {
+          id: recipientRow.id,
+          name: recipientRow.name,
+          phone: recipientRow.phone,
+          email: recipientRow.email,
+        },
+      ],
+    });
+
+    if (!whereCondition) {
+      throw new Error('Expected recipient search to build a where condition.');
+    }
+
+    const query = new PgDialect().sqlToQuery(
+      sql`select 1 where ${whereCondition}`,
+    );
+
+    expect(query.sql).toContain('"campaign_recipients"."organization_id" = $1');
+    expect(query.sql).toContain('"campaign_recipients"."campaign_id" = $2');
+    expect(query.sql).toContain('"campaign_recipients"."status" in');
+    expect(query.sql).toContain('ilike');
+    expect(query.params).toContain('%ada%');
+  });
+
+  it('does not search campaign recipients for short booking report queries', async () => {
+    const db = {
+      select: vi.fn(),
+    };
+
+    await expect(
+      searchCampaignRecipientsForBookingReport(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        search: 'a',
+      }),
+    ).resolves.toEqual({ recipients: [] });
+
+    expect(db.select).not.toHaveBeenCalled();
+  });
+
   it('loads send-attempt recipients for campaign sending', async () => {
     let whereCondition: SQL | undefined;
     const db = {
@@ -566,11 +640,9 @@ describe('campaign query helpers', () => {
 
   it('marks campaigns sending with reserved credit counts', async () => {
     const now = new Date('2026-05-16T10:00:00.000Z');
-    const execute = vi.fn().mockResolvedValue({ rows: [] });
     const db = {
       transaction: async (callback: (inner: unknown) => unknown) =>
         callback({
-          execute,
           select: vi
             .fn()
             .mockReturnValueOnce({
@@ -620,13 +692,25 @@ describe('campaign query helpers', () => {
         reservedCreditCount: 3,
       },
     });
+  });
 
-    expect(execute).toHaveBeenCalledTimes(1);
-    const lockQuery = new PgDialect().sqlToQuery(
-      execute.mock.calls[0]?.[0] as SQL,
-    );
-    expect(lockQuery.sql).toContain('pg_advisory_xact_lock');
-    expect(lockQuery.params).toEqual([campaignRow.organizationId]);
+  it('reports an active campaign send when the database invariant is hit', async () => {
+    const db = {
+      transaction: async () => {
+        throw {
+          code: '23505',
+          constraint: 'campaigns_organization_sending_idx',
+        };
+      },
+    };
+
+    await expect(
+      startCampaignSend(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        reservedCreditCount: 3,
+      }),
+    ).resolves.toEqual({ status: 'active_send_exists' });
   });
 
   it('marks campaign recipients and campaigns after send attempts', async () => {

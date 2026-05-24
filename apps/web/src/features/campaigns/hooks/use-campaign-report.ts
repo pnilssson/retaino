@@ -9,10 +9,12 @@ export function useCampaignReport({
   campaignId,
   enabled,
   organizationId,
+  refetchInterval,
 }: {
   campaignId: string | null;
   enabled: boolean;
   organizationId: string | null;
+  refetchInterval?: false | number;
 }) {
   const api = useApi();
 
@@ -31,5 +33,6 @@ export function useCampaignReport({
         `/v1/campaigns/${campaignId}/report`,
       );
     },
+    refetchInterval,
   });
 }

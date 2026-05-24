@@ -1,65 +1,128 @@
 "use client";
 
-import type { Campaign, CampaignReport } from '@retaino/shared/contracts';
+import type { Campaign } from '@retaino/shared/contracts';
 import {
   AlertCircle,
   CalendarCheck,
   CheckCircle2,
-  CircleSlash,
   CircleDollarSign,
+  CircleSlash,
   MailQuestion,
   MousePointerClick,
   RefreshCw,
   Send,
   ShieldOff,
   Users,
+  type LucideIcon,
 } from 'lucide-react';
 import { ItemNotice } from '@/components/item-notice';
-import { Button } from '@/components/ui/button';
+import { MetricSummaryEntry } from '@/components/metric-summary-entry';
 import {
-  ItemContent,
-  ItemDescription,
-  ItemHeader,
-  ItemTitle,
-} from '@/components/ui/item';
+  SankeyBreakdown,
+  type SankeyBreakdownSummaryItem,
+} from '@/components/sankey-breakdown';
+import { Button } from '@/components/ui/button';
 import {
   AppPageContent,
   AppPageItem,
+  AppPageSection,
 } from '@/features/appshell/components/app-page-content';
-import { cn } from '@/lib/utils';
+import { textStyles } from '@/lib/text-styles';
 import {
-  formatReportCurrency,
-  formatReportNumber,
-  formatReportPercent,
-} from '../campaign-report-format';
+  createCampaignReportFunnel,
+  createCampaignReportMetrics,
+  type CampaignReportMetric,
+} from '../campaign-report-presentation';
 import { useCampaignReport } from '../hooks/use-campaign-report';
 import { ReportedBookingsSection } from './campaign-reported-bookings';
+
+const metricIcons: Record<CampaignReportMetric['id'], LucideIcon> = {
+  bookings: CalendarCheck,
+  clicks: MousePointerClick,
+  credits: Send,
+  delivered: CheckCircle2,
+  failed: AlertCircle,
+  inProgress: Send,
+  optOuts: ShieldOff,
+  recipients: Users,
+  replies: MailQuestion,
+  revenue: CircleDollarSign,
+  skipped: CircleSlash,
+};
+
+const metricIconClasses: Record<CampaignReportMetric['id'], string> = {
+  bookings: 'bg-emerald-50 text-emerald-700',
+  clicks: 'bg-violet-50 text-violet-700',
+  credits: 'bg-sky-50 text-sky-700',
+  delivered: 'bg-emerald-50 text-emerald-700',
+  failed: 'bg-rose-50 text-rose-700',
+  inProgress: 'bg-amber-50 text-amber-700',
+  optOuts: 'bg-rose-50 text-rose-700',
+  recipients: 'bg-slate-100 text-slate-700',
+  replies: 'bg-blue-50 text-blue-700',
+  revenue: 'bg-teal-50 text-teal-700',
+  skipped: 'bg-zinc-100 text-zinc-700',
+};
+
+const funnelSummaryMeta: Record<
+  string,
+  { icon: LucideIcon; iconClassName: string }
+> = {
+  Delivered: {
+    icon: CheckCircle2,
+    iconClassName: 'bg-emerald-50 text-emerald-700',
+  },
+  Failed: {
+    icon: AlertCircle,
+    iconClassName: 'bg-rose-50 text-rose-700',
+  },
+  'In progress': {
+    icon: Send,
+    iconClassName: 'bg-amber-50 text-amber-700',
+  },
+  Selected: {
+    icon: Users,
+    iconClassName: 'bg-slate-100 text-slate-700',
+  },
+  Sent: {
+    icon: Send,
+    iconClassName: 'bg-sky-50 text-sky-700',
+  },
+  Skipped: {
+    icon: CircleSlash,
+    iconClassName: 'bg-zinc-100 text-zinc-700',
+  },
+};
 
 export function CampaignReportPanel({
   campaign,
   organizationId,
+  sendAccepted = false,
 }: {
   campaign: Campaign;
   organizationId: string | null;
+  sendAccepted?: boolean;
 }) {
   const report = useCampaignReport({
     campaignId: campaign.id,
     enabled: Boolean(organizationId),
     organizationId,
+    refetchInterval:
+      sendAccepted || campaign.status === 'sending' ? 5000 : false,
   });
-  const metrics = report.data ? reportMetrics(report.data.report) : [];
+  const reportData = report.data?.report ?? null;
+  const funnel = reportData ? createCampaignReportFunnel(reportData) : null;
+  const funnelSummary = funnel
+    ? withFunnelSummaryIcons(funnel.summary)
+    : [];
+  const metrics = reportData
+    ? createCampaignReportMetrics(reportData)
+    : [];
 
   return (
     <AppPageContent>
-      <AppPageItem asChild>
-        <section>
-          <ItemHeader className="items-start gap-4">
-            <ItemContent className="gap-2">
-              <ItemTitle>Campaign report</ItemTitle>
-              <ItemDescription>
-                Delivery, reply, opt-out, and click activity for this send.
-              </ItemDescription>
-            </ItemContent>
+      <AppPageSection
+        actions={
             <Button
               disabled={report.isFetching}
               onClick={() => {
@@ -71,201 +134,81 @@ export function CampaignReportPanel({
               <RefreshCw aria-hidden="true" data-icon="inline-start" />
               Refresh
             </Button>
-          </ItemHeader>
+        }
+        description="See how selected recipients moved through delivery statuses."
+        title="Delivery funnel"
+      >
+        {report.isError ? (
+          <ItemNotice
+            description={
+              report.error instanceof Error
+                ? report.error.message
+                : 'Try refreshing the report.'
+            }
+            title="Report could not be fetched"
+            variant="error"
+          />
+        ) : report.isLoading ? (
+          <p className={textStyles.mutedBody}>Loading campaign report...</p>
+        ) : reportData && funnel ? (
+          <SankeyBreakdown
+            links={funnel.links}
+            nodes={funnel.nodes}
+            showHeader={false}
+            summary={funnelSummary}
+            title="Delivery funnel"
+          />
+        ) : null}
+      </AppPageSection>
 
-          {report.isError ? (
-            <ItemNotice
-              description={
-                report.error instanceof Error
-                  ? report.error.message
-                  : 'Try refreshing the report.'
-              }
-              title="Report could not be fetched"
-              variant="error"
-            />
-          ) : report.isLoading ? (
-            <p className="text-sm leading-6 text-muted-foreground">
-              Loading campaign report...
-            </p>
-          ) : report.data ? (
-            <>
-              <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {metrics.map((metric) => (
-                  <ReportMetric key={metric.label} metric={metric} />
-                ))}
-              </dl>
-              <ReportedBookingsSection
-                campaign={campaign}
-                organizationId={organizationId}
-                report={report.data.report}
-              />
-            </>
-          ) : null}
-        </section>
-      </AppPageItem>
+      {reportData && metrics.length > 0 ? (
+        <div className="hidden min-w-0 gap-5 sm:grid sm:grid-cols-2 xl:grid-cols-3">
+          {metrics.map((metric) => (
+            <ReportMetricItem key={metric.id} metric={metric} />
+          ))}
+        </div>
+      ) : null}
+
+      {reportData ? (
+        <ReportedBookingsSection
+          campaign={campaign}
+          organizationId={organizationId}
+          report={reportData}
+        />
+      ) : null}
     </AppPageContent>
   );
 }
 
-type ReportMetric = {
-  detail: string;
-  icon: typeof Users;
-  label: string;
-  tone: 'default' | 'good' | 'warning';
-  value: string;
-};
-
-function ReportMetric({ metric }: { metric: ReportMetric }) {
+function ReportMetricItem({ metric }: { metric: CampaignReportMetric }) {
   return (
-    <div className="grid min-h-24 content-between gap-3 border-l border-border pl-4">
-      <dt className="flex items-center gap-2 text-sm font-medium leading-5">
-        <span
-          className={cn(
-            'flex size-8 items-center justify-center rounded-md',
-            metric.tone === 'good'
-              ? 'bg-emerald-50 text-emerald-700'
-              : metric.tone === 'warning'
-                ? 'bg-amber-50 text-amber-700'
-                : 'bg-muted text-muted-foreground',
-          )}
-        >
-          <metric.icon aria-hidden="true" className="size-4" />
-        </span>
-        {metric.label}
-      </dt>
-      <dd>
-        <div className="text-2xl font-semibold tracking-normal tabular-nums">
-          {metric.value}
-        </div>
-        <div className="mt-1 text-xs leading-5 text-muted-foreground">
-          {metric.detail}
-        </div>
-      </dd>
-    </div>
+    <AppPageItem asChild>
+      <dl>
+        <ReportMetric metric={metric} />
+      </dl>
+    </AppPageItem>
   );
 }
 
-function reportMetrics(report: CampaignReport): ReportMetric[] {
-  return [
-    {
-      detail: recipientDetail(report),
-      icon: Users,
-      label: 'Recipients',
-      tone: 'default',
-      value: formatReportNumber(report.selectedCount),
-    },
-    {
-      detail: `${formatReportPercent(report.deliveredCount, report.sentCount)} delivered`,
-      icon: CheckCircle2,
-      label: 'Delivered',
-      tone: 'good',
-      value: formatReportNumber(report.deliveredCount),
-    },
-    {
-      detail: `${formatReportNumber(report.queuedCount)} queued`,
-      icon: Send,
-      label: 'In progress',
-      tone: report.queuedCount > 0 ? 'warning' : 'default',
-      value: formatReportNumber(report.queuedCount),
-    },
-    {
-      detail: `${formatReportPercent(report.skippedCount, report.selectedCount)} of selected`,
-      icon: CircleSlash,
-      label: 'Skipped',
-      tone: report.skippedCount > 0 ? 'warning' : 'default',
-      value: formatReportNumber(report.skippedCount),
-    },
-    {
-      detail: `${formatReportPercent(report.failedCount, report.sentCount)} of sent`,
-      icon: AlertCircle,
-      label: 'Failed',
-      tone: report.failedCount > 0 ? 'warning' : 'default',
-      value: formatReportNumber(report.failedCount),
-    },
-    {
-      detail: `${formatReportNumber(report.uniqueClickerCount)} unique recipients`,
-      icon: MousePointerClick,
-      label: 'Tracked clicks',
-      tone: 'default',
-      value: formatReportNumber(report.clickCount),
-    },
-    {
-      detail: `${formatReportPercent(report.inboundReplyCount, report.sentCount)} of sent`,
-      icon: MailQuestion,
-      label: 'Replies',
-      tone: 'default',
-      value: formatReportNumber(report.inboundReplyCount),
-    },
-    {
-      detail: `${formatReportPercent(report.optOutCount, report.sentCount)} of sent`,
-      icon: ShieldOff,
-      label: 'Opt-outs',
-      tone: report.optOutCount > 0 ? 'warning' : 'default',
-      value: formatReportNumber(report.optOutCount),
-    },
-    {
-      detail: `${formatReportNumber(report.estimatedSmsSegments)} estimated`,
-      icon: Send,
-      label: 'Credits used',
-      tone: 'default',
-      value: formatReportNumber(report.actualSmsSegments),
-    },
-    {
-      detail: `${formatReportPercent(
-        report.manualOutcome.bookingCount,
-        report.deliveredCount,
-      )} of delivered`,
-      icon: CalendarCheck,
-      label: 'Reported bookings',
-      tone: report.manualOutcome.bookingCount > 0 ? 'good' : 'default',
-      value: formatReportNumber(report.manualOutcome.bookingCount),
-    },
-    {
-      detail: reportedRevenueDetail(report),
-      icon: CircleDollarSign,
-      label: 'Reported revenue',
-      tone:
-        (report.manualOutcome.revenueAmountMinor ?? 0) > 0 ? 'good' : 'default',
-      value: reportedRevenueValue(report),
-    },
-  ];
-}
+function ReportMetric({ metric }: { metric: CampaignReportMetric }) {
+  const Icon = metricIcons[metric.id];
 
-function reportedRevenueDetail(report: CampaignReport) {
-  if (report.manualOutcome.hasMixedCurrencies) {
-    return 'Multiple currencies reported';
-  }
-
-  const revenuePerDelivered =
-    report.manualOutcome.revenuePerDeliveredRecipientMinor;
-
-  if (revenuePerDelivered && revenuePerDelivered > 0) {
-    return `${formatReportCurrency(
-      revenuePerDelivered,
-      report.manualOutcome.currency,
-    )} per delivered`;
-  }
-
-  return 'Reported by your team';
-}
-
-function reportedRevenueValue(report: CampaignReport) {
-  if (report.manualOutcome.hasMixedCurrencies) {
-    return 'Mixed';
-  }
-
-  return formatReportCurrency(
-    report.manualOutcome.revenueAmountMinor ?? 0,
-    report.manualOutcome.currency,
+  return (
+    <MetricSummaryEntry
+      className="min-h-0 border-t-0 p-0"
+      icon={Icon}
+      iconClassName={metricIconClasses[metric.id]}
+      label={metric.label}
+      value={metric.value}
+    />
   );
 }
 
-function recipientDetail(report: CampaignReport) {
-  const sent = `${formatReportNumber(report.sentCount)} sent`;
-
-  if (report.skippedCount <= 0) {
-    return sent;
-  }
-
-  return `${sent}, ${formatReportNumber(report.skippedCount)} skipped`;
+function withFunnelSummaryIcons(
+  summary: SankeyBreakdownSummaryItem[],
+): SankeyBreakdownSummaryItem[] {
+  return summary.map((item) => ({
+    ...item,
+    ...funnelSummaryMeta[item.label],
+  }));
 }

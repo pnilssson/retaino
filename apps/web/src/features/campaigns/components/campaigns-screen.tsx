@@ -16,14 +16,9 @@ import { StatusBadge } from '@/components/status-badge';
 import { EmptyState, TableLoading } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import {
-  ItemContent,
-  ItemDescription,
-  ItemHeader,
-  ItemTitle,
-} from '@/components/ui/item';
-import {
   AppPageContent,
   AppPageItem,
+  AppPageSection,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useContactPresence } from '@/features/contacts/hooks/use-contact-presence';
@@ -131,14 +126,13 @@ export function CampaignsScreen() {
             ) : null
           }
           description="Review campaigns and previous sends for this organization."
-          eyebrow="Campaigns"
           title="Campaigns"
         />
 
         <AppPageContent>
-          <AppPageItem asChild>
-            <section>
-              {contactPresence.isError ? (
+          {contactPresence.isError ? (
+            <AppPageItem asChild>
+              <section>
                 <ItemNotice
                   description={
                     contactPresence.error instanceof Error
@@ -148,9 +142,15 @@ export function CampaignsScreen() {
                   title="Contact status could not be checked"
                   variant="error"
                 />
-              ) : !contactPresenceLoaded ? (
-                <TableLoading label="Checking contacts" />
-              ) : !hasContacts ? (
+              </section>
+            </AppPageItem>
+          ) : !contactPresenceLoaded ? (
+            <section>
+              <TableLoading label="Checking contacts" />
+            </section>
+          ) : !hasContacts ? (
+            <AppPageItem asChild>
+              <section>
                 <EmptyState
                   action={
                     <Button asChild>
@@ -165,7 +165,11 @@ export function CampaignsScreen() {
                   title="Import contacts before campaigns"
                   variant="page"
                 />
-              ) : campaigns.isError ? (
+              </section>
+            </AppPageItem>
+          ) : campaigns.isError ? (
+            <AppPageItem asChild>
+              <section>
                 <ItemNotice
                   description={
                     campaigns.error instanceof Error
@@ -175,9 +179,15 @@ export function CampaignsScreen() {
                   title="Campaigns could not be fetched"
                   variant="error"
                 />
-              ) : campaigns.isLoading ? (
-                <TableLoading label="Loading campaigns" />
-              ) : !hasCampaigns ? (
+              </section>
+            </AppPageItem>
+          ) : campaigns.isLoading ? (
+            <section>
+              <TableLoading label="Loading campaigns" />
+            </section>
+          ) : !hasCampaigns ? (
+            <AppPageItem asChild>
+              <section>
                 <EmptyState
                   action={
                     <Button asChild>
@@ -192,17 +202,15 @@ export function CampaignsScreen() {
                   title="Create your first campaign"
                   variant="page"
                 />
-              ) : (
+              </section>
+            </AppPageItem>
+          ) : (
+            <AppPageSection
+              description="Filter campaigns by status, audience, and activity."
+              framed={false}
+              title="Campaign list"
+            >
                 <>
-                  <ItemHeader className="items-start">
-                    <ItemContent className="gap-2">
-                      <ItemTitle>Campaigns</ItemTitle>
-                      <ItemDescription>
-                        Filter campaigns by status, audience, and activity.
-                      </ItemDescription>
-                    </ItemContent>
-                  </ItemHeader>
-
                   <CampaignFilters
                     direction={direction}
                     onChange={(values) => {
@@ -222,9 +230,8 @@ export function CampaignsScreen() {
                     />
                   )}
                 </>
-              )}
-            </section>
-          </AppPageItem>
+            </AppPageSection>
+          )}
         </AppPageContent>
       </section>
     </main>

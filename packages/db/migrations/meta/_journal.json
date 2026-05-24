@@ -22,6 +22,13 @@
       "when": 1779526203256,
       "tag": "0002_rename_organization_currency",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779534405557,
+      "tag": "0003_married_doorman",
+      "breakpoints": true
     }
   ]
 }

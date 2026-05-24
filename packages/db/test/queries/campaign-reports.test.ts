@@ -108,6 +108,20 @@ describe('campaign report query helpers', () => {
                 hasMixedCurrencies: true,
                 createdByUserId: campaignRow.createdByUserId,
                 createdAt: new Date('2026-05-22T10:00:00.000Z'),
+                bookings: [
+                  {
+                    id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+                    bookingDate: '2026-05-21',
+                    customerName: 'Ada Lovelace',
+                    phone: '+46700000000',
+                    email: 'ada@example.com',
+                    revenueAmountMinor: null,
+                    currency: 'SEK',
+                    service: 'Cut and color',
+                    note: null,
+                    createdAt: new Date('2026-05-22T10:00:00.000Z'),
+                  },
+                ],
               },
             ],
           },
@@ -131,6 +145,12 @@ describe('campaign report query helpers', () => {
         {
           revenueAmountMinor: null,
           hasMixedCurrencies: true,
+          bookings: [
+            {
+              customerName: 'Ada Lovelace',
+              service: 'Cut and color',
+            },
+          ],
         },
       ],
     });

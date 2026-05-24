@@ -33,6 +33,21 @@ describe('campaigns schema', () => {
     expect('providerMessageId' in campaigns).toBe(false);
   });
 
+  it('allows only one sending campaign per organization', () => {
+    const indexes = getTableConfig(campaigns).indexes.map(
+      (index) => index.config,
+    );
+    const sendingIndex = indexes.find(
+      (index) => index.name === 'campaigns_organization_sending_idx',
+    );
+
+    expect(sendingIndex?.unique).toBe(true);
+    expect(sendingIndex?.columns.map((column) => column.name)).toEqual([
+      'organization_id',
+    ]);
+    expect(sendingIndex?.where).toBeDefined();
+  });
+
   it('stores campaign recipient snapshots for reporting', () => {
     expect(campaignRecipients.organizationId.name).toBe('organization_id');
     expect(campaignRecipients.campaignId.name).toBe('campaign_id');
@@ -79,5 +94,21 @@ describe('campaigns schema', () => {
     expect(auditLogs.resourceId.name).toBe('resource_id');
     expect(auditLogs.metadata.name).toBe('metadata');
     expect(auditLogs.userAgent.name).toBe('user_agent');
+  });
+
+  it('keeps campaign recipient snapshots idempotent by contact', () => {
+    const indexes = getTableConfig(campaignRecipients).indexes.map(
+      (index) => index.config,
+    );
+    const recipientIndex = indexes.find(
+      (index) => index.name === 'campaign_recipients_campaign_contact_idx',
+    );
+
+    expect(recipientIndex?.unique).toBe(true);
+    expect(recipientIndex?.columns.map((column) => column.name)).toEqual([
+      'campaign_id',
+      'contact_id',
+    ]);
+    expect(recipientIndex?.where).toBeDefined();
   });
 });

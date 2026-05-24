@@ -24,7 +24,7 @@ export function initialBookingReportFormValues(): BookingReportFormValues {
   return {
     checkedThroughDate: todayInputValue(),
     note: '',
-    bookings: [emptyBookingRow(), emptyBookingRow(), emptyBookingRow()],
+    bookings: [emptyBookingRow()],
   };
 }
 

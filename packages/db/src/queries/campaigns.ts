@@ -4,6 +4,7 @@ import {
   count,
   desc,
   eq,
+  ilike,
   inArray,
   isNotNull,
   isNull,
@@ -11,7 +12,6 @@ import {
   ne,
   not,
   or,
-  sql,
   type SQL,
 } from 'drizzle-orm';
 import type {
@@ -19,6 +19,7 @@ import type {
   CampaignAudienceRule,
   CampaignAudiencePreviewResponse,
   CampaignRecipientStatus,
+  CampaignRecipientSearchItem,
   CampaignStatus,
   CreateCampaignDraftInput,
   UpdateCampaignDraftInput,
@@ -37,6 +38,7 @@ type CampaignRecipientRow = typeof campaignRecipients.$inferSelect;
 type CampaignRecipientInsert = typeof campaignRecipients.$inferInsert;
 
 const RECIPIENT_SNAPSHOT_INSERT_BATCH_SIZE = 1000;
+const ACTIVE_SEND_UNIQUE_INDEX = 'campaigns_organization_sending_idx';
 
 export type UpdateCampaignDraftResult =
   | { status: 'updated'; campaign: Campaign }
@@ -354,6 +356,43 @@ export async function countCampaignRecipients(
   return { recipientCount: row?.total ?? 0 };
 }
 
+export async function searchCampaignRecipientsForBookingReport(
+  db: DbClient,
+  input: { organizationId: string; campaignId: string; search: string },
+): Promise<{ recipients: CampaignRecipientSearchItem[] }> {
+  assertOrganizationId(input.organizationId);
+  const search = input.search.trim();
+
+  if (search.length < 2) {
+    return { recipients: [] };
+  }
+
+  const rows = await db
+    .select({
+      id: campaignRecipients.id,
+      name: campaignRecipients.name,
+      phone: campaignRecipients.phone,
+      email: campaignRecipients.email,
+    })
+    .from(campaignRecipients)
+    .where(
+      and(
+        eq(campaignRecipients.organizationId, input.organizationId),
+        eq(campaignRecipients.campaignId, input.campaignId),
+        inArray(campaignRecipients.status, ['selected', 'queued', 'sent']),
+        or(
+          ilike(campaignRecipients.name, `%${search}%`),
+          ilike(campaignRecipients.phone, `%${search}%`),
+          ilike(campaignRecipients.email, `%${search}%`),
+        ),
+      ),
+    )
+    .orderBy(asc(campaignRecipients.name), asc(campaignRecipients.createdAt))
+    .limit(8);
+
+  return { recipients: rows };
+}
+
 export async function listSelectedCampaignRecipientsForSend(
   db: DbClient,
   input: { organizationId: string; campaignId: string },
@@ -408,71 +447,75 @@ export async function startCampaignSend(
   assertOrganizationId(input.organizationId);
   const now = input.now ?? new Date();
 
-  return db.transaction(async (tx) => {
-    await tx.execute(
-      sql`select pg_advisory_xact_lock(hashtext(${input.organizationId}))`,
-    );
+  try {
+    return await db.transaction(async (tx) => {
+      const [activeSend] = await tx
+        .select({ id: campaigns.id })
+        .from(campaigns)
+        .where(
+          and(
+            eq(campaigns.organizationId, input.organizationId),
+            eq(campaigns.status, 'sending'),
+            ne(campaigns.id, input.campaignId),
+          ),
+        )
+        .limit(1);
 
-    const [activeSend] = await tx
-      .select({ id: campaigns.id })
-      .from(campaigns)
-      .where(
-        and(
-          eq(campaigns.organizationId, input.organizationId),
-          eq(campaigns.status, 'sending'),
-          ne(campaigns.id, input.campaignId),
-        ),
-      )
-      .limit(1);
+      if (activeSend) {
+        return { status: 'active_send_exists' };
+      }
 
-    if (activeSend) {
+      const [existing] = await tx
+        .select()
+        .from(campaigns)
+        .where(
+          and(
+            eq(campaigns.organizationId, input.organizationId),
+            eq(campaigns.id, input.campaignId),
+          ),
+        )
+        .limit(1);
+
+      if (!existing) {
+        return { status: 'not_found' };
+      }
+
+      if (existing.status === 'sending') {
+        return { status: 'started', campaign: campaignToContract(existing) };
+      }
+
+      if (existing.status !== 'ready_to_send') {
+        return { status: 'not_ready' };
+      }
+
+      const [updated] = await tx
+        .update(campaigns)
+        .set({
+          status: 'sending',
+          sendStartedAt: now,
+          reservedCreditCount: input.reservedCreditCount,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(campaigns.organizationId, input.organizationId),
+            eq(campaigns.id, input.campaignId),
+            eq(campaigns.status, 'ready_to_send'),
+          ),
+        )
+        .returning();
+
+      return updated
+        ? { status: 'started', campaign: campaignToContract(updated) }
+        : { status: 'not_ready' };
+    });
+  } catch (error) {
+    if (isUniqueConstraintViolation(error, ACTIVE_SEND_UNIQUE_INDEX)) {
       return { status: 'active_send_exists' };
     }
 
-    const [existing] = await tx
-      .select()
-      .from(campaigns)
-      .where(
-        and(
-          eq(campaigns.organizationId, input.organizationId),
-          eq(campaigns.id, input.campaignId),
-        ),
-      )
-      .limit(1);
-
-    if (!existing) {
-      return { status: 'not_found' };
-    }
-
-    if (existing.status === 'sending') {
-      return { status: 'started', campaign: campaignToContract(existing) };
-    }
-
-    if (existing.status !== 'ready_to_send') {
-      return { status: 'not_ready' };
-    }
-
-    const [updated] = await tx
-      .update(campaigns)
-      .set({
-        status: 'sending',
-        sendStartedAt: now,
-        reservedCreditCount: input.reservedCreditCount,
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(campaigns.organizationId, input.organizationId),
-          eq(campaigns.id, input.campaignId),
-          eq(campaigns.status, 'ready_to_send'),
-        ),
-      )
-      .returning();
-
-    return updated
-      ? { status: 'started', campaign: campaignToContract(updated) }
-      : { status: 'not_ready' };
-  });
+    throw error;
+  }
 }
 
 export async function markCampaignRecipientSent(
@@ -826,6 +869,25 @@ function campaignUpdateValues(input: UpdateCampaignDraftInput) {
       ? { attributionWindowDays: input.attributionWindowDays }
       : {}),
   };
+}
+
+function isUniqueConstraintViolation(error: unknown, constraintName: string) {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    'constraint' in error &&
+    error.code === '23505' &&
+    error.constraint === constraintName
+  ) {
+    return true;
+  }
+
+  if (typeof error === 'object' && error !== null && 'cause' in error) {
+    return isUniqueConstraintViolation(error.cause, constraintName);
+  }
+
+  return false;
 }
 
 function campaignAudienceDateWhere(rule: CampaignAudienceRule, now: Date) {

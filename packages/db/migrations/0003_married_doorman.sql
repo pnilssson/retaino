@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "campaign_recipients_campaign_contact_idx" ON "campaign_recipients" USING btree ("campaign_id","contact_id") WHERE "campaign_recipients"."contact_id" is not null;--> statement-breakpoint
+CREATE UNIQUE INDEX "campaigns_organization_sending_idx" ON "campaigns" USING btree ("organization_id") WHERE "campaigns"."status" = 'sending';

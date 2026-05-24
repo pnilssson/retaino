@@ -17,7 +17,7 @@ import { CampaignStatusBadge } from './campaign-status-badge';
 export function CampaignsTable({ campaigns }: { campaigns: Campaign[] }) {
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    columns: [rowNumberColumn, ...campaignColumns],
+    columns: campaignColumns,
     data: campaigns,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
@@ -26,26 +26,11 @@ export function CampaignsTable({ campaigns }: { campaigns: Campaign[] }) {
   return (
     <DataTable
       cellClassName="p-0"
-      rowClassName="group odd:bg-muted/20 hover:bg-muted/40"
+      rowClassName="group"
       table={table}
     />
   );
 }
-
-const rowNumberColumn: ColumnDef<Campaign> = {
-  id: 'rowNumber',
-  header: () => <span className="sr-only">Row number</span>,
-  cell: ({ row }) => (
-    <div className="flex w-10 items-center justify-end p-2 text-xs tabular-nums text-muted-foreground">
-      {row.index + 1}
-    </div>
-  ),
-  enableHiding: false,
-  enableSorting: false,
-  maxSize: 40,
-  minSize: 40,
-  size: 40,
-};
 
 const campaignColumns: ColumnDef<Campaign>[] = [
   {
@@ -56,7 +41,7 @@ const campaignColumns: ColumnDef<Campaign>[] = [
 
       return (
         <Link className="block min-w-56 p-2" href={detailPath}>
-          <span className="block break-words font-medium underline-offset-4 group-hover:underline">
+          <span className="block break-words font-medium">
             {row.original.name}
           </span>
           <span className="mt-1 block break-words text-xs text-muted-foreground">

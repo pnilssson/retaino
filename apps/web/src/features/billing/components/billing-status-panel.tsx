@@ -4,14 +4,7 @@ import type { BillingStatusResponse } from '@retaino/shared/contracts';
 import { ExternalLink } from 'lucide-react';
 import { StatusBadge, type StatusBadgeTone } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import {
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemHeader,
-  ItemTitle,
-} from '@/components/ui/item';
-import { AppPageItem } from '@/features/appshell/components/app-page-content';
+import { AppPageSection } from '@/features/appshell/components/app-page-content';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 import { formatBillingDate, formatCreditCount } from '../billing-format';
@@ -31,25 +24,8 @@ export function BillingStatusPanel({
   const status = subscriptionStatusView(subscription.status);
 
   return (
-    <AppPageItem asChild>
-      <section>
-        <ItemHeader className="items-start">
-          <ItemContent className="gap-2">
-            <ItemTitle
-              className={cn(
-                'flex flex-wrap items-center gap-2',
-                textStyles.sectionTitle,
-              )}
-            >
-              Account summary
-              <StatusBadge label={status.label} tone={status.tone} />
-            </ItemTitle>
-            <ItemDescription>
-              Current subscription access, renewal timing, and available SMS
-              credits.
-            </ItemDescription>
-          </ItemContent>
-          <ItemActions>
+    <AppPageSection
+      actions={
             <Button
               disabled={
                 !canManageBilling ||
@@ -61,11 +37,17 @@ export function BillingStatusPanel({
               variant="outline"
             >
               <ExternalLink aria-hidden="true" data-icon="inline-start" />
-              {isPortalPending ? 'Opening Stripe' : 'Manage in Stripe'}
+              {isPortalPending ? 'Opening' : 'Manage'}
             </Button>
-          </ItemActions>
-        </ItemHeader>
-
+      }
+      description="Current subscription access, renewal timing, and available SMS credits."
+      title={
+        <span className="flex flex-wrap items-center gap-2">
+          Account summary
+          <StatusBadge label={status.label} tone={status.tone} />
+        </span>
+      }
+    >
         <dl className="grid gap-x-8 gap-y-4 pt-1 sm:grid-cols-3">
           <Metric
             label="SMS credits"
@@ -84,8 +66,7 @@ export function BillingStatusPanel({
             }
           />
         </dl>
-      </section>
-    </AppPageItem>
+    </AppPageSection>
   );
 }
 
@@ -99,7 +80,7 @@ function Metric({
   return (
     <div className="min-w-0">
       <dt className={textStyles.meta}>{label}</dt>
-      <dd className={cn('mt-1 truncate font-medium tabular-nums', textStyles.body)}>
+      <dd className={cn('mt-1 truncate tabular-nums', textStyles.itemTitle)}>
         {value}
       </dd>
     </div>

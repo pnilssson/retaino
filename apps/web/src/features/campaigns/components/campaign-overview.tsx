@@ -1,0 +1,155 @@
+"use client";
+
+import type { ReactNode } from 'react';
+import type { Campaign } from '@retaino/shared/contracts';
+import { InfoTooltip } from '@/components/info-tooltip';
+import {
+  AppPageContent,
+  AppPageSection,
+} from '@/features/appshell/components/app-page-content';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
+import {
+  campaignSendStatusText,
+  campaignToFormValues,
+} from '../campaign-form-state';
+import { CampaignReportPanel } from './campaign-report-panel';
+import { messageEstimateText, MessagePreview } from './message-preview';
+
+export function CampaignOverview({
+  campaign,
+  organizationId,
+  sendAccepted = false,
+}: {
+  campaign: Campaign;
+  organizationId: string | null;
+  sendAccepted?: boolean;
+}) {
+  const values = campaignToFormValues(campaign);
+  const shouldShowReference =
+    values.campaignCode.trim() &&
+    values.campaignCode.trim().toLowerCase() !==
+      values.name.trim().toLowerCase();
+
+  return (
+    <div className="grid gap-5">
+      <AppPageContent>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <AppPageSection
+            description="Audience, destination, and send details for this campaign."
+            title="Campaign snapshot"
+          >
+            <div className="grid gap-6 sm:grid-cols-2">
+              <dl className="grid content-start gap-4">
+                <OverviewDetail
+                  label="Audience rule"
+                  tooltip={audienceRuleDetail(campaign)}
+                  value={audienceRuleValue(campaign)}
+                />
+
+                <OverviewDetail
+                  label="Booking link"
+                  tooltip="Tracked destination in each SMS."
+                  value={
+                    campaign.bookingUrl ? (
+                      <a
+                        className="break-words underline underline-offset-4"
+                        href={campaign.bookingUrl}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        {campaign.bookingUrl}
+                      </a>
+                    ) : (
+                      'Not added'
+                    )
+                  }
+                />
+
+                <OverviewDetail
+                  label="Send status"
+                  value={
+                    sendAccepted
+                      ? 'Send accepted. Waiting for delivery activity.'
+                      : campaignSendStatusText(campaign)
+                  }
+                />
+              </dl>
+
+              <dl className="grid content-start gap-4">
+                {shouldShowReference ? (
+                  <OverviewDetail
+                    label="Reference"
+                    value={values.campaignCode}
+                  />
+                ) : null}
+
+                <OverviewDetail
+                  label="Credits"
+                  value={creditLabel(campaign)}
+                />
+              </dl>
+            </div>
+          </AppPageSection>
+
+          <AppPageSection
+            description={messageEstimateText(values.smsBody)}
+            title="Message preview"
+          >
+            <MessagePreview showLabel={false} smsBody={values.smsBody} />
+          </AppPageSection>
+        </div>
+      </AppPageContent>
+
+      <CampaignReportPanel
+        campaign={campaign}
+        organizationId={organizationId}
+        sendAccepted={sendAccepted}
+      />
+    </div>
+  );
+}
+
+function OverviewDetail({
+  label,
+  tooltip,
+  value,
+}: {
+  label: string;
+  tooltip?: string;
+  value: ReactNode;
+}) {
+  return (
+    <div className="grid gap-1">
+      <dt className={cn('flex items-center gap-1.5', textStyles.meta)}>
+        {label}
+        {tooltip ? (
+          <InfoTooltip label={`${label} details`}>{tooltip}</InfoTooltip>
+        ) : null}
+      </dt>
+      <dd className={cn('min-w-0', textStyles.itemTitle)}>{value}</dd>
+    </div>
+  );
+}
+
+function audienceRuleValue(campaign: Campaign) {
+  return `Last booking at least ${campaign.audienceRule.lapsedDays} days ago`;
+}
+
+function audienceRuleDetail(campaign: Campaign) {
+  return campaign.audienceRule.includeNoBookingDate
+    ? 'Contacts without a booking date were included.'
+    : 'Contacts without a booking date were excluded.';
+}
+
+function creditLabel(campaign: Campaign) {
+  const credits = campaign.actualCreditCount ?? campaign.reservedCreditCount;
+
+  if (credits === null) {
+    return 'Not available';
+  }
+
+  const status = campaign.actualCreditCount !== null ? 'used' : 'reserved';
+
+  return `${credits} ${credits === 1 ? 'credit' : 'credits'} ${status}`;
+}

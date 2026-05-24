@@ -129,7 +129,7 @@ Campaign:
 Reporting:
 
 1. Retaino records provider delivery state and clicks.
-2. User manually reports bookings they believe came from the campaign.
+2. User manually reports booking outcomes from the campaign.
 3. Retaino stores each reported booking row and totals bookings and revenue.
 4. Dashboard separates campaign activity from team-reported outcomes.
 

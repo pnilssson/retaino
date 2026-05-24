@@ -263,9 +263,9 @@ describe('billing query helpers', () => {
     ]);
   });
 
-  it('reserves credits with a locked ledger allocation', async () => {
+  it('reserves credits with a row-locked ledger allocation', async () => {
     let statement: SQL | undefined;
-    const db = {
+    const tx = {
       execute: (query: SQL) => {
         statement = query;
 
@@ -285,6 +285,10 @@ describe('billing query helpers', () => {
           ],
         };
       },
+    };
+    const db = {
+      transaction: async (callback: (inner: typeof tx) => unknown) =>
+        callback(tx),
     };
 
     const result = await reserveSmsCreditsIfSufficient(db as never, {
@@ -319,14 +323,15 @@ describe('billing query helpers', () => {
     expect(query.sql).toContain(
       '(balances.subscription_period + balances.purchased) >=',
     );
-    expect(query.sql).toContain('pg_advisory_xact_lock');
-    expect(query.sql).not.toContain('update "organization_billing_profiles"');
+    expect(query.sql).toContain('from "organization_billing_profiles"');
+    expect(query.sql).toContain('for update');
+    expect(query.sql).not.toContain('pg_advisory_xact_lock');
     expect(query.sql).toContain('insert into "sms_credit_transactions"');
   });
 
   it('returns existing reservation rows for idempotent source IDs', async () => {
     let statement: SQL | undefined;
-    const db = {
+    const tx = {
       execute: (query: SQL) => {
         statement = query;
 
@@ -352,6 +357,10 @@ describe('billing query helpers', () => {
           ],
         }),
       }),
+    };
+    const db = {
+      transaction: async (callback: (inner: typeof tx) => unknown) =>
+        callback(tx),
     };
 
     const result = await reserveSmsCreditsIfSufficient(db as never, {

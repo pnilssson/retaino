@@ -50,6 +50,12 @@ export function useSendCampaign({
           ),
         }),
         queryClient.invalidateQueries({
+          queryKey: campaignsQueryKeys.report(
+            organizationId,
+            response.campaign.id,
+          ),
+        }),
+        queryClient.invalidateQueries({
           queryKey: campaignsQueryKeys.organization(organizationId),
         }),
       ]);

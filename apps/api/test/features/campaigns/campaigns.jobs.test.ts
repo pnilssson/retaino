@@ -4,7 +4,7 @@ const send = vi.fn();
 const setEnvVars = vi.fn(function setEnvVars(this: unknown) {
   return this;
 });
-const createDb = vi.fn(() => 'db');
+const connectDb = vi.fn(async () => ({ db: 'db', close: vi.fn() }));
 const processCampaignSend = vi.fn();
 let functionHandler: ((input: unknown) => Promise<void>) | undefined;
 const createFunction = vi.fn((_config, handler) => {
@@ -19,7 +19,7 @@ const instances: Array<{
 }> = [];
 
 vi.mock('@retaino/db', () => ({
-  createDb,
+  connectDb,
 }));
 
 vi.mock('inngest', () => ({
@@ -42,7 +42,7 @@ describe('campaigns jobs', () => {
     vi.resetModules();
     send.mockReset();
     setEnvVars.mockClear();
-    createDb.mockClear();
+    connectDb.mockClear();
     createFunction.mockClear();
     processCampaignSend.mockReset();
     functionHandler = undefined;
@@ -116,17 +116,17 @@ describe('campaigns jobs', () => {
       },
       step,
       env: {
-        DATABASE_URL: 'postgres://retaino.test/db',
+        HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
         SMS_SENDING_MODE: 'test',
         TRACKING_BASE_URL: 'https://go.retaino.test',
       },
     });
 
-    expect(createDb).toHaveBeenCalledWith('postgres://retaino.test/db');
+    expect(connectDb).toHaveBeenCalledWith('postgres://retaino.test/db');
     expect(processCampaignSend).toHaveBeenCalledWith({
       db: 'db',
       env: {
-        DATABASE_URL: 'postgres://retaino.test/db',
+        HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
         SMS_SENDING_MODE: 'test',
         TRACKING_BASE_URL: 'https://go.retaino.test',
       },
@@ -147,7 +147,9 @@ describe('campaigns jobs', () => {
           },
         },
         step: { run: vi.fn() },
-        env: { DATABASE_URL: 'postgres://retaino.test/db' },
+        env: {
+          HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
+        },
       }),
     ).rejects.toThrow('Campaign send processing event is missing identifiers.');
   });

@@ -61,5 +61,9 @@ function breadcrumbLabelFor(pathname: string) {
     return 'Contact';
   }
 
+  if (pathname.startsWith(`${routes.campaigns}/`)) {
+    return 'Campaigns';
+  }
+
   return labels[pathname] ?? 'App';
 }
