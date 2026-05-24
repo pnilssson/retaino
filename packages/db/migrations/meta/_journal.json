@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1779396321862,
-      "tag": "0000_new_serpent_society",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1779484049698,
-      "tag": "0001_faulty_bloodstrike",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1779526203256,
-      "tag": "0002_rename_organization_currency",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1779534405557,
-      "tag": "0003_married_doorman",
+      "when": 1779646520276,
+      "tag": "0000_initial_schema",
       "breakpoints": true
     }
   ]

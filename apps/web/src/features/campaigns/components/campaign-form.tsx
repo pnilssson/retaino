@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type ReactNode,
   useRef,
   useState,
 } from 'react';
@@ -24,7 +25,6 @@ import { Button } from '@/components/ui/button';
 import { useCreateCampaign } from '@/features/campaigns/hooks/use-create-campaign';
 import { useUpdateCampaign } from '@/features/campaigns/hooks/use-update-campaign';
 import {
-  AppPageContent,
   AppPageItem,
 } from '@/features/appshell/components/app-page-content';
 import { getFieldError } from '@/lib/form-errors';
@@ -231,11 +231,10 @@ export function CampaignForm({
               progressLabel="Campaign setup"
               steps={campaignSteps}
             >
-              <AppPageContent>
-                <AppPageItem asChild>
-                  <section>
+              <div className="grid gap-5">
                     {activeStep === 'audience' ? (
-                      <GuidedFlowSection
+                      <CampaignSetupStep
+                        description="Name the campaign and choose which lapsed customers should receive it."
                         title="Choose the audience"
                       >
                         <div className="grid gap-5">
@@ -321,11 +320,12 @@ export function CampaignForm({
                             }}
                           />
                         </div>
-                      </GuidedFlowSection>
+                      </CampaignSetupStep>
                     ) : null}
 
                     {activeStep === 'message' ? (
-                      <GuidedFlowSection
+                      <CampaignSetupStep
+                        description="Write the SMS and check the preview before continuing."
                         title="Write the message"
                       >
                         <div className="grid gap-5">
@@ -400,11 +400,12 @@ export function CampaignForm({
                             }}
                           />
                         </div>
-                      </GuidedFlowSection>
+                      </CampaignSetupStep>
                     ) : null}
 
                     {activeStep === 'booking' ? (
-                      <GuidedFlowSection
+                      <CampaignSetupStep
+                        description="Add the destination link and optional reference used when reviewing results."
                         title="Add the booking details"
                       >
                         <div className="grid gap-5">
@@ -461,11 +462,12 @@ export function CampaignForm({
                             }}
                           />
                         </div>
-                      </GuidedFlowSection>
+                      </CampaignSetupStep>
                     ) : null}
 
                     {activeStep === 'sender' ? (
-                      <GuidedFlowSection
+                      <CampaignSetupStep
+                        description="Choose the number recipients will see before this campaign can send."
                         title={senderReady ? 'Sender ready' : 'Set up the sender'}
                       >
                         <div className="grid gap-5">
@@ -482,11 +484,11 @@ export function CampaignForm({
                             onContinue={() => setActiveStep('test')}
                           />
                         </div>
-                      </GuidedFlowSection>
+                      </CampaignSetupStep>
                     ) : null}
 
                     {activeStep === 'test' ? (
-                      <GuidedFlowSection
+                      <CampaignSetupStep
                         description="Send yourself the message before launching, or skip this check."
                         title="Send a test SMS"
                       >
@@ -503,11 +505,12 @@ export function CampaignForm({
                           }}
                           senderReady={senderReady}
                         />
-                      </GuidedFlowSection>
+                      </CampaignSetupStep>
                     ) : null}
 
                     {activeStep === 'review' ? (
-                      <GuidedFlowSection
+                      <CampaignSetupStep
+                        description="Confirm the final setup before sending the campaign."
                         title="Review campaign"
                       >
                         <div className="grid gap-5">
@@ -552,15 +555,31 @@ export function CampaignForm({
                             </Button>
                           </GuidedFlowActions>
                         </div>
-                      </GuidedFlowSection>
+                      </CampaignSetupStep>
                     ) : null}
-                  </section>
-                </AppPageItem>
-              </AppPageContent>
+              </div>
             </GuidedFlowFrame>
           );
         }}
       </form.Subscribe>
     </form>
+  );
+}
+
+function CampaignSetupStep({
+  children,
+  description,
+  title,
+}: {
+  children: ReactNode;
+  description?: string;
+  title: string;
+}) {
+  return (
+    <GuidedFlowSection description={description} title={title}>
+      <AppPageItem asChild>
+        <section>{children}</section>
+      </AppPageItem>
+    </GuidedFlowSection>
   );
 }

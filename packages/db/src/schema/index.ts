@@ -1,5 +1,4 @@
 export * from './billing';
-export * from './booking-reports';
 export * from './campaigns';
 export * from './common';
 export * from './contacts';
@@ -10,6 +9,7 @@ export * from './legal-document-versions';
 export * from './organization-acceptances';
 export * from './organization-profiles';
 export * from './organizations';
+export * from './reported-bookings';
 export * from './sms-senders';
 export * from './sms-messages';
 export * from './tracking-links';

@@ -1,7 +1,7 @@
 # Tracking
 
 Retaino v1 uses per-recipient short links to measure campaign activity.
-Tracking records recipient clicks only. It does not own booking reports or
+Tracking records recipient clicks only. It does not own reported bookings or
 campaign outcome reporting.
 
 ## Entities

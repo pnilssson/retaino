@@ -26,39 +26,39 @@ export type ReportSummaryMetric = {
 export function createOutcomeSummary(
   report: CampaignReport,
 ): ReportSummaryMetric {
-  const revenueAmount = report.manualOutcome.revenueAmountMinor ?? 0;
+  const revenueAmount = report.reportedOutcome.revenueAmountMinor ?? 0;
 
   return {
     detail: averageBookingRevenueDetail(report),
     icon: 'money',
     iconClassName:
-      revenueAmount > 0 || report.manualOutcome.hasMixedCurrencies
+      revenueAmount > 0 || report.reportedOutcome.hasMixedCurrencies
         ? 'bg-teal-50 text-teal-700'
         : 'bg-muted text-muted-foreground',
     label: 'Reported revenue',
-    value: report.manualOutcome.hasMixedCurrencies
+    value: report.reportedOutcome.hasMixedCurrencies
       ? 'Mixed revenue'
-      : formatReportCurrency(revenueAmount, report.manualOutcome.currency),
+      : formatReportCurrency(revenueAmount, report.reportedOutcome.currency),
   };
 }
 
 function averageBookingRevenueDetail(report: CampaignReport) {
-  const bookingCount = report.manualOutcome.bookingCount;
+  const bookingCount = report.reportedOutcome.bookingCount;
 
   if (bookingCount === 0) {
     return 'No average booking revenue yet.';
   }
 
-  if (report.manualOutcome.hasMixedCurrencies) {
+  if (report.reportedOutcome.hasMixedCurrencies) {
     return 'Average booking revenue unavailable.';
   }
 
-  const revenueAmount = report.manualOutcome.revenueAmountMinor ?? 0;
+  const revenueAmount = report.reportedOutcome.revenueAmountMinor ?? 0;
   const averageRevenue = Math.round(revenueAmount / bookingCount);
 
   return `${formatReportCurrency(
     averageRevenue,
-    report.manualOutcome.currency,
+    report.reportedOutcome.currency,
   )} average booking revenue.`;
 }
 
@@ -67,12 +67,12 @@ export function createAtAGlanceMetrics(
 ): ReportSummaryMetric[] {
   return [
     {
-      detail: `${formatReportNumber(report.manualOutcome.bookingCount)} reported bookings.`,
+      detail: `${formatReportNumber(report.reportedOutcome.bookingCount)} reported bookings.`,
       icon: 'calendar',
       iconClassName: 'bg-emerald-50 text-emerald-700',
       label: 'Booking rate',
       value: formatReportPercent(
-        report.manualOutcome.bookingCount,
+        report.reportedOutcome.bookingCount,
         report.deliveredCount,
       ),
     },

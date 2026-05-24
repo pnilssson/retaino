@@ -15,16 +15,12 @@ import {
   formatReportCurrency,
   formatReportDate,
 } from '../campaign-report-format';
-import { BookingReportDialog } from './campaign-booking-report-dialog';
+import { ReportedBookingDialog } from './campaign-reported-booking-dialog';
 
 const REPORTED_BOOKINGS_PAGE_SIZE = 10;
 
 type ReportedBookingRow =
-  CampaignReport['bookingReports'][number]['bookings'][number] & {
-    checkedThroughDate: string | null;
-    reportId: string;
-    reportNote: string | null;
-  };
+  CampaignReport['reportedBookings'][number];
 
 export function ReportedBookingsSection({
   campaign,
@@ -36,16 +32,9 @@ export function ReportedBookingsSection({
   report: CampaignReport;
 }) {
   const [page, setPage] = useState(1);
-  const canCreateBookingReport =
+  const canCreateReportedBookings =
     campaign.status === 'sent' || campaign.status === 'failed';
-  const bookings = report.bookingReports.flatMap((bookingReport) =>
-    bookingReport.bookings.map((booking) => ({
-      ...booking,
-      checkedThroughDate: bookingReport.checkedThroughDate,
-      reportId: bookingReport.id,
-      reportNote: bookingReport.note,
-    })),
-  );
+  const bookings = report.reportedBookings;
   const hasBookings = bookings.length > 0;
   const totalPages = Math.max(
     1,
@@ -60,10 +49,10 @@ export function ReportedBookingsSection({
   return (
     <AppPageSection
       actions={
-        canCreateBookingReport && hasBookings ? (
-          <BookingReportDialog
+        canCreateReportedBookings && hasBookings ? (
+          <ReportedBookingDialog
             campaign={campaign}
-            currency={report.manualOutcome.currency}
+            currency={report.reportedOutcome.currency}
             organizationId={organizationId}
           />
         ) : null
@@ -81,10 +70,10 @@ export function ReportedBookingsSection({
           totalBookings={bookings.length}
         />
       ) : (
-        <BookingReportEmptyState
+        <ReportedBookingsEmptyState
           campaign={campaign}
-          canCreateBookingReport={canCreateBookingReport}
-          currency={report.manualOutcome.currency}
+          canCreateReportedBookings={canCreateReportedBookings}
+          currency={report.reportedOutcome.currency}
           organizationId={organizationId}
         />
       )}
@@ -108,7 +97,7 @@ function ReportedBookingsTable({
     columns: reportedBookingColumns,
     data: bookings,
     getCoreRowModel: getCoreRowModel(),
-    getRowId: (row) => `${row.reportId}-${row.id}`,
+    getRowId: (row) => row.id,
     manualPagination: true,
   });
 
@@ -134,7 +123,7 @@ function ReportedBookingsTable({
 
 const reportedBookingColumns: ColumnDef<ReportedBookingRow>[] = [
   {
-    accessorKey: 'customerName',
+    id: 'customer',
     header: 'Customer',
     cell: ({ row }) => (
       <span className="font-medium">{bookingTitle(row.original)}</span>
@@ -151,14 +140,14 @@ const reportedBookingColumns: ColumnDef<ReportedBookingRow>[] = [
     cell: ({ row }) => row.original.service ?? 'Not added',
   },
   {
-    accessorKey: 'phone',
+    id: 'phone',
     header: 'Phone',
-    cell: ({ row }) => row.original.phone ?? 'Not added',
+    cell: ({ row }) => row.original.contact.phone ?? 'Not added',
   },
   {
-    accessorKey: 'email',
+    id: 'email',
     header: 'Email',
-    cell: ({ row }) => row.original.email ?? 'Not added',
+    cell: ({ row }) => row.original.contact.email ?? 'Not added',
   },
   {
     accessorKey: 'revenueAmountMinor',
@@ -177,24 +166,27 @@ const reportedBookingColumns: ColumnDef<ReportedBookingRow>[] = [
 ];
 
 function bookingTitle(booking: ReportedBookingRow) {
-  return booking.customerName ?? booking.phone ?? booking.email ?? 'Booking';
+  return (
+    booking.contact.name ?? booking.contact.phone ?? booking.contact.email ??
+    'Booking'
+  );
 }
 
-function BookingReportEmptyState({
+function ReportedBookingsEmptyState({
   campaign,
-  canCreateBookingReport,
+  canCreateReportedBookings,
   currency,
   organizationId,
 }: {
   campaign: Campaign;
-  canCreateBookingReport: boolean;
+  canCreateReportedBookings: boolean;
   currency: string;
   organizationId: string | null;
 }) {
   return (
     <div className="flex min-h-44 flex-col items-center justify-center gap-4 px-4 py-8 text-center">
       <div className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
-        {canCreateBookingReport ? (
+        {canCreateReportedBookings ? (
           <CalendarCheck aria-hidden="true" className="size-5" />
         ) : (
           <Info aria-hidden="true" className="size-5" />
@@ -202,18 +194,18 @@ function BookingReportEmptyState({
       </div>
       <div className="grid max-w-md gap-1">
         <h3 className={textStyles.itemTitle}>
-          {canCreateBookingReport
+          {canCreateReportedBookings
             ? 'No bookings reported yet'
             : 'Bookings can be reported after sending'}
         </h3>
         <p className={textStyles.mutedBody}>
-          {canCreateBookingReport
+          {canCreateReportedBookings
             ? 'Add bookings after checking your booking system, replies, calls, or campaign code.'
             : 'Campaign activity is still updating while messages are being sent.'}
         </p>
       </div>
-      {canCreateBookingReport ? (
-        <BookingReportDialog
+      {canCreateReportedBookings ? (
+        <ReportedBookingDialog
           campaign={campaign}
           currency={currency}
           organizationId={organizationId}

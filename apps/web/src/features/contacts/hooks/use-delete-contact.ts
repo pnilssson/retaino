@@ -8,10 +8,15 @@ import { routes } from '@/lib/routes';
 import { invalidateContactDependentQueries } from '../contact-cache';
 import { contactsQueryKeys } from '../query-keys';
 
-export function useDeleteContact(organizationId: string, contactId: string) {
+export function useDeleteContact(
+  organizationId: string,
+  contactId: string,
+  options: { redirectOnSuccess?: boolean } = {},
+) {
   const api = useApi();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const redirectOnSuccess = options.redirectOnSuccess ?? true;
   const mutation = useMutation({
     mutationFn: () =>
       api.request<void>(`/v1/contacts/${contactId}`, { method: 'DELETE' }),
@@ -20,7 +25,9 @@ export function useDeleteContact(organizationId: string, contactId: string) {
         queryKey: contactsQueryKeys.detail(organizationId, contactId),
       });
       await invalidateContactDependentQueries(queryClient, organizationId);
-      router.push(routes.contacts);
+      if (redirectOnSuccess) {
+        router.push(routes.contacts);
+      }
     },
   });
 

@@ -18,7 +18,6 @@ type GuidedFlowFrameProps<StepId extends string> = {
 
 export function GuidedFlowFrame<StepId extends string>({
   children,
-  completedStepIds,
   currentStepId,
   progressLabel,
   steps,
@@ -27,14 +26,11 @@ export function GuidedFlowFrame<StepId extends string>({
     steps.findIndex((step) => step.id === currentStepId),
     0,
   );
-  const completed = new Set(completedStepIds);
 
   return (
     <div className="grid min-w-0 gap-3">
       <GuidedFlowSteps
-        completed={completed}
         currentIndex={currentIndex}
-        currentStepId={currentStepId}
         progressLabel={progressLabel}
         steps={steps}
       />
@@ -45,15 +41,11 @@ export function GuidedFlowFrame<StepId extends string>({
 }
 
 function GuidedFlowSteps<StepId extends string>({
-  completed,
   currentIndex,
-  currentStepId,
   progressLabel,
   steps,
 }: {
-  completed: Set<StepId>;
   currentIndex: number;
-  currentStepId: StepId;
   progressLabel: string;
   steps: GuidedFlowStep<StepId>[];
 }) {
@@ -71,22 +63,22 @@ function GuidedFlowSteps<StepId extends string>({
         className="grid min-w-0 grid-cols-[repeat(var(--step-count),minmax(0,1fr))] gap-1.5"
         style={{ '--step-count': steps.length } as CSSProperties}
       >
-        {steps.map((step) => {
-          const isComplete = completed.has(step.id) && step.id !== currentStepId;
-          const isCurrent = step.id === currentStepId;
+        {steps.map((step, index) => {
+          const isCurrent = index === currentIndex;
+          const isPast = index < currentIndex;
+          const isReached = isPast || isCurrent;
 
           return (
             <li className="min-w-0" key={step.id}>
               <span className="sr-only">
                 {step.title}
-                {isCurrent ? ', current step' : isComplete ? ', completed' : ''}
+                {isCurrent ? ', current step' : isPast ? ', completed' : ''}
               </span>
               <span
                 aria-hidden="true"
                 className={cn(
                   'block h-1.5 rounded-full bg-muted',
-                  isComplete ? 'bg-foreground/45' : '',
-                  isCurrent ? 'bg-foreground' : '',
+                  isReached ? 'bg-foreground' : '',
                 )}
               />
             </li>
@@ -109,7 +101,7 @@ export function GuidedFlowSection({
   return (
     <section className="grid gap-5">
       <div className="grid gap-1">
-        <h2 className={textStyles.sectionTitle}>{title}</h2>
+        <h2 className={textStyles.itemTitle}>{title}</h2>
         {description ? (
           <p className={textStyles.mutedBody}>{description}</p>
         ) : null}

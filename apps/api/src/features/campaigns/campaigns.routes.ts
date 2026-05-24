@@ -1,19 +1,19 @@
 import {
   countCampaignRecipients,
   createCampaignDraft,
-  createManualBookingReport,
+  createReportedBookings,
   deleteCampaignDraft,
   getCampaignById,
   getCampaignReport,
   listCampaigns,
   previewCampaignAudience,
-  searchCampaignRecipientsForBookingReport,
+  searchCampaignRecipientsForReportedBookings,
   updateCampaignDraft,
 } from '@retaino/db';
 import { createCampaignSmsPreview } from '@retaino/shared';
 import {
   campaignAudiencePreviewRequestSchema,
-  createManualBookingReportSchema,
+  createReportedBookingsSchema,
   campaignSmsPreviewRequestSchema,
   campaignSmsTestSendRequestSchema,
   createCampaignDraftSchema,
@@ -40,7 +40,7 @@ import {
   TEST_TRACKED_BOOKING_LINK,
 } from './campaigns.service';
 
-const MANUAL_BOOKING_REPORT_BODY_LIMIT_BYTES = 32 * 1024;
+const REPORTED_BOOKINGS_BODY_LIMIT_BYTES = 32 * 1024;
 
 export const campaignsRoutes = new Hono<AppEnv>()
   .get('/', async (c) => {
@@ -247,7 +247,7 @@ export const campaignsRoutes = new Hono<AppEnv>()
     }
 
     return c.json(
-      await searchCampaignRecipientsForBookingReport(c.get('db'), {
+      await searchCampaignRecipientsForReportedBookings(c.get('db'), {
         organizationId: c.get('organization').id,
         campaignId: c.req.param('id'),
         search: c.req.query('search') ?? '',
@@ -272,14 +272,14 @@ export const campaignsRoutes = new Hono<AppEnv>()
     });
   })
   .post(
-    '/:id/booking-reports',
+    '/:id/reported-bookings',
     bodyLimit({
-      maxSize: MANUAL_BOOKING_REPORT_BODY_LIMIT_BYTES,
+      maxSize: REPORTED_BOOKINGS_BODY_LIMIT_BYTES,
       onError: (c) =>
         c.json(
           apiError(
             'validation_failed',
-            'Booking report is too large. Save fewer bookings at a time.',
+            'Reported bookings payload is too large. Save fewer bookings at a time.',
           ),
           413,
         ),
@@ -287,15 +287,15 @@ export const campaignsRoutes = new Hono<AppEnv>()
     async (c) => {
       const parsed = await parseJsonBody(
         c,
-        createManualBookingReportSchema,
-        'Invalid booking report.',
+        createReportedBookingsSchema,
+        'Invalid reported bookings.',
       );
 
       if (!parsed.ok) {
         return parsed.response;
       }
 
-      const result = await createManualBookingReport(c.get('db'), {
+      const result = await createReportedBookings(c.get('db'), {
         organizationId: c.get('organization').id,
         campaignId: c.req.param('id'),
         actorUserId: c.get('user').id,
@@ -326,7 +326,16 @@ export const campaignsRoutes = new Hono<AppEnv>()
         );
       }
 
-      return c.json({ bookingReport: result.report }, 201);
+      if (result.status === 'invalid_recipient') {
+        return c.json(
+          apiError('validation_failed', 'Choose a campaign contact.', {
+            rowIndex: result.rowIndex,
+          }),
+          400,
+        );
+      }
+
+      return c.json({ reportedBookings: result.reportedBookings }, 201);
     },
   )
   .post('/:id/send', async (c) => {

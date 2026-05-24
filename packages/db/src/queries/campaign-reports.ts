@@ -2,10 +2,10 @@ import { sql } from 'drizzle-orm';
 import type { CampaignReport } from '@retaino/shared/contracts';
 import type { DbClient } from '../client';
 import {
-  bookingReports,
   campaignMessageEvents,
   campaignRecipients,
   clickEvents,
+  contacts,
   organizationProfiles,
   reportedBookings,
   smsMessages,
@@ -79,15 +79,15 @@ export async function getCampaignReport(
       where ${organizationProfiles.organizationId} = input.organization_id
       limit 1
     ),
-    manual_outcome as (
+    reported_outcome as (
       select
-        count(${reportedBookings.id})::integer as manual_booking_count,
+        count(${reportedBookings.id})::integer as reported_booking_count,
         case
           when count(distinct ${reportedBookings.currency}) filter (
             where ${reportedBookings.revenueAmountMinor} is not null
           ) > 1 then null
           else coalesce(sum(${reportedBookings.revenueAmountMinor}), 0)::bigint
-        end as manual_revenue_amount_minor,
+        end as reported_revenue_amount_minor,
         coalesce(
           max(${reportedBookings.currency}) filter (
             where ${reportedBookings.revenueAmountMinor} is not null
@@ -95,136 +95,71 @@ export async function getCampaignReport(
           max(${reportedBookings.currency}),
           (select currency from organization_profile),
           ${'SEK'}
-        ) as manual_revenue_currency,
+        ) as reported_revenue_currency,
         (
           count(distinct ${reportedBookings.currency}) filter (
             where ${reportedBookings.revenueAmountMinor} is not null
           ) > 1
-        ) as manual_has_mixed_currencies
-      from ${bookingReports}
-      left join ${reportedBookings}
-        on ${reportedBookings.bookingReportId} = ${bookingReports.id}
-        and ${reportedBookings.organizationId} = ${bookingReports.organizationId}
+        ) as reported_has_mixed_currencies
+      from ${reportedBookings}
       join input
-        on ${bookingReports.campaignId} = input.campaign_id
-        and ${bookingReports.organizationId} = input.organization_id
-    ),
-    booking_report_rows as (
-      select
-        ${bookingReports.id},
-        ${bookingReports.organizationId},
-        ${bookingReports.campaignId},
-        ${bookingReports.source},
-        ${bookingReports.status},
-        ${bookingReports.checkedThroughDate},
-        ${bookingReports.note},
-        count(${reportedBookings.id})::integer as booking_count,
-        case
-          when count(distinct ${reportedBookings.currency}) filter (
-            where ${reportedBookings.revenueAmountMinor} is not null
-          ) > 1 then null
-          else coalesce(sum(${reportedBookings.revenueAmountMinor}), 0)::bigint
-        end as revenue_amount_minor,
-        coalesce(
-          max(${reportedBookings.currency}) filter (
-            where ${reportedBookings.revenueAmountMinor} is not null
-          ),
-          max(${reportedBookings.currency}),
-          (select currency from organization_profile),
-          ${'SEK'}
-        ) as currency,
-        (
-          count(distinct ${reportedBookings.currency}) filter (
-            where ${reportedBookings.revenueAmountMinor} is not null
-          ) > 1
-        ) as has_mixed_currencies,
-        ${bookingReports.createdByUserId},
-        ${bookingReports.createdAt}
-      from ${bookingReports}
-      left join ${reportedBookings}
-        on ${reportedBookings.bookingReportId} = ${bookingReports.id}
-        and ${reportedBookings.organizationId} = ${bookingReports.organizationId}
-      join input
-        on ${bookingReports.campaignId} = input.campaign_id
-        and ${bookingReports.organizationId} = input.organization_id
-      group by
-        ${bookingReports.id},
-        ${bookingReports.organizationId},
-        ${bookingReports.campaignId},
-        ${bookingReports.source},
-        ${bookingReports.status},
-        ${bookingReports.checkedThroughDate},
-        ${bookingReports.note},
-        ${bookingReports.createdByUserId},
-        ${bookingReports.createdAt}
-      order by ${bookingReports.createdAt} desc
+        on ${reportedBookings.campaignId} = input.campaign_id
+        and ${reportedBookings.organizationId} = input.organization_id
     ),
     reported_booking_rows as (
       select
         ${reportedBookings.id},
-        ${reportedBookings.bookingReportId},
+        ${reportedBookings.campaignId},
+        ${reportedBookings.campaignRecipientId},
+        ${reportedBookings.contactId},
+        ${reportedBookings.source},
+        ${reportedBookings.createdByUserId},
         ${reportedBookings.bookingDate},
-        ${reportedBookings.customerName},
-        ${reportedBookings.phone},
-        ${reportedBookings.email},
         ${reportedBookings.revenueAmountMinor},
         ${reportedBookings.currency},
         ${reportedBookings.service},
         ${reportedBookings.note},
-        ${reportedBookings.createdAt}
+        ${reportedBookings.createdAt},
+        ${contacts.name} as contact_name,
+        ${contacts.phone} as contact_phone,
+        ${contacts.email} as contact_email
       from ${reportedBookings}
-      join booking_report_rows
-        on ${reportedBookings.bookingReportId} = booking_report_rows.id
-        and ${reportedBookings.organizationId} =
-          booking_report_rows.organization_id
+      left join ${contacts}
+        on ${contacts.id} = ${reportedBookings.contactId}
+        and ${contacts.organizationId} = ${reportedBookings.organizationId}
+      join input
+        on ${reportedBookings.campaignId} = input.campaign_id
+        and ${reportedBookings.organizationId} = input.organization_id
     ),
-    booking_report_summaries as (
+    reported_booking_summaries as (
       select coalesce(
         json_agg(
           json_build_object(
-            'id', booking_report_rows.id,
-            'campaignId', booking_report_rows.campaign_id,
-            'source', booking_report_rows.source,
-            'status', booking_report_rows.status,
-            'checkedThroughDate', booking_report_rows.checked_through_date,
-            'note', booking_report_rows.note,
-            'bookingCount', booking_report_rows.booking_count,
-            'revenueAmountMinor', booking_report_rows.revenue_amount_minor,
-            'currency', booking_report_rows.currency,
-            'hasMixedCurrencies', booking_report_rows.has_mixed_currencies,
-            'createdByUserId', booking_report_rows.created_by_user_id,
-            'createdAt', booking_report_rows.created_at,
-            'bookings', coalesce(
-              (
-                select json_agg(
-                  json_build_object(
-                    'id', reported_booking_rows.id,
-                    'bookingDate', reported_booking_rows.booking_date,
-                    'customerName', reported_booking_rows.customer_name,
-                    'phone', reported_booking_rows.phone,
-                    'email', reported_booking_rows.email,
-                    'revenueAmountMinor',
-                      reported_booking_rows.revenue_amount_minor,
-                    'currency', reported_booking_rows.currency,
-                    'service', reported_booking_rows.service,
-                    'note', reported_booking_rows.note,
-                    'createdAt', reported_booking_rows.created_at
-                  )
-                  order by reported_booking_rows.booking_date desc,
-                    reported_booking_rows.created_at desc
-                )
-                from reported_booking_rows
-                where reported_booking_rows.booking_report_id =
-                  booking_report_rows.id
-              ),
-              '[]'::json
+            'id', reported_booking_rows.id,
+            'campaignId', reported_booking_rows.campaign_id,
+            'campaignRecipientId', reported_booking_rows.campaign_recipient_id,
+            'contactId', reported_booking_rows.contact_id,
+            'source', reported_booking_rows.source,
+            'createdByUserId', reported_booking_rows.created_by_user_id,
+            'bookingDate', reported_booking_rows.booking_date,
+            'revenueAmountMinor', reported_booking_rows.revenue_amount_minor,
+            'currency', reported_booking_rows.currency,
+            'service', reported_booking_rows.service,
+            'note', reported_booking_rows.note,
+            'createdAt', reported_booking_rows.created_at,
+            'contact', json_build_object(
+              'id', reported_booking_rows.contact_id,
+              'name', reported_booking_rows.contact_name,
+              'phone', reported_booking_rows.contact_phone,
+              'email', reported_booking_rows.contact_email
             )
           )
-          order by booking_report_rows.created_at desc
+          order by reported_booking_rows.booking_date desc,
+            reported_booking_rows.created_at desc
         ),
         '[]'::json
-      ) as booking_reports
-      from booking_report_rows
+      ) as reported_bookings
+      from reported_booking_rows
     )
     select
       recipient_counts.selected_count,
@@ -239,13 +174,13 @@ export async function getCampaignReport(
       click_counts.unique_clicker_count,
       message_counts.estimated_sms_segments,
       message_counts.actual_sms_segments,
-      manual_outcome.manual_booking_count,
-      manual_outcome.manual_revenue_amount_minor,
-      manual_outcome.manual_revenue_currency,
-      manual_outcome.manual_has_mixed_currencies,
-      booking_report_summaries.booking_reports
+      reported_outcome.reported_booking_count,
+      reported_outcome.reported_revenue_amount_minor,
+      reported_outcome.reported_revenue_currency,
+      reported_outcome.reported_has_mixed_currencies,
+      reported_booking_summaries.reported_bookings
     from recipient_counts, message_counts, event_counts, click_counts,
-      manual_outcome, booking_report_summaries
+      reported_outcome, reported_booking_summaries
   `);
   const [row = {}] = Array.from(result.rows ?? []) as Array<
     Record<string, unknown>
@@ -265,62 +200,25 @@ export async function getCampaignReport(
     actualSmsSegments: intValue(row.actual_sms_segments),
     segmentEstimateDrift:
       intValue(row.actual_sms_segments) - intValue(row.estimated_sms_segments),
-    manualOutcome: {
-      bookingCount: intValue(row.manual_booking_count),
-      revenueAmountMinor: nullableIntValue(row.manual_revenue_amount_minor),
-      currency: stringValue(row.manual_revenue_currency) ?? 'SEK',
-      hasMixedCurrencies: booleanValue(row.manual_has_mixed_currencies),
+    reportedOutcome: {
+      bookingCount: intValue(row.reported_booking_count),
+      revenueAmountMinor: nullableIntValue(row.reported_revenue_amount_minor),
+      currency: stringValue(row.reported_revenue_currency) ?? 'SEK',
+      hasMixedCurrencies: booleanValue(row.reported_has_mixed_currencies),
       bookingRate:
         intValue(row.delivered_count) > 0
-          ? intValue(row.manual_booking_count) / intValue(row.delivered_count)
+          ? intValue(row.reported_booking_count) / intValue(row.delivered_count)
           : 0,
-      revenuePerDeliveredRecipientMinor:
-        intValue(row.delivered_count) > 0 &&
-        row.manual_revenue_amount_minor !== null
-          ? Math.round(
-              intValue(row.manual_revenue_amount_minor) /
-                intValue(row.delivered_count),
-            )
-          : null,
     },
-    bookingReports: bookingReportsValue(row.booking_reports),
+    reportedBookings: reportedBookingsValue(row.reported_bookings),
   };
 
   return report;
 }
 
-function bookingReportsValue(value: unknown): CampaignReport['bookingReports'] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.map((row) => {
-    const report = row as Record<string, unknown>;
-
-    return {
-      id: stringValue(report.id) ?? '',
-      campaignId: stringValue(report.campaignId) ?? '',
-      source: 'manual',
-      status: 'completed',
-      checkedThroughDate: stringValue(report.checkedThroughDate),
-      note: stringValue(report.note),
-      bookingCount: intValue(report.bookingCount),
-      revenueAmountMinor: nullableIntValue(report.revenueAmountMinor),
-      currency: stringValue(report.currency) ?? 'SEK',
-      hasMixedCurrencies: booleanValue(report.hasMixedCurrencies),
-      createdByUserId: stringValue(report.createdByUserId) ?? '',
-      createdAt:
-        report.createdAt instanceof Date
-          ? report.createdAt.toISOString()
-          : stringValue(report.createdAt) ?? '',
-      bookings: reportedBookingsValue(report.bookings),
-    };
-  });
-}
-
 function reportedBookingsValue(
   value: unknown,
-): CampaignReport['bookingReports'][number]['bookings'] {
+): CampaignReport['reportedBookings'] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -330,10 +228,12 @@ function reportedBookingsValue(
 
     return {
       id: stringValue(booking.id) ?? '',
+      campaignId: stringValue(booking.campaignId) ?? '',
+      campaignRecipientId: stringValue(booking.campaignRecipientId) ?? '',
+      contactId: stringValue(booking.contactId) ?? '',
+      source: 'manual',
+      createdByUserId: stringValue(booking.createdByUserId) ?? '',
       bookingDate: stringValue(booking.bookingDate) ?? '',
-      customerName: stringValue(booking.customerName),
-      phone: stringValue(booking.phone),
-      email: stringValue(booking.email),
       revenueAmountMinor: nullableIntValue(booking.revenueAmountMinor),
       currency: stringValue(booking.currency) ?? 'SEK',
       service: stringValue(booking.service),
@@ -342,8 +242,20 @@ function reportedBookingsValue(
         booking.createdAt instanceof Date
           ? booking.createdAt.toISOString()
           : stringValue(booking.createdAt) ?? '',
+      contact: contactValue(booking.contact),
     };
   });
+}
+
+function contactValue(value: unknown) {
+  const contact = value as Record<string, unknown> | null;
+
+  return {
+    id: stringValue(contact?.id) ?? '',
+    name: stringValue(contact?.name),
+    phone: stringValue(contact?.phone),
+    email: stringValue(contact?.email),
+  };
 }
 
 function intValue(value: unknown) {

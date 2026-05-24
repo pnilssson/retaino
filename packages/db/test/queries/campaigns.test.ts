@@ -13,7 +13,7 @@ import {
   markCampaignRecipientSent,
   markCampaignSendCompleted,
   markCampaignSendFailed,
-  searchCampaignRecipientsForBookingReport,
+  searchCampaignRecipientsForReportedBookings,
   startCampaignSend,
   updateCampaignDraft,
 } from '../../src/queries/campaigns';
@@ -463,7 +463,7 @@ describe('campaign query helpers', () => {
     expect(query.params).toEqual([campaignRow.organizationId, campaignRow.id]);
   });
 
-  it('searches campaign recipients by name phone or email for booking reports', async () => {
+  it('searches campaign recipients by name phone or email for reported bookings', async () => {
     let whereCondition: SQL | undefined;
     const db = {
       select: () => ({
@@ -476,6 +476,7 @@ describe('campaign query helpers', () => {
                 limit: () => [
                   {
                     id: recipientRow.id,
+                    contactId: recipientRow.contactId,
                     name: recipientRow.name,
                     phone: recipientRow.phone,
                     email: recipientRow.email,
@@ -489,7 +490,7 @@ describe('campaign query helpers', () => {
     };
 
     await expect(
-      searchCampaignRecipientsForBookingReport(db as never, {
+      searchCampaignRecipientsForReportedBookings(db as never, {
         organizationId: campaignRow.organizationId,
         campaignId: campaignRow.id,
         search: 'ada',
@@ -498,6 +499,7 @@ describe('campaign query helpers', () => {
       recipients: [
         {
           id: recipientRow.id,
+          contactId: recipientRow.contactId,
           name: recipientRow.name,
           phone: recipientRow.phone,
           email: recipientRow.email,
@@ -520,13 +522,13 @@ describe('campaign query helpers', () => {
     expect(query.params).toContain('%ada%');
   });
 
-  it('does not search campaign recipients for short booking report queries', async () => {
+  it('does not search campaign recipients for short reported booking queries', async () => {
     const db = {
       select: vi.fn(),
     };
 
     await expect(
-      searchCampaignRecipientsForBookingReport(db as never, {
+      searchCampaignRecipientsForReportedBookings(db as never, {
         organizationId: campaignRow.organizationId,
         campaignId: campaignRow.id,
         search: 'a',

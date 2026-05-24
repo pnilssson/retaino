@@ -30,9 +30,8 @@ export const CAMPAIGN_RECIPIENT_STATUSES = [
   'skipped',
 ] as const;
 export const SMS_MESSAGE_DIRECTIONS = ['inbound', 'outbound'] as const;
-export const BOOKING_REPORT_SOURCES = ['manual'] as const;
-export const BOOKING_REPORT_STATUSES = ['completed'] as const;
-export const MAX_MANUAL_BOOKING_REPORT_ROWS = 50;
+export const REPORTED_BOOKING_SOURCES = ['manual'] as const;
+export const MAX_REPORTED_BOOKING_ROWS = 50;
 
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
 export type CampaignRecipientStatus =
@@ -41,8 +40,7 @@ export type SmsMessageDirection = (typeof SMS_MESSAGE_DIRECTIONS)[number];
 export type SmsSenderProvider = (typeof SMS_SENDER_PROVIDERS)[number];
 export type SmsSenderStatus = (typeof SMS_SENDER_STATUSES)[number];
 export type SmsSenderNumberType = (typeof SMS_SENDER_NUMBER_TYPES)[number];
-export type BookingReportSource = (typeof BOOKING_REPORT_SOURCES)[number];
-export type BookingReportStatus = (typeof BOOKING_REPORT_STATUSES)[number];
+export type ReportedBookingSource = (typeof REPORTED_BOOKING_SOURCES)[number];
 
 export const campaignStatusSchema = z.enum(CAMPAIGN_STATUSES);
 export const campaignRecipientStatusSchema = z.enum(
@@ -52,8 +50,7 @@ export const smsMessageDirectionSchema = z.enum(SMS_MESSAGE_DIRECTIONS);
 export const smsSenderProviderSchema = z.enum(SMS_SENDER_PROVIDERS);
 export const smsSenderStatusSchema = z.enum(SMS_SENDER_STATUSES);
 export const smsSenderNumberTypeSchema = z.enum(SMS_SENDER_NUMBER_TYPES);
-export const bookingReportSourceSchema = z.enum(BOOKING_REPORT_SOURCES);
-export const bookingReportStatusSchema = z.enum(BOOKING_REPORT_STATUSES);
+export const reportedBookingSourceSchema = z.enum(REPORTED_BOOKING_SOURCES);
 
 export const CAMPAIGN_SMS_PERSONALIZATION_TOKENS = [
   'first_name',
@@ -175,42 +172,33 @@ export const campaignReportSchema = z.object({
   estimatedSmsSegments: z.number().int().nonnegative(),
   actualSmsSegments: z.number().int().nonnegative(),
   segmentEstimateDrift: z.number().int(),
-  manualOutcome: z.object({
+  reportedOutcome: z.object({
     bookingCount: z.number().int().nonnegative(),
     revenueAmountMinor: z.number().int().nonnegative().nullable(),
     currency: currencyCodeSchema,
     hasMixedCurrencies: z.boolean(),
     bookingRate: z.number().nonnegative(),
-    revenuePerDeliveredRecipientMinor: z.number().int().nonnegative().nullable(),
   }),
-  bookingReports: z.array(
+  reportedBookings: z.array(
     z.object({
       id: idSchema,
       campaignId: idSchema,
-      source: bookingReportSourceSchema,
-      status: bookingReportStatusSchema,
-      checkedThroughDate: z.iso.date().nullable(),
-      note: nonEmptyStringSchema.nullable(),
-      bookingCount: z.number().int().nonnegative(),
+      campaignRecipientId: idSchema,
+      contactId: idSchema,
+      source: reportedBookingSourceSchema,
+      createdByUserId: idSchema,
+      bookingDate: z.iso.date(),
       revenueAmountMinor: z.number().int().nonnegative().nullable(),
       currency: currencyCodeSchema,
-      hasMixedCurrencies: z.boolean(),
-      createdByUserId: idSchema,
+      service: nonEmptyStringSchema.nullable(),
+      note: nonEmptyStringSchema.nullable(),
       createdAt: timestampSchema,
-      bookings: z.array(
-        z.object({
-          id: idSchema,
-          bookingDate: z.iso.date(),
-          customerName: nonEmptyStringSchema.nullable(),
-          phone: nonEmptyStringSchema.nullable(),
-          email: nonEmptyStringSchema.nullable(),
-          revenueAmountMinor: z.number().int().nonnegative().nullable(),
-          currency: currencyCodeSchema,
-          service: nonEmptyStringSchema.nullable(),
-          note: nonEmptyStringSchema.nullable(),
-          createdAt: timestampSchema,
-        }),
-      ),
+      contact: z.object({
+        id: idSchema,
+        name: nonEmptyStringSchema.nullable(),
+        phone: nonEmptyStringSchema.nullable(),
+        email: nonEmptyStringSchema.nullable(),
+      }),
     }),
   ),
 });
@@ -219,8 +207,8 @@ export const campaignReportResponseSchema = z.object({
   report: campaignReportSchema,
 });
 
-export const manualBookingReportSummarySchema =
-  campaignReportSchema.shape.bookingReports.element;
+export const reportedBookingSchema =
+  campaignReportSchema.shape.reportedBookings.element;
 
 function optionalBookingTextSchema(maxLength: number) {
   return z
@@ -231,51 +219,28 @@ function optionalBookingTextSchema(maxLength: number) {
     .optional();
 }
 
-export const manualBookingReportRowSchema = z
+export const reportedBookingRowSchema = z
   .object({
+    campaignRecipientId: idSchema,
+    contactId: idSchema,
     bookingDate: z.iso.date(),
-    customerName: optionalBookingTextSchema(120),
-    phone: optionalBookingTextSchema(64),
-    email: z
-      .string()
-      .trim()
-      .max(254)
-      .transform((value) => (value ? value : undefined))
-      .pipe(z.email().optional())
-      .optional(),
     revenueAmount: optionalBookingTextSchema(32),
     service: optionalBookingTextSchema(120),
     note: optionalBookingTextSchema(500),
   })
-  .strict()
-  .refine(
-    (value) =>
-      Boolean(
-        value.customerName ||
-          value.phone ||
-          value.email ||
-          value.revenueAmount ||
-          value.service ||
-          value.note,
-      ),
-    {
-      message: 'Enter at least one booking detail.',
-    },
-  );
+  .strict();
 
-export const createManualBookingReportSchema = z
+export const createReportedBookingsSchema = z
   .object({
-    checkedThroughDate: z.iso.date().optional(),
-    note: optionalBookingTextSchema(500),
     bookings: z
-      .array(manualBookingReportRowSchema)
+      .array(reportedBookingRowSchema)
       .min(1)
-      .max(MAX_MANUAL_BOOKING_REPORT_ROWS),
+      .max(MAX_REPORTED_BOOKING_ROWS),
   })
   .strict();
 
-export const createManualBookingReportResponseSchema = z.object({
-  bookingReport: manualBookingReportSummarySchema,
+export const createReportedBookingsResponseSchema = z.object({
+  reportedBookings: z.array(reportedBookingSchema).min(1),
 });
 
 export const campaignAudiencePreviewRequestSchema = z
@@ -448,6 +413,7 @@ export const campaignRecipientSummaryResponseSchema = z.object({
 
 export const campaignRecipientSearchItemSchema = z.object({
   id: idSchema,
+  contactId: idSchema,
   name: nonEmptyStringSchema.nullable(),
   phone: nonEmptyStringSchema.nullable(),
   email: nonEmptyStringSchema.nullable(),
@@ -534,14 +500,14 @@ export type CampaignRecipientSearchResponse = z.infer<
   typeof campaignRecipientSearchResponseSchema
 >;
 export type CampaignSendResponse = z.infer<typeof campaignSendResponseSchema>;
-export type CreateManualBookingReportInput = z.infer<
-  typeof createManualBookingReportSchema
+export type CreateReportedBookingsInput = z.infer<
+  typeof createReportedBookingsSchema
 >;
-export type CreateManualBookingReportResponse = z.infer<
-  typeof createManualBookingReportResponseSchema
+export type CreateReportedBookingsResponse = z.infer<
+  typeof createReportedBookingsResponseSchema
 >;
-export type ManualBookingReportRowInput = z.infer<
-  typeof manualBookingReportRowSchema
+export type ReportedBookingRowInput = z.infer<
+  typeof reportedBookingRowSchema
 >;
 
 export type CampaignResponse = {

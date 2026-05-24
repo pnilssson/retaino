@@ -2,13 +2,13 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
-  CreateManualBookingReportInput,
-  CreateManualBookingReportResponse,
+  CreateReportedBookingsInput,
+  CreateReportedBookingsResponse,
 } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
 import { campaignsQueryKeys } from '../query-keys';
 
-export function useCreateBookingReport({
+export function useCreateReportedBookings({
   campaignId,
   organizationId,
 }: {
@@ -19,13 +19,13 @@ export function useCreateBookingReport({
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: CreateManualBookingReportInput) => {
+    mutationFn: (input: CreateReportedBookingsInput) => {
       if (!campaignId) {
         throw new Error('Choose a campaign before adding bookings.');
       }
 
-      return api.post<CreateManualBookingReportResponse>(
-        `/v1/campaigns/${campaignId}/booking-reports`,
+      return api.post<CreateReportedBookingsResponse>(
+        `/v1/campaigns/${campaignId}/reported-bookings`,
         input,
       );
     },

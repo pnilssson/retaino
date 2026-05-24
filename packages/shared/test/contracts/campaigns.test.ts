@@ -5,7 +5,7 @@ import {
   campaignAudienceRuleSchema,
   campaignReportResponseSchema,
   campaignRecipientSearchResponseSchema,
-  createManualBookingReportSchema,
+  createReportedBookingsSchema,
   campaignRecipientSummaryResponseSchema,
   campaignSendResponseSchema,
   campaignSmsPreviewResponseSchema,
@@ -15,7 +15,7 @@ import {
   createCampaignDraftSchema,
   organizationSmsSenderResponseSchema,
   provisionOrganizationSmsSenderSchema,
-  MAX_MANUAL_BOOKING_REPORT_ROWS,
+  MAX_REPORTED_BOOKING_ROWS,
   smsSenderCountriesResponseSchema,
   smsSenderNumbersRequestSchema,
   updateCampaignDraftSchema,
@@ -428,42 +428,33 @@ describe('campaign contracts', () => {
           estimatedSmsSegments: 10,
           actualSmsSegments: 9,
           segmentEstimateDrift: -1,
-          manualOutcome: {
+          reportedOutcome: {
             bookingCount: 2,
             revenueAmountMinor: 320000,
             currency: 'SEK',
             hasMixedCurrencies: false,
             bookingRate: 0.25,
-            revenuePerDeliveredRecipientMinor: 40000,
           },
-          bookingReports: [
+          reportedBookings: [
             {
               id: '11111111-1111-4111-8111-111111111111',
               campaignId: '22222222-2222-4222-8222-222222222222',
+              campaignRecipientId: '55555555-5555-4555-8555-555555555555',
+              contactId: '66666666-6666-4666-8666-666666666666',
               source: 'manual',
-              status: 'completed',
-              checkedThroughDate: '2026-05-22',
-              note: 'Checked Bokadirekt',
-              bookingCount: 2,
-              revenueAmountMinor: 320000,
-              currency: 'SEK',
-              hasMixedCurrencies: false,
               createdByUserId: '33333333-3333-4333-8333-333333333333',
+              bookingDate: '2026-05-21',
+              revenueAmountMinor: 125050,
+              currency: 'SEK',
+              service: 'Cut and color',
+              note: null,
               createdAt: '2026-05-22T10:00:00.000Z',
-              bookings: [
-                {
-                  id: '44444444-4444-4444-8444-444444444444',
-                  bookingDate: '2026-05-21',
-                  customerName: 'Ada Lovelace',
-                  phone: '+46700000000',
-                  email: 'ada@example.com',
-                  revenueAmountMinor: 125050,
-                  currency: 'SEK',
-                  service: 'Cut and color',
-                  note: null,
-                  createdAt: '2026-05-22T10:00:00.000Z',
-                },
-              ],
+              contact: {
+                id: '66666666-6666-4666-8666-666666666666',
+                name: 'Ada Lovelace',
+                phone: '+46700000000',
+                email: 'ada@example.com',
+              },
             },
           ],
         },
@@ -477,12 +468,14 @@ describe('campaign contracts', () => {
         recipients: [
           {
             id: '11111111-1111-4111-8111-111111111111',
+            contactId: '55555555-5555-4555-8555-555555555555',
             name: 'Ada Lovelace',
             phone: '+46700000000',
             email: 'ada@example.com',
           },
           {
             id: '22222222-2222-4222-8222-222222222222',
+            contactId: '66666666-6666-4666-8666-666666666666',
             name: null,
             phone: '+46711111111',
             email: null,
@@ -492,91 +485,96 @@ describe('campaign contracts', () => {
     ).toHaveLength(2);
   });
 
-  it('accepts a manual booking report with multiple rows', () => {
+  it('accepts direct reported bookings with multiple rows', () => {
     expect(
-      createManualBookingReportSchema.parse({
-        checkedThroughDate: '2026-05-22',
-        note: 'Checked campaign code',
+      createReportedBookingsSchema.parse({
         bookings: [
           {
             bookingDate: '2026-05-21',
-            customerName: 'Ada Lovelace',
-            phone: '0700000000',
+            campaignRecipientId: '11111111-1111-4111-8111-111111111111',
+            contactId: '22222222-2222-4222-8222-222222222222',
             revenueAmount: '1250,50',
             service: 'Cut and color',
           },
           {
             bookingDate: '2026-05-22',
-            email: 'grace@example.com',
+            campaignRecipientId: '33333333-3333-4333-8333-333333333333',
+            contactId: '44444444-4444-4444-8444-444444444444',
             note: 'Called after SMS',
           },
         ],
       }),
     ).toMatchObject({
-      checkedThroughDate: '2026-05-22',
       bookings: [
         {
           bookingDate: '2026-05-21',
+          campaignRecipientId: '11111111-1111-4111-8111-111111111111',
           revenueAmount: '1250,50',
         },
         {
           bookingDate: '2026-05-22',
-          email: 'grace@example.com',
+          campaignRecipientId: '33333333-3333-4333-8333-333333333333',
         },
       ],
     });
   });
 
-  it('rejects empty manual booking reports and empty booking rows', () => {
+  it('rejects empty reported booking submissions and incomplete booking rows', () => {
     expect(
-      createManualBookingReportSchema.safeParse({
+      createReportedBookingsSchema.safeParse({
         bookings: [],
       }).success,
     ).toBe(false);
     expect(
-      createManualBookingReportSchema.safeParse({
+      createReportedBookingsSchema.safeParse({
         bookings: [
           {
             bookingDate: '2026-05-22',
+            contactId: '22222222-2222-4222-8222-222222222222',
           },
         ],
       }).success,
     ).toBe(false);
   });
 
-  it('caps manual booking reports to lightweight batches', () => {
+  it('caps reported bookings to lightweight batches', () => {
     expect(
-      createManualBookingReportSchema.safeParse({
+      createReportedBookingsSchema.safeParse({
         bookings: Array.from(
-          { length: MAX_MANUAL_BOOKING_REPORT_ROWS + 1 },
+          { length: MAX_REPORTED_BOOKING_ROWS + 1 },
           () => ({
             bookingDate: '2026-05-22',
-            customerName: 'Ada Lovelace',
+            campaignRecipientId: '11111111-1111-4111-8111-111111111111',
+            contactId: '22222222-2222-4222-8222-222222222222',
+            service: 'Cut',
           }),
         ),
       }).success,
     ).toBe(false);
   });
 
-  it('caps manual booking report text fields', () => {
+  it('caps reported booking text fields', () => {
     expect(
-      createManualBookingReportSchema.safeParse({
-        note: 'x'.repeat(501),
+      createReportedBookingsSchema.safeParse({
         bookings: [
           {
             bookingDate: '2026-05-22',
-            customerName: 'Ada Lovelace',
+            campaignRecipientId: '11111111-1111-4111-8111-111111111111',
+            contactId: '22222222-2222-4222-8222-222222222222',
+            note: 'x'.repeat(501),
           },
         ],
       }).success,
     ).toBe(false);
 
     expect(
-      createManualBookingReportSchema.safeParse({
+      createReportedBookingsSchema.safeParse({
         bookings: [
           {
             bookingDate: '2026-05-22',
-            customerName: 'x'.repeat(121),
+            campaignRecipientId: '11111111-1111-4111-8111-111111111111',
+            contactId: '22222222-2222-4222-8222-222222222222',
+            service: 'x'.repeat(121),
           },
         ],
       }).success,

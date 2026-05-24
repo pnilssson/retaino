@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import type { Campaign } from '@retaino/shared/contracts';
 import { createCampaignSmsPreview } from '@retaino/shared';
+import { Send, UsersRound } from 'lucide-react';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
 import { textStyles } from '@/lib/text-styles';
@@ -91,8 +92,17 @@ export function CampaignReview({
             label={senderReady ? 'Sender ready' : 'Sender not ready'}
             tone={senderReady ? 'green' : 'amber'}
           />
-          <StatusBadge label={audienceLabel} tone="blue" />
           <StatusBadge
+            icon={<UsersRound aria-hidden="true" className="size-3" />}
+            label={audienceLabel}
+            tone="blue"
+          />
+          <StatusBadge
+            icon={
+              estimatedCredits === null ? undefined : (
+                <Send aria-hidden="true" className="size-3" />
+              )
+            }
             label={usageLabel}
             tone={estimatedCredits === null ? 'amber' : 'gray'}
           />

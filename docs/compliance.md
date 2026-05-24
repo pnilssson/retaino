@@ -1,6 +1,6 @@
 # Compliance
 
-Retaino handles marketing recipients, campaign events, manual booking reports,
+Retaino handles marketing recipients, campaign events, reported bookings,
 future booking exports, and revenue reporting. Treat imported and generated
 artifacts as sensitive.
 
@@ -10,7 +10,7 @@ This is product and engineering guidance, not legal advice.
 
 The customer is the controller for their customer list and campaign purpose.
 Retaino is the processor for imported contacts, campaign sends, tracking events,
-manual booking reports, and future reconciliation data.
+reported bookings, and future reconciliation data.
 
 Organizations are the tenant boundary. Access rules live in
 `docs/architecture.md`.
@@ -71,8 +71,8 @@ execution.
 
 ## Data Minimization
 
-For MVP, store only fields needed for import, sending, tracking, and manual
-booking reports:
+For MVP, store only fields needed for import, sending, tracking, and reported
+bookings:
 
 - name
 - phone
@@ -103,7 +103,7 @@ retention requirement.
 
 Use `audit_logs` for user-driven decisions and administrative actions: legal
 acceptance, import metadata, mapping, validation, dedupe, suppression removal,
-campaign rules, SMS copy, launch decisions, manual booking reports, and future
+campaign rules, SMS copy, launch decisions, reported bookings, and future
 booking reconciliation changes.
 
 Use event tables as the audit trail for operational campaign activity:
@@ -118,7 +118,7 @@ MVP retention defaults:
 - normalized contacts: keep while the organization is active or until deletion
   is requested
 - campaign events: keep for reporting and audit during the customer lifecycle
-- manual booking reports: keep only fields needed for outcome reporting
+- reported bookings: keep only fields needed for outcome reporting
 - future booking imports: keep only mapped fields needed for attribution and
   reporting
 
@@ -135,4 +135,4 @@ Minimum requirements:
 - no cross-tenant matching, exports, or dashboard aggregation
 - signed or unguessable short-link codes
 - rate limiting on redirects and upload endpoints
-- audit trail for destructive actions and manual booking report changes
+- audit trail for destructive actions and reported booking changes

@@ -356,7 +356,7 @@ export async function countCampaignRecipients(
   return { recipientCount: row?.total ?? 0 };
 }
 
-export async function searchCampaignRecipientsForBookingReport(
+export async function searchCampaignRecipientsForReportedBookings(
   db: DbClient,
   input: { organizationId: string; campaignId: string; search: string },
 ): Promise<{ recipients: CampaignRecipientSearchItem[] }> {
@@ -370,6 +370,7 @@ export async function searchCampaignRecipientsForBookingReport(
   const rows = await db
     .select({
       id: campaignRecipients.id,
+      contactId: campaignRecipients.contactId,
       name: campaignRecipients.name,
       phone: campaignRecipients.phone,
       email: campaignRecipients.email,
@@ -379,6 +380,7 @@ export async function searchCampaignRecipientsForBookingReport(
       and(
         eq(campaignRecipients.organizationId, input.organizationId),
         eq(campaignRecipients.campaignId, input.campaignId),
+        isNotNull(campaignRecipients.contactId),
         inArray(campaignRecipients.status, ['selected', 'queued', 'sent']),
         or(
           ilike(campaignRecipients.name, `%${search}%`),
@@ -390,7 +392,15 @@ export async function searchCampaignRecipientsForBookingReport(
     .orderBy(asc(campaignRecipients.name), asc(campaignRecipients.createdAt))
     .limit(8);
 
-  return { recipients: rows };
+  return {
+    recipients: rows.map((row) => ({
+      id: row.id,
+      contactId: row.contactId as string,
+      name: row.name,
+      phone: row.phone,
+      email: row.email,
+    })),
+  };
 }
 
 export async function listSelectedCampaignRecipientsForSend(

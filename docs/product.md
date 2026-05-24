@@ -38,7 +38,7 @@ bookings and revenue did the team report afterward?
 5. Dedicated organization SMS sender setup, SMS preview, segment counting, and
    test sends.
 6. Campaign launch with recipient snapshots, short links, and send execution.
-7. Manual booking reports for campaign outcome reporting.
+7. Reported bookings for campaign outcome reporting.
 8. Spreadsheet booking import and reconciliation after manual reporting proves
    useful.
 
@@ -63,7 +63,7 @@ Required:
 - campaign code, offer code, or campaign reference for manual outcome reporting
 - STOP handling, suppression lists, and retention of other inbound replies for
   future inbox support
-- manual booking reports for campaign bookings and revenue
+- reported bookings for campaign bookings and revenue
 - campaign dashboard for delivery, clicks, replies, opt-outs, reported
   bookings, and reported revenue
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Check, CircleAlert, CircleDashed, CircleDot, Info } from 'lucide-react';
+import { Check, CircleAlert, CircleDot, Info, TriangleAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -54,11 +54,11 @@ function StatusBadgeIcon({ tone }: { tone: StatusBadgeTone }) {
   }
 
   if (tone === 'amber') {
-    return <Info aria-hidden="true" className="size-3" />;
+    return <TriangleAlert aria-hidden="true" className="size-3" />;
   }
 
   if (tone === 'blue') {
-    return <CircleDashed aria-hidden="true" className="size-3" />;
+    return <Info aria-hidden="true" className="size-3" />;
   }
 
   return <CircleDot aria-hidden="true" className="size-3" />;

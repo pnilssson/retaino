@@ -10,7 +10,8 @@ import {
   UsersRound,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import type { RowSelectionState } from '@tanstack/react-table';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
 import { EmptyState } from '@/components/data-table';
@@ -34,6 +35,7 @@ import type {
   CampaignListSort,
   CampaignListStatusFilter,
 } from '../campaign-list-state';
+import { CampaignBulkActions } from './campaign-bulk-actions';
 import { CampaignFilters } from './campaign-filters';
 import { CampaignsTable } from './campaigns-table';
 import { useCampaignListQueryState } from '../hooks/use-campaign-list-query-state';
@@ -43,6 +45,7 @@ export function CampaignsScreen() {
   const session = useOrganizationSession();
   const [{ direction, search, sort, status }, setQuery] =
     useCampaignListQueryState();
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const organizationId = session.data?.organization.id ?? null;
   const campaigns = useCampaigns({
     enabled: Boolean(session.data?.readiness.ready),
@@ -62,6 +65,10 @@ export function CampaignsScreen() {
       }),
     [campaigns.data?.campaigns, direction, search, sort, status],
   );
+  const selectedCampaigns = useMemo(
+    () => filteredCampaigns.filter((campaign) => rowSelection[campaign.id]),
+    [filteredCampaigns, rowSelection],
+  );
   const handleSort = (nextSort: CampaignListSort) => {
     const nextDirection =
       nextSort === sort
@@ -70,6 +77,7 @@ export function CampaignsScreen() {
           : 'asc'
         : defaultCampaignSortDirection(nextSort);
 
+    setRowSelection({});
     void setQuery({
       direction: nextDirection,
       sort: nextSort,
@@ -207,6 +215,7 @@ export function CampaignsScreen() {
             >
               <CampaignFilters
                 onChange={(values) => {
+                  setRowSelection({});
                   void setQuery(values);
                 }}
                 search={search}
@@ -248,6 +257,7 @@ export function CampaignsScreen() {
                 <>
                   <CampaignFilters
                     onChange={(values) => {
+                      setRowSelection({});
                       void setQuery(values);
                     }}
                     search={search}
@@ -259,8 +269,19 @@ export function CampaignsScreen() {
                       campaigns={filteredCampaigns}
                       direction={direction}
                       isLoading={campaigns.isFetching}
+                      onRowSelectionChange={setRowSelection}
                       onSort={handleSort}
+                      organizationId={organizationId}
+                      rowSelection={rowSelection}
+                      selectable
                       sort={sort}
+                      tableActions={
+                        <CampaignBulkActions
+                          campaigns={selectedCampaigns}
+                          onClear={() => setRowSelection({})}
+                          organizationId={organizationId}
+                        />
+                      }
                     />
                   ) : (
                     <EmptyState

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createCampaignDraft,
-  createManualBookingReport,
+  createReportedBookings,
   countCampaignRecipients,
   deleteCampaignDraft,
   findSuppressionByHash,
@@ -21,7 +21,7 @@ import {
   listCampaigns,
   previewCampaignAudience,
   reserveSmsCreditsIfSufficient,
-  searchCampaignRecipientsForBookingReport,
+  searchCampaignRecipientsForReportedBookings,
   updateCampaignDraft,
 } from '@retaino/db';
 import type {
@@ -36,7 +36,7 @@ import type { AppEnv } from '../../../src/types';
 
 vi.mock('@retaino/db', () => ({
   createCampaignDraft: vi.fn(),
-  createManualBookingReport: vi.fn(),
+  createReportedBookings: vi.fn(),
   countCampaignRecipients: vi.fn(),
   deleteCampaignDraft: vi.fn(),
   findSuppressionByHash: vi.fn(),
@@ -55,7 +55,7 @@ vi.mock('@retaino/db', () => ({
   listCampaigns: vi.fn(),
   previewCampaignAudience: vi.fn(),
   reserveSmsCreditsIfSufficient: vi.fn(),
-  searchCampaignRecipientsForBookingReport: vi.fn(),
+  searchCampaignRecipientsForReportedBookings: vi.fn(),
   updateCampaignDraft: vi.fn(),
 }));
 
@@ -209,7 +209,7 @@ function testApp(input: { role?: string } = {}) {
 describe('campaignsRoutes', () => {
   beforeEach(() => {
     vi.mocked(createCampaignDraft).mockReset();
-    vi.mocked(createManualBookingReport).mockReset();
+    vi.mocked(createReportedBookings).mockReset();
     vi.mocked(countCampaignRecipients).mockReset();
     vi.mocked(reserveSmsCreditsIfSufficient).mockReset();
     vi.mocked(deleteCampaignDraft).mockReset();
@@ -229,7 +229,7 @@ describe('campaignsRoutes', () => {
     vi.mocked(listSelectedCampaignRecipientsForSend).mockReset();
     vi.mocked(listCampaigns).mockReset();
     vi.mocked(previewCampaignAudience).mockReset();
-    vi.mocked(searchCampaignRecipientsForBookingReport).mockReset();
+    vi.mocked(searchCampaignRecipientsForReportedBookings).mockReset();
     vi.mocked(updateCampaignDraft).mockReset();
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(profile);
     vi.mocked(getCurrentLegalBundle).mockResolvedValue(legalBundle);
@@ -633,15 +633,16 @@ describe('campaignsRoutes', () => {
     });
   });
 
-  it('lets members search campaign recipients for booking reports', async () => {
+  it('lets members search campaign recipients for reported bookings', async () => {
     vi.mocked(getCampaignById).mockResolvedValue({
       ...campaign,
       status: 'sent',
     });
-    vi.mocked(searchCampaignRecipientsForBookingReport).mockResolvedValue({
+    vi.mocked(searchCampaignRecipientsForReportedBookings).mockResolvedValue({
       recipients: [
         {
           id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          contactId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
           name: 'Ada Lovelace',
           phone: '+46700000000',
           email: 'ada@example.com',
@@ -658,13 +659,14 @@ describe('campaignsRoutes', () => {
       recipients: [
         {
           id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          contactId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
           name: 'Ada Lovelace',
           phone: '+46700000000',
           email: 'ada@example.com',
         },
       ],
     });
-    expect(searchCampaignRecipientsForBookingReport).toHaveBeenCalledWith(
+    expect(searchCampaignRecipientsForReportedBookings).toHaveBeenCalledWith(
       expect.anything(),
       {
         organizationId: organization.id,
@@ -682,7 +684,7 @@ describe('campaignsRoutes', () => {
     );
 
     expect(response.status).toBe(404);
-    expect(searchCampaignRecipientsForBookingReport).not.toHaveBeenCalled();
+    expect(searchCampaignRecipientsForReportedBookings).not.toHaveBeenCalled();
   });
 
   it('lets members read tenant-scoped campaign reports', async () => {
@@ -705,42 +707,33 @@ describe('campaignsRoutes', () => {
       estimatedSmsSegments: 10,
       actualSmsSegments: 9,
       segmentEstimateDrift: -1,
-      manualOutcome: {
+      reportedOutcome: {
         bookingCount: 2,
         revenueAmountMinor: 320000,
         currency: 'SEK',
         hasMixedCurrencies: false,
         bookingRate: 0.25,
-        revenuePerDeliveredRecipientMinor: 40000,
       },
-      bookingReports: [
+      reportedBookings: [
         {
           id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
           campaignId: campaign.id,
+          campaignRecipientId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+          contactId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
           source: 'manual',
-          status: 'completed',
-          checkedThroughDate: '2026-05-22',
-          note: 'Checked booking system',
-          bookingCount: 2,
-          revenueAmountMinor: 320000,
-          currency: 'SEK',
-          hasMixedCurrencies: false,
           createdByUserId: user.id,
+          bookingDate: '2026-05-21',
+          revenueAmountMinor: 125050,
+          currency: 'SEK',
+          service: 'Cut and color',
+          note: null,
           createdAt: '2026-05-22T10:00:00.000Z',
-          bookings: [
-            {
-              id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-              bookingDate: '2026-05-21',
-              customerName: 'Ada Lovelace',
-              phone: '+46700000000',
-              email: 'ada@example.com',
-              revenueAmountMinor: 125050,
-              currency: 'SEK',
-              service: 'Cut and color',
-              note: null,
-              createdAt: '2026-05-22T10:00:00.000Z',
-            },
-          ],
+          contact: {
+            id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+            name: 'Ada Lovelace',
+            phone: '+46700000000',
+            email: 'ada@example.com',
+          },
         },
       ],
     });
@@ -754,7 +747,7 @@ describe('campaignsRoutes', () => {
       report: {
         selectedCount: 10,
         deliveredCount: 8,
-        manualOutcome: {
+        reportedOutcome: {
           bookingCount: 2,
           revenueAmountMinor: 320000,
         },
@@ -777,41 +770,35 @@ describe('campaignsRoutes', () => {
     expect(getCampaignReport).not.toHaveBeenCalled();
   });
 
-  it('creates manual booking reports for campaigns', async () => {
-    vi.mocked(createManualBookingReport).mockResolvedValue({
+  it('creates reported bookings for campaigns', async () => {
+    vi.mocked(createReportedBookings).mockResolvedValue({
       status: 'created',
-      report: {
-        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        campaignId: campaign.id,
-        source: 'manual',
-        status: 'completed',
-        checkedThroughDate: '2026-05-22',
-        note: 'Checked booking system',
-        bookingCount: 1,
-        revenueAmountMinor: 125050,
-        currency: 'SEK',
-        hasMixedCurrencies: false,
-        createdByUserId: user.id,
-        createdAt: '2026-05-22T10:00:00.000Z',
-        bookings: [
-          {
-            id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-            bookingDate: '2026-05-21',
-            customerName: 'Ada Lovelace',
+      reportedBookings: [
+        {
+          id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          campaignId: campaign.id,
+          campaignRecipientId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+          contactId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+          source: 'manual',
+          createdByUserId: user.id,
+          bookingDate: '2026-05-21',
+          revenueAmountMinor: 125050,
+          currency: 'SEK',
+          service: 'Cut and color',
+          note: null,
+          createdAt: '2026-05-22T10:00:00.000Z',
+          contact: {
+            id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+            name: 'Ada Lovelace',
             phone: null,
             email: null,
-            revenueAmountMinor: 125050,
-            currency: 'SEK',
-            service: null,
-            note: null,
-            createdAt: '2026-05-22T10:00:00.000Z',
           },
-        ],
-      },
+        },
+      ],
     });
 
     const response = await testApp({ role: 'org:member' }).request(
-      `/v1/campaigns/${campaign.id}/booking-reports`,
+      `/v1/campaigns/${campaign.id}/reported-bookings`,
       {
         method: 'POST',
         headers: {
@@ -819,13 +806,13 @@ describe('campaignsRoutes', () => {
           'user-agent': 'vitest',
         },
         body: JSON.stringify({
-          checkedThroughDate: '2026-05-22',
-          note: 'Checked booking system',
           bookings: [
             {
               bookingDate: '2026-05-21',
-              customerName: 'Ada Lovelace',
+              campaignRecipientId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+              contactId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
               revenueAmount: '1250,50',
+              service: 'Cut and color',
             },
           ],
         }),
@@ -834,47 +821,41 @@ describe('campaignsRoutes', () => {
 
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toEqual({
-      bookingReport: {
-        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        campaignId: campaign.id,
-        source: 'manual',
-        status: 'completed',
-        checkedThroughDate: '2026-05-22',
-        note: 'Checked booking system',
-        bookingCount: 1,
-        revenueAmountMinor: 125050,
-        currency: 'SEK',
-        hasMixedCurrencies: false,
-        createdByUserId: user.id,
-        createdAt: '2026-05-22T10:00:00.000Z',
-        bookings: [
-          {
-            id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-            bookingDate: '2026-05-21',
-            customerName: 'Ada Lovelace',
+      reportedBookings: [
+        {
+          id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          campaignId: campaign.id,
+          campaignRecipientId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+          contactId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+          source: 'manual',
+          createdByUserId: user.id,
+          bookingDate: '2026-05-21',
+          revenueAmountMinor: 125050,
+          currency: 'SEK',
+          service: 'Cut and color',
+          note: null,
+          createdAt: '2026-05-22T10:00:00.000Z',
+          contact: {
+            id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+            name: 'Ada Lovelace',
             phone: null,
             email: null,
-            revenueAmountMinor: 125050,
-            currency: 'SEK',
-            service: null,
-            note: null,
-            createdAt: '2026-05-22T10:00:00.000Z',
           },
-        ],
-      },
+        },
+      ],
     });
-    expect(createManualBookingReport).toHaveBeenCalledWith(expect.anything(), {
+    expect(createReportedBookings).toHaveBeenCalledWith(expect.anything(), {
       organizationId: organization.id,
       campaignId: campaign.id,
       actorUserId: user.id,
       input: {
-        checkedThroughDate: '2026-05-22',
-        note: 'Checked booking system',
         bookings: [
           {
             bookingDate: '2026-05-21',
-            customerName: 'Ada Lovelace',
+            campaignRecipientId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+            contactId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
             revenueAmount: '1250,50',
+            service: 'Cut and color',
           },
         ],
       },
@@ -882,9 +863,9 @@ describe('campaignsRoutes', () => {
     });
   });
 
-  it('returns validation errors for invalid manual booking reports', async () => {
+  it('returns validation errors for invalid reported bookings', async () => {
     const response = await testApp({ role: 'org:member' }).request(
-      `/v1/campaigns/${campaign.id}/booking-reports`,
+      `/v1/campaigns/${campaign.id}/reported-bookings`,
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -895,12 +876,12 @@ describe('campaignsRoutes', () => {
     );
 
     expect(response.status).toBe(400);
-    expect(createManualBookingReport).not.toHaveBeenCalled();
+    expect(createReportedBookings).not.toHaveBeenCalled();
   });
 
-  it('rejects oversized manual booking report requests before parsing', async () => {
+  it('rejects oversized reported booking requests before parsing', async () => {
     const response = await testApp({ role: 'org:member' }).request(
-      `/v1/campaigns/${campaign.id}/booking-reports`,
+      `/v1/campaigns/${campaign.id}/reported-bookings`,
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -908,7 +889,8 @@ describe('campaignsRoutes', () => {
           bookings: [
             {
               bookingDate: '2026-05-22',
-              customerName: 'Ada Lovelace',
+              campaignRecipientId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+              contactId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
               note: 'x'.repeat(33 * 1024),
             },
           ],
@@ -917,16 +899,16 @@ describe('campaignsRoutes', () => {
     );
 
     expect(response.status).toBe(413);
-    expect(createManualBookingReport).not.toHaveBeenCalled();
+    expect(createReportedBookings).not.toHaveBeenCalled();
   });
 
-  it('returns conflict when a campaign is not ready for booking reports', async () => {
-    vi.mocked(createManualBookingReport).mockResolvedValue({
+  it('returns conflict when a campaign is not ready for reported bookings', async () => {
+    vi.mocked(createReportedBookings).mockResolvedValue({
       status: 'not_reportable',
     });
 
     const response = await testApp({ role: 'org:member' }).request(
-      `/v1/campaigns/${campaign.id}/booking-reports`,
+      `/v1/campaigns/${campaign.id}/reported-bookings`,
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -934,7 +916,8 @@ describe('campaignsRoutes', () => {
           bookings: [
             {
               bookingDate: '2026-05-22',
-              customerName: 'Ada Lovelace',
+              campaignRecipientId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+              contactId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
             },
           ],
         }),
@@ -945,14 +928,14 @@ describe('campaignsRoutes', () => {
   });
 
   it('returns validation errors for invalid reported revenue', async () => {
-    vi.mocked(createManualBookingReport).mockResolvedValue({
+    vi.mocked(createReportedBookings).mockResolvedValue({
       status: 'invalid_revenue',
       rowIndex: 0,
       error: 'Enter a positive amount.',
     });
 
     const response = await testApp({ role: 'org:member' }).request(
-      `/v1/campaigns/${campaign.id}/booking-reports`,
+      `/v1/campaigns/${campaign.id}/reported-bookings`,
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -960,7 +943,35 @@ describe('campaignsRoutes', () => {
           bookings: [
             {
               bookingDate: '2026-05-22',
+              campaignRecipientId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+              contactId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
               revenueAmount: '-1',
+            },
+          ],
+        }),
+      },
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it('returns validation errors for invalid campaign contacts', async () => {
+    vi.mocked(createReportedBookings).mockResolvedValue({
+      status: 'invalid_recipient',
+      rowIndex: 0,
+    });
+
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/reported-bookings`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          bookings: [
+            {
+              bookingDate: '2026-05-22',
+              campaignRecipientId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+              contactId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
             },
           ],
         }),

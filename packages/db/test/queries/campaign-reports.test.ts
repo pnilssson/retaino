@@ -26,10 +26,10 @@ describe('campaign report query helpers', () => {
               unique_clicker_count: 3,
               estimated_sms_segments: 10,
               actual_sms_segments: 9,
-              manual_booking_count: 2,
-              manual_revenue_amount_minor: 320000,
-              manual_revenue_currency: 'SEK',
-              manual_has_mixed_currencies: false,
+              reported_booking_count: 2,
+              reported_revenue_amount_minor: 320000,
+              reported_revenue_currency: 'SEK',
+              reported_has_mixed_currencies: false,
             },
           ],
         };
@@ -45,13 +45,12 @@ describe('campaign report query helpers', () => {
       selectedCount: 10,
       deliveredCount: 8,
       segmentEstimateDrift: -1,
-      manualOutcome: {
+      reportedOutcome: {
         bookingCount: 2,
         revenueAmountMinor: 320000,
         currency: 'SEK',
         hasMixedCurrencies: false,
         bookingRate: 0.25,
-        revenuePerDeliveredRecipientMinor: 40000,
       },
     });
 
@@ -90,38 +89,30 @@ describe('campaign report query helpers', () => {
             unique_clicker_count: 0,
             estimated_sms_segments: 10,
             actual_sms_segments: 9,
-            manual_booking_count: 2,
-            manual_revenue_amount_minor: null,
-            manual_revenue_currency: 'SEK',
-            manual_has_mixed_currencies: true,
-            booking_reports: [
+            reported_booking_count: 2,
+            reported_revenue_amount_minor: null,
+            reported_revenue_currency: 'SEK',
+            reported_has_mixed_currencies: true,
+            reported_bookings: [
               {
                 id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
                 campaignId: campaignRow.id,
+                campaignRecipientId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+                contactId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
                 source: 'manual',
-                status: 'completed',
-                checkedThroughDate: null,
-                note: null,
-                bookingCount: 2,
                 revenueAmountMinor: null,
                 currency: 'SEK',
-                hasMixedCurrencies: true,
                 createdByUserId: campaignRow.createdByUserId,
+                bookingDate: '2026-05-21',
+                service: 'Cut and color',
+                note: null,
                 createdAt: new Date('2026-05-22T10:00:00.000Z'),
-                bookings: [
-                  {
-                    id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-                    bookingDate: '2026-05-21',
-                    customerName: 'Ada Lovelace',
-                    phone: '+46700000000',
-                    email: 'ada@example.com',
-                    revenueAmountMinor: null,
-                    currency: 'SEK',
-                    service: 'Cut and color',
-                    note: null,
-                    createdAt: new Date('2026-05-22T10:00:00.000Z'),
-                  },
-                ],
+                contact: {
+                  id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+                  name: 'Ada Lovelace',
+                  phone: '+46700000000',
+                  email: 'ada@example.com',
+                },
               },
             ],
           },
@@ -135,22 +126,18 @@ describe('campaign report query helpers', () => {
         campaignId: campaignRow.id,
       }),
     ).resolves.toMatchObject({
-      manualOutcome: {
+      reportedOutcome: {
         revenueAmountMinor: null,
         currency: 'SEK',
         hasMixedCurrencies: true,
-        revenuePerDeliveredRecipientMinor: null,
       },
-      bookingReports: [
+      reportedBookings: [
         {
           revenueAmountMinor: null,
-          hasMixedCurrencies: true,
-          bookings: [
-            {
-              customerName: 'Ada Lovelace',
-              service: 'Cut and color',
-            },
-          ],
+          contact: {
+            name: 'Ada Lovelace',
+          },
+          service: 'Cut and color',
         },
       ],
     });

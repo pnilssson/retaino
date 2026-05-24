@@ -1,6 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import type { ReactNode } from 'react';
-import { Pencil } from 'lucide-react';
 import Link from 'next/link';
 import type { Contact } from '@retaino/shared/contracts';
 import {
@@ -8,9 +7,9 @@ import {
   sortableHeaderAriaSort,
   type TableSortDirection,
 } from '@/components/sortable-table-header';
-import { Button } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
 import { formatDate } from '../contacts-format';
+import { ContactRowActions } from './contact-row-actions';
 import { ContactStatusBadge } from './status-badge';
 
 export type ContactSortKey =
@@ -148,16 +147,7 @@ export function createContactColumns({
         ),
       cell: ({ row }) => (
         <div className="flex justify-end p-2">
-          <Button asChild size="icon-sm" variant="ghost">
-            <Link
-              aria-label={`Open contact details for ${
-                row.original.name ?? 'Unnamed contact'
-              }`}
-              href={routes.contact(row.original.id)}
-            >
-              <Pencil aria-hidden="true" />
-            </Link>
-          </Button>
+          <ContactRowActions contact={row.original} />
         </div>
       ),
     },

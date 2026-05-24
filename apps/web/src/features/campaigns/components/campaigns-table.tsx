@@ -4,9 +4,10 @@ import {
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
+  type OnChangeFn,
+  type RowSelectionState,
 } from '@tanstack/react-table';
 import type { Campaign } from '@retaino/shared/contracts';
-import { Pencil } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { DataTable } from '@/components/data-table';
@@ -15,32 +16,89 @@ import {
   sortableHeaderAriaSort,
   type TableSortDirection,
 } from '@/components/sortable-table-header';
-import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { routes } from '@/lib/routes';
 import type { CampaignListSort } from '../campaign-list-state';
+import { CampaignRowActions } from './campaign-row-actions';
 import { CampaignStatusBadge } from './campaign-status-badge';
+
+const selectionColumn: ColumnDef<Campaign> = {
+  id: 'select',
+  header: ({ table }) => (
+    <div className="-mx-2 flex h-10 w-12 items-center justify-center">
+      <Checkbox
+        aria-label="Select all visible campaigns"
+        checked={
+          table.getIsAllPageRowsSelected()
+            ? true
+            : table.getIsSomePageRowsSelected()
+              ? 'indeterminate'
+              : false
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+      />
+    </div>
+  ),
+  cell: ({ row }) => (
+    <div className="flex w-12 items-center justify-center py-3">
+      <Checkbox
+        aria-label={`Select ${row.original.name}`}
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+      />
+    </div>
+  ),
+  enableHiding: false,
+  enableSorting: false,
+  maxSize: 48,
+  minSize: 48,
+  size: 48,
+};
 
 export function CampaignsTable({
   campaigns,
   direction,
   isLoading = false,
   loadingLabel = 'Loading campaigns',
+  onRowSelectionChange,
   onSort,
+  organizationId,
+  rowSelection,
+  selectable = false,
   sort,
+  tableActions,
 }: {
   campaigns: Campaign[];
   direction: TableSortDirection;
   isLoading?: boolean;
   loadingLabel?: string;
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>;
   onSort: (sort: CampaignListSort) => void;
+  organizationId?: string | null;
+  rowSelection?: RowSelectionState;
+  selectable?: boolean;
   sort: CampaignListSort;
+  tableActions?: ReactNode;
 }) {
+  const campaignColumns = createCampaignColumns({
+    direction,
+    onSort,
+    organizationId: organizationId ?? null,
+    sort,
+    tableActions,
+  });
+
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    columns: createCampaignColumns({ direction, onSort, sort }),
+    columns: selectable
+      ? [selectionColumn, ...campaignColumns]
+      : campaignColumns,
     data: campaigns,
+    enableRowSelection: selectable,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
+    onRowSelectionChange,
+    state: selectable ? { rowSelection: rowSelection ?? {} } : undefined,
   });
 
   return (
@@ -57,11 +115,15 @@ export function CampaignsTable({
 function createCampaignColumns({
   direction,
   onSort,
+  organizationId,
   sort,
+  tableActions,
 }: {
   direction: TableSortDirection;
   onSort: (sort: CampaignListSort) => void;
+  organizationId: string | null;
   sort: CampaignListSort;
+  tableActions?: ReactNode;
 }): ColumnDef<Campaign>[] {
   const sortableHeader = ({
     defaultDirection,
@@ -171,17 +233,18 @@ function createCampaignColumns({
     },
     {
       id: 'open',
-      header: () => <span className="sr-only">Open campaign</span>,
+      header: () =>
+        tableActions ? (
+          <div className="flex justify-end pr-2">{tableActions}</div>
+        ) : (
+          <span className="sr-only">Campaign actions</span>
+        ),
       cell: ({ row }) => (
         <div className="flex justify-end p-2">
-          <Button asChild size="icon-sm" variant="ghost">
-            <Link
-              aria-label={`Open campaign ${row.original.name}`}
-              href={routes.campaign(row.original.id)}
-            >
-              <Pencil aria-hidden="true" />
-            </Link>
-          </Button>
+          <CampaignRowActions
+            campaign={row.original}
+            organizationId={organizationId}
+          />
         </div>
       ),
     },

@@ -134,7 +134,7 @@ export function createCampaignReportMetrics(
     {
       id: 'bookings',
       label: 'Reported bookings',
-      value: formatReportNumber(report.manualOutcome.bookingCount),
+      value: formatReportNumber(report.reportedOutcome.bookingCount),
     },
     {
       id: 'revenue',
@@ -145,12 +145,12 @@ export function createCampaignReportMetrics(
 }
 
 function reportedRevenueValue(report: CampaignReport) {
-  if (report.manualOutcome.hasMixedCurrencies) {
+  if (report.reportedOutcome.hasMixedCurrencies) {
     return 'Mixed';
   }
 
   return formatReportCurrency(
-    report.manualOutcome.revenueAmountMinor ?? 0,
-    report.manualOutcome.currency,
+    report.reportedOutcome.revenueAmountMinor ?? 0,
+    report.reportedOutcome.currency,
   );
 }

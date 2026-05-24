@@ -21,6 +21,7 @@ import {
   campaignReadinessBlock,
   campaignsAllowed,
 } from '../campaign-readiness';
+import { CampaignDraftActions } from './campaign-draft-actions';
 import { CampaignForm, type CampaignStepId } from './campaign-form';
 import { CampaignOverview } from './campaign-overview';
 import { CampaignStatusBadge } from './campaign-status-badge';
@@ -125,12 +126,20 @@ export function CampaignBuilderScreen({
       <section className="mx-auto grid w-full max-w-5xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={
-            <Button asChild variant="outline">
-              <Link href={routes.campaigns}>
-                <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-                Back to campaigns
-              </Link>
-            </Button>
+            <>
+              <Button asChild variant="outline">
+                <Link href={routes.campaigns}>
+                  <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+                  Back to campaigns
+                </Link>
+              </Button>
+              {latestCampaign?.status === 'draft' ? (
+                <CampaignDraftActions
+                  campaign={latestCampaign}
+                  organizationId={organizationId}
+                />
+              ) : null}
+            </>
           }
           badge={
             showOverview && latestCampaign ? (
