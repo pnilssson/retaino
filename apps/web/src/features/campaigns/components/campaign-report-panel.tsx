@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { ItemNotice } from '@/components/item-notice';
+import { LoadingState } from '@/components/loading-state';
 import { MetricSummaryEntry } from '@/components/metric-summary-entry';
 import {
   SankeyBreakdown,
@@ -27,7 +28,6 @@ import {
   AppPageItem,
   AppPageSection,
 } from '@/features/appshell/components/app-page-content';
-import { textStyles } from '@/lib/text-styles';
 import {
   createCampaignReportFunnel,
   createCampaignReportMetrics,
@@ -149,7 +149,7 @@ export function CampaignReportPanel({
             variant="error"
           />
         ) : report.isLoading ? (
-          <p className={textStyles.mutedBody}>Loading campaign report...</p>
+          <LoadingState className="py-6" label="Loading campaign report" />
         ) : reportData && funnel ? (
           <SankeyBreakdown
             links={funnel.links}

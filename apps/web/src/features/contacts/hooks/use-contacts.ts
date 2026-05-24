@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { ContactListResponse } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
 import {
@@ -23,6 +23,7 @@ export function useContacts({
 
   return useQuery({
     enabled: enabled && Boolean(organizationId),
+    placeholderData: keepPreviousData,
     queryKey: contactsQueryKeys.list(organizationId ?? 'pending', query),
     queryFn: () => {
       if (!organizationId) {

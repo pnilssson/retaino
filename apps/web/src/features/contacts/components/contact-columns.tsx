@@ -3,20 +3,66 @@ import type { ReactNode } from 'react';
 import { Pencil } from 'lucide-react';
 import Link from 'next/link';
 import type { Contact } from '@retaino/shared/contracts';
+import {
+  SortableTableHeader,
+  sortableHeaderAriaSort,
+  type TableSortDirection,
+} from '@/components/sortable-table-header';
 import { Button } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
 import { formatDate } from '../contacts-format';
 import { ContactStatusBadge } from './status-badge';
 
+export type ContactSortKey =
+  | 'createdAt'
+  | 'lastBookingAt'
+  | 'lastContactedAt'
+  | 'name';
+
 export function createContactColumns({
+  direction,
+  onSort,
+  sort,
   tableActions,
 }: {
+  direction: TableSortDirection;
+  onSort: (sort: ContactSortKey) => void;
+  sort: ContactSortKey;
   tableActions?: ReactNode;
-} = {}): ColumnDef<Contact>[] {
+}): ColumnDef<Contact>[] {
+  const sortableHeader = ({
+    defaultDirection,
+    label,
+    sortKey,
+  }: {
+    defaultDirection: TableSortDirection;
+    label: string;
+    sortKey: ContactSortKey;
+  }) => {
+    const active = sort === sortKey;
+
+    return {
+      header: () => (
+        <SortableTableHeader
+          active={active}
+          defaultDirection={defaultDirection}
+          direction={direction}
+          label={label}
+          onSort={() => onSort(sortKey)}
+        />
+      ),
+      meta: sortableHeaderAriaSort({ active, direction }),
+    };
+  };
+
   return [
     {
       accessorKey: 'name',
-      header: 'Name',
+      ...sortableHeader({
+        defaultDirection: 'asc',
+        label: 'Name',
+        sortKey: 'name',
+      }),
       cell: ({ row }) => {
         const detailPath = routes.contact(row.original.id);
 
@@ -45,8 +91,25 @@ export function createContactColumns({
       ),
     },
     {
+      accessorKey: 'createdAt',
+      ...sortableHeader({
+        defaultDirection: 'desc',
+        label: 'Imported',
+        sortKey: 'createdAt',
+      }),
+      cell: ({ row }) => (
+        <LinkedCell contact={row.original}>
+          {formatDate(row.original.createdAt)}
+        </LinkedCell>
+      ),
+    },
+    {
       accessorKey: 'lastBookingAt',
-      header: 'Last booking',
+      ...sortableHeader({
+        defaultDirection: 'desc',
+        label: 'Last booking',
+        sortKey: 'lastBookingAt',
+      }),
       cell: ({ row }) => (
         <LinkedCell contact={row.original}>
           {formatDate(row.original.lastBookingAt)}
@@ -55,7 +118,11 @@ export function createContactColumns({
     },
     {
       accessorKey: 'lastContactedAt',
-      header: 'Last contacted',
+      ...sortableHeader({
+        defaultDirection: 'desc',
+        label: 'Last contacted',
+        sortKey: 'lastContactedAt',
+      }),
       cell: ({ row }) => (
         <LinkedCell contact={row.original}>
           {formatDate(row.original.lastContactedAt)}

@@ -19,6 +19,7 @@ import {
   normalizePhoneNumber,
 } from '@retaino/shared/contracts';
 import { ItemNotice } from '@/components/item-notice';
+import { LoadingState } from '@/components/loading-state';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DatePickerInput } from '@/components/date-picker-input';
@@ -28,6 +29,7 @@ import { ItemTitle } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
 import {
   AppPageContent,
+  AppPageLoading,
   AppPageSection,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
@@ -58,13 +60,7 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
   });
 
   if (session.isLoading) {
-    return (
-      <main className="flex flex-1 items-start bg-background">
-        <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-10">
-          <p className="text-sm text-muted-foreground">Loading contact.</p>
-        </section>
-      </main>
-    );
+    return <AppPageLoading />;
   }
 
   if (session.isError) {
@@ -120,9 +116,7 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
             variant="error"
           />
         ) : contact.isLoading ? (
-          <section className="py-8">
-            <p className="text-sm text-muted-foreground">Loading contact.</p>
-          </section>
+          <LoadingState className="py-8" label="Loading contact" />
         ) : latestContact ? (
           <ContactDetailContent
             contact={latestContact}

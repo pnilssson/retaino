@@ -9,19 +9,20 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { EmptyState, TableLoading } from '@/components/data-table';
+import { EmptyState } from '@/components/data-table';
 import { ItemNotice } from '@/components/item-notice';
+import { LoadingState } from '@/components/loading-state';
 import { Button } from '@/components/ui/button';
 import {
   AppPageContent,
   AppPageItem,
+  AppPageLoading,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useCampaigns } from '@/features/campaigns/hooks/use-campaigns';
 import { useContactPresence } from '@/features/contacts/hooks/use-contact-presence';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
-import { textStyles } from '@/lib/text-styles';
 
 export function OverviewScreen() {
   const session = useOrganizationSession();
@@ -37,13 +38,7 @@ export function OverviewScreen() {
   });
 
   if (session.isLoading) {
-    return (
-      <main className="flex flex-1 items-start bg-background">
-        <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-10">
-          <p className={textStyles.mutedBody}>Loading overview.</p>
-        </section>
-      </main>
-    );
+    return <AppPageLoading />;
   }
 
   if (session.isError) {
@@ -163,11 +158,7 @@ function OverviewEmptyState({
 function OverviewLoading({ label }: { label: string }) {
   return (
     <AppPageContent>
-      <AppPageItem asChild>
-        <section>
-          <TableLoading label={label} />
-        </section>
-      </AppPageItem>
+      <LoadingState className="py-6" label={label} />
     </AppPageContent>
   );
 }

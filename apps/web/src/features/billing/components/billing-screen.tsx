@@ -10,8 +10,12 @@ import { RefreshCw } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { ItemNotice } from '@/components/item-notice';
+import { LoadingState } from '@/components/loading-state';
 import { Button } from '@/components/ui/button';
-import { AppPageContent } from '@/features/appshell/components/app-page-content';
+import {
+  AppPageContent,
+  AppPageLoading,
+} from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { useApi } from '@/hooks/use-api';
@@ -61,13 +65,7 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
   }, [showSuccess]);
 
   if (session.isLoading) {
-    return (
-      <main className="flex flex-1 items-start bg-background">
-        <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-10">
-          <p className="text-sm text-muted-foreground">Loading billing.</p>
-        </section>
-      </main>
-    );
+    return <AppPageLoading />;
   }
 
   if (session.isError) {
@@ -145,9 +143,7 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
               variant="error"
             />
           ) : billingStatus.isLoading || !billingStatus.data ? (
-            <p className="text-sm text-muted-foreground">
-              Loading billing status.
-            </p>
+            <LoadingState className="py-6" label="Loading billing status" />
           ) : (
             <>
               <BillingStatusPanel

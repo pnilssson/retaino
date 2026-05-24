@@ -9,11 +9,11 @@ import { Button } from '@/components/ui/button';
 import {
   EmptyState,
   PaginationControls,
-  TableLoading,
 } from '@/components/data-table';
 import {
   AppPageContent,
   AppPageItem,
+  AppPageLoading,
   AppPageSection,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
@@ -24,6 +24,7 @@ import { useOrganizationSession } from '@/features/onboarding/hooks/use-organiza
 import { routes } from '@/lib/routes';
 import { BlockedContacts } from './blocked-contacts';
 import { ContactBulkActions } from './contact-bulk-actions';
+import type { ContactSortKey } from './contact-columns';
 import { ContactFilters } from './contact-filters';
 import { ContactsTable } from './contacts-table';
 
@@ -50,15 +51,26 @@ export function ContactsScreen() {
     () => selectedContacts.map((contact) => contact.id),
     [selectedContacts],
   );
+  const sort = contactSortKey(query.sort);
+  const direction = query.direction === 'asc' ? 'asc' : 'desc';
+  const handleSort = (nextSort: ContactSortKey) => {
+    const nextDirection =
+      nextSort === sort
+        ? direction === 'asc'
+          ? 'desc'
+          : 'asc'
+        : defaultContactSortDirection(nextSort);
+
+    setRowSelection({});
+    void setQuery({
+      direction: nextDirection,
+      page: 1,
+      sort: nextSort,
+    });
+  };
 
   if (session.isLoading) {
-    return (
-      <main className="flex flex-1 items-start bg-background">
-        <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-          <p className="text-sm text-muted-foreground">Loading contacts.</p>
-        </section>
-      </main>
-    );
+    return <AppPageLoading className="max-w-7xl" />;
   }
 
   if (session.isError) {
@@ -131,10 +143,21 @@ export function ContactsScreen() {
                 />
               </section>
             </AppPageItem>
-          ) : !contactPresenceLoaded || contacts.isLoading ? (
-            <section>
-              <TableLoading label="Loading contacts" />
-            </section>
+          ) : !contactPresenceLoaded ? (
+            <AppPageSection
+              description="Filter by SMS readiness and data issues."
+              framed={false}
+              title="Contact list"
+            >
+              <ContactsTable
+                contacts={[]}
+                direction={direction}
+                isLoading
+                onSort={handleSort}
+                selectable
+                sort={sort}
+              />
+            </AppPageSection>
           ) : !hasContacts ? (
             <AppPageItem asChild>
               <section>
@@ -176,23 +199,25 @@ export function ContactsScreen() {
             >
                 <>
                   <ContactFilters
-                    direction={query.direction}
                     issue={query.issue}
                     onChange={(values) => {
                       setRowSelection({});
                       void setQuery({ page: 1, ...values });
                     }}
                     search={query.search}
-                    sort={query.sort}
                     status={query.status}
                   />
                   {contacts.data && contacts.data.contacts.length > 0 ? (
                     <>
                   <ContactsTable
                     contacts={contacts.data.contacts}
+                    direction={direction}
+                    isLoading={contacts.isFetching}
                     onRowSelectionChange={setRowSelection}
+                    onSort={handleSort}
                     rowSelection={rowSelection}
                     selectable
+                    sort={sort}
                     tableActions={
                       <ContactBulkActions
                         contactIds={selectedContactIds}
@@ -213,6 +238,15 @@ export function ContactsScreen() {
                     total={contacts.data.total}
                   />
                     </>
+                  ) : contacts.isLoading ? (
+                    <ContactsTable
+                      contacts={[]}
+                      direction={direction}
+                      isLoading
+                      onSort={handleSort}
+                      selectable
+                      sort={sort}
+                    />
                   ) : (
                     <EmptyState
                       description="Clear or change the filters to see more imported contacts."
@@ -226,4 +260,21 @@ export function ContactsScreen() {
       </section>
     </main>
   );
+}
+
+function contactSortKey(value: string): ContactSortKey {
+  if (
+    value === 'createdAt' ||
+    value === 'lastBookingAt' ||
+    value === 'lastContactedAt' ||
+    value === 'name'
+  ) {
+    return value;
+  }
+
+  return 'createdAt';
+}
+
+function defaultContactSortDirection(sort: ContactSortKey) {
+  return sort === 'name' ? 'asc' : 'desc';
 }

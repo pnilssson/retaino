@@ -6,16 +6,17 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ItemNotice } from '@/components/item-notice';
+import { LoadingState } from '@/components/loading-state';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import {
   AppPageContent,
   AppPageItem,
+  AppPageLoading,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
-import { textStyles } from '@/lib/text-styles';
 import {
   campaignReadinessBlock,
   campaignsAllowed,
@@ -94,13 +95,7 @@ export function CampaignBuilderScreen({
   }, [refetchCampaign, shouldPollCampaign]);
 
   if (session.isLoading) {
-    return (
-      <main className="flex flex-1 items-start bg-background">
-        <section className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8 lg:px-10">
-          <p className={textStyles.mutedBody}>Loading campaign builder…</p>
-        </section>
-      </main>
-    );
+    return <AppPageLoading className="max-w-5xl" />;
   }
 
   if (session.isError) {
@@ -161,7 +156,7 @@ export function CampaignBuilderScreen({
             variant="error"
           />
         ) : campaignId && campaign.isLoading ? (
-          <p className={textStyles.mutedBody}>Loading campaign…</p>
+          <LoadingState className="py-6" label="Loading campaign" />
         ) : showOverview && latestCampaign ? (
           <CampaignOverview
             campaign={latestCampaign}

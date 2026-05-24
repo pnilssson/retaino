@@ -8,8 +8,12 @@ import {
 import type { ReactNode } from 'react';
 import type { Contact } from '@retaino/shared/contracts';
 import { DataTable } from '@/components/data-table';
+import type { TableSortDirection } from '@/components/sortable-table-header';
 import { Checkbox } from '@/components/ui/checkbox';
-import { createContactColumns } from './contact-columns';
+import {
+  createContactColumns,
+  type ContactSortKey,
+} from './contact-columns';
 
 const selectionColumn: ColumnDef<Contact> = {
   id: 'select',
@@ -46,18 +50,33 @@ const selectionColumn: ColumnDef<Contact> = {
 
 export function ContactsTable({
   contacts,
+  direction,
+  isLoading = false,
+  loadingLabel = 'Loading contacts',
   onRowSelectionChange,
+  onSort,
   rowSelection,
   selectable = false,
+  sort,
   tableActions,
 }: {
   contacts: Contact[];
+  direction: TableSortDirection;
+  isLoading?: boolean;
+  loadingLabel?: string;
   onRowSelectionChange?: OnChangeFn<RowSelectionState>;
+  onSort: (sort: ContactSortKey) => void;
   rowSelection?: RowSelectionState;
   selectable?: boolean;
+  sort: ContactSortKey;
   tableActions?: ReactNode;
 }) {
-  const contactColumns = createContactColumns({ tableActions });
+  const contactColumns = createContactColumns({
+    direction,
+    onSort,
+    sort,
+    tableActions,
+  });
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
@@ -76,6 +95,8 @@ export function ContactsTable({
   return (
     <DataTable
       cellClassName="p-0"
+      isLoading={isLoading}
+      loadingLabel={loadingLabel}
       rowClassName="group"
       table={table}
     />

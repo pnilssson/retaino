@@ -1,5 +1,6 @@
 import { type Table as TanStackTable, flexRender } from '@tanstack/react-table';
-import { Loader2 } from 'lucide-react';
+import { LoadingState } from '@/components/loading-state';
+import type { SortableTableHeaderMeta } from '@/components/sortable-table-header';
 import {
   Pagination,
   PaginationContent,
@@ -22,13 +23,20 @@ export { EmptyState } from '@/components/empty-state';
 
 export function DataTable<TData>({
   cellClassName,
+  isLoading = false,
+  loadingLabel = 'Loading',
   rowClassName,
   table,
 }: {
   cellClassName?: string;
+  isLoading?: boolean;
+  loadingLabel?: string;
   rowClassName?: string;
   table: TanStackTable<TData>;
 }) {
+  const rows = table.getRowModel().rows;
+  const visibleColumnCount = table.getVisibleLeafColumns().length;
+
   return (
     <div className="overflow-hidden rounded-lg border border-border">
       <Table>
@@ -39,7 +47,13 @@ export function DataTable<TData>({
               key={headerGroup.id}
             >
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
+                <TableHead
+                  aria-sort={
+                    (header.column.columnDef.meta as SortableTableHeaderMeta | undefined)
+                      ?.ariaSort
+                  }
+                  key={header.id}
+                >
                   {header.isPlaceholder
                     ? null
                     : flexRender(
@@ -52,24 +66,46 @@ export function DataTable<TData>({
           ))}
         </TableHeader>
         <TableBody>
-          {table.getRowModel().rows.map((row) => (
-            <TableRow
-              className={cn('border-border hover:bg-muted/40', rowClassName)}
-              key={row.id}
-            >
-              {row.getVisibleCells().map((cell) => (
-                <TableCell className={cellClassName} key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
-              ))}
+          {isLoading && rows.length === 0 ? (
+            <TableRow className="border-border hover:bg-transparent">
+              <TableCell className="h-24" colSpan={visibleColumnCount}>
+                <LoadingState
+                  className="justify-center"
+                  label={loadingLabel}
+                />
+              </TableCell>
             </TableRow>
-          ))}
+          ) : (
+            <>
+              {isLoading ? (
+                <TableRow className="border-border bg-background hover:bg-background">
+                  <TableCell className="h-12" colSpan={visibleColumnCount}>
+                    <LoadingState
+                      className="justify-center"
+                      label={loadingLabel}
+                    />
+                  </TableCell>
+                </TableRow>
+              ) : null}
+              {rows.map((row) => (
+                <TableRow
+                  className={cn('border-border hover:bg-muted/40', rowClassName)}
+                  key={row.id}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell className={cellClassName} key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </>
+          )}
         </TableBody>
       </Table>
     </div>
   );
 }
-
 export function PaginationControls({
   itemLabel = 'items',
   onPageChange,
@@ -174,13 +210,4 @@ function paginationPages(page: number, totalPages: number) {
 
       return [item];
     });
-}
-
-export function TableLoading({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
-      <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-      {label}
-    </div>
-  );
 }

@@ -13,18 +13,18 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
-import { EmptyState, TableLoading } from '@/components/data-table';
+import { EmptyState } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import {
   AppPageContent,
   AppPageItem,
+  AppPageLoading,
   AppPageSection,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useContactPresence } from '@/features/contacts/hooks/use-contact-presence';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
-import { textStyles } from '@/lib/text-styles';
 import {
   campaignReadinessBlock,
   campaignsAllowed,
@@ -62,15 +62,22 @@ export function CampaignsScreen() {
       }),
     [campaigns.data?.campaigns, direction, search, sort, status],
   );
+  const handleSort = (nextSort: CampaignListSort) => {
+    const nextDirection =
+      nextSort === sort
+        ? direction === 'asc'
+          ? 'desc'
+          : 'asc'
+        : defaultCampaignSortDirection(nextSort);
+
+    void setQuery({
+      direction: nextDirection,
+      sort: nextSort,
+    });
+  };
 
   if (session.isLoading) {
-    return (
-      <main className="flex flex-1 items-start bg-background">
-        <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-          <p className={textStyles.mutedBody}>Loading campaigns…</p>
-        </section>
-      </main>
-    );
+    return <AppPageLoading className="max-w-7xl" />;
   }
 
   if (session.isError) {
@@ -145,9 +152,20 @@ export function CampaignsScreen() {
               </section>
             </AppPageItem>
           ) : !contactPresenceLoaded ? (
-            <section>
-              <TableLoading label="Checking contacts" />
-            </section>
+            <AppPageSection
+              description="Filter campaigns by status, audience, and activity."
+              framed={false}
+              title="Campaign list"
+            >
+              <CampaignsTable
+                campaigns={[]}
+                direction={direction}
+                isLoading
+                loadingLabel="Checking contacts"
+                onSort={handleSort}
+                sort={sort}
+              />
+            </AppPageSection>
           ) : !hasContacts ? (
             <AppPageItem asChild>
               <section>
@@ -182,9 +200,26 @@ export function CampaignsScreen() {
               </section>
             </AppPageItem>
           ) : campaigns.isLoading ? (
-            <section>
-              <TableLoading label="Loading campaigns" />
-            </section>
+            <AppPageSection
+              description="Filter campaigns by status, audience, and activity."
+              framed={false}
+              title="Campaign list"
+            >
+              <CampaignFilters
+                onChange={(values) => {
+                  void setQuery(values);
+                }}
+                search={search}
+                status={status}
+              />
+              <CampaignsTable
+                campaigns={[]}
+                direction={direction}
+                isLoading
+                onSort={handleSort}
+                sort={sort}
+              />
+            </AppPageSection>
           ) : !hasCampaigns ? (
             <AppPageItem asChild>
               <section>
@@ -212,17 +247,21 @@ export function CampaignsScreen() {
             >
                 <>
                   <CampaignFilters
-                    direction={direction}
                     onChange={(values) => {
                       void setQuery(values);
                     }}
                     search={search}
-                    sort={sort}
                     status={status}
                   />
 
                   {filteredCampaigns.length > 0 ? (
-                    <CampaignsTable campaigns={filteredCampaigns} />
+                    <CampaignsTable
+                      campaigns={filteredCampaigns}
+                      direction={direction}
+                      isLoading={campaigns.isFetching}
+                      onSort={handleSort}
+                      sort={sort}
+                    />
                   ) : (
                     <EmptyState
                       description="Clear or change the filters to see more campaigns."
@@ -327,7 +366,17 @@ function compareCampaigns(
     return left.audienceRule.lapsedDays - right.audienceRule.lapsedDays;
   }
 
+  if (sort === 'updatedAt') {
+    return (
+      new Date(left.updatedAt).getTime() - new Date(right.updatedAt).getTime()
+    );
+  }
+
   return (
     new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
   );
+}
+
+function defaultCampaignSortDirection(sort: CampaignListSort) {
+  return sort === 'name' || sort === 'status' ? 'asc' : 'desc';
 }

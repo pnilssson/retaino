@@ -48,6 +48,7 @@ import {
 import {
   AppPageContent,
   AppPageItem,
+  AppPageLoading,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useStartContactImport } from '@/features/contacts/hooks/use-start-contact-import';
@@ -81,13 +82,7 @@ export function ContactImportUploadScreen() {
   const [currentImportId, setCurrentImportId] = useState<string | null>(null);
 
   if (session.isLoading) {
-    return (
-      <main className="flex flex-1 items-start bg-background">
-        <section className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8 lg:px-10">
-          <p className={textStyles.mutedBody}>Loading import form.</p>
-        </section>
-      </main>
-    );
+    return <AppPageLoading className="max-w-5xl" />;
   }
 
   if (session.isError) {

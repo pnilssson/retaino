@@ -35,7 +35,8 @@ function campaignListSort(value: string): CampaignListSort {
     value === 'createdAt' ||
     value === 'name' ||
     value === 'status' ||
-    value === 'lapsedDays'
+    value === 'lapsedDays' ||
+    value === 'updatedAt'
   ) {
     return value;
   }

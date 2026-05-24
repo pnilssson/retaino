@@ -9,7 +9,10 @@ import { CheckCircle2, Settings2 } from 'lucide-react';
 import Link from 'next/link';
 import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
-import { AppPageContent } from '@/features/appshell/components/app-page-content';
+import {
+  AppPageContent,
+  AppPageLoading,
+} from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
@@ -22,15 +25,7 @@ export function OrganizationSettingsScreen() {
   const { openOrganizationProfile } = useClerk();
 
   if (session.isLoading) {
-    return (
-      <main className="flex flex-1 items-start bg-background">
-        <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-10">
-          <p className="text-sm text-muted-foreground">
-            Loading organization settings.
-          </p>
-        </section>
-      </main>
-    );
+    return <AppPageLoading />;
   }
 
   if (session.isError) {

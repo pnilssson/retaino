@@ -20,6 +20,7 @@ import {
 import { Label } from '@/components/ui/label';
 import {
   AppPageContent,
+  AppPageLoading,
   AppPageSection,
 } from '@/features/appshell/components/app-page-content';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
@@ -37,13 +38,7 @@ export function LegalOverviewScreen() {
   const session = useOrganizationSession();
 
   if (session.isLoading) {
-    return (
-      <main className="flex flex-1 items-start bg-background">
-        <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-10">
-          <p className="text-sm text-muted-foreground">Loading legal terms.</p>
-        </section>
-      </main>
-    );
+    return <AppPageLoading />;
   }
 
   if (session.isError) {

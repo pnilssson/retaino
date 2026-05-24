@@ -1,4 +1,4 @@
-import { ArrowUpDown, Filter, Search, X } from 'lucide-react';
+import { Filter, Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,7 +7,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -33,26 +32,15 @@ const issueLabels: Record<string, string> = {
   suppressed_phone: 'Suppressed phone',
 };
 
-const sortLabels: Record<string, string> = {
-  createdAt: 'Import date',
-  lastBookingAt: 'Last booking',
-  lastContactedAt: 'Last contacted',
-  name: 'Name',
-};
-
 export function ContactFilters({
-  direction,
   issue,
   onChange,
   search,
-  sort,
   status,
 }: {
-  direction: string;
   issue: string;
   onChange: (values: Record<string, string>) => void;
   search: string;
-  sort: string;
   status: string;
 }) {
   const issueValue = issue === 'invalid_phone' ? 'missing_phone' : issue;
@@ -62,14 +50,6 @@ export function ContactFilters({
     status !== 'all' ? statusLabels[status] ?? status : null,
     issue !== 'all' ? issueLabels[issue] ?? issue : null,
   ].filter((value): value is string => Boolean(value));
-  const directionLabels =
-    sort === 'name'
-      ? { asc: 'A to Z', desc: 'Z to A' }
-      : { asc: 'Oldest first', desc: 'Newest first' };
-  const sortSummary = `${sortLabels[sort] ?? sort}, ${
-    direction === 'asc' ? directionLabels.asc : directionLabels.desc
-  }`;
-
   return (
     <div className="grid gap-3">
       <div className="grid gap-2 lg:grid-cols-[minmax(18rem,1fr)_auto] lg:items-center">
@@ -104,7 +84,11 @@ export function ContactFilters({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="h-9 flex-1 sm:flex-none" type="button" variant="outline">
+              <Button
+                className="h-9 flex-1 sm:flex-none"
+                type="button"
+                variant="outline"
+              >
                 <Filter aria-hidden="true" data-icon="inline-start" />
                 Filters
                 {advancedFilterCount > 0 ? (
@@ -142,77 +126,17 @@ export function ContactFilters({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                className="h-9 min-w-0 flex-1 justify-start sm:max-w-56 sm:flex-none"
-                type="button"
-                variant="outline"
-              >
-                <ArrowUpDown aria-hidden="true" data-icon="inline-start" />
-                <span className="truncate">Sort: {sortSummary}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-              <DropdownMenuRadioGroup
-                onValueChange={(value) => onChange({ sort: value })}
-                value={sort}
-              >
-                <DropdownMenuRadioItem
-                  onSelect={(event) => event.preventDefault()}
-                  value="createdAt"
-                >
-                  Import date
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem
-                  onSelect={(event) => event.preventDefault()}
-                  value="name"
-                >
-                  Name
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem
-                  onSelect={(event) => event.preventDefault()}
-                  value="lastBookingAt"
-                >
-                  Last booking
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem
-                  onSelect={(event) => event.preventDefault()}
-                  value="lastContactedAt"
-                >
-                  Last contacted
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Order</DropdownMenuLabel>
-              <DropdownMenuRadioGroup
-                onValueChange={(value) => onChange({ direction: value })}
-                value={direction}
-              >
-                <DropdownMenuRadioItem
-                  onSelect={(event) => event.preventDefault()}
-                  value="desc"
-                >
-                  {directionLabels.desc}
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem
-                  onSelect={(event) => event.preventDefault()}
-                  value="asc"
-                >
-                  {directionLabels.asc}
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 
       {activeFilters.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
           {activeFilters.map((filter) => (
-            <Badge className="max-w-full font-normal" key={filter} variant="secondary">
+            <Badge
+              className="max-w-full font-normal"
+              key={filter}
+              variant="secondary"
+            >
               <span className="truncate">{filter}</span>
             </Badge>
           ))}

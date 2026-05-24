@@ -6,8 +6,8 @@ import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import { AlertTriangle, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { LoadingState } from '@/components/loading-state';
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
 import { ApiClientError } from '@/lib/api-client';
 import { routes } from '@/lib/routes';
 import { useActiveOrganizationBootstrap } from '../hooks/use-active-organization-bootstrap';
@@ -105,16 +105,8 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
 
 function GateLoader() {
   return (
-    <div
-      aria-label="Loading workspace"
-      className="grid flex-1 place-items-center bg-background"
-      role="status"
-    >
-      <Spinner
-        aria-hidden="true"
-        className="size-5 text-muted-foreground"
-        role="presentation"
-      />
+    <div className="grid flex-1 place-items-center bg-background">
+      <LoadingState label="Loading workspace" />
     </div>
   );
 }
