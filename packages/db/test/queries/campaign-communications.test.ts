@@ -143,11 +143,18 @@ describe('campaign communication query helpers', () => {
   it('creates outbound SMS messages idempotently per campaign recipient', async () => {
     const db = {
       insert: () => ({
-        values: () => ({
-          onConflictDoNothing: () => ({
-            returning: () => [],
-          }),
-        }),
+        values: (value: Record<string, unknown>) =>
+          'direction' in value
+            ? {
+                onConflictDoNothing: () => ({
+                  returning: () => [],
+                }),
+              }
+            : {
+                onConflictDoUpdate: () => ({
+                  returning: () => [],
+                }),
+              },
       }),
       select: () => ({
         from: () => ({
@@ -167,6 +174,9 @@ describe('campaign communication query helpers', () => {
         provider: 'fake',
         fromPhone: '+46700000000',
         toPhone: '+46701111111',
+        normalizedPhone: '+46701111111',
+        phoneHash: 'phone-hash-1',
+        idempotencyKey: `campaign-send:${campaignRow.id}:recipient:${recipientRow.id}`,
         body: 'Hi Anna',
         estimatedSegmentCount: 1,
         currency: 'SEK',
@@ -273,31 +283,43 @@ describe('campaign communication query helpers', () => {
     const db = {
       insert: () => ({
         values: (value: unknown) => {
-          expect(value).toMatchObject({
-            organizationId: campaignRow.organizationId,
-            direction: 'inbound',
-            provider: 'fake',
-            providerMessageId: 'inbound-1',
-            fromPhone: '+46701111111',
-            toPhone: '+46700000000',
-            body: 'STOP',
-            status: 'received',
-          });
+          if ('direction' in (value as Record<string, unknown>)) {
+            expect(value).toMatchObject({
+              organizationId: campaignRow.organizationId,
+              direction: 'inbound',
+              provider: 'fake',
+              providerMessageId: 'inbound-1',
+              fromPhone: '+46701111111',
+              toPhone: '+46700000000',
+              normalizedPhone: '+46701111111',
+              phoneHash: 'phone-hash-1',
+              body: 'STOP',
+              status: 'received',
+            });
+
+            return {
+              onConflictDoNothing: () => ({
+                returning: () => [
+                  {
+                    ...smsMessageRow,
+                    direction: 'inbound',
+                    providerMessageId: 'inbound-1',
+                    fromPhone: '+46701111111',
+                    toPhone: '+46700000000',
+                    normalizedPhone: '+46701111111',
+                    phoneHash: 'phone-hash-1',
+                    body: 'STOP',
+                    status: 'received',
+                    receivedAt: new Date('2026-05-16T10:03:00.000Z'),
+                  },
+                ],
+              }),
+            };
+          }
 
           return {
-            onConflictDoNothing: () => ({
-              returning: () => [
-                {
-                  ...smsMessageRow,
-                  direction: 'inbound',
-                  providerMessageId: 'inbound-1',
-                  fromPhone: '+46701111111',
-                  toPhone: '+46700000000',
-                  body: 'STOP',
-                  status: 'received',
-                  receivedAt: new Date('2026-05-16T10:03:00.000Z'),
-                },
-              ],
+            onConflictDoUpdate: () => ({
+              returning: () => [],
             }),
           };
         },
@@ -316,6 +338,8 @@ describe('campaign communication query helpers', () => {
         providerPhoneNumberId: null,
         fromPhone: '+46701111111',
         toPhone: '+46700000000',
+        normalizedPhone: '+46701111111',
+        phoneHash: 'phone-hash-1',
         body: 'STOP',
         receivedAt: new Date('2026-05-16T10:03:00.000Z'),
       }),

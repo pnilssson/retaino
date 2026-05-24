@@ -1,4 +1,5 @@
 import { Show } from '@clerk/nextjs';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
@@ -9,9 +10,18 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-5 sm:px-8 lg:px-10">
         <Link
           aria-label="Retaino home"
-          className="text-base tracking-tight"
+          className="flex items-center gap-2 text-base tracking-tight"
           href={routes.home}
         >
+          <Image
+            alt=""
+            aria-hidden="true"
+            className="size-5"
+            height={20}
+            priority
+            src="/brand/icons/retaino-icon-transparent.svg"
+            width={20}
+          />
           retaino.
         </Link>
 

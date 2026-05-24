@@ -6,12 +6,10 @@ import {
   hasCurrentBillingSubscription,
 } from '@retaino/shared/contracts';
 import type { BillingPlanKey, CreditPackKey } from '@retaino/shared/contracts';
-import { RefreshCw } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { ItemNotice } from '@/components/item-notice';
 import { LoadingState } from '@/components/loading-state';
-import { Button } from '@/components/ui/button';
 import {
   AppPageContent,
   AppPageLoading,
@@ -94,18 +92,6 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
     <main className="flex flex-1 items-start bg-background">
       <section className="mx-auto grid w-full max-w-6xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
-          actions={
-            <Button
-              onClick={() => {
-                void billingStatus.refetch();
-              }}
-              type="button"
-              variant="outline"
-            >
-              <RefreshCw aria-hidden="true" data-icon="inline-start" />
-              Refresh
-            </Button>
-          }
           description="Choose a plan, buy extra credits, and manage payment details."
           eyebrow="Billing"
           title="Billing"
@@ -137,7 +123,7 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
               description={
                 billingStatus.error instanceof Error
                   ? billingStatus.error.message
-                  : 'Try refreshing the page.'
+                  : 'Try again in a moment.'
               }
               title="Billing status could not be loaded"
               variant="error"

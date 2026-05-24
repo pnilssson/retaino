@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 
 import { useCookieConsent } from '@/features/cookies/hooks/use-cookie-consent';
@@ -18,9 +19,17 @@ export function SiteFooter() {
         <div className="flex flex-col gap-2">
           <Link
             aria-label="Retaino home"
-            className="text-base tracking-tight text-foreground"
+            className="flex items-center gap-2 text-base tracking-tight text-foreground"
             href={routes.home}
           >
+            <Image
+              alt=""
+              aria-hidden="true"
+              className="size-5"
+              height={20}
+              src="/brand/icons/retaino-icon-transparent.svg"
+              width={20}
+            />
             retaino.
           </Link>
           <p className="max-w-sm text-sm leading-6 text-muted-foreground">

@@ -6,7 +6,6 @@ import {
   FileUp,
   Megaphone,
   Plus,
-  RefreshCw,
   UsersRound,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -120,24 +119,12 @@ export function CampaignsScreen() {
         <AppPageHeader
           actions={
             hasContacts && hasCampaigns ? (
-              <>
               <Button asChild>
                 <Link href={routes.campaignNew}>
                   <Plus aria-hidden="true" data-icon="inline-start" />
                   New campaign
                 </Link>
               </Button>
-              <Button
-                onClick={() => {
-                  void campaigns.refetch();
-                }}
-                type="button"
-                variant="outline"
-              >
-                <RefreshCw aria-hidden="true" data-icon="inline-start" />
-                Refresh
-              </Button>
-              </>
             ) : null
           }
           description="Review campaigns and previous sends for this organization."
@@ -152,7 +139,7 @@ export function CampaignsScreen() {
                   description={
                     contactPresence.error instanceof Error
                       ? contactPresence.error.message
-                      : 'Try refreshing the page.'
+                      : 'Try again in a moment.'
                   }
                   title="Contact status could not be checked"
                   variant="error"
@@ -200,7 +187,7 @@ export function CampaignsScreen() {
                   description={
                     campaigns.error instanceof Error
                       ? campaigns.error.message
-                      : 'Try refreshing the list.'
+                      : 'Try changing the filters or try again in a moment.'
                   }
                   title="Campaigns could not be fetched"
                   variant="error"

@@ -4,6 +4,7 @@ export * from './campaign-reports';
 export * from './campaigns';
 export * from './contacts';
 export * from './identity';
+export * from './inbox';
 export * from './legal-documents';
 export * from './reported-bookings';
 export * from './sms-senders';

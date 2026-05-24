@@ -100,7 +100,7 @@ export function ContactImportProgress({
         description={
           importQuery.error instanceof Error
             ? importQuery.error.message
-            : 'Try refreshing the page.'
+            : 'Try again in a moment.'
         }
         title="Import status could not be loaded"
         variant="error"

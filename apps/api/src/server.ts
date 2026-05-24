@@ -7,6 +7,7 @@ import { campaignsRoutes } from './features/campaigns/campaigns.routes';
 import { contactsRoutes } from './features/contacts/contacts.routes';
 import { processContactImportFunction } from './features/contacts/contacts.jobs';
 import { healthRoutes } from './features/health/health.routes';
+import { inboxRoutes } from './features/inbox/inbox.routes';
 import { legalRoutes } from './features/legal/legal.routes';
 import { organizationRoutes } from './features/organization/organization.routes';
 import { smsRoutes } from './features/sms/sms.routes';
@@ -43,6 +44,7 @@ app.route('/v1/organization', organizationRoutes);
 app.route('/v1/billing', billingRoutes);
 app.route('/v1/contacts', contactsRoutes);
 app.route('/v1/campaigns', campaignsRoutes);
+app.route('/v1/inbox', inboxRoutes);
 app.route('/v1/sms', smsRoutes);
 
 app.notFound((c) => {

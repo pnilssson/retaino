@@ -42,7 +42,7 @@ export function AudiencePreview({
         description={
           preview.error instanceof Error
             ? preview.error.message
-            : 'Try changing the audience rule or refreshing the page.'
+            : 'Try changing the audience rule or try again in a moment.'
         }
         title="Audience preview could not be loaded"
         variant="error"

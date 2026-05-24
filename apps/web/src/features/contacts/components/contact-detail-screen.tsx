@@ -110,7 +110,7 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
             description={
               contact.error instanceof Error
                 ? contact.error.message
-                : 'Try refreshing the page.'
+                : 'Try again in a moment.'
             }
             title="Contact could not be fetched"
             variant="error"
@@ -167,6 +167,7 @@ function ContactDetailContent({
               <DetailField label="Name" value={contact.name ?? 'Unnamed'} />
               <DetailField label="Phone" value={contact.phone ?? 'No phone'} />
               <DetailField label="Email" value={contact.email ?? 'No email'} />
+              <DetailField label="Last booking" value={formatDate(contact.lastBookingAt)} />
             </dl>
           )}
       </AppPageSection>
@@ -202,11 +203,10 @@ function ContactDetailContent({
       </AppPageSection>
 
       <AppPageSection
-        description="Import and booking context for this contact."
+        description="Import and outreach context for this contact."
         title="Activity"
       >
           <dl className="grid gap-3 sm:grid-cols-2">
-            <DetailField label="Last booking" value={formatDate(contact.lastBookingAt)} />
             <DetailField label="Last contacted" value={formatDate(contact.lastContactedAt)} />
             <DetailField label="Imported" value={formatDateTime(contact.createdAt)} />
             <DetailField label="Updated" value={formatDateTime(contact.updatedAt)} />

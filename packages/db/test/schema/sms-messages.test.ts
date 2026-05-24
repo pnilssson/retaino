@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { getTableConfig } from 'drizzle-orm/pg-core';
 import { smsMessages } from '../../src/schema/sms-messages';
 
 describe('sms messages schema', () => {
@@ -18,6 +19,9 @@ describe('sms messages schema', () => {
     );
     expect(smsMessages.fromPhone.name).toBe('from_phone');
     expect(smsMessages.toPhone.name).toBe('to_phone');
+    expect(smsMessages.normalizedPhone.name).toBe('normalized_phone');
+    expect(smsMessages.phoneHash.name).toBe('phone_hash');
+    expect(smsMessages.idempotencyKey.name).toBe('idempotency_key');
     expect(smsMessages.body.name).toBe('body');
     expect(smsMessages.status.name).toBe('status');
     expect(smsMessages.estimatedSegmentCount.name).toBe(
@@ -32,5 +36,18 @@ describe('sms messages schema', () => {
     expect(smsMessages.receivedAt.name).toBe('received_at');
     expect(smsMessages.deliveredAt.name).toBe('delivered_at');
     expect(smsMessages.failedAt.name).toBe('failed_at');
+  });
+
+  it('indexes phone-threaded inbox access without one-message-per-direction uniqueness', () => {
+    const indexes = getTableConfig(smsMessages).indexes.map(
+      (index) => index.config.name,
+    );
+
+    expect(indexes).toContain('sms_messages_organization_phone_created_idx');
+    expect(indexes).toContain('sms_messages_organization_contact_created_idx');
+    expect(indexes).toContain('sms_messages_organization_idempotency_idx');
+    expect(indexes).not.toContain(
+      'sms_messages_campaign_recipient_direction_idx',
+    );
   });
 });

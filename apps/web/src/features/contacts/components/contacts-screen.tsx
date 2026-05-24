@@ -1,6 +1,6 @@
 "use client";
 
-import { FileUp, RefreshCw, UsersRound } from 'lucide-react';
+import { FileUp, UsersRound } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import type { RowSelectionState } from '@tanstack/react-table';
@@ -104,24 +104,12 @@ export function ContactsScreen() {
         <AppPageHeader
           actions={
             hasContacts ? (
-              <>
               <Button asChild>
                 <Link href={routes.contactsImport}>
                   <FileUp aria-hidden="true" data-icon="inline-start" />
                   Import CSV
                 </Link>
               </Button>
-              <Button
-                onClick={() => {
-                  void contacts.refetch();
-                }}
-                type="button"
-                variant="outline"
-              >
-                <RefreshCw aria-hidden="true" data-icon="inline-start" />
-                Refresh
-              </Button>
-              </>
             ) : null
           }
           description="Review imported customers, find contacts ready for SMS, and catch data issues before campaigns."
@@ -136,7 +124,7 @@ export function ContactsScreen() {
                   description={
                     contactPresence.error instanceof Error
                       ? contactPresence.error.message
-                      : 'Try refreshing the page.'
+                      : 'Try again in a moment.'
                   }
                   title="Contact status could not be checked"
                   variant="error"
@@ -184,7 +172,7 @@ export function ContactsScreen() {
                   description={
                     contacts.error instanceof Error
                       ? contacts.error.message
-                      : 'Try refreshing the table.'
+                      : 'Try changing the filters or try again in a moment.'
                   }
                   title="Contacts could not be fetched"
                   variant="error"

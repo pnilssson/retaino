@@ -6,6 +6,7 @@ import {
   ChevronsUpDown,
   Cookie,
   CreditCard,
+  Inbox,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -32,6 +33,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
@@ -39,6 +41,8 @@ import {
 } from '@/components/ui/sidebar';
 import { useCookieConsent } from '@/features/cookies/hooks/use-cookie-consent';
 import { initialsFor } from '@/features/appshell/initials';
+import { useInboxSummary } from '@/features/inbox/hooks/use-inbox-summary';
+import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
 import { OrganizationSwitcher } from './organization-switcher';
 import { SidebarAvatar } from './sidebar-avatar';
@@ -58,6 +62,12 @@ const navigationItems = [
     title: 'Campaigns',
     href: routes.campaigns,
     icon: Megaphone
+  },
+  {
+    title: 'Inbox',
+    href: routes.inbox,
+    icon: Inbox,
+    badge: 'inbox'
   },
 ];
 
@@ -80,6 +90,14 @@ export function AppSidebar() {
   const { openUserProfile, signOut } = useClerk();
   const { user } = useUser();
   const { openPreferences } = useCookieConsent();
+  const session = useOrganizationSession();
+  const organizationId = session.data?.organization.id ?? null;
+  const inboxSummary = useInboxSummary({
+    enabled: Boolean(session.data?.readiness.ready),
+    organizationId,
+  });
+  const unreadInboxCount =
+    inboxSummary.data?.unreadConversationCount ?? 0;
   const userEmail = user?.primaryEmailAddress?.emailAddress ?? null;
   const userName = user?.fullName ?? userEmail ?? 'Account';
   const userInitials = initialsFor(user?.fullName ?? userEmail, 'AC');
@@ -107,6 +125,11 @@ export function AppSidebar() {
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
+                  {item.badge === 'inbox' && unreadInboxCount > 0 ? (
+                    <SidebarMenuBadge>
+                      {unreadInboxCount > 99 ? '99+' : unreadInboxCount}
+                    </SidebarMenuBadge>
+                  ) : null}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

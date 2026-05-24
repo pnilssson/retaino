@@ -22,7 +22,6 @@ import {
   AppPageContent,
   AppPageSection,
 } from '@/features/appshell/components/app-page-content';
-import { textStyles } from '@/lib/text-styles';
 import { createCampaignReportFunnel } from '../campaign-report-presentation';
 import { useCampaignReport } from '../hooks/use-campaign-report';
 import { ReportedBookingsSection } from './campaign-reported-bookings';
@@ -78,11 +77,7 @@ export function CampaignReportPanel({
       sendAccepted || campaign.status === 'sending' ? 5000 : false,
   });
   const reportData = report.data?.report ?? null;
-  const lastUpdated = report.dataUpdatedAt
-    ? formatReportUpdatedAt(report.dataUpdatedAt)
-    : null;
-  const isUpdatingReport = report.isFetching && !report.isLoading;
-  const refreshReport = () => {
+  const updateReport = () => {
     void report.refetch();
   };
 
@@ -90,11 +85,9 @@ export function CampaignReportPanel({
     <AppPageContent>
       <AppPageSection
         actions={
-          <ReportRefreshActions
+          <ReportUpdateActions
             isFetching={report.isFetching}
-            isUpdating={isUpdatingReport}
-            lastUpdated={lastUpdated}
-            onRefresh={refreshReport}
+            onUpdate={updateReport}
           />
         }
         description="Campaign result, delivery state, and next action."
@@ -106,7 +99,7 @@ export function CampaignReportPanel({
             description={
               report.error instanceof Error
                 ? report.error.message
-                : 'Try refreshing the report.'
+                : 'Try updating the report again.'
             }
             title="Report could not be fetched"
             variant="error"
@@ -134,43 +127,27 @@ export function CampaignReportPanel({
   );
 }
 
-function ReportRefreshActions({
+function ReportUpdateActions({
   isFetching,
-  isUpdating,
-  lastUpdated,
-  onRefresh,
+  onUpdate,
 }: {
   isFetching: boolean;
-  isUpdating: boolean;
-  lastUpdated: string | null;
-  onRefresh: () => void;
+  onUpdate: () => void;
 }) {
   return (
-    <>
-      {isUpdating ? (
-        <LoadingState label="Updating report" />
-      ) : lastUpdated ? (
-        <span
-          aria-live="polite"
-          className={`${textStyles.meta} flex min-h-9 items-center`}
-        >
-          Updated {lastUpdated}
-        </span>
-      ) : null}
-      <Button
-        disabled={isFetching}
-        onClick={onRefresh}
-        type="button"
-        variant="outline"
-      >
-        <RefreshCw
-          aria-hidden="true"
-          className={isUpdating ? 'animate-spin' : undefined}
-          data-icon="inline-start"
-        />
-        Refresh
-      </Button>
-    </>
+    <Button
+      disabled={isFetching}
+      onClick={onUpdate}
+      type="button"
+      variant="outline"
+    >
+      <RefreshCw
+        aria-hidden="true"
+        className={isFetching ? 'animate-spin' : undefined}
+        data-icon="inline-start"
+      />
+      Update report
+    </Button>
   );
 }
 
@@ -208,11 +185,4 @@ function withFunnelSummaryIcons(
     ...item,
     ...funnelSummaryMeta[item.label],
   }));
-}
-
-function formatReportUpdatedAt(updatedAt: number) {
-  return new Intl.DateTimeFormat(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(updatedAt));
 }

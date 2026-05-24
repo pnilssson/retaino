@@ -7,7 +7,7 @@ import {
   type BillingPlanKey,
   type BillingStatusResponse,
 } from '@retaino/shared/contracts';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -89,6 +89,10 @@ export function BillingPlanList({
           const isRecommendedPlan = planKey === 'growth';
           const isCurrentPlan =
             hasCurrentSubscription && billingStatus.subscription.planKey === planKey;
+          const isUpgradePlan = isPlanUpgrade(
+            billingStatus.subscription.planKey,
+            planKey,
+          );
           const isSelectedPlan =
             isCurrentPlan || (!hasCurrentSubscription && isRecommendedPlan);
           const isPending = pendingPlanKey === planKey;
@@ -96,6 +100,7 @@ export function BillingPlanList({
             isCurrentPlan,
             isPending,
             isPortalPending,
+            isUpgradePlan,
             planCta: view.cta,
             subscriptionLocked,
           });
@@ -123,11 +128,23 @@ export function BillingPlanList({
                     {isRecommendedPlan ? (
                       <StatusBadge
                         className={cn(
+                          'text-foreground',
                           isSelectedPlan &&
                             'border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground',
                         )}
                         label="Recommended"
-                        tone="blue"
+                        icon={
+                          <Sparkles
+                            aria-hidden="true"
+                            className={cn(
+                              'size-3',
+                              isSelectedPlan
+                                ? 'text-primary-foreground'
+                                : 'text-primary',
+                            )}
+                          />
+                        }
+                        tone="gray"
                       />
                     ) : null}
                     {isCurrentPlan ? (
@@ -245,12 +262,14 @@ function planActionLabel({
   isCurrentPlan,
   isPending,
   isPortalPending,
+  isUpgradePlan,
   planCta,
   subscriptionLocked,
 }: {
   isCurrentPlan: boolean;
   isPending: boolean;
   isPortalPending: boolean;
+  isUpgradePlan: boolean;
   planCta: string;
   subscriptionLocked: boolean;
 }) {
@@ -263,10 +282,25 @@ function planActionLabel({
   }
 
   if (subscriptionLocked) {
-    return isPortalPending ? 'Opening' : 'Manage';
+    return isPortalPending ? 'Opening' : isUpgradePlan ? 'Upgrade' : 'Manage';
   }
 
   return planCta;
+}
+
+function isPlanUpgrade(
+  currentPlanKey: BillingStatusResponse['subscription']['planKey'],
+  targetPlanKey: BillingPlanKey,
+) {
+  if (!currentPlanKey) {
+    return false;
+  }
+
+  return planRank(targetPlanKey) > planRank(currentPlanKey);
+}
+
+function planRank(planKey: BillingPlanKey) {
+  return BILLING_PLAN_KEYS.indexOf(planKey);
 }
 
 function subscriptionNeedsPortal(

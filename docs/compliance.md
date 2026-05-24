@@ -1,43 +1,28 @@
 # Compliance
 
-Retaino handles marketing recipients, campaign events, reported bookings,
-future booking exports, and revenue reporting. Treat imported and generated
-artifacts as sensitive.
+Retaino handles marketing recipients, campaign events, replies, reported bookings, future booking exports, and revenue reporting. Treat imported and generated artifacts as sensitive.
 
 This is product and engineering guidance, not legal advice.
 
 ## Roles
 
-The customer is the controller for their customer list and campaign purpose.
-Retaino is the processor for imported contacts, campaign sends, tracking events,
-reported bookings, and future reconciliation data.
+The customer is the controller for their customer list and campaign purpose. Retaino is the processor for imported contacts, campaign sends, tracking events, replies, reported bookings, and future reconciliation data.
 
-Organizations are the tenant boundary. Access rules live in
-`docs/architecture.md`.
+Organizations are the tenant boundary. Access rules live in `docs/architecture.md`.
 
 ## Legal Bundle
 
-Onboarding requires one organization-level legal agreement. Do not expose a
-checklist of legal documents as the main product step.
+Onboarding requires one organization-level legal agreement. Do not expose a checklist of legal documents as the main product step.
 
-The legal bundle includes terms or MSA, DPA, subprocessor list, transfer terms
-when needed, and sending policy. Twilio must be disclosed before live sending is
-enabled.
+The legal bundle includes terms or MSA, DPA, subprocessor list, transfer terms when needed, and sending policy. Twilio must be disclosed before live sending is enabled.
 
-Clicking the final setup action records acceptance of the current bundle.
-Public versioned legal pages remain available, but onboarding keeps the legal
-step compact.
+Clicking the final setup action records acceptance of the current bundle. Public versioned legal pages remain available, but onboarding keeps the legal step compact.
 
-Legal acceptances are append-only audit records. Store organization ID, user ID,
-bundle version, bundle hash, document snapshot, accepted time, IP address, and
-user agent when available.
+Legal acceptances are append-only audit records. Store organization ID, user ID, bundle version, bundle hash, document snapshot, accepted time, IP address, and user agent when available.
 
-`POST /v1/organization/legal` accepts the current bundle. The server chooses the
-current manifest and ignores client supplied document versions.
+`POST /v1/organization/legal` accepts the current bundle. The server chooses the current manifest and ignores client supplied document versions.
 
-When a material legal document changes, manually bump the bundle version.
-Affected organizations see an in-app notice. Imports are blocked until an admin
-accepts the current bundle. Campaign sends use the same gate.
+When a material legal document changes, manually bump the bundle version. Affected organizations see an in-app notice. Imports, campaign sends, test sends, and inbox replies are blocked until an admin accepts the current bundle.
 
 Do not add a normal user-facing revoke action.
 
@@ -47,32 +32,27 @@ Contact permission attestation belongs in the import flow, not onboarding.
 
 Before processing an import, the user must confirm:
 
-> I confirm these contacts can lawfully receive marketing SMS from this
-> organization.
+> I confirm these contacts can lawfully receive marketing SMS from this organization.
 
-The confirmation covers that recipients are valid marketing contacts, the
-customer has a lawful basis, recipients have not opted out, and imported files
-do not include sensitive unsupported fields.
+The confirmation covers that recipients are valid marketing contacts, the customer has a lawful basis, recipients have not opted out, and imported files do not include sensitive unsupported fields.
 
-Store attestation timestamp and actor user ID on the import record or audit
-metadata.
+Store attestation timestamp and actor user ID on the import record or audit metadata.
 
 ## Opt-Out And Suppression
 
-Every SMS campaign includes forced opt-out instructions. The user does not
-choose whether to include opt-out wording.
+Every campaign SMS includes forced opt-out instructions. The user does not choose whether to include opt-out wording.
 
-STOP handling must detect STOP-style replies, add organization-level
-suppressions, prevent future sends to suppressed phone numbers, log the event,
-and show suppression counts during audience review.
+STOP-style replies must add organization-level suppressions, prevent future campaign sends and manual replies to suppressed phone numbers, log the event, and show suppression counts during audience review.
 
-Suppression checks run during launch readiness and immediately before send
-execution.
+Suppression checks run during launch readiness, immediately before send execution, and before manual inbox replies.
+
+Do not send an automatic Retaino reply when Twilio already handled `STOP`, `START`, or `HELP`.
+
+Manual inbox replies are blocked for suppressed phone numbers. Suppression state must be read from the suppression table, not cached on conversation records.
 
 ## Data Minimization
 
-For MVP, store only fields needed for import, sending, tracking, and reported
-bookings:
+For MVP, store only fields needed for import, sending, inbox, tracking, and reported bookings:
 
 - name
 - phone
@@ -83,44 +63,30 @@ bookings:
 - email hash
 - last booking date when provided
 - campaign membership
-- delivery, click, opt-out, and reported booking events
+- delivery, click, opt-out, reply, and reported booking events
 
-Do not import health notes, journal notes, treatment notes, free-text medical
-fields, or other sensitive special-category data. Do not use header-name deny
-lists as the safety control.
+Do not import health notes, journal notes, treatment notes, free-text medical fields, or other sensitive special-category data. Do not use header-name deny lists as the safety control.
 
 ## Audit
 
-Tenant-scoped audit trails must record organization ID, event type, resource
-type, resource ID, timestamp, and relevant metadata. Actor user ID is required
-for user-driven actions and nullable for provider callbacks, public tracking
-redirects, and background jobs.
+Tenant-scoped audit trails record organization ID, event type, resource type, resource ID, timestamp, and relevant metadata. Actor user ID is required for user-driven actions and nullable for provider callbacks, public tracking redirects, and background jobs.
 
-IP addresses are stored only for legal acceptance evidence. Do not store request
-IP data on campaign audit logs, public tracking clicks, provider callbacks, or
-campaign operational events unless a later legal review creates a specific
-retention requirement.
+IP addresses are stored only for legal acceptance evidence. Do not store request IP data on campaign audit logs, public tracking clicks, provider callbacks, inbox messages, or campaign operational events unless a later legal review creates a specific retention requirement.
 
-Use `audit_logs` for user-driven decisions and administrative actions: legal
-acceptance, import metadata, mapping, validation, dedupe, suppression removal,
-campaign rules, SMS copy, launch decisions, reported bookings, and future
-booking reconciliation changes.
+Use `audit_logs` for user-driven decisions and administrative actions: legal acceptance, import metadata, mapping, validation, dedupe, suppression removal, campaign rules, SMS copy, launch decisions, manual reported bookings, and future booking reconciliation changes.
 
-Use event tables as the audit trail for operational campaign activity:
-provider results in `campaign_message_events`, opt-outs and replies through
-message events plus suppressions, and clicks in `click_events`.
+Use event tables as the audit trail for operational activity: provider results in `campaign_message_events`, opt-outs and replies through message events plus suppressions, and clicks in `click_events`.
 
 ## Retention
 
 MVP retention defaults:
 
 - raw uploaded files: delete after processing and lifecycle-clean stale uploads
-- normalized contacts: keep while the organization is active or until deletion
-  is requested
-- campaign events: keep for reporting and audit during the customer lifecycle
+- normalized contacts: keep while the organization is active or until deletion is requested
+- campaign and message events: keep for reporting and audit during the customer lifecycle
+- inbox messages: keep as part of the SMS message ledger during the customer lifecycle
 - reported bookings: keep only fields needed for outcome reporting
-- future booking imports: keep only mapped fields needed for attribution and
-  reporting
+- future booking imports: keep only mapped fields needed for attribution and reporting
 
 Retention jobs run outside HTTP requests.
 
@@ -135,4 +101,5 @@ Minimum requirements:
 - no cross-tenant matching, exports, or dashboard aggregation
 - signed or unguessable short-link codes
 - rate limiting on redirects and upload endpoints
+- webhook signature validation for provider callbacks
 - audit trail for destructive actions and reported booking changes

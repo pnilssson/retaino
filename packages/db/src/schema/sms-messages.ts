@@ -35,6 +35,9 @@ export const smsMessages = pgTable(
     providerPhoneNumberId: text('provider_phone_number_id'),
     fromPhone: text('from_phone'),
     toPhone: text('to_phone').notNull(),
+    normalizedPhone: text('normalized_phone'),
+    phoneHash: text('phone_hash'),
+    idempotencyKey: text('idempotency_key'),
     body: text('body').notNull(),
     status: text('status').notNull(),
     estimatedSegmentCount: integer('estimated_segment_count').notNull(),
@@ -67,15 +70,23 @@ export const smsMessages = pgTable(
       table.organizationId,
       table.recipientId,
     ),
+    index('sms_messages_organization_phone_created_idx').on(
+      table.organizationId,
+      table.phoneHash,
+      table.createdAt,
+    ),
+    index('sms_messages_organization_contact_created_idx').on(
+      table.organizationId,
+      table.contactId,
+      table.createdAt,
+    ),
     uniqueIndex('sms_messages_provider_message_idx').on(
       table.provider,
       table.providerMessageId,
     ),
-    uniqueIndex('sms_messages_campaign_recipient_direction_idx').on(
+    uniqueIndex('sms_messages_organization_idempotency_idx').on(
       table.organizationId,
-      table.campaignId,
-      table.recipientId,
-      table.direction,
+      table.idempotencyKey,
     ),
   ],
 );
