@@ -98,6 +98,95 @@ describe('contact import row processing', () => {
     });
   });
 
+  it('accepts common slash formats and Excel serial dates for last booking', async () => {
+    const accumulator = createContactImportAccumulator();
+    const usSlash = await classifyContactImportRow({
+      db: {} as never,
+      organizationId,
+      rowNumber: 2,
+      rawValues: {
+        Name: 'Ada US',
+        Phone: '070 123 45 67',
+        Email: '',
+        'Last booking': '3/24/25',
+      },
+      mapping,
+      phoneCountryCode: 'SE',
+      accumulator,
+    });
+    expect(usSlash).toMatchObject({
+      action: 'ready',
+      row: {
+        lastBookingAt: new Date('2025-03-24T00:00:00.000Z'),
+      },
+    });
+
+    const euSlash = await classifyContactImportRow({
+      db: {} as never,
+      organizationId,
+      rowNumber: 3,
+      rawValues: {
+        Name: 'Ada EU',
+        Phone: '070 123 45 68',
+        Email: '',
+        'Last booking': '24/3/2025',
+      },
+      mapping,
+      phoneCountryCode: 'SE',
+      accumulator,
+    });
+    expect(euSlash).toMatchObject({
+      action: 'ready',
+      row: {
+        lastBookingAt: new Date('2025-03-24T00:00:00.000Z'),
+      },
+    });
+
+    const excelSerial = await classifyContactImportRow({
+      db: {} as never,
+      organizationId,
+      rowNumber: 4,
+      rawValues: {
+        Name: 'Ada Serial',
+        Phone: '070 123 45 69',
+        Email: '',
+        'Last booking': '45740',
+      },
+      mapping,
+      phoneCountryCode: 'SE',
+      accumulator,
+    });
+    expect(excelSerial).toMatchObject({
+      action: 'ready',
+      row: {
+        lastBookingAt: new Date('2025-03-24T00:00:00.000Z'),
+      },
+    });
+  });
+
+  it('rejects ambiguous slash dates with a precise error code', async () => {
+    const accumulator = createContactImportAccumulator();
+    const outcome = await classifyContactImportRow({
+      db: {} as never,
+      organizationId,
+      rowNumber: 2,
+      rawValues: {
+        Name: 'Ada',
+        Phone: '070 123 45 67',
+        Email: '',
+        'Last booking': '3/4/2025',
+      },
+      mapping,
+      phoneCountryCode: 'SE',
+      accumulator,
+    });
+
+    expect(outcome).toEqual({
+      action: 'invalid',
+      errors: ['ambiguous_last_booking_at'],
+    });
+  });
+
   it('counts duplicate contact methods before suppression lookup', async () => {
     const accumulator = createContactImportAccumulator();
     await classifyContactImportRow({
