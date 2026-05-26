@@ -12,6 +12,7 @@ import {
   recordContactImportOutcome,
 } from './contact-import-processing';
 import { deleteTemporaryImportFile } from './contact-import-storage';
+import { captureBackgroundError } from '../../lib/sentry';
 
 type ProcessContactImportInput = {
   db: DbClient;
@@ -110,6 +111,13 @@ export async function processContactImport(input: ProcessContactImportInput) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Contact import failed.';
+
+    captureBackgroundError(error, {
+      feature: 'contacts',
+      operation: 'process_import',
+      organizationId: input.organizationId,
+      contactImportId: input.contactImportId,
+    });
 
     await failContactImport(input.db, {
       organizationId: input.organizationId,

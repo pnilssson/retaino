@@ -13,6 +13,7 @@ import {
 } from '@retaino/shared/contracts';
 import { Hono, type Context } from 'hono';
 import { apiError } from '../../lib/errors';
+import { captureOperationalMessage } from '../../lib/sentry';
 import { createSmsProvider } from '../../lib/sms-provider';
 import { providerCostMinor } from '../../lib/sms-cost';
 import type { AppEnv } from '../../types';
@@ -94,7 +95,9 @@ export const twilioMessagingWebhookRoutes = new Hono<AppEnv>()
     });
 
     if (!sender) {
-      console.warn('Ignored inbound SMS webhook for unknown sender.', {
+      captureOperationalMessage('Ignored inbound SMS webhook for unknown sender.', c, {
+        feature: 'sms',
+        operation: 'inbound_unknown_sender',
         provider: provider.name,
         providerSenderReference: inbound.providerSenderReference,
       });

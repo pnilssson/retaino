@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/cloudflare';
 import { Hono } from 'hono';
 import { serve } from 'inngest/hono';
 import { billingRoutes } from './features/billing/billing.routes';
@@ -15,12 +16,13 @@ import { twilioMessagingWebhookRoutes } from './features/sms/sms.webhook-routes'
 import { trackingRoutes } from './features/tracking/tracking.routes';
 import { apiError } from './lib/errors';
 import { inngest } from './lib/inngest';
+import { captureApiError, createSentryOptions } from './lib/sentry';
 import { authMiddleware } from './middleware/auth';
 import { corsMiddleware } from './middleware/cors';
 import { dbMiddleware } from './middleware/db';
 import type { AppEnv } from './types';
 
-const app = new Hono<AppEnv>();
+export const app = new Hono<AppEnv>();
 const inngestHandler = serve({
   client: inngest,
   functions: [processContactImportFunction, processCampaignSendFunction],
@@ -52,8 +54,17 @@ app.notFound((c) => {
 });
 
 app.onError((error, c) => {
-  console.error(error);
+  captureApiError(error, c, {
+    feature: 'api',
+    operation: 'unhandled_error',
+    httpStatus: 500,
+  });
   return c.json(apiError('internal_error', 'Unexpected API error.'), 500);
 });
 
-export default app;
+export default Sentry.withSentry(
+  (env: AppEnv['Bindings']) => createSentryOptions(env),
+  {
+    fetch: (request, env, ctx) => app.fetch(request, env, ctx),
+  } satisfies ExportedHandler<AppEnv['Bindings']>,
+);

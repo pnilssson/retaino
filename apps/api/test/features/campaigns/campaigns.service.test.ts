@@ -30,6 +30,7 @@ import {
   queueCampaignSend,
   sendCampaignTestSms,
 } from '../../../src/features/campaigns/campaigns.service';
+import { captureBackgroundError } from '../../../src/lib/sentry';
 import { createSmsProvider } from '../../../src/lib/sms-provider';
 
 vi.mock('@retaino/db', () => ({
@@ -61,6 +62,10 @@ vi.mock('../../../src/features/billing/billing.service', () => ({
 
 vi.mock('../../../src/lib/sms-provider', () => ({
   createSmsProvider: vi.fn(),
+}));
+
+vi.mock('../../../src/lib/sentry', () => ({
+  captureBackgroundError: vi.fn(),
 }));
 
 const organizationId = '22222222-2222-4222-8222-222222222222';
@@ -176,6 +181,7 @@ describe('campaign send service', () => {
     vi.mocked(debitSmsCreditUsage).mockReset();
     vi.mocked(releaseSmsCreditUsage).mockReset();
     vi.mocked(createSmsProvider).mockReset();
+    vi.mocked(captureBackgroundError).mockReset();
 
     vi.mocked(getCampaignById).mockResolvedValue(campaign);
     vi.mocked(getCurrentLegalBundle).mockResolvedValue(legalBundle);
@@ -1012,6 +1018,15 @@ describe('campaign send service', () => {
           actualCreditCount: 0,
           failureReason: 'Provider timeout.',
         }),
+      }),
+    );
+    expect(captureBackgroundError).toHaveBeenCalledWith(
+      providerError,
+      expect.objectContaining({
+        feature: 'campaigns',
+        operation: 'process_send',
+        organizationId,
+        campaignId,
       }),
     );
     expect(markCampaignSendCompleted).not.toHaveBeenCalled();

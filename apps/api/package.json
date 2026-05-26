@@ -15,6 +15,7 @@
     "@clerk/backend": "^3.4.6",
     "@retaino/db": "workspace:*",
     "@retaino/shared": "workspace:*",
+    "@sentry/cloudflare": "10.54.0",
     "csv-parse": "^6.2.1",
     "hono": "^4.12.18",
     "inngest": "^4.3.0",

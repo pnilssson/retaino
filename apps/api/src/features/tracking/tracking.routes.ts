@@ -2,6 +2,7 @@ import { getTrackingLinkByCode, recordTrackingClick } from '@retaino/db';
 import { isTrackingCode } from '@retaino/shared';
 import { Hono } from 'hono';
 import { apiError } from '../../lib/errors';
+import { captureHandledError } from '../../lib/sentry';
 import type { AppEnv } from '../../types';
 
 export const trackingRoutes = new Hono<AppEnv>().get('/:code', async (c) => {
@@ -41,7 +42,11 @@ export const trackingRoutes = new Hono<AppEnv>().get('/:code', async (c) => {
       userAgent: c.req.header('user-agent') ?? null,
     });
   } catch (error) {
-    console.error(error);
+    captureHandledError(error, c, {
+      feature: 'tracking',
+      operation: 'record_click',
+      organizationId: trackingLink.organizationId,
+    });
   }
 
   return c.redirect(trackingLink.targetUrl, 302);

@@ -23,6 +23,9 @@ importers:
       '@retaino/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@sentry/cloudflare':
+        specifier: 10.54.0
+        version: 10.54.0(@cloudflare/workers-types@4.20260508.1)
       csv-parse:
         specifier: ^6.2.1
         version: 6.2.1
@@ -2834,6 +2837,19 @@ packages:
 
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
+
+  '@sentry/cloudflare@10.54.0':
+    resolution: {integrity: sha512-uu0wNytwiDHqdaNDTX/SXKgO1iEs1nRG9N87/dP6pX47ny+4pwrSr/z/e00dxlBQc90UZ7wEk2B3+OYSpzeeOA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@cloudflare/workers-types': ^4.x
+    peerDependenciesMeta:
+      '@cloudflare/workers-types':
+        optional: true
+
+  '@sentry/core@10.54.0':
+    resolution: {integrity: sha512-yC/bc8N5ut6vk9X/ugTnIFAbzaSZ2uGoKiHRGzt7VseDIrjXk5ENDJP0m7Rbchuozr41kBv2QB3mPcHUhfB43w==}
+    engines: {node: '>=18'}
 
   '@sindresorhus/is@7.2.0':
     resolution: {integrity: sha512-P1Cz1dWaFfR4IR+U13mqqiGsLFf1KbayybWwdd2vfctdV6hDpUkgCY0nKOLLTMSoRd/jJNjtbqzf13K8DCCXQw==}
@@ -9128,6 +9144,15 @@ snapshots:
   '@rtsao/scc@1.1.0': {}
 
   '@sec-ant/readable-stream@0.4.1': {}
+
+  '@sentry/cloudflare@10.54.0(@cloudflare/workers-types@4.20260508.1)':
+    dependencies:
+      '@opentelemetry/api': 1.9.1
+      '@sentry/core': 10.54.0
+    optionalDependencies:
+      '@cloudflare/workers-types': 4.20260508.1
+
+  '@sentry/core@10.54.0': {}
 
   '@sindresorhus/is@7.2.0': {}
 

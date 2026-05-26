@@ -14,6 +14,8 @@ type AppBindings = {
   INNGEST_SERVE_ORIGIN?: string;
   INNGEST_SERVE_PATH?: string;
   INNGEST_SIGNING_KEY?: string;
+  SENTRY_DSN?: string;
+  SENTRY_ENVIRONMENT?: string;
   STRIPE_CANCEL_URL: string;
   STRIPE_CHECKOUT_DISPLAY_NAME?: string;
   STRIPE_PRICE_CREDITS_1500_ID: string;
@@ -36,6 +38,7 @@ type AppBindings = {
   TWILIO_STATUS_CALLBACK_BASE_URL?: string;
   TRACKING_REDIRECT_RATE_LIMITER?: RateLimit;
   TRACKING_REDIRECT_ROUTE_RATE_LIMITER?: RateLimit;
+  CF_VERSION_METADATA?: WorkerVersionMetadata;
 };
 
 type AppVariables = {

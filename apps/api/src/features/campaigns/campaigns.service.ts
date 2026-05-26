@@ -32,6 +32,7 @@ import {
   releaseSmsCreditUsage,
 } from '../billing/billing.service';
 import { callbackUrl } from '../../lib/callback-url';
+import { captureBackgroundError } from '../../lib/sentry';
 import { isSmsSenderReadyForSending } from '../../lib/sms-sender-readiness';
 import { createSmsProvider } from '../../lib/sms-provider';
 import { providerCostMinor } from '../../lib/sms-cost';
@@ -497,6 +498,13 @@ export async function processCampaignSend(input: {
     }
   } catch (error) {
     const failureReason = errorMessage(error);
+
+    captureBackgroundError(error, {
+      feature: 'campaigns',
+      operation: 'process_send',
+      organizationId: input.organizationId,
+      campaignId: input.campaignId,
+    });
 
     await releaseUnusedCampaignCredits({
       db: input.db,

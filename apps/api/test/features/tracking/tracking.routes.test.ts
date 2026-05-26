@@ -2,11 +2,16 @@ import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTrackingLinkByCode, recordTrackingClick } from '@retaino/db';
 import { trackingRoutes } from '../../../src/features/tracking/tracking.routes';
+import { captureHandledError } from '../../../src/lib/sentry';
 import type { AppEnv } from '../../../src/types';
 
 vi.mock('@retaino/db', () => ({
   getTrackingLinkByCode: vi.fn(),
   recordTrackingClick: vi.fn(),
+}));
+
+vi.mock('../../../src/lib/sentry', () => ({
+  captureHandledError: vi.fn(),
 }));
 
 const trackingLink = {
@@ -35,6 +40,7 @@ describe('trackingRoutes', () => {
   beforeEach(() => {
     vi.mocked(getTrackingLinkByCode).mockReset();
     vi.mocked(recordTrackingClick).mockReset();
+    vi.mocked(captureHandledError).mockReset();
   });
 
   it('resolves a public tracking code, records a click, and redirects', async () => {
@@ -72,21 +78,23 @@ describe('trackingRoutes', () => {
   });
 
   it('redirects when click tracking fails', async () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    try {
-      vi.mocked(getTrackingLinkByCode).mockResolvedValue(trackingLink);
-      vi.mocked(recordTrackingClick).mockRejectedValue(
-        new Error('Tracking write failed.'),
-      );
+    const error = new Error('Tracking write failed.');
+    vi.mocked(getTrackingLinkByCode).mockResolvedValue(trackingLink);
+    vi.mocked(recordTrackingClick).mockRejectedValue(error);
 
-      const response = await testApp().request('/r/0123456789abcdef');
+    const response = await testApp().request('/r/0123456789abcdef');
 
-      expect(response.status).toBe(302);
-      expect(response.headers.get('location')).toBe(trackingLink.targetUrl);
-      expect(errorSpy).toHaveBeenCalledOnce();
-    } finally {
-      errorSpy.mockRestore();
-    }
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe(trackingLink.targetUrl);
+    expect(captureHandledError).toHaveBeenCalledWith(
+      error,
+      expect.anything(),
+      expect.objectContaining({
+        feature: 'tracking',
+        operation: 'record_click',
+        organizationId: trackingLink.organizationId,
+      }),
+    );
   });
 
   it('returns not found for unknown tracking codes', async () => {

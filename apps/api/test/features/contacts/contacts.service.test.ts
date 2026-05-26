@@ -7,6 +7,7 @@ import {
   upsertImportedContact,
 } from '@retaino/db';
 import { processContactImport } from '../../../src/features/contacts/contacts.service';
+import { captureBackgroundError } from '../../../src/lib/sentry';
 
 vi.mock('@retaino/db', () => ({
   completeContactImport: vi.fn(),
@@ -14,6 +15,10 @@ vi.mock('@retaino/db', () => ({
   findSuppressionByHash: vi.fn(),
   getContactImportForProcessing: vi.fn(),
   upsertImportedContact: vi.fn(),
+}));
+
+vi.mock('../../../src/lib/sentry', () => ({
+  captureBackgroundError: vi.fn(),
 }));
 
 const organizationId = '22222222-2222-4222-8222-222222222222';
@@ -52,6 +57,7 @@ describe('processContactImport', () => {
     vi.mocked(findSuppressionByHash).mockReset();
     vi.mocked(getContactImportForProcessing).mockReset();
     vi.mocked(upsertImportedContact).mockReset();
+    vi.mocked(captureBackgroundError).mockReset();
     vi.mocked(getContactImportForProcessing).mockResolvedValue(importRecord());
     vi.mocked(findSuppressionByHash).mockResolvedValue(null);
     vi.mocked(upsertImportedContact).mockResolvedValue({
@@ -179,7 +185,8 @@ describe('processContactImport', () => {
   });
 
   it('marks the import failed and still deletes the temporary file when processing throws', async () => {
-    vi.mocked(upsertImportedContact).mockRejectedValue(new Error('database down'));
+    const error = new Error('database down');
+    vi.mocked(upsertImportedContact).mockRejectedValue(error);
     const r2 = bucket('Name,Phone\nAda,0701234567\n');
 
     await processContactImport({
@@ -194,6 +201,14 @@ describe('processContactImport', () => {
       contactImportId,
       error: 'database down',
     });
+    expect(captureBackgroundError).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({
+        feature: 'contacts',
+        operation: 'process_import',
+        organizationId,
+      }),
+    );
     expect(r2.delete).toHaveBeenCalledWith('source.csv');
   });
 });

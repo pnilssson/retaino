@@ -10,6 +10,7 @@ import {
 } from '@retaino/db';
 import type { LegalBundle, OrganizationLegalAcceptance } from '@retaino/shared/contracts';
 import { smsRoutes } from '../../../src/features/sms/sms.routes';
+import { captureHandledError } from '../../../src/lib/sentry';
 import type { AppEnv } from '../../../src/types';
 
 vi.mock('@retaino/db', () => ({
@@ -19,6 +20,10 @@ vi.mock('@retaino/db', () => ({
   getOrganizationProfileByOrganizationId: vi.fn(),
   getOrganizationSmsSender: vi.fn(),
   upsertOrganizationSmsSender: vi.fn(),
+}));
+
+vi.mock('../../../src/lib/sentry', () => ({
+  captureHandledError: vi.fn(),
 }));
 
 const user = {
@@ -115,6 +120,7 @@ describe('smsRoutes', () => {
       legalAcceptance,
     );
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(profile);
+    vi.mocked(captureHandledError).mockReset();
   });
 
   afterEach(() => {
@@ -598,6 +604,19 @@ describe('smsRoutes', () => {
     );
 
     expect(response.status).toBe(429);
+    expect(captureHandledError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerErrorCode: '429',
+        retryable: true,
+      }),
+      expect.anything(),
+      expect.objectContaining({
+        feature: 'sms',
+        operation: 'provider_request',
+        provider: 'twilio',
+        httpStatus: 429,
+      }),
+    );
   });
 });
 

@@ -14,6 +14,7 @@ import {
 } from '@retaino/shared/contracts';
 import { Hono, type Context } from 'hono';
 import { apiError } from '../../lib/errors';
+import { captureHandledError } from '../../lib/sentry';
 import { createSmsProvider, SmsProviderError } from '../../lib/sms-provider';
 import { smsSenderPublicStatus } from '../../lib/sms-sender-readiness';
 import { parseJsonBody } from '../../lib/route-helpers';
@@ -329,6 +330,15 @@ function callbackUrl(baseUrl: string | undefined, path: string) {
 function providerErrorResponse(c: Context<AppEnv>, error: unknown) {
   if (error instanceof SmsProviderError) {
     const { code, status } = providerHttpError(error);
+
+    captureHandledError(error, c, {
+      feature: 'sms',
+      operation: 'provider_request',
+      provider: c.env.SMS_SENDING_MODE === 'live' ? 'twilio' : 'fake',
+      providerErrorCode: error.providerErrorCode,
+      retryable: error.retryable,
+      httpStatus: status,
+    });
 
     return c.json(
       apiError(code, error.publicMessage),

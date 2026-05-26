@@ -10,6 +10,7 @@ import {
   upsertSuppressionByHash,
 } from '@retaino/db';
 import { twilioMessagingWebhookRoutes } from '../../../src/features/sms/sms.webhook-routes';
+import { captureOperationalMessage } from '../../../src/lib/sentry';
 import { createSmsProvider } from '../../../src/lib/sms-provider';
 import type { AppEnv } from '../../../src/types';
 
@@ -25,6 +26,10 @@ vi.mock('@retaino/db', () => ({
 
 vi.mock('../../../src/lib/sms-provider', () => ({
   createSmsProvider: vi.fn(),
+}));
+
+vi.mock('../../../src/lib/sentry', () => ({
+  captureOperationalMessage: vi.fn(),
 }));
 
 const organizationId = '22222222-2222-4222-8222-222222222222';
@@ -53,6 +58,7 @@ describe('twilioMessagingWebhookRoutes', () => {
     vi.mocked(recordSmsMessageProviderResult).mockReset();
     vi.mocked(upsertSuppressionByHash).mockReset();
     vi.mocked(createSmsProvider).mockReset();
+    vi.mocked(captureOperationalMessage).mockReset();
 
     vi.mocked(createSmsProvider).mockReturnValue({
       name: 'twilio',
@@ -393,6 +399,37 @@ describe('twilioMessagingWebhookRoutes', () => {
       expect.objectContaining({
         eventType: 'reply',
         rawStatus: 'HELP',
+      }),
+    );
+  });
+
+  it('captures unknown inbound SMS senders and still returns empty TwiML', async () => {
+    vi.mocked(getOrganizationSmsSenderByProviderReference).mockResolvedValue(null);
+
+    const response = await testApp().request(
+      '/v1/webhooks/twilio/messaging/inbound',
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': 'valid',
+        },
+        body:
+          'MessageSid=IM123&From=%2B46701111111' +
+          '&To=%2B46700000000&Body=Hello&MessagingServiceSid=MG_unknown',
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('<Response></Response>');
+    expect(captureOperationalMessage).toHaveBeenCalledWith(
+      'Ignored inbound SMS webhook for unknown sender.',
+      expect.anything(),
+      expect.objectContaining({
+        feature: 'sms',
+        operation: 'inbound_unknown_sender',
+        provider: 'twilio',
+        providerSenderReference: 'MG_unknown',
       }),
     );
   });

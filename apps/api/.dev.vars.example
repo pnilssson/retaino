@@ -11,6 +11,10 @@ INNGEST_EVENT_KEY="local-inngest-event-key"
 INNGEST_SERVE_ORIGIN="http://127.0.0.1:8787"
 INNGEST_SERVE_PATH="/v1/inngest"
 
+# Error monitoring
+SENTRY_DSN=""
+SENTRY_ENVIRONMENT="development"
+
 # Billing
 STRIPE_CANCEL_URL="http://localhost:3000/app/settings/billing"
 STRIPE_CHECKOUT_DISPLAY_NAME="Retaino Sandbox"
