@@ -16,9 +16,20 @@ describe('Sentry helpers', () => {
 
     expect(options.dsn).toBeUndefined();
     expect(options.enabled).toBe(false);
+    expect(options.environment).toBe('development');
     expect(options.sendDefaultPii).toBe(false);
     expect(options.skipOpenTelemetrySetup).toBe(true);
     expect(options).not.toHaveProperty('tracesSampleRate');
+  });
+
+  it('defaults deployed Worker events to production', () => {
+    const options = createSentryOptions({
+      SENTRY_DSN: 'https://public@example.ingest.sentry.io/1',
+      CF_VERSION_METADATA: { id: 'worker-version-id' } as never,
+    });
+
+    expect(options.environment).toBe('production');
+    expect(options.release).toBe('worker-version-id');
   });
 
   it('keeps enriched manual error capture as the only Hono error capture path', () => {

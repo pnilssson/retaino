@@ -55,7 +55,9 @@ export function createSentryOptions(
   return {
     dsn: env.SENTRY_DSN,
     enabled: Boolean(env.SENTRY_DSN),
-    environment: env.SENTRY_ENVIRONMENT ?? 'development',
+    environment:
+      env.SENTRY_ENVIRONMENT ??
+      (env.CF_VERSION_METADATA ? 'production' : 'development'),
     release: env.CF_VERSION_METADATA?.id,
     sendDefaultPii: false,
     skipOpenTelemetrySetup: true,
