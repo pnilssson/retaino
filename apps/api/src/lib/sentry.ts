@@ -23,7 +23,7 @@ type CaptureInput = {
 
 const FILTERED = '[Filtered]';
 const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
-const PHONE_PATTERN = /(?:\+?\d[\d\s().-]{6,}\d)/g;
+const PHONE_PATTERN = /(?<![A-Za-z0-9])(?:\+?\d[\d\s().-]{6,}\d)(?![A-Za-z0-9])/g;
 const SENSITIVE_KEYS = new Set([
   'authorization',
   'cookie',
@@ -183,9 +183,12 @@ function toError(error: unknown) {
 
 function scrubEvent(event: ErrorEvent): ErrorEvent {
   const request = event.request ? sanitizedRequest(event.request) : undefined;
+  const rest = { ...event };
+
+  delete rest.user;
 
   return scrubObject({
-    ...event,
+    ...rest,
     request,
     extra: scrubValue(event.extra),
     contexts: scrubValue(event.contexts),

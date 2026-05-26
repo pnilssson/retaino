@@ -148,6 +148,36 @@ describe('SMS provider factory', () => {
     );
   });
 
+  it('preserves Twilio error codes on failed REST requests', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: 20003,
+          message: 'Authenticate',
+          status: 401,
+        }),
+        { status: 401 },
+      ),
+    );
+    const provider = createSmsProvider(
+      {
+        SMS_SENDING_MODE: 'live',
+        TWILIO_ACCOUNT_SID: 'AC123',
+        TWILIO_API_KEY_SID: 'SK123',
+        TWILIO_API_KEY_SECRET: 'secret',
+      } as never,
+      fetchImpl as never,
+    );
+
+    await expect(
+      provider.searchSenderOptions({ countryCode: 'US', numberType: 'local' }),
+    ).rejects.toMatchObject({
+      code: 'configuration_missing',
+      providerErrorCode: '20003',
+      retryable: false,
+    });
+  });
+
   it('rejects unsupported live sender markets before calling Twilio', async () => {
     const fetchImpl = vi.fn();
     const provider = createSmsProvider(

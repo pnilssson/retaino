@@ -72,9 +72,13 @@ describe('Sentry helpers', () => {
         email: 'ada@example.com',
         phoneNumber: '0702244074',
         smsBody: 'Hi Ada',
+        release: '1da928d7-f13f-4070-8f1f-fd3331fc175f',
         nested: {
           message: 'Provider failed for +46701111111 and ada@example.com',
         },
+      },
+      user: {
+        ip_address: '172.69.235.159',
       },
     } satisfies ErrorEvent;
 
@@ -85,10 +89,12 @@ describe('Sentry helpers', () => {
       'user-agent': 'Vitest',
     });
     expect(sanitized?.request).not.toHaveProperty('data');
+    expect(sanitized).not.toHaveProperty('user');
     expect(sanitized?.extra).toEqual({
       email: '[Filtered]',
       phoneNumber: '[Filtered]',
       smsBody: '[Filtered]',
+      release: '1da928d7-f13f-4070-8f1f-fd3331fc175f',
       nested: {
         message: 'Provider failed for [Phone] and [Email]',
       },

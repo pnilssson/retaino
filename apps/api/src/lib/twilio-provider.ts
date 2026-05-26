@@ -722,18 +722,33 @@ function createTwilioRestClient(
       const response = await fetchImpl(url, requestInit);
 
       if (!response.ok) {
+        const responseText = await response.text();
+
         throw new SmsProviderError({
           code: normalizeTwilioError(response.status),
           retryable: response.status === 429 || response.status >= 500,
           publicMessage: 'The SMS provider could not complete the request.',
-          internalMessage: await response.text(),
-          providerErrorCode: String(response.status),
+          internalMessage: responseText,
+          providerErrorCode:
+            twilioProviderErrorCode(responseText) ?? String(response.status),
         });
       }
 
       return (await response.json()) as TResponse;
     },
   };
+}
+
+function twilioProviderErrorCode(responseText: string) {
+  try {
+    const body = JSON.parse(responseText) as { code?: unknown };
+
+    return typeof body.code === 'number' || typeof body.code === 'string'
+      ? String(body.code)
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function toBasicAuth(user: string, secret: string) {
