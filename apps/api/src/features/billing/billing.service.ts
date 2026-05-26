@@ -128,6 +128,7 @@ export async function createSubscriptionCheckout(input: {
   const plan = input.catalog.plans[input.planKey];
   const session = await input.stripe.checkout.sessions.create({
     mode: 'subscription',
+    allow_promotion_codes: true,
     customer: customerId,
     success_url: input.config.successUrl,
     cancel_url: input.config.cancelUrl,
@@ -173,6 +174,7 @@ export async function createCreditCheckout(input: {
   const pack = input.catalog.creditPacks[input.packKey];
   const session = await input.stripe.checkout.sessions.create({
     mode: 'payment',
+    allow_promotion_codes: true,
     customer: customerId,
     success_url: input.config.successUrl,
     cancel_url: input.config.cancelUrl,
