@@ -29,9 +29,12 @@ const suppressionReasonLabels: Record<string, string> = {
 };
 
 const importIssueLabels: Record<string, string> = {
+  ambiguous_last_booking_at:
+    'Ambiguous last booking date (use YYYY-MM-DD, for example 2025-03-24)',
   duplicate_contact_method: 'Duplicate phone or email',
   invalid_email: 'Invalid email address',
-  invalid_last_booking_at: 'Invalid last booking date',
+  invalid_last_booking_at:
+    'Invalid last booking date (use YYYY-MM-DD, for example 2025-03-24)',
   invalid_phone: 'Invalid phone number',
   missing_contact_method: 'Missing phone or email',
   suppressed_contact_method: 'Suppressed phone or email',

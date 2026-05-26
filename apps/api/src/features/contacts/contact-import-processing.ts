@@ -209,28 +209,85 @@ function mappedValue(row: Record<string, string>, header: string | undefined) {
 
 function parseOptionalDate(value: string | null):
   | { value: Date | null; error: null }
-  | { value: null; error: 'invalid_last_booking_at' } {
+  | {
+      value: null;
+      error: 'invalid_last_booking_at' | 'ambiguous_last_booking_at';
+    } {
   if (!value) {
     return { value: null, error: null };
   }
 
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
 
-  if (!match) {
-    return { value: null, error: 'invalid_last_booking_at' };
+  if (iso) {
+    const [, year, month, day] = iso;
+    const date = dateFromParts(Number(year), Number(month), Number(day));
+    return date
+      ? { value: date, error: null }
+      : { value: null, error: 'invalid_last_booking_at' };
   }
 
-  const [, year, month, day] = match;
-  const date = new Date(`${year}-${month}-${day}T00:00:00.000Z`);
+  const slash = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(value);
+  if (slash) {
+    const [, leftRaw, rightRaw, yearRaw] = slash;
+    const left = Number(leftRaw);
+    const right = Number(rightRaw);
+    const year = yearRaw.length === 2 ? 2000 + Number(yearRaw) : Number(yearRaw);
 
+    const usValid = dateFromParts(year, left, right);
+    const euValid = dateFromParts(year, right, left);
+    const usPossible = left >= 1 && left <= 12;
+    const euPossible = right >= 1 && right <= 12;
+
+    if (usValid && euValid && usPossible && euPossible && left !== right) {
+      return { value: null, error: 'ambiguous_last_booking_at' };
+    }
+
+    if (usValid && !euValid) return { value: usValid, error: null };
+    if (euValid && !usValid) return { value: euValid, error: null };
+
+    if (usValid && euValid) {
+      // Unambiguous same day/month (e.g. 3/3/25). Store canonical UTC date.
+      return { value: usValid, error: null };
+    }
+  }
+
+  // Excel serial date (Windows epoch), common in CSV exports.
+  if (/^\d{5}$/.test(value)) {
+    const serial = Number(value);
+    if (Number.isFinite(serial) && serial > 0) {
+      const excelEpochUtc = Date.UTC(1899, 11, 30);
+      const date = new Date(excelEpochUtc + serial * 24 * 60 * 60 * 1000);
+      if (!Number.isNaN(date.getTime())) {
+        return {
+          value: new Date(
+            Date.UTC(
+              date.getUTCFullYear(),
+              date.getUTCMonth(),
+              date.getUTCDate(),
+            ),
+          ),
+          error: null,
+        };
+      }
+    }
+  }
+
+  return { value: null, error: 'invalid_last_booking_at' };
+}
+
+function dateFromParts(year: number, month: number, day: number) {
+  const date = new Date(
+    `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00.000Z`,
+  );
   if (
     Number.isNaN(date.getTime()) ||
-    date.getUTCFullYear() !== Number(year) ||
-    date.getUTCMonth() + 1 !== Number(month) ||
-    date.getUTCDate() !== Number(day)
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() + 1 !== month ||
+    date.getUTCDate() !== day
   ) {
-    return { value: null, error: 'invalid_last_booking_at' };
+    return null;
   }
 
-  return { value: date, error: null };
+  return date;
 }

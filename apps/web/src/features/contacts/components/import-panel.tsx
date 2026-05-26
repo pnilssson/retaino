@@ -234,10 +234,14 @@ function ImportForm({
                 <section>
                   {activeStep === 'upload' ? (
                     <GuidedFlowSection
-                      description="Use a CSV export from your booking or customer system."
+                      description="Use a CSV export from your booking or client system."
                       title="Upload the CSV"
                     >
                       <div className="grid gap-5">
+                        <ItemNotice
+                          description="Include at least one contact method column (Phone or Email). Name and Last booking date are optional but recommended for better matching and campaign targeting."
+                          title="Minimum CSV fields"
+                        />
                   <form.Field
                     name="file"
                     validators={{

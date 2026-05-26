@@ -92,7 +92,7 @@ export function OverviewScreen() {
                 </Link>
               </Button>
             }
-            description="Import a customer CSV to validate phone numbers, consent, dedupe results, and suppression checks before your first campaign."
+            description="Import a client CSV to validate phone numbers, consent, dedupe results, and suppression checks before your first campaign."
             icon={UsersRound}
             title="Import your first contacts"
           />

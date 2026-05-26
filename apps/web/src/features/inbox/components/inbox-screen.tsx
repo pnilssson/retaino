@@ -85,7 +85,7 @@ export function InboxScreen() {
     <main className="flex flex-1 items-start bg-background">
       <section className="mx-auto grid w-full max-w-7xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
-          description="Review SMS replies and continue customer conversations from one shared inbox."
+          description="Review SMS replies and continue client conversations from one shared inbox."
           title="Inbox"
         />
 

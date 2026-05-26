@@ -33,7 +33,7 @@ export function SiteFooter() {
             retaino.
           </Link>
           <p className="max-w-sm text-sm leading-6 text-muted-foreground">
-            Reactivate previous customers and measure recovered bookings.
+            Bring back previous clients and report recovered bookings.
           </p>
           <p className="text-xs leading-5 text-muted-foreground">
             &copy; {year} Retaino. All rights reserved.

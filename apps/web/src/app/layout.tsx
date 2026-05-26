@@ -23,7 +23,7 @@ const fontMono = JetBrains_Mono({
 
 const title = "Retaino";
 const description =
-  "Reactivate previous customers and measure recovered bookings.";
+  "Bring back previous clients and report recovered bookings.";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://retaino.com";
 
 export const metadata: Metadata = {

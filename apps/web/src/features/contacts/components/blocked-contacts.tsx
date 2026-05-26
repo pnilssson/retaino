@@ -31,7 +31,7 @@ export function BlockedContacts({ session }: { session: OrganizationSession }) {
     ? canManageSetup
       ? 'Review and accept the updated legal terms to resume CSV uploads and imports.'
       : 'An organization admin needs to accept the updated legal terms before CSV uploads and imports can continue.'
-    : 'Complete organization setup to unlock CSV uploads, validation, dedupe, suppression checks, and contact status.';
+    : 'Complete organization setup to enable CSV uploads, validation, dedupe, suppression checks, and contact status.';
   const actionHref = legalUpdateRequired
     ? routes.legal
     : routes.organizationSetup;
