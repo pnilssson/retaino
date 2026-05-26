@@ -6,10 +6,17 @@ import {
   type Campaign,
   type CampaignAudienceRule,
 } from '@retaino/shared/contracts';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { InfoTooltip } from '@/components/info-tooltip';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -18,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 
 const lapsedDayPresets = [30, 60, 90, 180] as const;
 const recentCampaignOptions = [
@@ -35,43 +43,32 @@ function isPresetLapsedDays(value: number) {
 }
 
 export function AudienceRuleFields({
-  campaigns,
   disabled = false,
-  excludeCampaignIds,
   includeNoBookingDate,
   lapsedDays,
-  onExcludeCampaignIdsChange,
   onIncludeNoBookingDateChange,
   onLapsedDaysChange,
-  onRecentCampaignExclusionDaysChange,
-  recentCampaignExclusionDays,
 }: {
-  campaigns: Campaign[];
   disabled?: boolean;
-  excludeCampaignIds: string[];
   includeNoBookingDate: boolean;
   lapsedDays: number;
-  onExcludeCampaignIdsChange: (value: string[]) => void;
   onIncludeNoBookingDateChange: (value: boolean) => void;
   onLapsedDaysChange: (value: number) => void;
-  onRecentCampaignExclusionDaysChange: (
-    value: CampaignAudienceRule['recentCampaignExclusionDays'],
-  ) => void;
-  recentCampaignExclusionDays: CampaignAudienceRule['recentCampaignExclusionDays'];
 }) {
   const lapsedDaysIsPreset = isPresetLapsedDays(lapsedDays);
   const [customSelected, setCustomSelected] = useState(false);
   const showCustomInput = customSelected || !lapsedDaysIsPreset;
-  const lastSentCampaign = campaigns
-    .filter((campaign) => campaign.sentAt)
-    .sort((first, second) =>
-      String(second.sentAt).localeCompare(String(first.sentAt)),
-    )[0];
 
   return (
     <div className="grid gap-4">
       <div className="grid gap-2">
-        <Label>Days since last booking</Label>
+        <div className="flex items-center gap-1.5">
+          <Label>Days since last booking</Label>
+          <InfoTooltip label="Days since last booking details">
+            Retaino includes contacts whose last booking was at least this many
+            days ago.
+          </InfoTooltip>
+        </div>
         <div className="flex flex-wrap gap-2">
           {lapsedDayPresets.map((days) => (
             <Button
@@ -143,104 +140,236 @@ export function AudienceRuleFields({
           Include contacts without booking date
         </span>
       </label>
+    </div>
+  );
+}
 
-      <div className="grid gap-4 border-t pt-4">
-        <div className="grid gap-2">
-          <Label htmlFor="recent-campaign-exclusion">
-            Recent campaign protection
+export function AudienceExclusionFields({
+  campaigns,
+  disabled = false,
+  excludeCampaignIds,
+  onExcludeCampaignIdsChange,
+  onRecentCampaignExclusionDaysChange,
+  recentCampaignExclusionDays,
+}: {
+  campaigns: Campaign[];
+  disabled?: boolean;
+  excludeCampaignIds: string[];
+  onExcludeCampaignIdsChange: (value: string[]) => void;
+  onRecentCampaignExclusionDaysChange: (
+    value: CampaignAudienceRule['recentCampaignExclusionDays'],
+  ) => void;
+  recentCampaignExclusionDays: CampaignAudienceRule['recentCampaignExclusionDays'];
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const lastSentCampaign = campaigns
+    .filter((campaign) => campaign.sentAt)
+    .sort((first, second) =>
+      String(second.sentAt).localeCompare(String(first.sentAt)),
+    )[0];
+  const selectedCampaigns = excludeCampaignIds
+    .map((id) => campaigns.find((campaign) => campaign.id === id))
+    .filter((campaign): campaign is Campaign => Boolean(campaign));
+  const selectedCampaignLabel = selectedCampaigns
+    .map((campaign) => campaign.name)
+    .join(', ');
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredCampaigns = normalizedQuery
+    ? campaigns.filter((campaign) =>
+        [campaign.name, campaign.sentAt ?? ''].some((value) =>
+          value.toLowerCase().includes(normalizedQuery),
+        ),
+      )
+    : campaigns;
+
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-2">
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="campaign-contact-window">
+            Skip contacts messaged within
           </Label>
-          <Select
-            disabled={disabled}
-            onValueChange={(value) =>
-              onRecentCampaignExclusionDaysChange(
-                value === 'off'
-                  ? null
-                  : (Number(value) as CampaignAudienceRule['recentCampaignExclusionDays']),
-              )
-            }
-            value={
-              recentCampaignExclusionDays === null
-                ? 'off'
-                : String(recentCampaignExclusionDays)
-            }
-          >
-            <SelectTrigger className="w-full sm:w-48" id="recent-campaign-exclusion">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {recentCampaignOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className={textStyles.meta}>
+          <InfoTooltip label="Campaign duplicate window details">
             Retaino avoids sending another campaign to people contacted during
             this period.
-          </p>
+          </InfoTooltip>
+        </div>
+        <Select
+          disabled={disabled}
+          onValueChange={(value) =>
+            onRecentCampaignExclusionDaysChange(
+              value === 'off'
+                ? null
+                : (Number(value) as CampaignAudienceRule['recentCampaignExclusionDays']),
+            )
+          }
+          value={
+            recentCampaignExclusionDays === null
+              ? 'off'
+              : String(recentCampaignExclusionDays)
+          }
+        >
+          <SelectTrigger className="w-full sm:w-56" id="campaign-contact-window">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {recentCampaignOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor="excluded-campaigns">Exclude sent campaigns</Label>
+            <InfoTooltip label="Excluded sent campaigns details">
+              Contacts messaged in selected campaigns are skipped for this send.
+            </InfoTooltip>
+          </div>
+          {lastSentCampaign ? (
+            <Button
+              disabled={disabled}
+              onClick={() => onExcludeCampaignIdsChange([lastSentCampaign.id])}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              Select latest sent
+            </Button>
+          ) : null}
         </div>
 
-        <div className="grid gap-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <Label>Exclude previous campaigns</Label>
-            {lastSentCampaign ? (
+        {campaigns.length === 0 ? (
+          <p className={textStyles.meta}>
+            Sent campaigns will appear here after the first campaign has
+            message history.
+          </p>
+        ) : (
+          <Popover
+            onOpenChange={(nextOpen) => {
+              setOpen(nextOpen);
+
+              if (!nextOpen) {
+                setQuery('');
+              }
+            }}
+            open={open}
+          >
+            <PopoverTrigger asChild>
               <Button
+                aria-expanded={open}
+                className="h-auto min-h-9 w-full justify-between gap-3 px-3 py-2"
                 disabled={disabled}
-                onClick={() => onExcludeCampaignIdsChange([lastSentCampaign.id])}
-                size="sm"
+                id="excluded-campaigns"
+                role="combobox"
                 type="button"
                 variant="outline"
               >
-                Select last sent campaign
+                <span
+                  className={cn(
+                    'min-w-0 truncate',
+                    selectedCampaigns.length === 0 && 'text-muted-foreground',
+                  )}
+                >
+                  {selectedCampaigns.length === 0
+                    ? 'Choose campaigns to exclude'
+                    : selectedCampaignLabel}
+                </span>
+                <ChevronsUpDown aria-hidden="true" data-icon="inline-end" />
               </Button>
-            ) : null}
-          </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-(--radix-popover-trigger-width) p-2">
+              <Input
+                aria-label="Search sent campaigns"
+                autoComplete="off"
+                className="mb-2"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search campaigns"
+                value={query}
+              />
+              <div
+                aria-multiselectable="true"
+                className="max-h-64 overflow-y-auto"
+                role="listbox"
+              >
+                {filteredCampaigns.length > 0 ? (
+                  filteredCampaigns.map((campaign) => {
+                    const selected = excludeCampaignIds.includes(campaign.id);
 
-          {campaigns.length === 0 ? (
-            <p className={textStyles.meta}>
-              Sent campaigns will appear here after the first campaign has
-              message history.
-            </p>
-          ) : (
-            <div className="grid max-h-56 gap-1 overflow-y-auto rounded-md border p-2">
-              {campaigns.map((campaign) => {
-                const checked = excludeCampaignIds.includes(campaign.id);
-
-                return (
-                  <label
-                    className="flex items-start gap-3 rounded-sm px-2 py-2 hover:bg-muted/60"
-                    key={campaign.id}
+                    return (
+                      <button
+                        aria-selected={selected}
+                        className={cn(
+                          'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+                          selected && 'bg-accent/60',
+                        )}
+                        key={campaign.id}
+                        onClick={() => {
+                          onExcludeCampaignIdsChange(
+                            selected
+                              ? excludeCampaignIds.filter(
+                                  (id) => id !== campaign.id,
+                                )
+                              : [...excludeCampaignIds, campaign.id],
+                          );
+                        }}
+                        role="option"
+                        type="button"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className={cn('block truncate', textStyles.itemTitle)}>
+                            {campaign.name}
+                          </span>
+                          <span className={cn('block truncate', textStyles.meta)}>
+                            {campaign.sentAt
+                              ? `Sent ${formatCampaignDate(campaign.sentAt)}`
+                              : 'Send history available'}
+                          </span>
+                        </span>
+                        <Check
+                          aria-hidden="true"
+                          className={cn(
+                            'shrink-0',
+                            selected ? 'opacity-100' : 'opacity-0',
+                          )}
+                          data-icon="inline-end"
+                        />
+                      </button>
+                    );
+                  })
+                ) : (
+                  <p className="px-2 py-3 text-sm text-muted-foreground">
+                    No campaigns found.
+                  </p>
+                )}
+              </div>
+              {selectedCampaigns.length > 0 ? (
+                <div className="mt-2 flex items-center justify-between gap-2 px-2 pt-2">
+                  <p className={textStyles.meta}>
+                    {selectedCampaigns.length}{' '}
+                    {selectedCampaigns.length === 1
+                      ? 'campaign selected'
+                      : 'campaigns selected'}
+                  </p>
+                  <Button
+                    disabled={disabled}
+                    onClick={() => onExcludeCampaignIdsChange([])}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
                   >
-                    <Checkbox
-                      checked={checked}
-                      disabled={disabled}
-                      onCheckedChange={(value) => {
-                        const nextChecked = value === true;
-
-                        onExcludeCampaignIdsChange(
-                          nextChecked
-                            ? [...excludeCampaignIds, campaign.id]
-                            : excludeCampaignIds.filter((id) => id !== campaign.id),
-                        );
-                      }}
-                    />
-                    <span className="grid min-w-0 gap-0.5">
-                      <span className={textStyles.itemTitle}>
-                        {campaign.name}
-                      </span>
-                      <span className={textStyles.meta}>
-                        {campaign.sentAt
-                          ? `Sent ${formatCampaignDate(campaign.sentAt)}`
-                          : 'Send history available'}
-                      </span>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                    Clear
+                  </Button>
+                </div>
+              ) : null}
+            </PopoverContent>
+          </Popover>
+        )}
       </div>
     </div>
   );

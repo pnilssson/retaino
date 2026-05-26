@@ -27,11 +27,15 @@ import { useCreateCampaign } from '@/features/campaigns/hooks/use-create-campaig
 import { useUpdateCampaign } from '@/features/campaigns/hooks/use-update-campaign';
 import {
   AppPageItem,
+  AppPageSection,
 } from '@/features/appshell/components/app-page-content';
 import { getFieldError } from '@/lib/form-errors';
 import { textStyles } from '@/lib/text-styles';
 import { AudiencePreview } from './audience-preview';
-import { AudienceRuleFields } from './audience-rule-fields';
+import {
+  AudienceExclusionFields,
+  AudienceRuleFields,
+} from './audience-rule-fields';
 import {
   CampaignTextAreaInput,
   CampaignTextInput,
@@ -250,120 +254,136 @@ export function CampaignForm({
               steps={campaignSteps}
             >
               <div className="grid gap-5">
-                    {activeStep === 'audience' ? (
-                      <CampaignSetupStep
-                        description="Name the campaign and choose which lapsed clients should receive it."
-                        title="Choose the audience"
+                {activeStep === 'audience' ? (
+                  <div className="grid gap-5">
+                      <AppPageSection
+                        description="Name this campaign and choose the lapsed booking window."
+                        title="Campaign and booking window"
                       >
                         <div className="grid gap-5">
-                    <form.Field
-                      name="name"
-                      validators={{
-                        onBlur: ({ value }) =>
-                          validateRequired(value, 'Enter a campaign name.'),
-                        onSubmit: ({ value }) =>
-                          validateRequired(value, 'Enter a campaign name.'),
-                      }}
-                    >
-                      {(field) => (
-                        <CampaignTextInput
-                          disabled={!canEditCampaign}
-                          error={getFieldError(field.state.meta.errors)}
-                          label="Campaign name"
-                          name={field.name}
-                          onBlur={field.handleBlur}
-                          onChange={field.handleChange}
-                          placeholder="90-day reactivation..."
-                          spellCheck={false}
-                          value={field.state.value}
-                        />
-                      )}
-                    </form.Field>
+                          <form.Field
+                            name="name"
+                            validators={{
+                              onBlur: ({ value }) =>
+                                validateRequired(value, 'Enter a campaign name.'),
+                              onSubmit: ({ value }) =>
+                                validateRequired(value, 'Enter a campaign name.'),
+                            }}
+                          >
+                            {(field) => (
+                              <CampaignTextInput
+                                disabled={!canEditCampaign}
+                                error={getFieldError(field.state.meta.errors)}
+                                label="Campaign name"
+                                name={field.name}
+                                onBlur={field.handleBlur}
+                                onChange={field.handleChange}
+                                placeholder="90-day reactivation..."
+                                spellCheck={false}
+                                value={field.state.value}
+                              />
+                            )}
+                          </form.Field>
 
-                    <form.Field
-                      name="audienceRule.lapsedDays"
-                      validators={{
-                        onBlur: ({ value }) => validateLapsedDays(value),
-                        onSubmit: ({ value }) => validateLapsedDays(value),
-                      }}
-                    >
-                      {(lapsedDaysField) => (
-                        <form.Field name="audienceRule.includeNoBookingDate">
-                          {(includeNoBookingDateField) => (
-                            <form.Field name="audienceRule.recentCampaignExclusionDays">
-                              {(recentCampaignExclusionDaysField) => (
-                                <form.Field name="audienceRule.excludeCampaignIds">
-                                  {(excludeCampaignIdsField) => (
-                                    <div className="grid gap-2">
-                                      <AudienceRuleFields
-                                        campaigns={exclusionCampaigns}
-                                        disabled={!canEditCampaign}
-                                        excludeCampaignIds={
-                                          excludeCampaignIdsField.state.value
-                                        }
-                                        includeNoBookingDate={
-                                          includeNoBookingDateField.state.value
-                                        }
-                                        lapsedDays={lapsedDaysField.state.value}
-                                        onExcludeCampaignIdsChange={
-                                          excludeCampaignIdsField.handleChange
-                                        }
-                                        onIncludeNoBookingDateChange={
-                                          includeNoBookingDateField.handleChange
-                                        }
-                                        onLapsedDaysChange={
-                                          lapsedDaysField.handleChange
-                                        }
-                                        onRecentCampaignExclusionDaysChange={
-                                          recentCampaignExclusionDaysField.handleChange
-                                        }
-                                        recentCampaignExclusionDays={
-                                          recentCampaignExclusionDaysField.state.value
-                                        }
-                                      />
-                                      {getFieldError(
-                                        lapsedDaysField.state.meta.errors,
-                                      ) ? (
-                                        <p
-                                          aria-live="polite"
-                                          className={textStyles.error}
-                                        >
-                                          {getFieldError(
-                                            lapsedDaysField.state.meta.errors,
-                                          )}
-                                        </p>
-                                      ) : null}
-                                    </div>
-                                  )}
-                                </form.Field>
+                          <form.Field
+                            name="audienceRule.lapsedDays"
+                            validators={{
+                              onBlur: ({ value }) => validateLapsedDays(value),
+                              onSubmit: ({ value }) => validateLapsedDays(value),
+                            }}
+                          >
+                            {(lapsedDaysField) => (
+                              <form.Field name="audienceRule.includeNoBookingDate">
+                                {(includeNoBookingDateField) => (
+                                  <div className="grid gap-2">
+                                    <AudienceRuleFields
+                                      disabled={!canEditCampaign}
+                                      includeNoBookingDate={
+                                        includeNoBookingDateField.state.value
+                                      }
+                                      lapsedDays={lapsedDaysField.state.value}
+                                      onIncludeNoBookingDateChange={
+                                        includeNoBookingDateField.handleChange
+                                      }
+                                      onLapsedDaysChange={
+                                        lapsedDaysField.handleChange
+                                      }
+                                    />
+                                    {getFieldError(
+                                      lapsedDaysField.state.meta.errors,
+                                    ) ? (
+                                      <p
+                                        aria-live="polite"
+                                        className={textStyles.error}
+                                      >
+                                        {getFieldError(
+                                          lapsedDaysField.state.meta.errors,
+                                        )}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                )}
+                              </form.Field>
+                            )}
+                          </form.Field>
+                        </div>
+                      </AppPageSection>
+
+                      <AppPageSection
+                        description="Avoid overlapping campaign sends before this campaign is launched."
+                        title="Exclusions"
+                      >
+                        <form.Field name="audienceRule.recentCampaignExclusionDays">
+                          {(recentCampaignExclusionDaysField) => (
+                            <form.Field name="audienceRule.excludeCampaignIds">
+                              {(excludeCampaignIdsField) => (
+                                <AudienceExclusionFields
+                                  campaigns={exclusionCampaigns}
+                                  disabled={!canEditCampaign}
+                                  excludeCampaignIds={
+                                    excludeCampaignIdsField.state.value
+                                  }
+                                  onExcludeCampaignIdsChange={
+                                    excludeCampaignIdsField.handleChange
+                                  }
+                                  onRecentCampaignExclusionDaysChange={
+                                    recentCampaignExclusionDaysField.handleChange
+                                  }
+                                  recentCampaignExclusionDays={
+                                    recentCampaignExclusionDaysField.state.value
+                                  }
+                                />
                               )}
                             </form.Field>
                           )}
                         </form.Field>
-                      )}
-                    </form.Field>
+                      </AppPageSection>
 
-                    <AudiencePreview
-                      audienceRule={values.audienceRule}
-                      enabled={isPreviewableAudienceRule(values.audienceRule)}
-                      organizationId={organizationId}
-                    />
+                      <AppPageSection
+                        description="See how the current audience rules affect the final sendable audience."
+                        title="Matching contacts"
+                      >
+                        <AudiencePreview
+                          audienceRule={values.audienceRule}
+                          enabled={isPreviewableAudienceRule(values.audienceRule)}
+                          organizationId={organizationId}
+                        />
+                      </AppPageSection>
 
-                          <GuidedFlowActions
-                            canContinue={isAudienceStepComplete(values)}
-                            continueLabel="Continue to message"
-                            isPending={isSaving}
-                            onContinue={() => {
-                              void saveStepAndContinue(
-                                values,
-                                campaignFormValuesToAudienceInput(values),
-                                'message',
-                              );
-                            }}
-                          />
-                        </div>
-                      </CampaignSetupStep>
-                    ) : null}
+                      <GuidedFlowActions
+                        canContinue={isAudienceStepComplete(values)}
+                        continueLabel="Continue to message"
+                        isPending={isSaving}
+                        onContinue={() => {
+                          void saveStepAndContinue(
+                            values,
+                            campaignFormValuesToAudienceInput(values),
+                            'message',
+                          );
+                        }}
+                      />
+                  </div>
+                ) : null}
 
                     {activeStep === 'message' ? (
                       <CampaignSetupStep
