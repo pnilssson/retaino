@@ -1,7 +1,10 @@
 "use client";
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { CampaignSendResponse } from '@retaino/shared/contracts';
+import type {
+  CampaignSendRequest,
+  CampaignSendResponse,
+} from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
 import { campaignsQueryKeys } from '../query-keys';
 
@@ -16,14 +19,14 @@ export function useSendCampaign({
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => {
+    mutationFn: (input: CampaignSendRequest | undefined) => {
       if (!campaignId) {
         throw new Error('Choose a campaign before sending it.');
       }
 
       return api.post<CampaignSendResponse>(
         `/v1/campaigns/${campaignId}/send`,
-        {},
+        input ?? {},
       );
     },
     onSuccess: async (response) => {

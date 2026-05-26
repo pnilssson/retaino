@@ -3,6 +3,7 @@ import {
   countCampaignRecipients,
   createAuditLog,
   createOutboundSmsMessage,
+  findCampaignSendExclusionForRecipient,
   findSuppressionByHash,
   getCampaignById,
   getCurrentLegalBundle,
@@ -23,6 +24,7 @@ import {
   debitSmsCreditUsage,
   releaseSmsCreditUsage,
 } from '../../../src/features/billing/billing.service';
+import type { Campaign } from '@retaino/shared/contracts';
 import {
   processCampaignSend,
   queueCampaignSend,
@@ -34,6 +36,7 @@ vi.mock('@retaino/db', () => ({
   countCampaignRecipients: vi.fn(),
   createAuditLog: vi.fn(),
   createOutboundSmsMessage: vi.fn(),
+  findCampaignSendExclusionForRecipient: vi.fn(),
   findSuppressionByHash: vi.fn(),
   getCampaignById: vi.fn(),
   getCurrentLegalBundle: vi.fn(),
@@ -65,13 +68,18 @@ const campaignId = '44444444-4444-4444-8444-444444444444';
 const userId = '11111111-1111-4111-8111-111111111111';
 const db = {} as never;
 
-const campaign = {
+const campaign: Campaign = {
   id: campaignId,
   organizationId,
   createdByUserId: userId,
   name: 'June reactivation',
   status: 'ready_to_send',
-  audienceRule: { lapsedDays: 90, includeNoBookingDate: false },
+  audienceRule: {
+    lapsedDays: 90,
+    includeNoBookingDate: false,
+    excludeCampaignIds: [],
+    recentCampaignExclusionDays: 30,
+  },
   smsBody: 'Hi {first_name}, we have openings this week.',
   bookingUrl: 'https://booking.example.com/studio',
   campaignCode: null,
@@ -86,7 +94,7 @@ const campaign = {
   actualCreditCount: null,
   createdAt: '2026-05-16T00:00:00.000Z',
   updatedAt: '2026-05-16T10:00:00.000Z',
-} as const;
+};
 
 const recipient = {
   id: '55555555-5555-4555-8555-555555555555',
@@ -149,6 +157,7 @@ describe('campaign send service', () => {
     vi.mocked(createAuditLog).mockReset();
     vi.mocked(countCampaignRecipients).mockReset();
     vi.mocked(createOutboundSmsMessage).mockReset();
+    vi.mocked(findCampaignSendExclusionForRecipient).mockReset();
     vi.mocked(findSuppressionByHash).mockReset();
     vi.mocked(getCampaignById).mockReset();
     vi.mocked(getCurrentLegalBundle).mockReset();
@@ -205,7 +214,7 @@ describe('campaign send service', () => {
       campaignId,
       recipientId: recipient.id,
       code: 'abc123',
-      targetUrl: campaign.bookingUrl,
+      targetUrl: campaign.bookingUrl as string,
       createdAt: '2026-05-16T10:00:00.000Z',
       updatedAt: '2026-05-16T10:00:00.000Z',
     });
@@ -295,6 +304,7 @@ describe('campaign send service', () => {
       parseInboundWebhook: vi.fn(),
       verifyWebhook: vi.fn(),
     });
+    vi.mocked(findCampaignSendExclusionForRecipient).mockResolvedValue(null);
   });
 
   it('sends campaign test SMS through the provider and reserves credits', async () => {
@@ -418,6 +428,76 @@ describe('campaign send service', () => {
 
     expect(debitSmsCreditUsage).not.toHaveBeenCalled();
     expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  it('requires acknowledgement when recent campaign protection is lowered', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue({
+      ...campaign,
+      audienceRule: {
+        ...campaign.audienceRule,
+        recentCampaignExclusionDays: 7,
+      },
+    });
+    const enqueue = vi.fn();
+
+    await expect(
+      queueCampaignSend({
+        db,
+        env: {
+          HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
+          SMS_SENDING_MODE: 'test',
+          TRACKING_BASE_URL: 'https://go.retaino.test',
+        } as never,
+        organizationId,
+        campaignId,
+        userId,
+        userAgent: 'Vitest',
+        recentCampaignExclusionAcknowledged: false,
+        enqueue,
+      }),
+    ).resolves.toEqual({
+      status: 'recent_campaign_exclusion_acknowledgement_required',
+    });
+
+    expect(launchCampaign).not.toHaveBeenCalled();
+    expect(debitSmsCreditUsage).not.toHaveBeenCalled();
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  it('allows acknowledged sends when recent campaign protection is disabled', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue({
+      ...campaign,
+      audienceRule: {
+        ...campaign.audienceRule,
+        recentCampaignExclusionDays: null,
+      },
+    });
+    const enqueue = vi.fn();
+
+    await expect(
+      queueCampaignSend({
+        db,
+        env: {
+          HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
+          SMS_SENDING_MODE: 'test',
+          TRACKING_BASE_URL: 'https://go.retaino.test',
+        } as never,
+        organizationId,
+        campaignId,
+        userId,
+        userAgent: 'Vitest',
+        recentCampaignExclusionAcknowledged: true,
+        enqueue,
+      }),
+    ).resolves.toMatchObject({
+      status: 'queued',
+    });
+
+    expect(enqueue).toHaveBeenCalledWith({
+      organizationId,
+      campaignId,
+      userId,
+    });
   });
 
   it('releases live send credits when enqueue fails after reservation', async () => {
@@ -966,6 +1046,41 @@ describe('campaign send service', () => {
       organizationId,
       recipientId: recipient.id,
       exclusionReason: 'suppressed_phone',
+    });
+    expect(debitSmsCreditUsage).not.toHaveBeenCalled();
+    expect(createOutboundSmsMessage).not.toHaveBeenCalled();
+    const provider = vi.mocked(createSmsProvider).mock.results[0]?.value;
+    expect(provider.sendSms).not.toHaveBeenCalled();
+  });
+
+  it('skips recipients sent by a selected excluded campaign after launch', async () => {
+    vi.mocked(findCampaignSendExclusionForRecipient).mockResolvedValue(
+      'selected_campaign_send',
+    );
+
+    await processCampaignSend({
+      db,
+      env: {
+        HYPERDRIVE: { connectionString: 'postgres://retaino.test/db' },
+        SMS_SENDING_MODE: 'test',
+        TRACKING_BASE_URL: 'https://go.retaino.test',
+      } as never,
+      organizationId,
+      campaignId,
+      userId,
+    });
+
+    expect(findCampaignSendExclusionForRecipient).toHaveBeenCalledWith(db, {
+      organizationId,
+      currentCampaignId: campaignId,
+      contactId: recipient.contactId,
+      phoneHash: recipient.phoneHash,
+      audienceRule: campaign.audienceRule,
+    });
+    expect(markCampaignRecipientSkipped).toHaveBeenCalledWith(db, {
+      organizationId,
+      recipientId: recipient.id,
+      exclusionReason: 'selected_campaign_send',
     });
     expect(debitSmsCreditUsage).not.toHaveBeenCalled();
     expect(createOutboundSmsMessage).not.toHaveBeenCalled();

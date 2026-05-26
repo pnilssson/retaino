@@ -7,22 +7,17 @@ import {
   ilike,
   inArray,
   isNotNull,
-  isNull,
-  lte,
   ne,
-  not,
   or,
-  type SQL,
 } from 'drizzle-orm';
-import type {
-  Campaign,
-  CampaignAudienceRule,
-  CampaignAudiencePreviewResponse,
-  CampaignRecipientStatus,
-  CampaignRecipientSearchItem,
-  CampaignStatus,
-  CreateCampaignDraftInput,
-  UpdateCampaignDraftInput,
+import {
+  normalizeCampaignAudienceRule,
+  type Campaign,
+  type CampaignRecipientStatus,
+  type CampaignRecipientSearchItem,
+  type CampaignStatus,
+  type CreateCampaignDraftInput,
+  type UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
 import type { DbClient } from '../client';
 import {
@@ -31,7 +26,10 @@ import {
   campaigns,
   contacts,
 } from '../schema';
-import { assertOrganizationId, phoneSuppressionExistsFilter } from './contacts';
+import {
+  campaignAudienceWhere,
+} from './campaign-audience';
+import { assertOrganizationId } from './contacts';
 
 type CampaignRow = typeof campaigns.$inferSelect;
 type CampaignRecipientRow = typeof campaignRecipients.$inferSelect;
@@ -84,7 +82,7 @@ function campaignToContract(row: CampaignRow): Campaign {
     createdByUserId: row.createdByUserId,
     name: row.name,
     status: row.status as CampaignStatus,
-    audienceRule: row.audienceRule as CampaignAudienceRule,
+    audienceRule: normalizeCampaignAudienceRule(row.audienceRule),
     smsBody: row.smsBody,
     bookingUrl: row.bookingUrl,
     campaignCode: row.campaignCode,
@@ -124,98 +122,6 @@ function recipientToContract(row: CampaignRecipientRow) {
   };
 }
 
-export function campaignAudienceWhere(
-  organizationId: string,
-  rule: CampaignAudienceRule,
-  now = new Date(),
-): SQL | undefined {
-  assertOrganizationId(organizationId);
-  const suppressionExists = phoneSuppressionExistsFilter(organizationId);
-
-  return and(
-    campaignAudienceDateWhere(rule, now),
-    eq(contacts.organizationId, organizationId),
-    isNotNull(contacts.normalizedPhone),
-    eq(contacts.consentStatus, 'granted'),
-    not(suppressionExists),
-  );
-}
-
-export async function previewCampaignAudience(
-  db: DbClient,
-  input: {
-    organizationId: string;
-    audienceRule: CampaignAudienceRule;
-    now?: Date;
-  },
-): Promise<CampaignAudiencePreviewResponse> {
-  assertOrganizationId(input.organizationId);
-  const now = input.now ?? new Date();
-  const eligibleWhere = campaignAudienceWhere(
-    input.organizationId,
-    input.audienceRule,
-    now,
-  );
-  const [eligibleRow] = await db
-    .select({ total: count() })
-    .from(contacts)
-    .where(eligibleWhere);
-  const [suppressedRow] = await db
-    .select({ total: count() })
-    .from(contacts)
-    .where(
-      campaignAudienceSuppressedWhere(
-        input.organizationId,
-        input.audienceRule,
-        now,
-      ),
-    );
-  const [incompleteRow] = await db
-    .select({ total: count() })
-    .from(contacts)
-    .where(
-      campaignAudienceIncompleteWhere(
-        input.organizationId,
-        input.audienceRule,
-        now,
-      ),
-    );
-  const [missingConsentRow] = await db
-    .select({ total: count() })
-    .from(contacts)
-    .where(
-      campaignAudienceMissingConsentWhere(
-        input.organizationId,
-        input.audienceRule,
-        now,
-      ),
-    );
-  const sampleRows = await db
-    .select({
-      id: contacts.id,
-      name: contacts.name,
-      phone: contacts.phone,
-      lastBookingAt: contacts.lastBookingAt,
-    })
-    .from(contacts)
-    .where(eligibleWhere)
-    .orderBy(desc(contacts.lastBookingAt))
-    .limit(10);
-
-  return {
-    eligibleCount: eligibleRow?.total ?? 0,
-    suppressedCount: suppressedRow?.total ?? 0,
-    incompleteCount: incompleteRow?.total ?? 0,
-    missingConsentCount: missingConsentRow?.total ?? 0,
-    sampleContacts: sampleRows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      phone: row.phone,
-      lastBookingAt: row.lastBookingAt?.toISOString() ?? null,
-    })),
-  };
-}
-
 export async function createCampaignDraft(
   db: DbClient,
   input: {
@@ -233,7 +139,7 @@ export async function createCampaignDraft(
       createdByUserId: input.createdByUserId,
       name: input.input.name,
       status: 'draft',
-      audienceRule: input.input.audienceRule,
+      audienceRule: normalizeCampaignAudienceRule(input.input.audienceRule),
       smsBody: input.input.smsBody,
       bookingUrl: input.input.bookingUrl,
       campaignCode: input.input.campaignCode,
@@ -682,6 +588,8 @@ export async function launchCampaign(
       return { status: 'incomplete' };
     }
 
+    const audienceRule = normalizeCampaignAudienceRule(campaign.audienceRule);
+
     const eligibleContacts = await tx
       .select({
         contactId: contacts.id,
@@ -699,7 +607,7 @@ export async function launchCampaign(
       .where(
         campaignAudienceWhere(
           input.organizationId,
-          campaign.audienceRule as CampaignAudienceRule,
+          audienceRule,
           now,
         ),
       )
@@ -776,7 +684,7 @@ export async function launchCampaign(
           resourceType: 'campaign',
           resourceId: campaign.id,
           metadata: {
-            audienceRule: campaign.audienceRule,
+            audienceRule,
             campaignCode: campaign.campaignCode,
             recipientCount,
           },
@@ -869,7 +777,9 @@ function chunkArray<T>(values: T[], chunkSize: number): T[][] {
 function campaignUpdateValues(input: UpdateCampaignDraftInput) {
   return {
     ...(input.name !== undefined ? { name: input.name } : {}),
-    ...(input.audienceRule !== undefined ? { audienceRule: input.audienceRule } : {}),
+    ...(input.audienceRule !== undefined
+      ? { audienceRule: normalizeCampaignAudienceRule(input.audienceRule) }
+      : {}),
     ...(input.smsBody !== undefined ? { smsBody: input.smsBody } : {}),
     ...(input.bookingUrl !== undefined ? { bookingUrl: input.bookingUrl } : {}),
     ...(input.campaignCode !== undefined
@@ -898,55 +808,4 @@ function isUniqueConstraintViolation(error: unknown, constraintName: string) {
   }
 
   return false;
-}
-
-function campaignAudienceDateWhere(rule: CampaignAudienceRule, now: Date) {
-  const lapsedBefore = new Date(now);
-
-  lapsedBefore.setUTCDate(lapsedBefore.getUTCDate() - rule.lapsedDays);
-
-  const lapsedBooking = lte(contacts.lastBookingAt, lapsedBefore);
-
-  return rule.includeNoBookingDate
-    ? or(lapsedBooking, isNull(contacts.lastBookingAt))
-    : lapsedBooking;
-}
-
-function campaignAudienceSuppressedWhere(
-  organizationId: string,
-  rule: CampaignAudienceRule,
-  now: Date,
-) {
-  return and(
-    campaignAudienceDateWhere(rule, now),
-    eq(contacts.organizationId, organizationId),
-    isNotNull(contacts.normalizedPhone),
-    eq(contacts.consentStatus, 'granted'),
-    phoneSuppressionExistsFilter(organizationId),
-  );
-}
-
-function campaignAudienceIncompleteWhere(
-  organizationId: string,
-  rule: CampaignAudienceRule,
-  now: Date,
-) {
-  return and(
-    campaignAudienceDateWhere(rule, now),
-    eq(contacts.organizationId, organizationId),
-    isNull(contacts.normalizedPhone),
-  );
-}
-
-function campaignAudienceMissingConsentWhere(
-  organizationId: string,
-  rule: CampaignAudienceRule,
-  now: Date,
-) {
-  return and(
-    campaignAudienceDateWhere(rule, now),
-    eq(contacts.organizationId, organizationId),
-    isNotNull(contacts.normalizedPhone),
-    not(eq(contacts.consentStatus, 'granted')),
-  );
 }

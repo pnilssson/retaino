@@ -2,6 +2,7 @@ import {
   countCampaignRecipients,
   createAuditLog,
   createOutboundSmsMessage,
+  findCampaignSendExclusionForRecipient,
   findSuppressionByHash,
   getCampaignById,
   getCurrentLegalBundle,
@@ -21,7 +22,10 @@ import {
   type DbClient,
 } from '@retaino/db';
 import { renderCampaignSms, TRACKING_CODE_LENGTH } from '@retaino/shared';
-import { normalizePhoneNumber } from '@retaino/shared/contracts';
+import {
+  normalizePhoneNumber,
+  requiresRecentCampaignExclusionAcknowledgement,
+} from '@retaino/shared/contracts';
 import type { Campaign, SmsCreditTransaction } from '@retaino/shared/contracts';
 import {
   debitSmsCreditUsage,
@@ -63,6 +67,7 @@ type QueueCampaignSendResult =
   | { status: 'sender_not_ready' }
   | { status: 'incomplete' }
   | { status: 'empty_audience' }
+  | { status: 'recent_campaign_exclusion_acknowledgement_required' }
   | {
       status: 'queued';
       campaign: Campaign;
@@ -91,6 +96,7 @@ export async function queueCampaignSend(input: {
   campaignId: string;
   userId: string;
   userAgent: string | null;
+  recentCampaignExclusionAcknowledged?: boolean | undefined;
   enqueue: (payload: {
     organizationId: string;
     campaignId: string;
@@ -108,6 +114,13 @@ export async function queueCampaignSend(input: {
 
   if (campaign.status !== 'draft' && campaign.status !== 'ready_to_send') {
     return { status: 'not_sendable' };
+  }
+
+  if (
+    requiresRecentCampaignExclusionAcknowledgement(campaign.audienceRule) &&
+    !input.recentCampaignExclusionAcknowledged
+  ) {
+    return { status: 'recent_campaign_exclusion_acknowledgement_required' };
   }
 
   const provider = createSmsProvider(input.env);
@@ -588,6 +601,10 @@ export async function reserveCampaignSendCredits(input: {
       continue;
     }
 
+    if (await findCampaignExclusion(input.db, input.campaign, recipient)) {
+      continue;
+    }
+
     const rendered = renderCampaignSms({
       smsBody: input.campaign.smsBody,
       trackedBookingLink: trackingUrl(
@@ -709,6 +726,23 @@ async function prepareRecipients(input: {
       continue;
     }
 
+    if (recipient.status !== 'sent') {
+      const exclusionReason = await findCampaignExclusion(
+        input.db,
+        input.campaign,
+        recipient,
+      );
+
+      if (exclusionReason) {
+        await markCampaignRecipientSkipped(input.db, {
+          organizationId: recipient.organizationId,
+          recipientId: recipient.id,
+          exclusionReason,
+        });
+        continue;
+      }
+    }
+
     const trackingLink = await upsertTrackingLink(input.db, {
       organizationId: recipient.organizationId,
       campaignId: recipient.campaignId,
@@ -738,6 +772,20 @@ async function prepareRecipients(input: {
   }
 
   return prepared;
+}
+
+async function findCampaignExclusion(
+  db: DbClient,
+  campaign: Campaign,
+  recipient: CampaignRecipientForSend,
+) {
+  return findCampaignSendExclusionForRecipient(db, {
+    organizationId: recipient.organizationId,
+    currentCampaignId: campaign.id,
+    contactId: recipient.contactId,
+    phoneHash: recipient.phoneHash,
+    audienceRule: campaign.audienceRule,
+  });
 }
 
 async function shouldSkipRecipient(

@@ -1,7 +1,14 @@
 "use client";
 
 import type { CampaignAudienceRule } from '@retaino/shared/contracts';
-import { AlertCircle, CheckCircle2, PhoneOff, ShieldOff } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock3,
+  History,
+  PhoneOff,
+  ShieldOff,
+} from 'lucide-react';
 import { ItemNotice } from '@/components/item-notice';
 import {
   SankeyBreakdown,
@@ -51,7 +58,7 @@ export function AudiencePreview({
   }
 
   if (preview.isLoading || !preview.data) {
-    return <p className={textStyles.mutedBody}>Loading audience preview…</p>;
+    return <p className={textStyles.mutedBody}>Loading audience preview...</p>;
   }
 
   const audienceNodes = createAudienceNodes();
@@ -79,9 +86,12 @@ export function AudiencePreview({
 }
 
 type AudiencePreviewData = {
+  baseEligibleCount: number;
   eligibleCount: number;
   incompleteCount: number;
   missingConsentCount: number;
+  recentCampaignExcludedCount: number;
+  selectedCampaignsExcludedCount: number;
   suppressedCount: number;
 };
 
@@ -93,7 +103,7 @@ function createAudienceNodes(): SankeyBreakdownNode[] {
     },
     {
       color: 'var(--chart-2)',
-      name: 'Ready',
+      name: 'Can receive SMS',
     },
     {
       color: 'var(--chart-4)',
@@ -101,7 +111,15 @@ function createAudienceNodes(): SankeyBreakdownNode[] {
     },
     {
       color: 'var(--chart-2)',
-      name: 'Eligible',
+      name: 'Final sendable',
+    },
+    {
+      color: 'var(--chart-5)',
+      name: 'Recently contacted',
+    },
+    {
+      color: 'var(--chart-3)',
+      name: 'Previous campaigns',
     },
     {
       color: 'var(--muted-foreground)',
@@ -123,12 +141,14 @@ function createAudienceLinks(data: AudiencePreviewData): SankeyBreakdownLink[] {
     data.suppressedCount + data.incompleteCount + data.missingConsentCount;
 
   return [
-    { source: 0, target: 1, value: data.eligibleCount },
+    { source: 0, target: 1, value: data.baseEligibleCount },
     { source: 0, target: 2, value: attentionCount },
     { source: 1, target: 3, value: data.eligibleCount },
-    { source: 2, target: 4, value: data.suppressedCount },
-    { source: 2, target: 5, value: data.incompleteCount },
-    { source: 2, target: 6, value: data.missingConsentCount },
+    { source: 1, target: 4, value: data.recentCampaignExcludedCount },
+    { source: 1, target: 5, value: data.selectedCampaignsExcludedCount },
+    { source: 2, target: 6, value: data.suppressedCount },
+    { source: 2, target: 7, value: data.incompleteCount },
+    { source: 2, target: 8, value: data.missingConsentCount },
   ];
 }
 
@@ -139,8 +159,20 @@ function createAudienceSummary(
     {
       icon: CheckCircle2,
       iconClassName: 'bg-emerald-50 text-emerald-700',
-      label: 'Eligible',
+      label: 'Final sendable',
       value: data.eligibleCount,
+    },
+    {
+      icon: Clock3,
+      iconClassName: 'bg-sky-50 text-sky-700',
+      label: 'Recently contacted',
+      value: data.recentCampaignExcludedCount,
+    },
+    {
+      icon: History,
+      iconClassName: 'bg-violet-50 text-violet-700',
+      label: 'Previous campaigns',
+      value: data.selectedCampaignsExcludedCount,
     },
     {
       icon: ShieldOff,

@@ -5,6 +5,7 @@ import {
   createReportedBookings,
   countCampaignRecipients,
   deleteCampaignDraft,
+  findCampaignSendExclusionForRecipient,
   findSuppressionByHash,
   getCampaignById,
   getCampaignReport,
@@ -39,6 +40,7 @@ vi.mock('@retaino/db', () => ({
   createReportedBookings: vi.fn(),
   countCampaignRecipients: vi.fn(),
   deleteCampaignDraft: vi.fn(),
+  findCampaignSendExclusionForRecipient: vi.fn(),
   findSuppressionByHash: vi.fn(),
   getCampaignById: vi.fn(),
   getCampaignReport: vi.fn(),
@@ -153,7 +155,12 @@ const campaign: Campaign = {
   createdByUserId: user.id,
   name: 'June reactivation',
   status: 'draft',
-  audienceRule: { lapsedDays: 90, includeNoBookingDate: false },
+  audienceRule: {
+    lapsedDays: 90,
+    includeNoBookingDate: false,
+    excludeCampaignIds: [],
+    recentCampaignExclusionDays: 30,
+  },
   smsBody: 'We have openings this week.',
   bookingUrl: 'https://booking.example.com/studio',
   campaignCode: null,
@@ -213,6 +220,7 @@ describe('campaignsRoutes', () => {
     vi.mocked(countCampaignRecipients).mockReset();
     vi.mocked(reserveSmsCreditsIfSufficient).mockReset();
     vi.mocked(deleteCampaignDraft).mockReset();
+    vi.mocked(findCampaignSendExclusionForRecipient).mockReset();
     vi.mocked(findSuppressionByHash).mockReset();
     vi.mocked(getCampaignById).mockReset();
     vi.mocked(getCampaignReport).mockReset();
@@ -235,6 +243,7 @@ describe('campaignsRoutes', () => {
     vi.mocked(getCurrentLegalBundle).mockResolvedValue(legalBundle);
     vi.mocked(getCurrentOrganizationLegalAcceptance).mockResolvedValue(legalAcceptance);
     vi.mocked(findSuppressionByHash).mockResolvedValue(null);
+    vi.mocked(findCampaignSendExclusionForRecipient).mockResolvedValue(null);
     vi.mocked(getSmsCreditReservationState).mockResolvedValue({
       activeSourceId: null,
       hasHistory: false,
@@ -345,10 +354,14 @@ describe('campaignsRoutes', () => {
 
   it('previews unsaved audience rules for members using the active organization', async () => {
     vi.mocked(previewCampaignAudience).mockResolvedValue({
+      baseEligibleCount: 18,
       eligibleCount: 12,
       suppressedCount: 2,
       incompleteCount: 3,
       missingConsentCount: 4,
+      recentCampaignExcludedCount: 5,
+      selectedCampaignsExcludedCount: 1,
+      excludedCampaigns: [],
       sampleContacts: [],
     });
 
@@ -372,16 +385,22 @@ describe('campaignsRoutes', () => {
       audienceRule: {
         lapsedDays: 60,
         includeNoBookingDate: true,
+        excludeCampaignIds: [],
+        recentCampaignExclusionDays: 30,
       },
     });
   });
 
   it('defaults unsaved audience preview rules', async () => {
     vi.mocked(previewCampaignAudience).mockResolvedValue({
+      baseEligibleCount: 0,
       eligibleCount: 0,
       suppressedCount: 0,
       incompleteCount: 0,
       missingConsentCount: 0,
+      recentCampaignExcludedCount: 0,
+      selectedCampaignsExcludedCount: 0,
+      excludedCampaigns: [],
       sampleContacts: [],
     });
 
@@ -397,6 +416,8 @@ describe('campaignsRoutes', () => {
       audienceRule: {
         lapsedDays: 90,
         includeNoBookingDate: false,
+        excludeCampaignIds: [],
+        recentCampaignExclusionDays: 30,
       },
     });
   });
@@ -404,10 +425,14 @@ describe('campaignsRoutes', () => {
   it('previews saved campaign audiences by campaign id', async () => {
     vi.mocked(getCampaignById).mockResolvedValue(campaign);
     vi.mocked(previewCampaignAudience).mockResolvedValue({
+      baseEligibleCount: 8,
       eligibleCount: 5,
       suppressedCount: 1,
       incompleteCount: 0,
       missingConsentCount: 2,
+      recentCampaignExcludedCount: 2,
+      selectedCampaignsExcludedCount: 1,
+      excludedCampaigns: [],
       sampleContacts: [],
     });
 
@@ -562,6 +587,80 @@ describe('campaignsRoutes', () => {
         sourceId: `campaign-send:${campaign.id}`,
       }),
     );
+  });
+
+  it('requires acknowledgement before sending with lowered recent campaign protection', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue({
+      ...campaign,
+      status: 'ready_to_send',
+      readyToSendAt: '2026-05-16T10:00:00.000Z',
+      readyToSendByUserId: user.id,
+      audienceRule: {
+        ...campaign.audienceRule,
+        recentCampaignExclusionDays: 7,
+      },
+    });
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue(readySender());
+
+    const response = await testApp().request(
+      `/v1/campaigns/${campaign.id}/send`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      },
+      {
+        SMS_SENDING_MODE: 'test',
+        TRACKING_BASE_URL: 'https://go.retaino.test',
+      },
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: {
+        code: 'conflict',
+        message: 'Confirm the recent campaign protection change before sending.',
+      },
+    });
+    expect(enqueueCampaignSendProcessing).not.toHaveBeenCalled();
+  });
+
+  it('passes recent protection acknowledgement to live send queueing', async () => {
+    const readyCampaign = {
+      ...campaign,
+      status: 'ready_to_send',
+      readyToSendAt: '2026-05-16T10:00:00.000Z',
+      readyToSendByUserId: user.id,
+      audienceRule: {
+        ...campaign.audienceRule,
+        recentCampaignExclusionDays: null,
+      },
+    } as const;
+
+    vi.mocked(getCampaignById).mockResolvedValue(readyCampaign);
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue(readySender());
+    vi.mocked(countCampaignRecipients).mockResolvedValue({
+      recipientCount: 3,
+    });
+    vi.mocked(enqueueCampaignSendProcessing).mockResolvedValue(undefined);
+
+    const response = await testApp().request(
+      `/v1/campaigns/${campaign.id}/send`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          recentCampaignExclusionAcknowledged: true,
+        }),
+      },
+      {
+        SMS_SENDING_MODE: 'test',
+        TRACKING_BASE_URL: 'https://go.retaino.test',
+      },
+    );
+
+    expect(response.status).toBe(202);
+    expect(enqueueCampaignSendProcessing).toHaveBeenCalled();
   });
 
   it('rejects ready campaign sends when the sender is not ready', async () => {

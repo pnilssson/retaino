@@ -1,8 +1,9 @@
-import type {
-  Campaign,
-  CampaignAudienceRule,
-  CreateCampaignDraftInput,
-  UpdateCampaignDraftInput,
+import {
+  normalizeCampaignAudienceRule,
+  type Campaign,
+  type CampaignAudienceRule,
+  type CreateCampaignDraftInput,
+  type UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
 
 export type CampaignFormValues = {
@@ -27,6 +28,8 @@ export const defaultCampaignFormValues: CampaignFormValues = {
   audienceRule: {
     lapsedDays: 90,
     includeNoBookingDate: false,
+    excludeCampaignIds: [],
+    recentCampaignExclusionDays: 30,
   },
   smsBody: '',
   bookingUrl: '',
@@ -35,9 +38,11 @@ export const defaultCampaignFormValues: CampaignFormValues = {
 };
 
 export function campaignToFormValues(campaign: Campaign): CampaignFormValues {
+  const audienceRule = normalizeCampaignAudienceRule(campaign.audienceRule);
+
   return {
     name: campaign.name,
-    audienceRule: campaign.audienceRule,
+    audienceRule,
     smsBody: campaign.smsBody ?? '',
     bookingUrl: campaign.bookingUrl ?? '',
     campaignCode: campaign.campaignCode ?? '',

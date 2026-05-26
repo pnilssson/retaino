@@ -75,6 +75,13 @@ export function CampaignReview({
     isRecipientSummaryLoading: recipientSummary.isLoading,
     values,
   });
+  const selectedCampaignsExcludedCount =
+    audiencePreview.data?.selectedCampaignsExcludedCount ?? 0;
+  const selectedCampaignNames =
+    audiencePreview.data?.excludedCampaigns
+      .filter((campaign) => campaign.excludedCount > 0)
+      .map((campaign) => campaign.name)
+      .join(', ') ?? '';
 
   return (
     <div className="grid gap-6">
@@ -97,6 +104,12 @@ export function CampaignReview({
             label={audienceLabel}
             tone="blue"
           />
+          {selectedCampaignsExcludedCount > 0 ? (
+            <StatusBadge
+              label={`${selectedCampaignsExcludedCount} already received selected campaigns`}
+              tone="amber"
+            />
+          ) : null}
           <StatusBadge
             icon={
               estimatedCredits === null ? undefined : (
@@ -113,6 +126,16 @@ export function CampaignReview({
         <ItemNotice
           description="Set up the sender before launching this campaign."
           title="Campaign is not ready to send"
+          variant="warning"
+        />
+      ) : null}
+
+      {selectedCampaignsExcludedCount > 0 ? (
+        <ItemNotice
+          description={`${selectedCampaignsExcludedCount} people already received ${
+            selectedCampaignNames || 'the selected campaigns'
+          } and will be excluded.`}
+          title="Previous campaign recipients will be skipped"
           variant="warning"
         />
       ) : null}
@@ -200,6 +223,8 @@ function audienceReviewSummary({
     | {
         incompleteCount: number;
         missingConsentCount: number;
+        recentCampaignExcludedCount: number;
+        selectedCampaignsExcludedCount: number;
         suppressedCount: number;
       }
     | undefined;
@@ -241,7 +266,7 @@ function audienceReviewSummary({
   }
 
   const issueText = audiencePreviewData
-    ? `${audiencePreviewData.suppressedCount} suppressed, ${audiencePreviewData.incompleteCount} missing phone, ${audiencePreviewData.missingConsentCount} missing consent.`
+    ? `${audiencePreviewData.suppressedCount} suppressed, ${audiencePreviewData.incompleteCount} missing phone, ${audiencePreviewData.missingConsentCount} missing consent, ${audiencePreviewData.recentCampaignExcludedCount} recently contacted, ${audiencePreviewData.selectedCampaignsExcludedCount} already received selected campaigns.`
     : null;
 
   return {

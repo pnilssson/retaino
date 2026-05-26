@@ -81,6 +81,10 @@ Audience rules are campaign-owned, not saved reusable segments. MVP eligibility 
 
 Preview, recipient snapshot, and send execution must share the same eligibility rules. Do not implement separate audience logic in the web app.
 
+Campaign-owned audience rules may also exclude contacts who already received selected previous campaigns. This uses campaign recipient send history, not preview membership.
+
+Retaino applies a standard recent campaign protection window of 30 days. Users may lower or disable it for timely campaigns, but final send must require an explicit confirmation when the standard window is relaxed.
+
 ## SMS Content
 
 Supported personalization tokens:

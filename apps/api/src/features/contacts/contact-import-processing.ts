@@ -230,6 +230,10 @@ function parseOptionalDate(value: string | null):
   const slash = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(value);
   if (slash) {
     const [, leftRaw, rightRaw, yearRaw] = slash;
+    if (!leftRaw || !rightRaw || !yearRaw) {
+      return { value: null, error: 'invalid_last_booking_at' };
+    }
+
     const left = Number(leftRaw);
     const right = Number(rightRaw);
     const year = yearRaw.length === 2 ? 2000 + Number(yearRaw) : Number(yearRaw);
