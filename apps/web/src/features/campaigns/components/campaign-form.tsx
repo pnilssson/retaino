@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react';
 import { useForm } from '@tanstack/react-form';
+import { requiresRecentCampaignExclusionAcknowledgement } from '@retaino/shared/contracts';
 import type {
   Campaign,
   CampaignSendResponse,
@@ -61,8 +62,10 @@ import {
   type CampaignStepId,
 } from '../campaign-form-state';
 import { insertTextAtCursor } from '../campaign-text';
+import { useCampaigns } from '../hooks/use-campaigns';
 import { useSendCampaign } from '../hooks/use-send-campaign';
 import { useSmsSender } from '../hooks/use-sms-sender';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export type { CampaignStepId } from '../campaign-form-state';
 
@@ -100,8 +103,16 @@ export function CampaignForm({
     null,
   );
   const [testSmsStepComplete, setTestSmsStepComplete] = useState(false);
+  const [
+    recentCampaignExclusionAcknowledged,
+    setRecentCampaignExclusionAcknowledged,
+  ] = useState(false);
   const messageTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const createCampaign = useCreateCampaign(organizationId);
+  const campaigns = useCampaigns({
+    enabled: Boolean(organizationId && canEditCampaign),
+    organizationId,
+  });
   const sender = useSmsSender(organizationId);
   const sendCampaign = useSendCampaign({
     campaignId: campaign?.id ?? null,
@@ -218,6 +229,13 @@ export function CampaignForm({
       >
         {({ canSubmit, isSubmitting, values }) => {
           const senderReady = sender.data?.sender?.status === 'ready';
+          const exclusionCampaigns = (campaigns.data?.campaigns ?? []).filter(
+            (candidate) =>
+              candidate.id !== campaign?.id &&
+              ['sending', 'sent', 'failed'].includes(candidate.status),
+          );
+          const recentProtectionAckRequired =
+            requiresRecentCampaignExclusionAcknowledgement(values.audienceRule);
           const completedStepIds = completedCampaignSteps(
             values,
             senderReady,
@@ -272,30 +290,54 @@ export function CampaignForm({
                       {(lapsedDaysField) => (
                         <form.Field name="audienceRule.includeNoBookingDate">
                           {(includeNoBookingDateField) => (
-                            <div className="grid gap-2">
-                              <AudienceRuleFields
-                                includeNoBookingDate={
-                                  includeNoBookingDateField.state.value
-                                }
-                                lapsedDays={lapsedDaysField.state.value}
-                                onIncludeNoBookingDateChange={
-                                  includeNoBookingDateField.handleChange
-                                }
-                                onLapsedDaysChange={
-                                  lapsedDaysField.handleChange
-                                }
-                                disabled={!canEditCampaign}
-                              />
-                              {getFieldError(
-                                lapsedDaysField.state.meta.errors,
-                              ) ? (
-                                <p aria-live="polite" className={textStyles.error}>
-                                  {getFieldError(
-                                    lapsedDaysField.state.meta.errors,
+                            <form.Field name="audienceRule.recentCampaignExclusionDays">
+                              {(recentCampaignExclusionDaysField) => (
+                                <form.Field name="audienceRule.excludeCampaignIds">
+                                  {(excludeCampaignIdsField) => (
+                                    <div className="grid gap-2">
+                                      <AudienceRuleFields
+                                        campaigns={exclusionCampaigns}
+                                        disabled={!canEditCampaign}
+                                        excludeCampaignIds={
+                                          excludeCampaignIdsField.state.value
+                                        }
+                                        includeNoBookingDate={
+                                          includeNoBookingDateField.state.value
+                                        }
+                                        lapsedDays={lapsedDaysField.state.value}
+                                        onExcludeCampaignIdsChange={
+                                          excludeCampaignIdsField.handleChange
+                                        }
+                                        onIncludeNoBookingDateChange={
+                                          includeNoBookingDateField.handleChange
+                                        }
+                                        onLapsedDaysChange={
+                                          lapsedDaysField.handleChange
+                                        }
+                                        onRecentCampaignExclusionDaysChange={
+                                          recentCampaignExclusionDaysField.handleChange
+                                        }
+                                        recentCampaignExclusionDays={
+                                          recentCampaignExclusionDaysField.state.value
+                                        }
+                                      />
+                                      {getFieldError(
+                                        lapsedDaysField.state.meta.errors,
+                                      ) ? (
+                                        <p
+                                          aria-live="polite"
+                                          className={textStyles.error}
+                                        >
+                                          {getFieldError(
+                                            lapsedDaysField.state.meta.errors,
+                                          )}
+                                        </p>
+                                      ) : null}
+                                    </div>
                                   )}
-                                </p>
-                              ) : null}
-                            </div>
+                                </form.Field>
+                              )}
+                            </form.Field>
                           )}
                         </form.Field>
                       )}
@@ -514,12 +556,34 @@ export function CampaignForm({
                         title="Review campaign"
                       >
                         <div className="grid gap-5">
-                    <CampaignReview
-                      campaign={campaign}
-                      organizationId={organizationId}
-                      senderReady={senderReady}
-                      values={values}
-                    />
+                          <CampaignReview
+                            campaign={campaign}
+                            organizationId={organizationId}
+                            senderReady={senderReady}
+                            values={values}
+                          />
+
+                          {recentProtectionAckRequired ? (
+                            <label className="flex items-start gap-3 text-amber-950">
+                              <Checkbox
+                                checked={recentCampaignExclusionAcknowledged}
+                                onCheckedChange={(value) =>
+                                  setRecentCampaignExclusionAcknowledged(
+                                    value === true,
+                                  )
+                                }
+                              />
+                              <span className="grid gap-1">
+                                <span className={textStyles.itemTitle}>
+                                  Confirm recent campaign protection
+                                </span>
+                                <span className={textStyles.meta}>
+                                  Some contacts may receive another campaign
+                                  sooner than the standard 30 days.
+                                </span>
+                              </span>
+                            </label>
+                          ) : null}
 
                           <GuidedFlowActions onBack={() => setActiveStep('test')}>
                             <Button
@@ -531,22 +595,34 @@ export function CampaignForm({
                                 isSaving ||
                                 isSubmitting ||
                                 isSending ||
-                                sendQueued
+                                sendQueued ||
+                                (recentProtectionAckRequired &&
+                                  !recentCampaignExclusionAcknowledged)
                               }
                               onClick={() => {
-                                sendCampaign.mutate(undefined, {
-                                  onSuccess: (response) => {
-                                    setQueuedRecipientCount(response.recipientCount);
-                                    toast.success('Campaign send queued.', {
-                                      description: `${response.recipientCount} ${
-                                        response.recipientCount === 1
-                                          ? 'recipient'
-                                          : 'recipients'
-                                      } selected.`,
-                                    });
-                                    onSent?.(response);
+                                sendCampaign.mutate(
+                                  {
+                                    recentCampaignExclusionAcknowledged:
+                                      recentCampaignExclusionAcknowledged,
                                   },
-                                });
+                                  {
+                                    onSuccess: (response) => {
+                                      setQueuedRecipientCount(
+                                        response.recipientCount,
+                                      );
+                                      toast.success('Campaign send queued.', {
+                                        description: `${
+                                          response.recipientCount
+                                        } ${
+                                          response.recipientCount === 1
+                                            ? 'recipient'
+                                            : 'recipients'
+                                        } selected.`,
+                                      });
+                                      onSent?.(response);
+                                    },
+                                  },
+                                );
                               }}
                               type="button"
                             >

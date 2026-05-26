@@ -157,22 +157,45 @@ export const smsRoutes = new Hono<AppEnv>()
           : null,
       });
 
-      const result = await provider.ensureSender({
-        organizationId: organization.id,
-        actorUserId: c.get('user').id,
-        selectedSender,
-        existingProviderPhoneNumberId:
-          pendingSender?.providerPhoneNumberId ?? null,
-        inboundCallbackUrl: callbackUrl(
-          c.env.TWILIO_INBOUND_CALLBACK_BASE_URL,
-          '/v1/webhooks/twilio/messaging/inbound',
-        ),
-        statusCallbackUrl: callbackUrl(
-          c.env.TWILIO_STATUS_CALLBACK_BASE_URL,
-          '/v1/webhooks/twilio/messaging/status',
-        ),
-        idempotencyKey: organization.id,
-      });
+      let result;
+
+      try {
+        result = await provider.ensureSender({
+          organizationId: organization.id,
+          actorUserId: c.get('user').id,
+          selectedSender,
+          existingProviderPhoneNumberId:
+            pendingSender?.providerPhoneNumberId ?? null,
+          inboundCallbackUrl: callbackUrl(
+            c.env.TWILIO_INBOUND_CALLBACK_BASE_URL,
+            '/v1/webhooks/twilio/messaging/inbound',
+          ),
+          statusCallbackUrl: callbackUrl(
+            c.env.TWILIO_STATUS_CALLBACK_BASE_URL,
+            '/v1/webhooks/twilio/messaging/status',
+          ),
+          idempotencyKey: organization.id,
+        });
+      } catch (error) {
+        await upsertOrganizationSmsSender(db, {
+          organizationId: organization.id,
+          provider: provider.name,
+          status: 'failed',
+          phoneNumber: selectedSender.phoneNumber,
+          countryCode: selectedSender.countryCode,
+          numberType: selectedSender.numberType,
+          providerMessagingServiceId:
+            pendingSender?.providerMessagingServiceId ?? null,
+          providerPhoneNumberId: pendingSender?.providerPhoneNumberId ?? null,
+          regulatoryStatus: pendingSender?.regulatoryStatus ?? null,
+          failureReason:
+            'The sender could not be set up automatically. Try again or contact support if this keeps happening.',
+          provisionedAt: null,
+          lastVerifiedAt: null,
+        });
+
+        throw error;
+      }
       const sender = await upsertOrganizationSmsSender(db, {
         organizationId: organization.id,
         provider: result.provider,
@@ -205,7 +228,7 @@ async function getProviderVerifiedSender(
   } | null,
 ) {
   if (
-    existing?.status === 'pending' &&
+    (existing?.status === 'pending' || existing?.status === 'failed') &&
     existing.phoneNumber === selectedSender.phoneNumber &&
     existing.countryCode === selectedSender.countryCode &&
     existing.numberType === 'mobile'

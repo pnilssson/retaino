@@ -60,12 +60,29 @@ export const CAMPAIGN_SMS_PERSONALIZATION_TOKENS = [
 export const DEFAULT_CAMPAIGN_AUDIENCE_RULE = {
   lapsedDays: 90,
   includeNoBookingDate: false,
-} as const;
+  excludeCampaignIds: [] as string[],
+  recentCampaignExclusionDays: 30 as const,
+};
+
+export const RECENT_CAMPAIGN_EXCLUSION_DAYS = [7, 14, 30] as const;
+
+const recentCampaignExclusionDaysSchema = z
+  .union([z.literal(7), z.literal(14), z.literal(30), z.null()])
+  .default(DEFAULT_CAMPAIGN_AUDIENCE_RULE.recentCampaignExclusionDays);
 
 export const campaignAudienceRuleSchema = z
   .object({
     lapsedDays: z.number().int().min(30).max(365),
     includeNoBookingDate: z.boolean(),
+    excludeCampaignIds: z
+      .array(idSchema)
+      .max(10)
+      .default(DEFAULT_CAMPAIGN_AUDIENCE_RULE.excludeCampaignIds)
+      .refine(
+        (ids) => new Set(ids).size === ids.length,
+        'Choose each campaign only once.',
+      ),
+    recentCampaignExclusionDays: recentCampaignExclusionDaysSchema,
   })
   .strict();
 
@@ -259,10 +276,20 @@ export const campaignAudiencePreviewContactSchema = z.object({
 });
 
 export const campaignAudiencePreviewResponseSchema = z.object({
+  baseEligibleCount: z.number().int().nonnegative(),
   eligibleCount: z.number().int().nonnegative(),
   suppressedCount: z.number().int().nonnegative(),
   incompleteCount: z.number().int().nonnegative(),
   missingConsentCount: z.number().int().nonnegative(),
+  recentCampaignExcludedCount: z.number().int().nonnegative(),
+  selectedCampaignsExcludedCount: z.number().int().nonnegative(),
+  excludedCampaigns: z.array(
+    z.object({
+      id: idSchema,
+      name: nonEmptyStringSchema,
+      excludedCount: z.number().int().nonnegative(),
+    }),
+  ),
   sampleContacts: z.array(campaignAudiencePreviewContactSchema).max(10),
 });
 
@@ -423,6 +450,12 @@ export const campaignRecipientSearchResponseSchema = z.object({
   recipients: z.array(campaignRecipientSearchItemSchema),
 });
 
+export const campaignSendRequestSchema = z
+  .object({
+    recentCampaignExclusionAcknowledged: z.boolean().default(false),
+  })
+  .strict();
+
 export const campaignSendResponseSchema = z.object({
   campaign: campaignSchema,
   recipientCount: z.number().int().nonnegative(),
@@ -499,7 +532,23 @@ export type CampaignRecipientSearchItem = z.infer<
 export type CampaignRecipientSearchResponse = z.infer<
   typeof campaignRecipientSearchResponseSchema
 >;
+export type CampaignSendRequest = z.infer<typeof campaignSendRequestSchema>;
 export type CampaignSendResponse = z.infer<typeof campaignSendResponseSchema>;
+
+export function normalizeCampaignAudienceRule(
+  rule: unknown,
+): CampaignAudienceRule {
+  return campaignAudienceRuleSchema.parse(rule);
+}
+
+export function requiresRecentCampaignExclusionAcknowledgement(
+  rule: CampaignAudienceRule,
+) {
+  return (
+    rule.recentCampaignExclusionDays !==
+    DEFAULT_CAMPAIGN_AUDIENCE_RULE.recentCampaignExclusionDays
+  );
+}
 export type CreateReportedBookingsInput = z.infer<
   typeof createReportedBookingsSchema
 >;

@@ -13,6 +13,7 @@ import {
 import { createCampaignSmsPreview } from '@retaino/shared';
 import {
   campaignAudiencePreviewRequestSchema,
+  campaignSendRequestSchema,
   createReportedBookingsSchema,
   campaignSmsPreviewRequestSchema,
   campaignSmsTestSendRequestSchema,
@@ -345,6 +346,17 @@ export const campaignsRoutes = new Hono<AppEnv>()
       return gate.response;
     }
 
+    const parsed = await parseJsonBody(
+      c,
+      campaignSendRequestSchema,
+      'Invalid campaign send request.',
+      {},
+    );
+
+    if (!parsed.ok) {
+      return parsed.response;
+    }
+
     try {
       const result = await queueCampaignSend({
         db: c.get('db'),
@@ -353,6 +365,8 @@ export const campaignsRoutes = new Hono<AppEnv>()
         campaignId: c.req.param('id'),
         userId: c.get('user').id,
         userAgent: c.req.header('user-agent') ?? null,
+        recentCampaignExclusionAcknowledged:
+          parsed.data.recentCampaignExclusionAcknowledged,
         enqueue: (payload) => enqueueCampaignSendProcessing(c.env, payload),
       });
 
@@ -391,6 +405,19 @@ export const campaignsRoutes = new Hono<AppEnv>()
             'Choose an audience with eligible contacts.',
           ),
           400,
+        );
+      }
+
+      if (
+        result.status ===
+        'recent_campaign_exclusion_acknowledgement_required'
+      ) {
+        return c.json(
+          apiError(
+            'conflict',
+            'Confirm the recent campaign protection change before sending.',
+          ),
+          409,
         );
       }
 

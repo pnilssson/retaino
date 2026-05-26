@@ -7,14 +7,17 @@ import {
   campaignRecipientSearchResponseSchema,
   createReportedBookingsSchema,
   campaignRecipientSummaryResponseSchema,
+  campaignSendRequestSchema,
   campaignSendResponseSchema,
   campaignSmsPreviewResponseSchema,
   campaignSmsTestSendRequestSchema,
   campaignSmsTestSendResponseSchema,
   campaignSchema,
   createCampaignDraftSchema,
+  normalizeCampaignAudienceRule,
   organizationSmsSenderResponseSchema,
   provisionOrganizationSmsSenderSchema,
+  requiresRecentCampaignExclusionAcknowledgement,
   MAX_REPORTED_BOOKING_ROWS,
   smsSenderCountriesResponseSchema,
   smsSenderNumbersRequestSchema,
@@ -161,6 +164,23 @@ describe('campaign contracts', () => {
         includeNoBookingDate: false,
       }).success,
     ).toBe(false);
+    expect(
+      campaignAudienceRuleSchema.safeParse({
+        lapsedDays: 90,
+        includeNoBookingDate: false,
+        recentCampaignExclusionDays: 21,
+      }).success,
+    ).toBe(false);
+    expect(
+      campaignAudienceRuleSchema.safeParse({
+        lapsedDays: 90,
+        includeNoBookingDate: false,
+        excludeCampaignIds: [
+          '11111111-1111-4111-8111-111111111111',
+          '11111111-1111-4111-8111-111111111111',
+        ],
+      }).success,
+    ).toBe(false);
   });
 
   it('defaults audience preview to 90 lapsed days without missing booking dates', () => {
@@ -168,17 +188,108 @@ describe('campaign contracts', () => {
       audienceRule: {
         lapsedDays: 90,
         includeNoBookingDate: false,
+        excludeCampaignIds: [],
+        recentCampaignExclusionDays: 30,
       },
     });
+  });
+
+  it('defaults campaign audience exclusions for older rule shapes', () => {
+    expect(
+      campaignAudienceRuleSchema.parse({
+        lapsedDays: 90,
+        includeNoBookingDate: false,
+      }),
+    ).toEqual({
+      lapsedDays: 90,
+      includeNoBookingDate: false,
+      excludeCampaignIds: [],
+      recentCampaignExclusionDays: 30,
+    });
+  });
+
+  it('normalizes campaign audience rules for shared runtime use', () => {
+    expect(
+      normalizeCampaignAudienceRule({
+        lapsedDays: 90,
+        includeNoBookingDate: false,
+      }),
+    ).toEqual({
+      lapsedDays: 90,
+      includeNoBookingDate: false,
+      excludeCampaignIds: [],
+      recentCampaignExclusionDays: 30,
+    });
+  });
+
+  it('requires acknowledgement when recent campaign protection is relaxed', () => {
+    expect(
+      requiresRecentCampaignExclusionAcknowledgement({
+        lapsedDays: 90,
+        includeNoBookingDate: false,
+        excludeCampaignIds: [],
+        recentCampaignExclusionDays: 30,
+      }),
+    ).toBe(false);
+    expect(
+      requiresRecentCampaignExclusionAcknowledgement({
+        lapsedDays: 90,
+        includeNoBookingDate: false,
+        excludeCampaignIds: [],
+        recentCampaignExclusionDays: 14,
+      }),
+    ).toBe(true);
+    expect(
+      requiresRecentCampaignExclusionAcknowledgement({
+        lapsedDays: 90,
+        includeNoBookingDate: false,
+        excludeCampaignIds: [],
+        recentCampaignExclusionDays: null,
+      }),
+    ).toBe(true);
+  });
+
+  it('accepts selected campaign exclusions and constrained recent send windows', () => {
+    expect(
+      campaignAudienceRuleSchema.parse({
+        lapsedDays: 90,
+        includeNoBookingDate: false,
+        excludeCampaignIds: ['11111111-1111-4111-8111-111111111111'],
+        recentCampaignExclusionDays: null,
+      }),
+    ).toEqual({
+      lapsedDays: 90,
+      includeNoBookingDate: false,
+      excludeCampaignIds: ['11111111-1111-4111-8111-111111111111'],
+      recentCampaignExclusionDays: null,
+    });
+
+    expect(
+      campaignAudienceRuleSchema.parse({
+        lapsedDays: 90,
+        includeNoBookingDate: false,
+        recentCampaignExclusionDays: 7,
+      }).recentCampaignExclusionDays,
+    ).toBe(7);
   });
 
   it('accepts audience preview responses', () => {
     expect(
       campaignAudiencePreviewResponseSchema.safeParse({
+        baseEligibleCount: 18,
         eligibleCount: 12,
         suppressedCount: 2,
         incompleteCount: 3,
         missingConsentCount: 4,
+        recentCampaignExcludedCount: 5,
+        selectedCampaignsExcludedCount: 1,
+        excludedCampaigns: [
+          {
+            id: '22222222-2222-4222-8222-222222222222',
+            name: 'Lapsed 180d',
+            excludedCount: 1,
+          },
+        ],
         sampleContacts: [
           {
             id: '11111111-1111-4111-8111-111111111111',
@@ -339,6 +450,18 @@ describe('campaign contracts', () => {
       updatedAt: '2026-05-16T10:00:00.000Z',
     };
 
+    expect(
+      campaignSendRequestSchema.parse({}),
+    ).toEqual({
+      recentCampaignExclusionAcknowledged: false,
+    });
+    expect(
+      campaignSendRequestSchema.parse({
+        recentCampaignExclusionAcknowledged: true,
+      }),
+    ).toEqual({
+      recentCampaignExclusionAcknowledged: true,
+    });
     expect(
       campaignRecipientSummaryResponseSchema.safeParse({
         recipientCount: 1,

@@ -366,6 +366,82 @@ describe('smsRoutes', () => {
     );
   });
 
+  it('continues failed sender setup when the selected number is no longer listed', async () => {
+    vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue({
+      id: '66666666-6666-4666-8666-666666666666',
+      organizationId: organization.id,
+      provider: 'fake',
+      status: 'failed',
+      phoneNumber: '+46799999999',
+      countryCode: 'SE',
+      numberType: 'mobile',
+      providerMessagingServiceId: `fake-ms-${organization.id}`,
+      providerPhoneNumberId: 'fake-pn-46799999999',
+      regulatoryStatus: null,
+      failureReason: 'Previous setup failed.',
+      provisionedAt: null,
+      lastVerifiedAt: null,
+      createdAt: '2026-05-18T00:00:00.000Z',
+      updatedAt: '2026-05-18T00:00:00.000Z',
+    });
+    vi.mocked(upsertOrganizationSmsSender).mockImplementation(
+      async (_db, input) => ({
+        id: '66666666-6666-4666-8666-666666666666',
+        organizationId: input.organizationId,
+        provider: input.provider,
+        status: input.status,
+        phoneNumber: input.phoneNumber,
+        countryCode: input.countryCode,
+        numberType: input.numberType,
+        providerMessagingServiceId: input.providerMessagingServiceId,
+        providerPhoneNumberId: input.providerPhoneNumberId,
+        regulatoryStatus: input.regulatoryStatus,
+        failureReason: input.failureReason,
+        provisionedAt: input.provisionedAt?.toISOString() ?? null,
+        lastVerifiedAt: input.lastVerifiedAt?.toISOString() ?? null,
+        createdAt: '2026-05-18T00:00:00.000Z',
+        updatedAt: '2026-05-18T00:00:00.000Z',
+      }),
+    );
+
+    const response = await testApp().request(
+      '/v1/sms',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          selectedSender: {
+            phoneNumber: '+46799999999',
+            countryCode: 'SE',
+          },
+        }),
+      },
+      { SMS_SENDING_MODE: 'test' },
+    );
+
+    expect(response.status).toBe(201);
+    expect(upsertOrganizationSmsSender).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        status: 'pending',
+        phoneNumber: '+46799999999',
+        providerMessagingServiceId: `fake-ms-${organization.id}`,
+        providerPhoneNumberId: 'fake-pn-46799999999',
+        failureReason: null,
+      }),
+    );
+    expect(upsertOrganizationSmsSender).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        status: 'ready',
+        phoneNumber: '+46799999999',
+      }),
+    );
+  });
+
   it('drops stale phone provider IDs when a different sender is selected', async () => {
     vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
     vi.mocked(getOrganizationSmsSender).mockResolvedValue({
