@@ -17,11 +17,11 @@ type Quote = {
 
 const quotes = [
   {
-    text: 'Every saved customer lowers the pressure to buy the next one.',
+    text: 'Every rebooked client lowers pressure to buy the next lead.',
     attribution: 'Protect acquisition spend'
   },
   {
-    text: 'Find the customers quietly drifting before they become lost revenue.',
+    text: 'Find clients who are drifting before they become lost revenue.',
     attribution: 'Catch drift earlier'
   },
   {
@@ -29,7 +29,7 @@ const quotes = [
     attribution: 'Act with confidence'
   },
   {
-    text: 'See which customers are worth saving, which offers work, and where effort is wasted.',
+    text: 'See which clients are worth reactivating, which offers work, and where effort is wasted.',
     attribution: 'Prove what works'
   }
 ] satisfies readonly [Quote, ...Quote[]];

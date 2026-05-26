@@ -234,7 +234,7 @@ export function CampaignForm({
               <div className="grid gap-5">
                     {activeStep === 'audience' ? (
                       <CampaignSetupStep
-                        description="Name the campaign and choose which lapsed customers should receive it."
+                        description="Name the campaign and choose which lapsed clients should receive it."
                         title="Choose the audience"
                       >
                         <div className="grid gap-5">
