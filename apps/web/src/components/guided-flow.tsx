@@ -1,4 +1,8 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type {
+  CSSProperties,
+  ReactNode,
+} from 'react';
+import { LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
@@ -99,7 +103,7 @@ export function GuidedFlowSection({
   title: string;
 }) {
   return (
-    <section className="grid gap-5">
+    <section className="grid gap-3">
       <div className="grid gap-1">
         <h2 className={textStyles.itemTitle}>{title}</h2>
         {description ? (
@@ -115,6 +119,7 @@ export function GuidedFlowActions({
   backLabel = 'Back',
   canContinue = true,
   children,
+  continueIcon,
   continueLabel = 'Continue',
   isPending = false,
   onBack,
@@ -123,6 +128,7 @@ export function GuidedFlowActions({
   backLabel?: ReactNode;
   canContinue?: boolean;
   children?: ReactNode;
+  continueIcon?: ReactNode;
   continueLabel?: string;
   isPending?: boolean;
   onBack?: () => void;
@@ -140,7 +146,20 @@ export function GuidedFlowActions({
       <div className="flex flex-wrap justify-end gap-2">
         {children}
         {onContinue ? (
-          <Button disabled={!canContinue || isPending} onClick={onContinue} type="button">
+          <Button
+            disabled={!canContinue || isPending}
+            onClick={onContinue}
+            type="button"
+          >
+            {isPending ? (
+              <LoaderCircle
+                aria-hidden="true"
+                className="animate-spin"
+                data-icon="inline-start"
+              />
+            ) : continueIcon ? (
+              <span data-icon="inline-start">{continueIcon}</span>
+            ) : null}
             {continueLabel}
           </Button>
         ) : null}

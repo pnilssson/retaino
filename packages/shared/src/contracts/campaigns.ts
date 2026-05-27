@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { countryCodeSchema } from './contacts';
 import { currencyCodeSchema } from '../money';
 import { idSchema, nonEmptyStringSchema, timestampSchema } from '../schemas';
 
@@ -379,9 +380,23 @@ export const campaignSmsPreviewResponseSchema = z.object({
 
 export const campaignSmsTestSendRequestSchema = z
   .object({
+    sampleContactId: idSchema.optional(),
     testPhone: z.string().trim().min(1).optional(),
+    testPhoneCountryCode: countryCodeSchema.optional(),
   })
   .strict();
+
+export const campaignSmsTestContactSchema = z.object({
+  id: idSchema,
+  name: nonEmptyStringSchema.nullable(),
+  phone: nonEmptyStringSchema.nullable(),
+  email: z.email().nullable(),
+  lastBookingAt: timestampSchema.nullable(),
+});
+
+export const campaignSmsTestContactSearchResponseSchema = z.object({
+  contacts: z.array(campaignSmsTestContactSchema).max(10),
+});
 
 export const campaignSmsTestSendResponseSchema = z.object({
   testSend: z.object({
@@ -469,6 +484,12 @@ export type CampaignSmsTestSendRequest = z.infer<
 >;
 export type CampaignSmsTestSendResponse = z.infer<
   typeof campaignSmsTestSendResponseSchema
+>;
+export type CampaignSmsTestContact = z.infer<
+  typeof campaignSmsTestContactSchema
+>;
+export type CampaignSmsTestContactSearchResponse = z.infer<
+  typeof campaignSmsTestContactSearchResponseSchema
 >;
 export type CampaignRecipientSummaryResponse = z.infer<
   typeof campaignRecipientSummaryResponseSchema

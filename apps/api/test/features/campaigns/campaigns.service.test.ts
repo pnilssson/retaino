@@ -6,6 +6,7 @@ import {
   findCampaignSendExclusionForRecipient,
   findSuppressionByHash,
   getCampaignById,
+  getCampaignTestSmsContact,
   getCurrentLegalBundle,
   getCurrentOrganizationLegalAcceptance,
   getOrganizationProfileByOrganizationId,
@@ -40,6 +41,7 @@ vi.mock('@retaino/db', () => ({
   findCampaignSendExclusionForRecipient: vi.fn(),
   findSuppressionByHash: vi.fn(),
   getCampaignById: vi.fn(),
+  getCampaignTestSmsContact: vi.fn(),
   getCurrentLegalBundle: vi.fn(),
   getCurrentOrganizationLegalAcceptance: vi.fn(),
   getOrganizationProfileByOrganizationId: vi.fn(),
@@ -165,6 +167,7 @@ describe('campaign send service', () => {
     vi.mocked(findCampaignSendExclusionForRecipient).mockReset();
     vi.mocked(findSuppressionByHash).mockReset();
     vi.mocked(getCampaignById).mockReset();
+    vi.mocked(getCampaignTestSmsContact).mockReset();
     vi.mocked(getCurrentLegalBundle).mockReset();
     vi.mocked(getCurrentOrganizationLegalAcceptance).mockReset();
     vi.mocked(getOrganizationProfileByOrganizationId).mockReset();
@@ -184,6 +187,7 @@ describe('campaign send service', () => {
     vi.mocked(captureBackgroundError).mockReset();
 
     vi.mocked(getCampaignById).mockResolvedValue(campaign);
+    vi.mocked(getCampaignTestSmsContact).mockResolvedValue(null);
     vi.mocked(getCurrentLegalBundle).mockResolvedValue(legalBundle);
     vi.mocked(getCurrentOrganizationLegalAcceptance).mockResolvedValue(
       legalAcceptance,
@@ -347,6 +351,100 @@ describe('campaign send service', () => {
         organizationSender: sender,
         to: '+46700000000',
         estimatedSegments: 1,
+      }),
+    );
+  });
+
+  it('personalizes campaign test SMS with the selected eligible contact', async () => {
+    vi.mocked(getCampaignTestSmsContact).mockResolvedValue({
+      id: recipient.contactId,
+      name: 'Ada Lovelace',
+      phone: '+46701111111',
+      email: 'ada@example.com',
+      lastBookingAt: '2026-01-01T00:00:00.000Z',
+    });
+
+    await expect(
+      sendCampaignTestSms({
+        db,
+        env: {
+          SMS_SENDING_MODE: 'test',
+          TWILIO_STATUS_CALLBACK_BASE_URL: 'https://api.retaino.test',
+        } as never,
+        organizationId,
+        campaignId,
+        sampleContactId: recipient.contactId,
+        testPhone: '0700000000',
+      }),
+    ).resolves.toMatchObject({
+      status: 'sent',
+      testSend: {
+        renderedBody: expect.stringContaining(
+          'Hi Ada, we have openings this week.',
+        ),
+      },
+    });
+
+    expect(getCampaignTestSmsContact).toHaveBeenCalledWith(db, {
+      organizationId,
+      audienceRule: campaign.audienceRule,
+      contactId: recipient.contactId,
+    });
+    const provider = vi.mocked(createSmsProvider).mock.results[0]?.value;
+    expect(provider.sendSms).toHaveBeenCalledWith(
+      expect.objectContaining({
+        renderedBody: expect.stringContaining(
+          'Hi Ada, we have openings this week.',
+        ),
+      }),
+    );
+  });
+
+  it('rejects ineligible campaign test SMS sample contacts before reserving credits', async () => {
+    vi.mocked(getCampaignTestSmsContact).mockResolvedValue(null);
+
+    await expect(
+      sendCampaignTestSms({
+        db,
+        env: {
+          SMS_SENDING_MODE: 'test',
+          TWILIO_STATUS_CALLBACK_BASE_URL: 'https://api.retaino.test',
+        } as never,
+        organizationId,
+        campaignId,
+        sampleContactId: recipient.contactId,
+        testPhone: '0700000000',
+      }),
+    ).resolves.toEqual({ status: 'invalid_sample_contact' });
+
+    expect(debitSmsCreditUsage).not.toHaveBeenCalled();
+    expect(createSmsProvider).not.toHaveBeenCalled();
+  });
+
+  it('normalizes typed test SMS phones with the selected country', async () => {
+    await expect(
+      sendCampaignTestSms({
+        db,
+        env: {
+          SMS_SENDING_MODE: 'test',
+          TWILIO_STATUS_CALLBACK_BASE_URL: 'https://api.retaino.test',
+        } as never,
+        organizationId,
+        campaignId,
+        testPhone: '4155552671',
+        testPhoneCountryCode: 'US',
+      }),
+    ).resolves.toMatchObject({
+      status: 'sent',
+      testSend: {
+        to: '+14155552671',
+      },
+    });
+
+    const provider = vi.mocked(createSmsProvider).mock.results[0]?.value;
+    expect(provider.sendSms).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: '+14155552671',
       }),
     );
   });

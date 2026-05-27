@@ -1,4 +1,7 @@
-import { type Table as TanStackTable, flexRender } from '@tanstack/react-table';
+import {
+  type Table as TanStackTable,
+  flexRender,
+} from '@tanstack/react-table';
 import { LoadingState } from '@/components/loading-state';
 import type { SortableTableHeaderMeta } from '@/components/sortable-table-header';
 import {

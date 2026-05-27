@@ -33,7 +33,7 @@ export function MessagePreview({
   return (
     <div className="grid content-start gap-2">
       {showLabel ? (
-        <p className={textStyles.metaStrong}>Recipient preview</p>
+        <p className={textStyles.itemTitle}>Message preview</p>
       ) : null}
       <div
         className={cn(

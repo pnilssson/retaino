@@ -1,4 +1,7 @@
-import type { ApiError, ApiErrorCode } from '@retaino/shared/schemas';
+import type {
+  ApiError,
+  ApiErrorCode,
+} from '@retaino/shared/schemas';
 
 type TokenProvider = () => Promise<string | null>;
 

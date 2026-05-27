@@ -27,12 +27,9 @@ import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/phone-input';
 import { ItemTitle } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
-import {
-  AppPageContent,
-  AppPageLoading,
-  AppPageSection,
-} from '@/features/appshell/components/app-page-content';
+import { AppPageLoading } from '@/features/appshell/components/app-page-loading';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { useContact } from '@/features/contacts/hooks/use-contact';
 import { useDeleteContact } from '@/features/contacts/hooks/use-delete-contact';
 import { useDeleteContactSuppression } from '@/features/contacts/hooks/use-delete-contact-suppression';
@@ -138,8 +135,8 @@ function ContactDetailContent({
   const [isEditing, setIsEditing] = useState(false);
 
   return (
-    <AppPageContent>
-      <AppPageSection
+    <div className="grid gap-5">
+      <ContentSection
         actions={
           !isEditing ? (
                 <Button
@@ -170,9 +167,9 @@ function ContactDetailContent({
               <DetailField label="Last booking" value={formatDate(contact.lastBookingAt)} />
             </dl>
           )}
-      </AppPageSection>
+      </ContentSection>
 
-      <AppPageSection
+      <ContentSection
         description="Why this contact can or cannot receive SMS campaigns."
         title={
           <span className="flex flex-wrap items-center gap-2">
@@ -200,9 +197,9 @@ function ContactDetailContent({
               This contact has a valid phone number and no phone suppression.
             </p>
           )}
-      </AppPageSection>
+      </ContentSection>
 
-      <AppPageSection
+      <ContentSection
         description="Import and outreach context for this contact."
         title="Activity"
       >
@@ -211,13 +208,13 @@ function ContactDetailContent({
             <DetailField label="Imported" value={formatDateTime(contact.createdAt)} />
             <DetailField label="Updated" value={formatDateTime(contact.updatedAt)} />
           </dl>
-      </AppPageSection>
+      </ContentSection>
 
       <ContactSuppressionSection
         contact={contact}
       />
       <DeleteContactSection contact={contact} />
-    </AppPageContent>
+    </div>
   );
 }
 
@@ -356,7 +353,7 @@ function ContactSuppressionSection({
   );
 
   return (
-    <AppPageSection
+    <ContentSection
       description="Methods excluded from future outreach."
       title="Suppressions"
     >
@@ -406,7 +403,7 @@ function ContactSuppressionSection({
             variant="error"
           />
         ) : null}
-    </AppPageSection>
+    </ContentSection>
   );
 }
 
@@ -457,7 +454,7 @@ function DeleteContactSection({ contact }: { contact: ContactDetail }) {
   const deleteContact = useDeleteContact(contact.organizationId, contact.id);
 
   return (
-    <AppPageSection
+    <ContentSection
       actions={
             <ConfirmDialog
               confirmLabel="Delete permanently"
@@ -484,7 +481,7 @@ function DeleteContactSection({ contact }: { contact: ContactDetail }) {
             variant="error"
           />
         ) : null}
-    </AppPageSection>
+    </ContentSection>
   );
 }
 

@@ -1,7 +1,11 @@
 "use client";
 
 import { useForm } from '@tanstack/react-form';
-import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Loader2,
+} from 'lucide-react';
 import { CountryCombobox } from '@/components/country-combobox';
 import { CurrencyCombobox } from '@/components/currency-combobox';
 import { GuidedFlowActions } from '@/components/guided-flow';

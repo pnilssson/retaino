@@ -5,6 +5,7 @@ import {
   findCampaignSendExclusionForRecipient,
   findSuppressionByHash,
   getCampaignById,
+  getCampaignTestSmsContact,
   getCurrentLegalBundle,
   getCurrentOrganizationLegalAcceptance,
   getOrganizationProfileByOrganizationId,
@@ -50,6 +51,7 @@ type CampaignTestSmsResult =
   | { status: 'not_found' }
   | { status: 'incomplete' }
   | { status: 'invalid_phone' }
+  | { status: 'invalid_sample_contact' }
   | { status: 'sender_not_ready' }
   | {
       status: 'sent';
@@ -208,7 +210,9 @@ export async function sendCampaignTestSms(input: {
   env: AppEnv['Bindings'];
   organizationId: string;
   campaignId: string;
+  sampleContactId?: string | undefined;
   testPhone?: string | undefined;
+  testPhoneCountryCode?: string | undefined;
 }): Promise<CampaignTestSmsResult> {
   const [campaign, profile] = await Promise.all([
     getCampaignById(input.db, {
@@ -227,18 +231,41 @@ export async function sendCampaignTestSms(input: {
   }
 
   const phone = input.testPhone ?? profile?.responsiblePhone;
+  const phoneCountryCode = input.testPhone
+    ? (input.testPhoneCountryCode ?? profile?.countryCode ?? 'SE')
+    : (profile?.countryCode ?? 'SE');
   const normalizedPhone = normalizePhoneNumber(
     phone,
-    profile?.countryCode ?? 'SE',
+    phoneCountryCode,
   );
 
   if (!normalizedPhone.ok) {
     return { status: 'invalid_phone' };
   }
 
+  const sampleContact = input.sampleContactId
+    ? await getCampaignTestSmsContact(input.db, {
+        organizationId: input.organizationId,
+        audienceRule: campaign.audienceRule,
+        contactId: input.sampleContactId,
+      })
+    : null;
+
+  if (input.sampleContactId && !sampleContact) {
+    return { status: 'invalid_sample_contact' };
+  }
+
   const rendered = renderCampaignSms({
     smsBody: campaign.smsBody,
     trackedBookingLink: TEST_TRACKED_BOOKING_LINK,
+    ...(sampleContact
+      ? {
+          recipient: {
+            firstName: firstName(sampleContact.name),
+            lastBookingDate: bookingDateLabel(sampleContact.lastBookingAt),
+          },
+        }
+      : {}),
   });
   const messageId = crypto.randomUUID();
   const sourceId = `campaign-test:${campaign.id}:${messageId}`;

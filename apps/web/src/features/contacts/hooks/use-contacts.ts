@@ -1,11 +1,12 @@
 "use client";
 
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useQuery,
+} from '@tanstack/react-query';
 import type { ContactListResponse } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
-import {
-  type ContactListQueryState,
-} from './use-contact-list-query-state';
+import { type ContactListQueryState } from './use-contact-list-query-state';
 import { contactsQueryKeys } from '../query-keys';
 
 const contactListPageSize = 25;

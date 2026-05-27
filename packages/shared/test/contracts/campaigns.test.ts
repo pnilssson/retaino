@@ -10,6 +10,7 @@ import {
   campaignSendRequestSchema,
   campaignSendResponseSchema,
   campaignSmsPreviewResponseSchema,
+  campaignSmsTestContactSearchResponseSchema,
   campaignSmsTestSendRequestSchema,
   campaignSmsTestSendResponseSchema,
   campaignSchema,
@@ -473,11 +474,29 @@ describe('campaign contracts', () => {
 
     expect(
       campaignSmsTestSendRequestSchema.parse({
+        sampleContactId: '11111111-1111-4111-8111-111111111111',
         testPhone: '0700000000',
+        testPhoneCountryCode: 'se',
       }),
     ).toEqual({
+      sampleContactId: '11111111-1111-4111-8111-111111111111',
       testPhone: '0700000000',
+      testPhoneCountryCode: 'SE',
     });
+
+    expect(
+      campaignSmsTestContactSearchResponseSchema.safeParse({
+        contacts: [
+          {
+            id: '11111111-1111-4111-8111-111111111111',
+            name: 'Ada Lovelace',
+            phone: '+46700000000',
+            email: 'ada@example.com',
+            lastBookingAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      }).success,
+    ).toBe(true);
 
     expect(
       campaignSmsTestSendResponseSchema.safeParse({

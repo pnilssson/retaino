@@ -1,8 +1,15 @@
 'use client';
 
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+} from 'motion/react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useState,
+} from 'react';
 
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';

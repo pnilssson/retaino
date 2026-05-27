@@ -1,6 +1,9 @@
 "use client";
 
-import type { Campaign, CampaignReport } from '@retaino/shared/contracts';
+import type {
+  Campaign,
+  CampaignReport,
+} from '@retaino/shared/contracts';
 import {
   AlertCircle,
   CheckCircle2,
@@ -18,10 +21,7 @@ import {
   type SankeyBreakdownSummaryItem,
 } from '@/components/sankey-breakdown';
 import { Button } from '@/components/ui/button';
-import {
-  AppPageContent,
-  AppPageSection,
-} from '@/features/appshell/components/app-page-content';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { createCampaignReportFunnel } from '../campaign-report-presentation';
 import { useCampaignReport } from '../hooks/use-campaign-report';
 import { ReportedBookingsSection } from './campaign-reported-bookings';
@@ -82,8 +82,8 @@ export function CampaignReportPanel({
   };
 
   return (
-    <AppPageContent>
-      <AppPageSection
+    <div className="grid gap-5">
+      <ContentSection
         actions={
           <ReportUpdateActions
             isFetching={report.isFetching}
@@ -111,7 +111,7 @@ export function CampaignReportPanel({
             report={reportData}
           />
         ) : null}
-      </AppPageSection>
+      </ContentSection>
 
       {reportData ? <DeliveryHealthSection report={reportData} /> : null}
       {reportData ? <ResponseActivitySection report={reportData} /> : null}
@@ -123,7 +123,7 @@ export function CampaignReportPanel({
           report={reportData}
         />
       ) : null}
-    </AppPageContent>
+    </div>
   );
 }
 
@@ -155,7 +155,7 @@ function DeliveryHealthSection({ report }: { report: CampaignReport }) {
   const funnel = createCampaignReportFunnel(report);
 
   return (
-    <AppPageSection
+    <ContentSection
       description="Selected recipients through delivery outcome."
       title={
         <span className="inline-flex items-center gap-1.5">
@@ -174,7 +174,7 @@ function DeliveryHealthSection({ report }: { report: CampaignReport }) {
         summary={withFunnelSummaryIcons(funnel.summary)}
         title="Delivery health"
       />
-    </AppPageSection>
+    </ContentSection>
   );
 }
 

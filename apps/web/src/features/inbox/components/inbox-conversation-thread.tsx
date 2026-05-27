@@ -4,7 +4,13 @@ import type {
   InboxConversationSummary,
   InboxMessage,
 } from '@retaino/shared/contracts';
-import { ArrowLeft, Inbox, Loader2, RefreshCw, ShieldAlert } from 'lucide-react';
+import {
+  ArrowLeft,
+  Inbox,
+  Loader2,
+  RefreshCw,
+  ShieldAlert,
+} from 'lucide-react';
 import { EmptyState } from '@/components/empty-state';
 import { ItemNotice } from '@/components/item-notice';
 import { LoadingState } from '@/components/loading-state';

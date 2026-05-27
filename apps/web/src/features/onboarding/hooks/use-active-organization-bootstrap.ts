@@ -1,7 +1,16 @@
 "use client";
 
-import { useAuth, useOrganizationList, useSession, useUser } from '@clerk/nextjs';
-import { useEffect, useRef, useState } from 'react';
+import {
+  useAuth,
+  useOrganizationList,
+  useSession,
+  useUser,
+} from '@clerk/nextjs';
+import {
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 export function useActiveOrganizationBootstrap() {
   const {

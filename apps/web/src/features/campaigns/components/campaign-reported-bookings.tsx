@@ -1,16 +1,25 @@
 "use client";
 
-import type { Campaign, CampaignReport } from '@retaino/shared/contracts';
+import type {
+  Campaign,
+  CampaignReport,
+} from '@retaino/shared/contracts';
 import {
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { CalendarCheck, Info } from 'lucide-react';
+import {
+  CalendarCheck,
+  Info,
+} from 'lucide-react';
 import { useState } from 'react';
-import { DataTable, PaginationControls } from '@/components/data-table';
-import { AppPageSection } from '@/features/appshell/components/app-page-content';
-import { textStyles } from '@/lib/text-styles';
+import {
+  DataTable,
+  PaginationControls,
+} from '@/components/data-table';
+import { EmptyState } from '@/components/empty-state';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import {
   formatReportCurrency,
   formatReportDate,
@@ -47,7 +56,7 @@ export function ReportedBookingsSection({
   );
 
   return (
-    <AppPageSection
+    <ContentSection
       actions={
         canCreateReportedBookings && hasBookings ? (
           <ReportedBookingDialog
@@ -77,7 +86,7 @@ export function ReportedBookingsSection({
           organizationId={organizationId}
         />
       )}
-    </AppPageSection>
+    </ContentSection>
   );
 }
 
@@ -184,33 +193,28 @@ function ReportedBookingsEmptyState({
   organizationId: string | null;
 }) {
   return (
-    <div className="flex min-h-44 flex-col items-center justify-center gap-4 px-4 py-8 text-center">
-      <div className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
-        {canCreateReportedBookings ? (
-          <CalendarCheck aria-hidden="true" className="size-5" />
-        ) : (
-          <Info aria-hidden="true" className="size-5" />
-        )}
-      </div>
-      <div className="grid max-w-md gap-1">
-        <h3 className={textStyles.itemTitle}>
-          {canCreateReportedBookings
-            ? 'No bookings reported yet'
-            : 'Bookings can be reported after sending'}
-        </h3>
-        <p className={textStyles.mutedBody}>
-          {canCreateReportedBookings
-            ? 'Add bookings after checking your booking system, replies, calls, or campaign code.'
-            : 'Campaign activity is still updating while messages are being sent.'}
-        </p>
-      </div>
-      {canCreateReportedBookings ? (
-        <ReportedBookingDialog
-          campaign={campaign}
-          currency={currency}
-          organizationId={organizationId}
-        />
-      ) : null}
-    </div>
+    <EmptyState
+      action={
+        canCreateReportedBookings ? (
+          <ReportedBookingDialog
+            campaign={campaign}
+            currency={currency}
+            organizationId={organizationId}
+          />
+        ) : null
+      }
+      description={
+        canCreateReportedBookings
+          ? 'Add bookings after checking your booking system, replies, calls, or campaign code.'
+          : 'Campaign activity is still updating while messages are being sent.'
+      }
+      framed
+      icon={canCreateReportedBookings ? CalendarCheck : Info}
+      title={
+        canCreateReportedBookings
+          ? 'No bookings reported yet'
+          : 'Bookings can be reported after sending'
+      }
+    />
   );
 }

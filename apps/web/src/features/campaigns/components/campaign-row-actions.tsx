@@ -1,7 +1,11 @@
 "use client";
 
 import type { Campaign } from '@retaino/shared/contracts';
-import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import {
+  MoreVertical,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';

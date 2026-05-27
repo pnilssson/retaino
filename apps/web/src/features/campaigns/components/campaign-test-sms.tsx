@@ -1,37 +1,52 @@
 "use client";
 
 import { useForm } from '@tanstack/react-form';
+import type { CampaignSmsTestContact } from '@retaino/shared/contracts';
 import { Send } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { GuidedFlowActions } from '@/components/guided-flow';
 import { ItemNotice } from '@/components/item-notice';
+import { PhoneInput } from '@/components/phone-input';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { textStyles } from '@/lib/text-styles';
 import { useSendCampaignTestSms } from '../hooks/use-send-campaign-test-sms';
+import { CampaignTestSampleContactSelect } from './campaign-test-sample-contact-select';
 
 export function CampaignTestSms({
   campaignId,
+  defaultCountryCode,
   onBack,
   onSent,
   onSkip,
+  organizationId,
   senderReady,
 }: {
   campaignId: string | null;
-  onBack: () => void;
-  onSent: () => void;
-  onSkip: () => void;
+  defaultCountryCode: string;
+  onBack?: () => void;
+  onSent?: () => void;
+  onSkip?: () => void;
+  organizationId: string | null;
   senderReady: boolean;
 }) {
   const testSend = useSendCampaignTestSms(campaignId);
+  const [sampleContact, setSampleContact] =
+    useState<CampaignSmsTestContact | null>(null);
   const form = useForm({
     defaultValues: {
       testPhone: '',
+      testPhoneCountryCode: defaultCountryCode,
     },
     onSubmit: async ({ value }) => {
+      const testPhone = value.testPhone.trim() || undefined;
       const response = await testSend.mutateAsync({
-        testPhone: value.testPhone.trim() || undefined,
+        sampleContactId: sampleContact?.id,
+        testPhone,
+        testPhoneCountryCode: testPhone
+          ? value.testPhoneCountryCode
+          : undefined,
       });
 
       toast.success('Test SMS sent.', {
@@ -39,7 +54,7 @@ export function CampaignTestSms({
           response.testSend.chargedCredits === 1 ? 'credit' : 'credits'
         } used.`,
       });
-      onSent();
+      onSent?.();
     },
   });
 
@@ -53,24 +68,34 @@ export function CampaignTestSms({
         />
       ) : null}
 
+      <CampaignTestSampleContactSelect
+        campaignId={campaignId}
+        disabled={!campaignId || !senderReady || testSend.isPending}
+        onSelect={setSampleContact}
+        organizationId={organizationId}
+        value={sampleContact}
+      />
+
       <form.Field name="testPhone">
         {(field) => (
           <div className="grid gap-2">
             <Label htmlFor={field.name}>Test phone</Label>
-            <Input
-              autoComplete="off"
+            <PhoneInput
+              countryCode={form.getFieldValue('testPhoneCountryCode')}
               disabled={!senderReady || testSend.isPending}
               id={field.name}
-              inputMode="tel"
               name={field.name}
               onBlur={field.handleBlur}
-              onChange={(event) => field.handleChange(event.target.value)}
-              placeholder="Use responsible phone..."
-              type="tel"
+              onChange={field.handleChange}
+              onCountryChange={(value) =>
+                form.setFieldValue('testPhoneCountryCode', value)
+              }
+              placeholder="701234567"
               value={field.state.value}
             />
             <p className={textStyles.mutedBody}>
-              Leave empty to send to the responsible phone.
+              Send this test to a phone you control. Leave it blank to send the
+              test SMS to the responsible contact number for your organization.
             </p>
           </div>
         )}
@@ -89,14 +114,16 @@ export function CampaignTestSms({
       ) : null}
 
       <GuidedFlowActions onBack={onBack}>
-        <Button
-          disabled={testSend.isPending}
-          onClick={onSkip}
-          type="button"
-          variant="outline"
-        >
-          Skip
-        </Button>
+        {onSkip ? (
+          <Button
+            disabled={testSend.isPending}
+            onClick={onSkip}
+            type="button"
+            variant="outline"
+          >
+            Skip
+          </Button>
+        ) : null}
         <Button
           disabled={!campaignId || !senderReady || testSend.isPending}
           onClick={() => void form.handleSubmit()}

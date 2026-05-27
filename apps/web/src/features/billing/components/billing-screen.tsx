@@ -1,19 +1,22 @@
 "use client";
 
-import { useMutation, useQuery } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+} from '@tanstack/react-query';
 import {
   canManageOrganizationSetup,
   hasCurrentBillingSubscription,
 } from '@retaino/shared/contracts';
-import type { BillingPlanKey, CreditPackKey } from '@retaino/shared/contracts';
+import type {
+  BillingPlanKey,
+  CreditPackKey,
+} from '@retaino/shared/contracts';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { ItemNotice } from '@/components/item-notice';
 import { LoadingState } from '@/components/loading-state';
-import {
-  AppPageContent,
-  AppPageLoading,
-} from '@/features/appshell/components/app-page-content';
+import { AppPageLoading } from '@/features/appshell/components/app-page-loading';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { useApi } from '@/hooks/use-api';
@@ -97,7 +100,7 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
           title="Billing"
         />
 
-        <AppPageContent>
+        <div className="grid gap-5">
           {actionError ? (
             <ItemNotice
               description={
@@ -162,7 +165,7 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
               />
             </>
           )}
-        </AppPageContent>
+        </div>
       </section>
     </main>
   );

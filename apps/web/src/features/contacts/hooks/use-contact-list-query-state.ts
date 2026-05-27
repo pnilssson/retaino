@@ -1,6 +1,10 @@
 "use client";
 
-import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
+import {
+  parseAsInteger,
+  parseAsString,
+  useQueryStates,
+} from 'nuqs';
 
 export function useContactListQueryState() {
   return useQueryStates({

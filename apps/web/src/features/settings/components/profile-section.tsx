@@ -16,7 +16,7 @@ import { PhoneInput } from '@/components/phone-input';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { AppPageSection } from '@/features/appshell/components/app-page-content';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { useUpdateOrganizationProfile } from '@/features/onboarding/hooks/use-update-organization-profile';
 import {
   organizationProfileFormValuesFromSession,
@@ -53,7 +53,7 @@ export function ProfileSection({
   }
 
   return (
-    <AppPageSection
+    <ContentSection
       actions={
         canManageSetup && !isEditing ? (
               <Button onClick={openEditMode} type="button" variant="outline">
@@ -86,7 +86,7 @@ export function ProfileSection({
             variant="warning"
           />
         )}
-    </AppPageSection>
+    </ContentSection>
   );
 }
 

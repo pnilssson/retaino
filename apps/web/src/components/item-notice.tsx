@@ -5,7 +5,10 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { ItemDescription, ItemTitle } from '@/components/ui/item';
+import {
+  ItemDescription,
+  ItemTitle,
+} from '@/components/ui/item';
 import { cn } from '@/lib/utils';
 
 type ItemNoticeVariant = 'info' | 'success' | 'warning' | 'error';

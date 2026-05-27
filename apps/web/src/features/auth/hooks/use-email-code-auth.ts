@@ -1,11 +1,27 @@
 'use client';
 
-import { useAuth, useSignIn, useSignUp } from '@clerk/nextjs';
+import {
+  useAuth,
+  useSignIn,
+  useSignUp,
+} from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
-import { getAuthError, hasClerkErrorCode } from '@/features/auth/auth-errors';
-import type { AuthError, AuthStep } from '@/features/auth/types';
+import {
+  getAuthError,
+  hasClerkErrorCode,
+} from '@/features/auth/auth-errors';
+import type {
+  AuthError,
+  AuthStep,
+} from '@/features/auth/types';
 import { routes } from '@/lib/routes';
 
 type NavigateParams = {

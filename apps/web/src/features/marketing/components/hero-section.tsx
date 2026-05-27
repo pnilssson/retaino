@@ -1,6 +1,9 @@
 'use client';
 
-import { motion, useReducedMotion } from 'motion/react';
+import {
+  motion,
+  useReducedMotion,
+} from 'motion/react';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';

@@ -27,6 +27,18 @@ export const campaignsQueryKeys = {
       'search',
       search,
     ] as const,
+  testContactSearch: (
+    organizationId: string,
+    campaignId: string,
+    search: string,
+  ) =>
+    [
+      ...campaignsQueryKeys.organization(organizationId),
+      campaignId,
+      'sms',
+      'test-contacts',
+      search,
+    ] as const,
   report: (organizationId: string, campaignId: string) =>
     [
       ...campaignsQueryKeys.organization(organizationId),
@@ -48,8 +60,10 @@ export const campaignsQueryKeys = {
       ...campaignsQueryKeys.organization(organizationId),
       'audience-preview',
       {
+        excludeCampaignIds: audienceRule.excludeCampaignIds,
         includeNoBookingDate: audienceRule.includeNoBookingDate,
         lapsedDays: audienceRule.lapsedDays,
+        recentCampaignExclusionDays: audienceRule.recentCampaignExclusionDays,
       },
     ] as const,
 };

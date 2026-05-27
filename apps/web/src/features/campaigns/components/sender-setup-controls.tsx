@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import type { SmsSenderCountriesResponse } from '@retaino/shared/contracts';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import {
+  Check,
+  ChevronsUpDown,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {

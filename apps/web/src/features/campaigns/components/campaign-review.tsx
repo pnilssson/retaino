@@ -3,7 +3,11 @@
 import type { ReactNode } from 'react';
 import type { Campaign } from '@retaino/shared/contracts';
 import { createCampaignSmsPreview } from '@retaino/shared';
-import { Send, UsersRound } from 'lucide-react';
+import {
+  DollarSign,
+  UserCheck,
+} from 'lucide-react';
+import { InfoTooltip } from '@/components/info-tooltip';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
 import { textStyles } from '@/lib/text-styles';
@@ -15,7 +19,10 @@ import {
 } from '../campaign-form-state';
 import { useCampaignAudiencePreview } from '../hooks/use-campaign-audience-preview';
 import { useCampaignRecipientSummary } from '../hooks/use-campaign-recipient-summary';
-import { MessageEstimate, MessagePreview } from './message-preview';
+import {
+  MessageEstimate,
+  MessagePreview,
+} from './message-preview';
 
 export function CampaignReview({
   campaign,
@@ -85,41 +92,35 @@ export function CampaignReview({
 
   return (
     <div className="grid gap-6">
-      <section className="grid gap-3">
-        <div className="grid gap-1">
-          <h3 className={textStyles.itemTitle}>
-            {values.name || 'Not named'}
-          </h3>
-          {shouldShowReference ? (
-            <p className={textStyles.meta}>{campaignReference}</p>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap gap-2">
+      <section className="flex flex-wrap gap-2">
+        <StatusBadge
+          label={senderReady ? 'Sender ready' : 'Sender not ready'}
+          tone={senderReady ? 'green' : 'amber'}
+        />
+        <StatusBadge
+          icon={
+            usageRecipientCount === null ? undefined : (
+              <UserCheck aria-hidden="true" className="size-3" />
+            )
+          }
+          label={audienceLabel}
+          tone={usageRecipientCount === null ? 'amber' : 'primary'}
+        />
+        {selectedCampaignsExcludedCount > 0 ? (
           <StatusBadge
-            label={senderReady ? 'Sender ready' : 'Sender not ready'}
-            tone={senderReady ? 'green' : 'amber'}
+            label={`${selectedCampaignsExcludedCount} already received selected campaigns`}
+            tone="amber"
           />
-          <StatusBadge
-            icon={<UsersRound aria-hidden="true" className="size-3" />}
-            label={audienceLabel}
-            tone="blue"
-          />
-          {selectedCampaignsExcludedCount > 0 ? (
-            <StatusBadge
-              label={`${selectedCampaignsExcludedCount} already received selected campaigns`}
-              tone="amber"
-            />
-          ) : null}
-          <StatusBadge
-            icon={
-              estimatedCredits === null ? undefined : (
-                <Send aria-hidden="true" className="size-3" />
-              )
-            }
-            label={usageLabel}
-            tone={estimatedCredits === null ? 'amber' : 'gray'}
-          />
-        </div>
+        ) : null}
+        <StatusBadge
+          icon={
+            estimatedCredits === null ? undefined : (
+              <DollarSign aria-hidden="true" className="size-3" />
+            )
+          }
+          label={usageLabel}
+          tone={estimatedCredits === null ? 'amber' : 'primary'}
+        />
       </section>
 
       {!senderReady ? (
@@ -149,8 +150,8 @@ export function CampaignReview({
           />
 
           <ReviewItem
-            detail="Used as the tracked destination in each SMS."
             label="Booking link"
+            tooltip="Booking page recipients will reach."
             value={
               values.bookingUrl ? (
                 <a
@@ -195,17 +196,28 @@ export function CampaignReview({
 function ReviewItem({
   detail,
   label,
+  tooltip,
   value,
 }: {
-  detail?: string;
+  detail?: ReactNode;
   label: string;
+  tooltip?: ReactNode;
   value: ReactNode;
 }) {
   return (
     <div className="grid gap-1">
-      <h3 className={textStyles.itemTitle}>{label}</h3>
+      <div className="flex items-center gap-1.5">
+        <h3 className={textStyles.itemTitle}>{label}</h3>
+        {tooltip ? (
+          <InfoTooltip label={`${label} details`}>{tooltip}</InfoTooltip>
+        ) : null}
+      </div>
       <div className={cn('min-w-0', textStyles.body)}>{value}</div>
-      {detail ? <p className={textStyles.meta}>{detail}</p> : null}
+      {typeof detail === 'string' ? (
+        <p className={textStyles.meta}>{detail}</p>
+      ) : (
+        detail
+      )}
     </div>
   );
 }
@@ -266,13 +278,67 @@ function audienceReviewSummary({
   }
 
   const issueText = audiencePreviewData
-    ? `${audiencePreviewData.suppressedCount} suppressed, ${audiencePreviewData.incompleteCount} missing phone, ${audiencePreviewData.missingConsentCount} missing consent, ${audiencePreviewData.recentCampaignExcludedCount} recently contacted, ${audiencePreviewData.selectedCampaignsExcludedCount} already received selected campaigns.`
+    ? (
+        <AudienceRuleDetailBadges
+          audiencePreviewData={audiencePreviewData}
+        />
+      )
     : null;
 
   return {
-    detail: `Contacts without booking date ${
+    detail: issueText,
+    value: `Last booking at least ${
+      values.audienceRule.lapsedDays
+    } days ago. Contacts without a booking date are ${
       values.audienceRule.includeNoBookingDate ? 'included' : 'excluded'
-    }.${issueText ? ` ${issueText}` : ''}`,
-    value: `Last booking at least ${values.audienceRule.lapsedDays} days ago`,
+    }.`,
   };
+}
+
+function AudienceRuleDetailBadges({
+  audiencePreviewData,
+}: {
+  audiencePreviewData: {
+    incompleteCount: number;
+    missingConsentCount: number;
+    recentCampaignExcludedCount: number;
+    selectedCampaignsExcludedCount: number;
+    suppressedCount: number;
+  };
+}) {
+  const badges = [
+    {
+      count: audiencePreviewData.suppressedCount,
+      label: `${audiencePreviewData.suppressedCount} suppressed`,
+    },
+    {
+      count: audiencePreviewData.incompleteCount,
+      label: `${audiencePreviewData.incompleteCount} missing phone`,
+    },
+    {
+      count: audiencePreviewData.missingConsentCount,
+      label: `${audiencePreviewData.missingConsentCount} missing consent`,
+    },
+    {
+      count: audiencePreviewData.recentCampaignExcludedCount,
+      label: `${audiencePreviewData.recentCampaignExcludedCount} recently contacted`,
+    },
+    {
+      count: audiencePreviewData.selectedCampaignsExcludedCount,
+      label: `${audiencePreviewData.selectedCampaignsExcludedCount} already received selected campaigns`,
+    },
+  ] as const;
+
+  return (
+    <div className="flex flex-wrap gap-2 pt-1">
+      {badges.map((badge) => (
+        <StatusBadge
+          key={badge.label}
+          label={badge.label}
+          showIcon={false}
+          tone={badge.count && badge.count > 0 ? 'amber' : 'gray'}
+        />
+      ))}
+    </div>
+  );
 }

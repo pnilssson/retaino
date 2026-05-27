@@ -1,20 +1,26 @@
 "use client";
 
-import type { Campaign, OrganizationSession } from '@retaino/shared/contracts';
-import { ArrowLeft, FileText } from 'lucide-react';
+import type {
+  Campaign,
+  OrganizationSession,
+} from '@retaino/shared/contracts';
+import {
+  ArrowLeft,
+  FileText,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useState,
+} from 'react';
 import { ItemNotice } from '@/components/item-notice';
 import { LoadingState } from '@/components/loading-state';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import {
-  AppPageContent,
-  AppPageItem,
-  AppPageLoading,
-} from '@/features/appshell/components/app-page-content';
+import { AppPageLoading } from '@/features/appshell/components/app-page-loading';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
 import {
@@ -22,7 +28,10 @@ import {
   campaignsAllowed,
 } from '../campaign-readiness';
 import { CampaignDraftActions } from './campaign-draft-actions';
-import { CampaignForm, type CampaignStepId } from './campaign-form';
+import {
+  CampaignForm,
+  type CampaignStepId,
+} from './campaign-form';
 import { CampaignOverview } from './campaign-overview';
 import { CampaignStatusBadge } from './campaign-status-badge';
 import { useCampaign } from '../hooks/use-campaign';
@@ -53,7 +62,7 @@ export function CampaignBuilderScreen({
 
       window.sessionStorage.removeItem(CREATED_CAMPAIGN_INITIAL_STEP_STORAGE_KEY);
 
-      return isCampaignStepId(initialStep) ? initialStep : undefined;
+      return normalizedCampaignStepId(initialStep);
     },
   );
   const [overviewAfterSendCampaignId, setOverviewAfterSendCampaignId] =
@@ -198,15 +207,23 @@ export function CampaignBuilderScreen({
   );
 }
 
-function isCampaignStepId(value: string | undefined): value is CampaignStepId {
-  return (
+function normalizedCampaignStepId(
+  value: string | undefined,
+): CampaignStepId | undefined {
+  if (
     value === 'audience' ||
     value === 'message' ||
-    value === 'booking' ||
     value === 'sender' ||
-    value === 'test' ||
     value === 'review'
-  );
+  ) {
+    return value;
+  }
+
+  if (value === 'booking' || value === 'test') {
+    return 'review';
+  }
+
+  return undefined;
 }
 
 function BlockedCampaignBuilder({ session }: { session: OrganizationSession }) {
@@ -226,8 +243,8 @@ function BlockedCampaignBuilder({ session }: { session: OrganizationSession }) {
           eyebrow="Campaign builder"
           title={block.title}
         />
-        <AppPageContent>
-          <AppPageItem asChild>
+        <div className="grid gap-5">
+          <ContentSection asChild>
             <section>
               <ItemNotice
                 description={block.description}
@@ -243,8 +260,8 @@ function BlockedCampaignBuilder({ session }: { session: OrganizationSession }) {
                 </Button>
               </div>
             </section>
-          </AppPageItem>
-        </AppPageContent>
+          </ContentSection>
+        </div>
       </section>
     </main>
   );

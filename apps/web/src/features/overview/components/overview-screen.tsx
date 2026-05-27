@@ -13,12 +13,9 @@ import { EmptyState } from '@/components/data-table';
 import { ItemNotice } from '@/components/item-notice';
 import { LoadingState } from '@/components/loading-state';
 import { Button } from '@/components/ui/button';
-import {
-  AppPageContent,
-  AppPageItem,
-  AppPageLoading,
-} from '@/features/appshell/components/app-page-content';
+import { AppPageLoading } from '@/features/appshell/components/app-page-loading';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { useCampaigns } from '@/features/campaigns/hooks/use-campaigns';
 import { useContactPresence } from '@/features/contacts/hooks/use-contact-presence';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
@@ -139,27 +136,24 @@ function OverviewEmptyState({
   title: string;
 }) {
   return (
-    <AppPageContent>
-      <AppPageItem asChild>
-        <section>
-          <EmptyState
-            action={action}
-            description={description}
-            icon={icon}
-            title={title}
-            variant="page"
-          />
-        </section>
-      </AppPageItem>
-    </AppPageContent>
+    <div className="grid gap-5">
+      <EmptyState
+        action={action}
+        description={description}
+        framed
+        icon={icon}
+        title={title}
+        variant="page"
+      />
+    </div>
   );
 }
 
 function OverviewLoading({ label }: { label: string }) {
   return (
-    <AppPageContent>
+    <div className="grid gap-5">
       <LoadingState className="py-6" label={label} />
-    </AppPageContent>
+    </div>
   );
 }
 
@@ -171,8 +165,8 @@ function OverviewNotice({
   title: string;
 }) {
   return (
-    <AppPageContent>
-      <AppPageItem asChild>
+    <div className="grid gap-5">
+      <ContentSection asChild>
         <section>
           <ItemNotice
             description={description}
@@ -180,7 +174,7 @@ function OverviewNotice({
             variant="error"
           />
         </section>
-      </AppPageItem>
-    </AppPageContent>
+      </ContentSection>
+    </div>
   );
 }

@@ -1,5 +1,8 @@
 import type { CampaignStatus } from '@retaino/shared/contracts';
-import { StatusBadge, type StatusBadgeTone } from '@/components/status-badge';
+import {
+  StatusBadge,
+  type StatusBadgeTone,
+} from '@/components/status-badge';
 
 const statusLabels: Record<CampaignStatus, string> = {
   draft: 'Draft',

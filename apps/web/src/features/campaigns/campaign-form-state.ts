@@ -18,9 +18,7 @@ export type CampaignFormValues = {
 export type CampaignStepId =
   | 'audience'
   | 'message'
-  | 'booking'
   | 'sender'
-  | 'test'
   | 'review';
 
 export const defaultCampaignFormValues: CampaignFormValues = {
@@ -73,18 +71,11 @@ export function campaignFormValuesToAudienceInput(
   };
 }
 
-export function campaignFormValuesToMessageInput(
+export function campaignFormValuesToMessageAndLinkInput(
   values: CampaignFormValues,
 ): UpdateCampaignDraftInput {
   return {
     smsBody: values.smsBody,
-  };
-}
-
-export function campaignFormValuesToBookingInput(
-  values: CampaignFormValues,
-): UpdateCampaignDraftInput {
-  return {
     bookingUrl: values.bookingUrl,
     campaignCode: values.campaignCode,
   };
@@ -106,7 +97,6 @@ export function campaignFormValuesToCompleteInput(
 export function completedCampaignSteps(
   values: CampaignFormValues,
   senderReady: boolean,
-  testSmsStepComplete = false,
 ): CampaignStepId[] {
   const completed: CampaignStepId[] = [];
 
@@ -114,28 +104,18 @@ export function completedCampaignSteps(
     completed.push('audience');
   }
 
-  if (isMessageStepComplete(values)) {
+  if (isMessageAndLinkStepComplete(values)) {
     completed.push('message');
-  }
-
-  if (isBookingStepComplete(values)) {
-    completed.push('booking');
   }
 
   if (senderReady) {
     completed.push('sender');
   }
 
-  if (testSmsStepComplete) {
-    completed.push('test');
-  }
-
   if (
     isAudienceStepComplete(values) &&
-    isMessageStepComplete(values) &&
-    isBookingStepComplete(values) &&
-    senderReady &&
-    testSmsStepComplete
+    isMessageAndLinkStepComplete(values) &&
+    senderReady
   ) {
     completed.push('review');
   }
@@ -149,12 +129,16 @@ export function isAudienceStepComplete(values: CampaignFormValues) {
   );
 }
 
-export function isMessageStepComplete(values: CampaignFormValues) {
+function isMessageStepComplete(values: CampaignFormValues) {
   return !validateSmsBody(values.smsBody);
 }
 
-export function isBookingStepComplete(values: CampaignFormValues) {
+function isBookingStepComplete(values: CampaignFormValues) {
   return !validateBookingUrl(values.bookingUrl);
+}
+
+export function isMessageAndLinkStepComplete(values: CampaignFormValues) {
+  return isMessageStepComplete(values) && isBookingStepComplete(values);
 }
 
 export function campaignStatusNotice(campaign: Campaign) {

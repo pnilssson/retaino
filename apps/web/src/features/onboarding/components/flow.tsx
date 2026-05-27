@@ -1,7 +1,10 @@
 "use client";
 
 import type { OrganizationSession } from '@retaino/shared/contracts';
-import { useMemo, useState } from 'react';
+import {
+  useMemo,
+  useState,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import {
   organizationProfileFormValuesFromSession,
@@ -14,7 +17,10 @@ import { useUpdateOrganizationProfile } from '../hooks/use-update-organization-p
 import { AgreementsStep } from './agreements-step';
 import { CompanyStep } from './company-step';
 import { ContactStep } from './contact-step';
-import { OnboardingFrame, type OnboardingStepId } from './onboarding-frame';
+import {
+  OnboardingFrame,
+  type OnboardingStepId,
+} from './onboarding-frame';
 
 export function OnboardingFlow({ session }: { session: OrganizationSession }) {
   const router = useRouter();

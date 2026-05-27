@@ -13,7 +13,10 @@ import {
   UserPlus,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useRef } from 'react';
+import {
+  useEffect,
+  useRef,
+} from 'react';
 import { toast } from 'sonner';
 import { ItemNotice } from '@/components/item-notice';
 import { MetricSummaryEntry } from '@/components/metric-summary-entry';
@@ -26,11 +29,7 @@ import {
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { GuidedFlowActions } from '@/components/guided-flow';
-import {
-  AppPageContent,
-  AppPageItem,
-  AppPageSection,
-} from '@/features/appshell/components/app-page-content';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { useContactImport } from '@/features/contacts/hooks/use-contact-import';
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
@@ -116,8 +115,8 @@ export function ContactImportProgress({
   const header = importProgressHeaderView(latestImport);
 
   return (
-    <AppPageContent>
-      <AppPageSection
+    <div className="grid gap-5">
+      <ContentSection
         actions={<ImportStatusBadge status={latestImport.status} />}
         description={header.description}
         title={header.title}
@@ -125,7 +124,7 @@ export function ContactImportProgress({
         {showMetrics ? (
           <ImportFunnel importRow={latestImport} summary={importSummary} />
         ) : null}
-      </AppPageSection>
+      </ContentSection>
 
       {importSummary.length > 0 ? (
         <div className="hidden min-w-0 gap-4 sm:grid sm:grid-cols-2 xl:grid-cols-3">
@@ -143,7 +142,7 @@ export function ContactImportProgress({
           onImportAnother={onImportAnother}
         />
       ) : null}
-    </AppPageContent>
+    </div>
   );
 }
 
@@ -196,11 +195,11 @@ function ImportMetricItem({
   metric: SankeyBreakdownSummaryItem;
 }) {
   return (
-    <AppPageItem asChild>
+    <ContentSection asChild>
       <dl>
         <ImportMetric metric={metric} />
       </dl>
-    </AppPageItem>
+    </ContentSection>
   );
 }
 
@@ -256,7 +255,7 @@ function ImportIssuesSection({ importRow }: { importRow: ContactImportDetail }) 
   const issueTone = isFailed ? 'red' : 'amber';
 
   return (
-    <AppPageSection
+    <ContentSection
       description="Rows that need review before they can be used."
       title={
         <span className="inline-flex items-center gap-2">
@@ -285,7 +284,7 @@ function ImportIssuesSection({ importRow }: { importRow: ContactImportDetail }) 
           />
         ))}
       </div>
-    </AppPageSection>
+    </ContentSection>
   );
 }
 

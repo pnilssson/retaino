@@ -3,10 +3,7 @@
 import type { ReactNode } from 'react';
 import type { Campaign } from '@retaino/shared/contracts';
 import { InfoTooltip } from '@/components/info-tooltip';
-import {
-  AppPageContent,
-  AppPageSection,
-} from '@/features/appshell/components/app-page-content';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 import {
@@ -14,7 +11,10 @@ import {
   campaignToFormValues,
 } from '../campaign-form-state';
 import { CampaignReportPanel } from './campaign-report-panel';
-import { messageEstimateText, MessagePreview } from './message-preview';
+import {
+  messageEstimateText,
+  MessagePreview,
+} from './message-preview';
 
 export function CampaignOverview({
   campaign,
@@ -35,9 +35,9 @@ export function CampaignOverview({
         sendAccepted={sendAccepted}
       />
 
-      <AppPageContent>
+      <div className="grid gap-5">
         <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-          <AppPageSection
+          <ContentSection
             description="Audience, destination, and send details."
             title="Campaign details"
           >
@@ -76,16 +76,16 @@ export function CampaignOverview({
                 }
               />
             </dl>
-          </AppPageSection>
+          </ContentSection>
 
-          <AppPageSection
+          <ContentSection
             description={messageEstimateText(values.smsBody)}
             title="Message preview"
           >
             <MessagePreview showLabel={false} smsBody={values.smsBody} />
-          </AppPageSection>
+          </ContentSection>
         </div>
-      </AppPageContent>
+      </div>
     </div>
   );
 }

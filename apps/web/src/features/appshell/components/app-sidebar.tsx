@@ -1,6 +1,9 @@
 "use client";
 
-import { useClerk, useUser } from '@clerk/nextjs';
+import {
+  useClerk,
+  useUser,
+} from '@clerk/nextjs';
 import {
   Building2,
   ChevronsUpDown,
@@ -12,7 +15,7 @@ import {
   Megaphone,
   Shield,
   UserCircle,
-  UsersRound
+  UsersRound,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -22,7 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
   Sidebar,
@@ -37,7 +40,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  useSidebar
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { useCookieConsent } from '@/features/cookies/hooks/use-cookie-consent';
 import { initialsFor } from '@/features/appshell/initials';

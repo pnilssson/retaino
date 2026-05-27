@@ -2,7 +2,10 @@ import {
   legalDocumentVersionSchema,
   type LegalDocumentVersion,
 } from '@retaino/shared/contracts';
-import { ApiClientError, fetchPublicApi } from '@/lib/api-client';
+import {
+  ApiClientError,
+  fetchPublicApi,
+} from '@/lib/api-client';
 
 type LegalDocumentResponse = {
   legalDocument: LegalDocumentVersion;

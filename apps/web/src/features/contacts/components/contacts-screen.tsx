@@ -1,8 +1,14 @@
 "use client";
 
-import { FileUp, UsersRound } from 'lucide-react';
+import {
+  FileUp,
+  UsersRound,
+} from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import {
+  useMemo,
+  useState,
+} from 'react';
 import type { RowSelectionState } from '@tanstack/react-table';
 import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
@@ -10,13 +16,9 @@ import {
   EmptyState,
   PaginationControls,
 } from '@/components/data-table';
-import {
-  AppPageContent,
-  AppPageItem,
-  AppPageLoading,
-  AppPageSection,
-} from '@/features/appshell/components/app-page-content';
+import { AppPageLoading } from '@/features/appshell/components/app-page-loading';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { useContactListQueryState } from '@/features/contacts/hooks/use-contact-list-query-state';
 import { useContactPresence } from '@/features/contacts/hooks/use-contact-presence';
 import { useContacts } from '@/features/contacts/hooks/use-contacts';
@@ -116,9 +118,9 @@ export function ContactsScreen() {
           title="Contacts"
         />
 
-        <AppPageContent>
+        <div className="grid gap-5">
           {contactPresence.isError ? (
-            <AppPageItem asChild>
+            <ContentSection asChild>
               <section>
                 <ItemNotice
                   description={
@@ -130,9 +132,9 @@ export function ContactsScreen() {
                   variant="error"
                 />
               </section>
-            </AppPageItem>
+            </ContentSection>
           ) : !contactPresenceLoaded ? (
-            <AppPageSection
+            <ContentSection
               description="Filter by SMS readiness and data issues."
               framed={false}
               title="Contact list"
@@ -145,28 +147,25 @@ export function ContactsScreen() {
                 selectable
                 sort={sort}
               />
-            </AppPageSection>
+            </ContentSection>
           ) : !hasContacts ? (
-            <AppPageItem asChild>
-              <section>
-                <EmptyState
-                  action={
-                    <Button asChild>
-                      <Link href={routes.contactsImport}>
-                        <FileUp aria-hidden="true" data-icon="inline-start" />
-                        Import CSV
-                      </Link>
-                    </Button>
-                  }
-                  description="Import a client CSV to validate phone numbers, consent, dedupe results, and suppression checks before your first campaign."
-                  icon={UsersRound}
-                  title="Import your first contacts"
-                  variant="page"
-                />
-              </section>
-            </AppPageItem>
+            <EmptyState
+              action={
+                <Button asChild>
+                  <Link href={routes.contactsImport}>
+                    <FileUp aria-hidden="true" data-icon="inline-start" />
+                    Import CSV
+                  </Link>
+                </Button>
+              }
+              description="Import a client CSV to validate phone numbers, consent, dedupe results, and suppression checks before your first campaign."
+              framed
+              icon={UsersRound}
+              title="Import your first contacts"
+              variant="page"
+            />
           ) : contacts.isError ? (
-            <AppPageItem asChild>
+            <ContentSection asChild>
               <section>
                 <ItemNotice
                   description={
@@ -178,9 +177,9 @@ export function ContactsScreen() {
                   variant="error"
                 />
               </section>
-            </AppPageItem>
+            </ContentSection>
           ) : (
-            <AppPageSection
+            <ContentSection
               description="Filter by SMS readiness and data issues."
               framed={false}
               title="Contact list"
@@ -242,9 +241,9 @@ export function ContactsScreen() {
                     />
                   )}
                 </>
-            </AppPageSection>
+            </ContentSection>
           )}
-        </AppPageContent>
+        </div>
       </section>
     </main>
   );

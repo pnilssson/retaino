@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Geist, JetBrains_Mono } from "next/font/google";
+import {
+  Geist,
+  JetBrains_Mono,
+} from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";

@@ -6,7 +6,10 @@ import {
   type Campaign,
   type CampaignAudienceRule,
 } from '@retaino/shared/contracts';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import {
+  Check,
+  ChevronsUpDown,
+} from 'lucide-react';
 import { InfoTooltip } from '@/components/info-tooltip';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';

@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 import { AlertCircle } from 'lucide-react';
-import { ItemDescription, ItemTitle } from '@/components/ui/item';
+import {
+  ItemDescription,
+  ItemTitle,
+} from '@/components/ui/item';
 import { OnboardingItem } from './onboarding-item';
 
 export function SetupPending({ organizationName }: { organizationName: string }) {

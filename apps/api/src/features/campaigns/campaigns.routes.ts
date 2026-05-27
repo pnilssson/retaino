@@ -8,6 +8,7 @@ import {
   listCampaigns,
   previewCampaignAudience,
   searchCampaignRecipientsForReportedBookings,
+  searchCampaignTestSmsContacts,
   updateCampaignDraft,
 } from '@retaino/db';
 import { createCampaignSmsPreview } from '@retaino/shared';
@@ -167,6 +168,30 @@ export const campaignsRoutes = new Hono<AppEnv>()
       }),
     });
   })
+  .get('/:id/sms/test-contacts', async (c) => {
+    const gate = await requireCampaignPreviewEligibility(c);
+
+    if (!gate.ok) {
+      return gate.response;
+    }
+
+    const campaign = await getCampaignById(c.get('db'), {
+      organizationId: c.get('organization').id,
+      campaignId: c.req.param('id'),
+    });
+
+    if (!campaign) {
+      return c.json(apiError('not_found', 'Campaign was not found.'), 404);
+    }
+
+    return c.json(
+      await searchCampaignTestSmsContacts(c.get('db'), {
+        organizationId: c.get('organization').id,
+        audienceRule: campaign.audienceRule,
+        search: c.req.query('search') ?? '',
+      }),
+    );
+  })
   .post('/:id/sms/send', async (c) => {
     const gate = await requireCampaignEligibility(c);
 
@@ -190,7 +215,9 @@ export const campaignsRoutes = new Hono<AppEnv>()
         env: c.env,
         organizationId: c.get('organization').id,
         campaignId: c.req.param('id'),
+        sampleContactId: parsed.data.sampleContactId,
         testPhone: parsed.data.testPhone,
+        testPhoneCountryCode: parsed.data.testPhoneCountryCode,
       });
 
       if (result.status === 'not_found') {
@@ -210,6 +237,16 @@ export const campaignsRoutes = new Hono<AppEnv>()
       if (result.status === 'invalid_phone') {
         return c.json(
           apiError('validation_failed', 'Enter a valid test phone number.'),
+          400,
+        );
+      }
+
+      if (result.status === 'invalid_sample_contact') {
+        return c.json(
+          apiError(
+            'validation_failed',
+            'Choose an eligible contact for this campaign.',
+          ),
           400,
         );
       }

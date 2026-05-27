@@ -1,6 +1,10 @@
 "use client";
 
-import { Ban, MoreVertical, Trash2 } from 'lucide-react';
+import {
+  Ban,
+  MoreVertical,
+  Trash2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/confirm-dialog';

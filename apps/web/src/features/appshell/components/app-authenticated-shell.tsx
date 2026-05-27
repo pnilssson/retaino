@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { OnboardingGate } from '@/features/onboarding/components/onboarding-gate';
 import { AppBreadcrumb } from './app-breadcrumb';

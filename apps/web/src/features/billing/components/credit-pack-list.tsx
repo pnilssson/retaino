@@ -5,13 +5,23 @@ import {
   CREDIT_PACK_KEYS,
   type CreditPackKey,
 } from '@retaino/shared/contracts';
-import { CheckCircle2, PlusCircle } from 'lucide-react';
+import {
+  CheckCircle2,
+  PlusCircle,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { AppPageItem } from '@/features/appshell/components/app-page-content';
+import {
+  ContentHeading,
+  ContentSection,
+} from '@/features/appshell/components/content-section';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
-import { formatCreditCount, formatSek, formatUnitSek } from '../billing-format';
+import {
+  formatCreditCount,
+  formatSek,
+  formatUnitSek,
+} from '../billing-format';
 
 export function CreditPackList({
   canBuyCredits,
@@ -25,14 +35,11 @@ export function CreditPackList({
   pendingPackKey: CreditPackKey | null;
 }) {
   return (
-    <section className="grid gap-5">
-      <header className="grid gap-1.5">
-        <h2 className={textStyles.itemTitle}>Need more this month?</h2>
-        <p className={cn('max-w-2xl', textStyles.mutedBody)}>
-          Monthly plan credits reset. Purchased credits roll over and do not
-          expire.
-        </p>
-      </header>
+    <section className="grid gap-3">
+      <ContentHeading
+        description="Monthly plan credits reset. Purchased credits roll over and do not expire."
+        title="Need more this month?"
+      />
 
       <div className="grid gap-5 md:grid-cols-3">
         {CREDIT_PACK_KEYS.map((packKey) => {
@@ -40,7 +47,7 @@ export function CreditPackList({
           const isPending = pendingPackKey === packKey;
 
           return (
-            <AppPageItem asChild className="content-between" key={packKey}>
+            <ContentSection asChild className="content-between" key={packKey}>
               <article aria-labelledby={`credit-pack-${packKey}`}>
                 <div className="min-w-0">
                   <h2 className={textStyles.itemTitle} id={`credit-pack-${packKey}`}>
@@ -75,7 +82,7 @@ export function CreditPackList({
                   })}
                 </Button>
               </article>
-            </AppPageItem>
+            </ContentSection>
           );
         })}
       </div>

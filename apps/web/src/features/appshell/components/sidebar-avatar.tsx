@@ -1,7 +1,10 @@
 "use client";
 
 import Image from 'next/image';
-import { type ReactNode, useState } from 'react';
+import {
+  type ReactNode,
+  useState,
+} from 'react';
 import { cn } from '@/lib/utils';
 
 type SidebarAvatarProps = {

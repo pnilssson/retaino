@@ -45,12 +45,9 @@ import {
   GuidedFlowSection,
   type GuidedFlowStep,
 } from '@/components/guided-flow';
-import {
-  AppPageContent,
-  AppPageItem,
-  AppPageLoading,
-} from '@/features/appshell/components/app-page-content';
+import { AppPageLoading } from '@/features/appshell/components/app-page-loading';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { useStartContactImport } from '@/features/contacts/hooks/use-start-contact-import';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
@@ -229,8 +226,8 @@ function ImportForm({
             progressLabel="Contact import"
             steps={importSteps}
           >
-            <AppPageContent>
-              <AppPageItem asChild>
+            <div className="grid gap-5">
+              <ContentSection asChild>
                 <section>
                   {activeStep === 'upload' ? (
                     <GuidedFlowSection
@@ -547,8 +544,8 @@ function ImportForm({
                     </GuidedFlowSection>
                   ) : null}
                 </section>
-              </AppPageItem>
-            </AppPageContent>
+              </ContentSection>
+            </div>
           </GuidedFlowFrame>
         )}
       </form.Subscribe>

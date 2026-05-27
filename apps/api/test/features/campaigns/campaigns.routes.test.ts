@@ -8,6 +8,7 @@ import {
   findCampaignSendExclusionForRecipient,
   findSuppressionByHash,
   getCampaignById,
+  getCampaignTestSmsContact,
   getCampaignReport,
   getCurrentLegalBundle,
   getCurrentOrganizationLegalAcceptance,
@@ -23,6 +24,7 @@ import {
   previewCampaignAudience,
   reserveSmsCreditsIfSufficient,
   searchCampaignRecipientsForReportedBookings,
+  searchCampaignTestSmsContacts,
   updateCampaignDraft,
 } from '@retaino/db';
 import type {
@@ -43,6 +45,7 @@ vi.mock('@retaino/db', () => ({
   findCampaignSendExclusionForRecipient: vi.fn(),
   findSuppressionByHash: vi.fn(),
   getCampaignById: vi.fn(),
+  getCampaignTestSmsContact: vi.fn(),
   getCampaignReport: vi.fn(),
   getCurrentLegalBundle: vi.fn(),
   getCurrentOrganizationLegalAcceptance: vi.fn(),
@@ -58,6 +61,7 @@ vi.mock('@retaino/db', () => ({
   previewCampaignAudience: vi.fn(),
   reserveSmsCreditsIfSufficient: vi.fn(),
   searchCampaignRecipientsForReportedBookings: vi.fn(),
+  searchCampaignTestSmsContacts: vi.fn(),
   updateCampaignDraft: vi.fn(),
 }));
 
@@ -223,6 +227,7 @@ describe('campaignsRoutes', () => {
     vi.mocked(findCampaignSendExclusionForRecipient).mockReset();
     vi.mocked(findSuppressionByHash).mockReset();
     vi.mocked(getCampaignById).mockReset();
+    vi.mocked(getCampaignTestSmsContact).mockReset();
     vi.mocked(getCampaignReport).mockReset();
     vi.mocked(getCurrentLegalBundle).mockReset();
     vi.mocked(getCurrentOrganizationLegalAcceptance).mockReset();
@@ -238,11 +243,13 @@ describe('campaignsRoutes', () => {
     vi.mocked(listCampaigns).mockReset();
     vi.mocked(previewCampaignAudience).mockReset();
     vi.mocked(searchCampaignRecipientsForReportedBookings).mockReset();
+    vi.mocked(searchCampaignTestSmsContacts).mockReset();
     vi.mocked(updateCampaignDraft).mockReset();
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(profile);
     vi.mocked(getCurrentLegalBundle).mockResolvedValue(legalBundle);
     vi.mocked(getCurrentOrganizationLegalAcceptance).mockResolvedValue(legalAcceptance);
     vi.mocked(findSuppressionByHash).mockResolvedValue(null);
+    vi.mocked(getCampaignTestSmsContact).mockResolvedValue(null);
     vi.mocked(findCampaignSendExclusionForRecipient).mockResolvedValue(null);
     vi.mocked(getSmsCreditReservationState).mockResolvedValue({
       activeSourceId: null,
@@ -478,6 +485,46 @@ describe('campaignsRoutes', () => {
     expect(body.preview.renderedBody).toContain('https://go.retaino.com/r/');
     expect(body.preview.renderedBody).toContain('Reply STOP to opt out');
     expect(body.preview.estimatedSmsPerRecipient).toBeGreaterThan(0);
+  });
+
+  it('searches eligible test SMS sample contacts for a campaign', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue(campaign);
+    vi.mocked(searchCampaignTestSmsContacts).mockResolvedValue({
+      contacts: [
+        {
+          id: '88888888-8888-4888-8888-888888888888',
+          name: 'Ada Lovelace',
+          phone: '+46700000000',
+          email: 'ada@example.com',
+          lastBookingAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+
+    const response = await testApp({ role: 'org:member' }).request(
+      `/v1/campaigns/${campaign.id}/sms/test-contacts?search=ada`,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      contacts: [
+        {
+          id: '88888888-8888-4888-8888-888888888888',
+          name: 'Ada Lovelace',
+          phone: '+46700000000',
+          email: 'ada@example.com',
+          lastBookingAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+    expect(searchCampaignTestSmsContacts).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        organizationId: organization.id,
+        audienceRule: campaign.audienceRule,
+        search: 'ada',
+      },
+    );
   });
 
   it('launches draft campaigns and enqueues live send processing', async () => {
@@ -1147,6 +1194,59 @@ describe('campaignsRoutes', () => {
         description: 'Campaign test SMS usage',
       },
     );
+  });
+
+  it('sends a test SMS personalized as the selected eligible contact', async () => {
+    vi.mocked(getCampaignById).mockResolvedValue({
+      ...campaign,
+      smsBody: 'Hi {first_name}, last booking was {last_booking_date}.',
+    });
+    vi.mocked(getCampaignTestSmsContact).mockResolvedValue({
+      id: '88888888-8888-4888-8888-888888888888',
+      name: 'Ada Lovelace',
+      phone: '+46700000000',
+      email: 'ada@example.com',
+      lastBookingAt: '2026-01-01T00:00:00.000Z',
+    });
+    vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
+    vi.mocked(getSmsCreditBalance).mockResolvedValue(10);
+    vi.mocked(getSmsCreditBalanceBreakdown).mockResolvedValue({
+      purchased: 0,
+      subscriptionPeriod: 10,
+      total: 10,
+    });
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue(readySender());
+    vi.mocked(reserveSmsCreditsIfSufficient).mockResolvedValue({
+      debitedCredits: 1,
+      transactions: [],
+    });
+
+    const response = await testApp().request(
+      `/v1/campaigns/${campaign.id}/sms/send`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          sampleContactId: '88888888-8888-4888-8888-888888888888',
+          testPhone: '0700000000',
+        }),
+      },
+      { SMS_SENDING_MODE: 'test' },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      testSend: {
+        renderedBody: expect.stringContaining(
+          'Hi Ada, last booking was Jan 1, 2026.',
+        ),
+      },
+    });
+    expect(getCampaignTestSmsContact).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      audienceRule: campaign.audienceRule,
+      contactId: '88888888-8888-4888-8888-888888888888',
+    });
   });
 
   it('uses the responsible phone when no explicit test phone is provided', async () => {

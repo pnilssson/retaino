@@ -13,10 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { MetricSummaryEntry } from '@/components/metric-summary-entry';
-import {
-  AppPageItem,
-  AppPageSection,
-} from '@/features/appshell/components/app-page-content';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import {
   createAtAGlanceMetrics,
   createOutcomeSummary,
@@ -58,7 +55,7 @@ export function ResponseActivitySection({ report }: { report: CampaignReport }) 
   const metrics = createResponseMetrics(report);
 
   return (
-    <AppPageSection
+    <ContentSection
       description="Clicks, replies, and opt-outs from recipients."
       framed={false}
       title="Response activity"
@@ -68,7 +65,7 @@ export function ResponseActivitySection({ report }: { report: CampaignReport }) 
           <SummaryMetricItem key={metric.label} metric={metric} />
         ))}
       </div>
-    </AppPageSection>
+    </ContentSection>
   );
 }
 
@@ -76,7 +73,7 @@ function SummaryMetricItem({ metric }: { metric: ReportSummaryMetric }) {
   const Icon = summaryIcons[metric.icon];
 
   return (
-    <AppPageItem asChild>
+    <ContentSection asChild>
       <dl>
         <MetricSummaryEntry
           className="min-h-0 border-t-0 p-0"
@@ -87,6 +84,6 @@ function SummaryMetricItem({ metric }: { metric: ReportSummaryMetric }) {
           value={metric.value}
         />
       </dl>
-    </AppPageItem>
+    </ContentSection>
   );
 }

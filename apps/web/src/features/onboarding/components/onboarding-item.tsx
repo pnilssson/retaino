@@ -1,9 +1,8 @@
-import type { ComponentProps, ReactNode } from 'react';
-import {
-  AppPageContent,
-  AppPageItem,
-  AppPageSection,
-} from '@/features/appshell/components/app-page-content';
+import type {
+  ComponentProps,
+  ReactNode,
+} from 'react';
+import { ContentSection } from '@/features/appshell/components/content-section';
 
 type OnboardingItemProps = Omit<ComponentProps<'section'>, 'title'> & {
   description?: ReactNode;
@@ -19,25 +18,25 @@ export function OnboardingItem({
 }: OnboardingItemProps) {
   if (title) {
     return (
-      <AppPageContent>
-        <AppPageSection
+      <div className="grid gap-5">
+        <ContentSection
           description={description}
           id={props.id}
           title={title}
         >
           {children}
-        </AppPageSection>
-      </AppPageContent>
+        </ContentSection>
+      </div>
     );
   }
 
   return (
-    <AppPageContent>
-      <AppPageItem asChild>
+    <div className="grid gap-5">
+      <ContentSection asChild>
         <section {...props}>
           {children}
         </section>
-      </AppPageItem>
-    </AppPageContent>
+      </ContentSection>
+    </div>
   );
 }

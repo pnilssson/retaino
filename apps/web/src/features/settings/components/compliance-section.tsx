@@ -2,7 +2,7 @@ import type { OrganizationSession } from '@retaino/shared/contracts';
 import { FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { AppPageSection } from '@/features/appshell/components/app-page-content';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { routes } from '@/lib/routes';
 
 export function ComplianceSection({
@@ -13,7 +13,7 @@ export function ComplianceSection({
   const status = legalAgreementStatus(session);
 
   return (
-    <AppPageSection
+    <ContentSection
       actions={
             <Button asChild type="button" variant="outline">
               <Link href={routes.legal}>

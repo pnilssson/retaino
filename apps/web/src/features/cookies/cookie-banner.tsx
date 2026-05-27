@@ -1,7 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { AnimatePresence, motion } from 'motion/react';
+import {
+  AnimatePresence,
+  motion,
+} from 'motion/react';
 
 import { Button } from '@/components/ui/button';
 import { routes } from '@/lib/routes';

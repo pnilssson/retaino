@@ -1,6 +1,6 @@
 import type {
   OrganizationSession,
-  UpdateOrganizationProfileInput
+  UpdateOrganizationProfileInput,
 } from '@retaino/shared/contracts';
 import { currencyCodeSchema } from '@retaino/shared';
 import {

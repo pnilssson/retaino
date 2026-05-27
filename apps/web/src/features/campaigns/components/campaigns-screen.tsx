@@ -1,6 +1,9 @@
 "use client";
 
-import type { Campaign, OrganizationSession } from '@retaino/shared/contracts';
+import type {
+  Campaign,
+  OrganizationSession,
+} from '@retaino/shared/contracts';
 import {
   FileText,
   FileUp,
@@ -9,19 +12,18 @@ import {
   UsersRound,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import {
+  useMemo,
+  useState,
+} from 'react';
 import type { RowSelectionState } from '@tanstack/react-table';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
 import { EmptyState } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
-import {
-  AppPageContent,
-  AppPageItem,
-  AppPageLoading,
-  AppPageSection,
-} from '@/features/appshell/components/app-page-content';
+import { AppPageLoading } from '@/features/appshell/components/app-page-loading';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { useContactPresence } from '@/features/contacts/hooks/use-contact-presence';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
@@ -131,9 +133,9 @@ export function CampaignsScreen() {
           title="Campaigns"
         />
 
-        <AppPageContent>
+        <div className="grid gap-5">
           {contactPresence.isError ? (
-            <AppPageItem asChild>
+            <ContentSection asChild>
               <section>
                 <ItemNotice
                   description={
@@ -145,9 +147,9 @@ export function CampaignsScreen() {
                   variant="error"
                 />
               </section>
-            </AppPageItem>
+            </ContentSection>
           ) : !contactPresenceLoaded ? (
-            <AppPageSection
+            <ContentSection
               description="Filter campaigns by status, audience, and activity."
               framed={false}
               title="Campaign list"
@@ -160,28 +162,25 @@ export function CampaignsScreen() {
                 onSort={handleSort}
                 sort={sort}
               />
-            </AppPageSection>
+            </ContentSection>
           ) : !hasContacts ? (
-            <AppPageItem asChild>
-              <section>
-                <EmptyState
-                  action={
-                    <Button asChild>
-                      <Link href={routes.contactsImport}>
-                        <FileUp aria-hidden="true" data-icon="inline-start" />
-                        Import CSV
-                      </Link>
-                    </Button>
-                  }
-                  description="Import contacts first so every campaign can preview a real audience before you write and send SMS."
-                  icon={UsersRound}
-                  title="Import contacts before campaigns"
-                  variant="page"
-                />
-              </section>
-            </AppPageItem>
+            <EmptyState
+              action={
+                <Button asChild>
+                  <Link href={routes.contactsImport}>
+                    <FileUp aria-hidden="true" data-icon="inline-start" />
+                    Import CSV
+                  </Link>
+                </Button>
+              }
+              description="Import contacts first so every campaign can preview a real audience before you write and send SMS."
+              framed
+              icon={UsersRound}
+              title="Import contacts before campaigns"
+              variant="page"
+            />
           ) : campaigns.isError ? (
-            <AppPageItem asChild>
+            <ContentSection asChild>
               <section>
                 <ItemNotice
                   description={
@@ -193,9 +192,9 @@ export function CampaignsScreen() {
                   variant="error"
                 />
               </section>
-            </AppPageItem>
+            </ContentSection>
           ) : campaigns.isLoading ? (
-            <AppPageSection
+            <ContentSection
               description="Filter campaigns by status, audience, and activity."
               framed={false}
               title="Campaign list"
@@ -215,28 +214,25 @@ export function CampaignsScreen() {
                 onSort={handleSort}
                 sort={sort}
               />
-            </AppPageSection>
+            </ContentSection>
           ) : !hasCampaigns ? (
-            <AppPageItem asChild>
-              <section>
-                <EmptyState
-                  action={
-                    <Button asChild>
-                      <Link href={routes.campaignNew}>
-                        <Plus aria-hidden="true" data-icon="inline-start" />
-                        New campaign
-                      </Link>
-                    </Button>
-                  }
-                  description="Create a campaign to choose a lapsed audience, write the SMS copy, and prepare your first send."
-                  icon={Megaphone}
-                  title="Create your first campaign"
-                  variant="page"
-                />
-              </section>
-            </AppPageItem>
+            <EmptyState
+              action={
+                <Button asChild>
+                  <Link href={routes.campaignNew}>
+                    <Plus aria-hidden="true" data-icon="inline-start" />
+                    New campaign
+                  </Link>
+                </Button>
+              }
+              description="Create a campaign to choose a lapsed audience, write the SMS copy, and prepare your first send."
+              framed
+              icon={Megaphone}
+              title="Create your first campaign"
+              variant="page"
+            />
           ) : (
-            <AppPageSection
+            <ContentSection
               description="Filter campaigns by status, audience, and activity."
               framed={false}
               title="Campaign list"
@@ -277,9 +273,9 @@ export function CampaignsScreen() {
                     />
                   )}
                 </>
-            </AppPageSection>
+            </ContentSection>
           )}
-        </AppPageContent>
+        </div>
       </section>
     </main>
   );
@@ -302,8 +298,8 @@ function BlockedCampaigns({ session }: { session: OrganizationSession }) {
           eyebrow="Campaigns"
           title={block.title}
         />
-        <AppPageContent>
-          <AppPageItem asChild>
+        <div className="grid gap-5">
+          <ContentSection asChild>
             <section>
               <ItemNotice
                 description={block.description}
@@ -319,8 +315,8 @@ function BlockedCampaigns({ session }: { session: OrganizationSession }) {
                 </Button>
               </div>
             </section>
-          </AppPageItem>
-        </AppPageContent>
+          </ContentSection>
+        </div>
       </section>
     </main>
   );

@@ -1,4 +1,8 @@
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type TableSortDirection = 'asc' | 'desc';

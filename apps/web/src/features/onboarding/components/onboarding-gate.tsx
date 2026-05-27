@@ -3,7 +3,10 @@
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { canManageOrganizationSetup } from '@retaino/shared/contracts';
-import { AlertTriangle, FileText } from 'lucide-react';
+import {
+  AlertTriangle,
+  FileText,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LoadingState } from '@/components/loading-state';

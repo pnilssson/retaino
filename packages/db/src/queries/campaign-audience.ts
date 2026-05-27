@@ -4,6 +4,7 @@ import {
   desc,
   eq,
   gte,
+  ilike,
   inArray,
   isNotNull,
   isNull,
@@ -16,6 +17,8 @@ import {
 } from 'drizzle-orm';
 import {
   normalizeCampaignAudienceRule,
+  type CampaignSmsTestContact,
+  type CampaignSmsTestContactSearchResponse,
   type CampaignAudiencePreviewResponse,
   type CampaignAudienceRule,
 } from '@retaino/shared/contracts';
@@ -162,6 +165,60 @@ export async function previewCampaignAudience(
   };
 }
 
+export async function searchCampaignTestSmsContacts(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    audienceRule: CampaignAudienceRule;
+    search?: string;
+    now?: Date;
+  },
+): Promise<CampaignSmsTestContactSearchResponse> {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+  const audienceRule = normalizeCampaignAudienceRule(input.audienceRule);
+  const search = input.search?.trim();
+  const rows = await db
+    .select(campaignTestSmsContactColumns())
+    .from(contacts)
+    .where(
+      and(
+        campaignAudienceWhere(input.organizationId, audienceRule, now),
+        search ? campaignTestSmsContactSearchWhere(search) : undefined,
+      ),
+    )
+    .orderBy(desc(contacts.lastBookingAt), desc(contacts.createdAt))
+    .limit(10);
+
+  return { contacts: rows.map(campaignTestSmsContactToContract) };
+}
+
+export async function getCampaignTestSmsContact(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    audienceRule: CampaignAudienceRule;
+    contactId: string;
+    now?: Date;
+  },
+): Promise<CampaignSmsTestContact | null> {
+  assertOrganizationId(input.organizationId);
+  const now = input.now ?? new Date();
+  const audienceRule = normalizeCampaignAudienceRule(input.audienceRule);
+  const [row] = await db
+    .select(campaignTestSmsContactColumns())
+    .from(contacts)
+    .where(
+      and(
+        eq(contacts.id, input.contactId),
+        campaignAudienceWhere(input.organizationId, audienceRule, now),
+      ),
+    )
+    .limit(1);
+
+  return row ? campaignTestSmsContactToContract(row) : null;
+}
+
 export async function findCampaignSendExclusionForRecipient(
   db: DbClient,
   input: {
@@ -220,6 +277,42 @@ export async function findCampaignSendExclusionForRecipient(
   }
 
   return null;
+}
+
+function campaignTestSmsContactColumns() {
+  return {
+    id: contacts.id,
+    name: contacts.name,
+    phone: contacts.phone,
+    email: contacts.email,
+    lastBookingAt: contacts.lastBookingAt,
+  };
+}
+
+function campaignTestSmsContactSearchWhere(search: string) {
+  const pattern = `%${search}%`;
+
+  return or(
+    ilike(contacts.name, pattern),
+    ilike(contacts.phone, pattern),
+    ilike(contacts.email, pattern),
+  );
+}
+
+function campaignTestSmsContactToContract(row: {
+  id: string;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  lastBookingAt: Date | null;
+}): CampaignSmsTestContact {
+  return {
+    id: row.id,
+    name: row.name,
+    phone: row.phone,
+    email: row.email,
+    lastBookingAt: row.lastBookingAt?.toISOString() ?? null,
+  };
 }
 
 function campaignAudienceBaseWhere(

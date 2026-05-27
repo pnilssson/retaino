@@ -1,4 +1,7 @@
-import { CheckCircle2, FileText } from 'lucide-react';
+import {
+  CheckCircle2,
+  FileText,
+} from 'lucide-react';
 import Link from 'next/link';
 import {
   canManageOrganizationSetup,
@@ -7,10 +10,7 @@ import {
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import {
-  AppPageContent,
-  AppPageItem,
-} from '@/features/appshell/components/app-page-content';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { routes } from '@/lib/routes';
 
@@ -59,8 +59,8 @@ export function BlockedContacts({ session }: { session: OrganizationSession }) {
           eyebrow="Contacts"
           title={title}
         />
-        <AppPageContent>
-          <AppPageItem asChild>
+        <div className="grid gap-5">
+          <ContentSection asChild>
             <section>
               <ItemNotice
                 description={alertDescription}
@@ -83,8 +83,8 @@ export function BlockedContacts({ session }: { session: OrganizationSession }) {
                 </Button>
               </div>
             </section>
-          </AppPageItem>
-        </AppPageContent>
+          </ContentSection>
+        </div>
       </section>
     </main>
   );

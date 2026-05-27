@@ -1,7 +1,11 @@
 "use client";
 
 import { useOrganizationList } from '@clerk/nextjs';
-import { Building2, Loader2, Plus } from 'lucide-react';
+import {
+  Building2,
+  Loader2,
+  Plus,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';

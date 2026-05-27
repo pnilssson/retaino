@@ -1,4 +1,7 @@
-import type { AuthError, AuthField } from '@/features/auth/types';
+import type {
+  AuthError,
+  AuthField,
+} from '@/features/auth/types';
 
 type ClerkFieldError = {
   code?: string;

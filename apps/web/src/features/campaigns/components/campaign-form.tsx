@@ -13,7 +13,10 @@ import type {
   CreateCampaignDraftInput,
   UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
-import { Send } from 'lucide-react';
+import {
+  ArrowRight,
+  Send,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import {
   GuidedFlowActions,
@@ -21,14 +24,12 @@ import {
   GuidedFlowSection,
   type GuidedFlowStep,
 } from '@/components/guided-flow';
+import { InfoTooltip } from '@/components/info-tooltip';
 import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import { useCreateCampaign } from '@/features/campaigns/hooks/use-create-campaign';
 import { useUpdateCampaign } from '@/features/campaigns/hooks/use-update-campaign';
-import {
-  AppPageItem,
-  AppPageSection,
-} from '@/features/appshell/components/app-page-content';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { getFieldError } from '@/lib/form-errors';
 import { textStyles } from '@/lib/text-styles';
 import { AudiencePreview } from './audience-preview';
@@ -42,21 +43,22 @@ import {
 } from './campaign-field-controls';
 import { CampaignReview } from './campaign-review';
 import { CampaignTestSms } from './campaign-test-sms';
-import { MessageEstimate, MessagePreview } from './message-preview';
+import {
+  MessageEstimate,
+  MessagePreview,
+} from './message-preview';
 import { SenderSetup } from './sender-setup';
 import {
   campaignFormValuesToAudienceInput,
-  campaignFormValuesToBookingInput,
   campaignFormValuesToCompleteInput,
   campaignFormValuesToInitialDraftInput,
-  campaignFormValuesToMessageInput,
+  campaignFormValuesToMessageAndLinkInput,
   campaignStatusNotice,
   campaignToFormValues,
   completedCampaignSteps,
   defaultCampaignFormValues,
   isAudienceStepComplete,
-  isBookingStepComplete,
-  isMessageStepComplete,
+  isMessageAndLinkStepComplete,
   isPreviewableAudienceRule,
   validateBookingUrl,
   validateLapsedDays,
@@ -73,14 +75,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 export type { CampaignStepId } from '../campaign-form-state';
 
-const campaignSteps: GuidedFlowStep<CampaignStepId>[] = [
-  { id: 'audience', title: 'Audience' },
-  { id: 'message', title: 'Message' },
-  { id: 'booking', title: 'Booking' },
-  { id: 'sender', title: 'Sender' },
-  { id: 'test', title: 'Test SMS' },
-  { id: 'review', title: 'Review' },
-];
+function campaignSetupSteps(
+  includeSenderStep: boolean,
+): GuidedFlowStep<CampaignStepId>[] {
+  return [
+    { id: 'audience', title: 'Audience' },
+    { id: 'message', title: 'Message & link' },
+    ...(includeSenderStep ? [{ id: 'sender' as const, title: 'Sender' }] : []),
+    { id: 'review', title: 'Review' },
+  ];
+}
 
 export function CampaignForm({
   campaign,
@@ -108,7 +112,6 @@ export function CampaignForm({
   const [queuedRecipientCount, setQueuedRecipientCount] = useState<number | null>(
     null,
   );
-  const [testSmsStepComplete, setTestSmsStepComplete] = useState(false);
   const [
     recentCampaignExclusionAcknowledged,
     setRecentCampaignExclusionAcknowledged,
@@ -242,10 +245,11 @@ export function CampaignForm({
           );
           const recentProtectionAckRequired =
             requiresRecentCampaignExclusionAcknowledgement(values.audienceRule);
+          const includeSenderStep = !senderReady || activeStep === 'sender';
+          const visibleSteps = campaignSetupSteps(includeSenderStep);
           const completedStepIds = completedCampaignSteps(
             values,
             senderReady,
-            testSmsStepComplete,
           );
 
           return (
@@ -253,12 +257,12 @@ export function CampaignForm({
               completedStepIds={completedStepIds}
               currentStepId={activeStep}
               progressLabel="Campaign setup"
-              steps={campaignSteps}
+              steps={visibleSteps}
             >
               <div className="grid gap-5">
                 {activeStep === 'audience' ? (
                   <div className="grid gap-5">
-                      <AppPageSection
+                      <ContentSection
                         description="Name this campaign and choose the lapsed booking window."
                         title="Campaign and booking window"
                       >
@@ -329,9 +333,9 @@ export function CampaignForm({
                             )}
                           </form.Field>
                         </div>
-                      </AppPageSection>
+                      </ContentSection>
 
-                      <AppPageSection
+                      <ContentSection
                         description="Avoid overlapping campaign sends before this campaign is launched."
                         title="Exclusions"
                       >
@@ -359,9 +363,9 @@ export function CampaignForm({
                             </form.Field>
                           )}
                         </form.Field>
-                      </AppPageSection>
+                      </ContentSection>
 
-                      <AppPageSection
+                      <ContentSection
                         description="See how the current audience rules affect the final sendable audience."
                         title="Matching contacts"
                       >
@@ -370,10 +374,13 @@ export function CampaignForm({
                           enabled={isPreviewableAudienceRule(values.audienceRule)}
                           organizationId={organizationId}
                         />
-                      </AppPageSection>
+                      </ContentSection>
 
                       <GuidedFlowActions
                         canContinue={isAudienceStepComplete(values)}
+                        continueIcon={
+                          <ArrowRight aria-hidden="true" className="size-4" />
+                        }
                         continueLabel="Continue to message"
                         isPending={isSaving}
                         onContinue={() => {
@@ -388,145 +395,163 @@ export function CampaignForm({
                 ) : null}
 
                     {activeStep === 'message' ? (
-                      <CampaignSetupStep
-                        description="Write the SMS and check the preview before continuing."
-                        title="Write the message"
+                      <GuidedFlowSection
+                        description="Write the SMS, add the booking link, and check what recipients will receive."
+                        title="Message & link"
                       >
                         <div className="grid gap-5">
-                    <form.Field
-                      name="smsBody"
-                      validators={{
-                        onBlur: ({ value }) => validateSmsBody(value),
-                        onSubmit: ({ value }) => validateSmsBody(value),
-                      }}
-                    >
-                      {(field) => (
-                        <div className="grid gap-6 lg:grid-cols-2">
-                          <div className="grid content-start gap-5">
-                            <CampaignTextAreaInput
-                              disabled={!canEditCampaign}
-                              error={getFieldError(field.state.meta.errors)}
-                              label="Message body"
-                              name={field.name}
-                              onBlur={field.handleBlur}
-                              onChange={field.handleChange}
-                              placeholder="Hi {first_name}, we have openings this week..."
-                              textAreaRef={messageTextAreaRef}
-                              value={field.state.value}
-                            />
-                            <MessageEstimate smsBody={field.state.value} />
-                            <div className="grid gap-2">
-                              <p className={textStyles.metaStrong}>
-                                Personalize
-                              </p>
-                              <div className="flex flex-wrap gap-2">
-                                {['{first_name}', '{last_booking_date}'].map(
-                                  (token) => (
-                                    <Button
-                                      disabled={!canEditCampaign}
-                                      key={token}
-                                      onClick={() => {
-                                        field.handleChange(
-                                          insertTextAtCursor({
-                                            currentValue: field.state.value,
-                                            insertText: token,
-                                            textArea: messageTextAreaRef.current,
-                                          }),
-                                        );
-                                      }}
-                                      size="sm"
-                                      type="button"
-                                      variant="outline"
-                                    >
-                                      {token}
-                                    </Button>
-                                  ),
+                          <ContentSection asChild>
+                            <section>
+                              <form.Field
+                                name="smsBody"
+                                validators={{
+                                  onBlur: ({ value }) => validateSmsBody(value),
+                                  onSubmit: ({ value }) => validateSmsBody(value),
+                                }}
+                              >
+                                {(field) => (
+                                  <div className="grid gap-6 lg:grid-cols-2">
+                                    <div className="grid content-start gap-5">
+                                      <CampaignTextAreaInput
+                                        disabled={!canEditCampaign}
+                                        error={getFieldError(
+                                          field.state.meta.errors,
+                                        )}
+                                        label="Message body"
+                                        name={field.name}
+                                        onBlur={field.handleBlur}
+                                        onChange={field.handleChange}
+                                        placeholder="Hi {first_name}, we have openings this week..."
+                                        textAreaRef={messageTextAreaRef}
+                                        value={field.state.value}
+                                      />
+                                      <div className="grid gap-2">
+                                        <div className="flex items-center gap-1.5">
+                                          <p className={textStyles.itemTitle}>
+                                            Personalize
+                                          </p>
+                                          <InfoTooltip label="Personalization details">
+                                            Click a value to add it to the
+                                            message. Retaino replaces it with
+                                            each recipient&apos;s details before
+                                            sending.
+                                          </InfoTooltip>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                          {[
+                                            '{first_name}',
+                                            '{last_booking_date}',
+                                          ].map((token) => (
+                                            <Button
+                                              disabled={!canEditCampaign}
+                                              key={token}
+                                              onClick={() => {
+                                                field.handleChange(
+                                                  insertTextAtCursor({
+                                                    currentValue:
+                                                      field.state.value,
+                                                    insertText: token,
+                                                    textArea:
+                                                      messageTextAreaRef.current,
+                                                  }),
+                                                );
+                                              }}
+                                              size="sm"
+                                              type="button"
+                                              variant="outline"
+                                            >
+                                              {token}
+                                            </Button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="grid content-start gap-2">
+                                      <MessagePreview
+                                        smsBody={field.state.value}
+                                      />
+                                      <MessageEstimate
+                                        smsBody={field.state.value}
+                                      />
+                                    </div>
+                                  </div>
                                 )}
-                              </div>
+                              </form.Field>
+                            </section>
+                          </ContentSection>
+
+                          <ContentSection
+                            description="Add where you want recipients to go and an optional reference for this campaign."
+                            title="Booking destination"
+                          >
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <form.Field
+                                name="bookingUrl"
+                                validators={{
+                                  onBlur: ({ value }) =>
+                                    validateBookingUrl(value),
+                                  onSubmit: ({ value }) =>
+                                    validateBookingUrl(value),
+                                }}
+                              >
+                                {(field) => (
+                                  <CampaignTextInput
+                                    disabled={!canEditCampaign}
+                                    error={getFieldError(
+                                      field.state.meta.errors,
+                                    )}
+                                    label="Booking URL"
+                                    name={field.name}
+                                    onBlur={field.handleBlur}
+                                    onChange={field.handleChange}
+                                    placeholder="https://booking.example.com..."
+                                    type="url"
+                                    value={field.state.value}
+                                  />
+                                )}
+                              </form.Field>
+                              <form.Field name="campaignCode">
+                                {(field) => (
+                                  <CampaignTextInput
+                                    disabled={!canEditCampaign}
+                                    error={getFieldError(
+                                      field.state.meta.errors,
+                                    )}
+                                    label="Campaign code or reference"
+                                    name={field.name}
+                                    onBlur={field.handleBlur}
+                                    onChange={field.handleChange}
+                                    placeholder="SPRING REACTIVATION..."
+                                    spellCheck={false}
+                                    value={field.state.value}
+                                  />
+                                )}
+                              </form.Field>
                             </div>
-                          </div>
-                          <MessagePreview smsBody={field.state.value} />
-                        </div>
-                      )}
-                    </form.Field>
+                          </ContentSection>
 
                           <GuidedFlowActions
-                            canContinue={isMessageStepComplete(values)}
-                            continueLabel="Continue to booking"
+                            canContinue={isMessageAndLinkStepComplete(values)}
+                            continueIcon={
+                              <ArrowRight aria-hidden="true" className="size-4" />
+                            }
+                            continueLabel={
+                              senderReady
+                                ? 'Continue to review'
+                                : 'Continue to sender'
+                            }
                             onBack={() => setActiveStep('audience')}
                             isPending={isSaving}
                             onContinue={() => {
                               void saveStepAndContinue(
                                 values,
-                                campaignFormValuesToMessageInput(values),
-                                'booking',
+                                campaignFormValuesToMessageAndLinkInput(values),
+                                senderReady ? 'review' : 'sender',
                               );
                             }}
                           />
                         </div>
-                      </CampaignSetupStep>
-                    ) : null}
-
-                    {activeStep === 'booking' ? (
-                      <CampaignSetupStep
-                        description="Add the destination link and optional reference used when reviewing results."
-                        title="Add the booking details"
-                      >
-                        <div className="grid gap-5">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <form.Field
-                        name="bookingUrl"
-                        validators={{
-                          onBlur: ({ value }) => validateBookingUrl(value),
-                          onSubmit: ({ value }) => validateBookingUrl(value),
-                        }}
-                      >
-                        {(field) => (
-                          <CampaignTextInput
-                            disabled={!canEditCampaign}
-                            error={getFieldError(field.state.meta.errors)}
-                            label="Booking URL"
-                            name={field.name}
-                            onBlur={field.handleBlur}
-                            onChange={field.handleChange}
-                            placeholder="https://booking.example.com..."
-                            type="url"
-                            value={field.state.value}
-                          />
-                        )}
-                      </form.Field>
-                      <form.Field name="campaignCode">
-                        {(field) => (
-                          <CampaignTextInput
-                            disabled={!canEditCampaign}
-                            error={getFieldError(field.state.meta.errors)}
-                            label="Campaign code or reference"
-                            name={field.name}
-                            onBlur={field.handleBlur}
-                            onChange={field.handleChange}
-                            placeholder="SPRING REACTIVATION..."
-                            spellCheck={false}
-                            value={field.state.value}
-                          />
-                        )}
-                      </form.Field>
-                    </div>
-
-                          <GuidedFlowActions
-                            canContinue={isBookingStepComplete(values)}
-                            continueLabel="Continue to sender"
-                            onBack={() => setActiveStep('message')}
-                            isPending={isSaving}
-                            onContinue={() => {
-                              void saveStepAndContinue(
-                                values,
-                                campaignFormValuesToBookingInput(values),
-                                'sender',
-                              );
-                            }}
-                          />
-                        </div>
-                      </CampaignSetupStep>
+                      </GuidedFlowSection>
                     ) : null}
 
                     {activeStep === 'sender' ? (
@@ -543,76 +568,85 @@ export function CampaignForm({
 
                           <GuidedFlowActions
                             canContinue={senderReady}
-                            continueLabel="Continue to test SMS"
+                            continueIcon={
+                              <ArrowRight aria-hidden="true" className="size-4" />
+                            }
+                            continueLabel="Continue to review"
                             isPending={sender.isLoading}
-                            onBack={() => setActiveStep('booking')}
-                            onContinue={() => setActiveStep('test')}
+                            onBack={() => setActiveStep('message')}
+                            onContinue={() => setActiveStep('review')}
                           />
                         </div>
                       </CampaignSetupStep>
                     ) : null}
 
-                    {activeStep === 'test' ? (
-                      <CampaignSetupStep
-                        description="Send yourself the message before launching, or skip this check."
-                        title="Send a test SMS"
-                      >
-                        <CampaignTestSms
-                          campaignId={campaign?.id ?? null}
-                          onBack={() => setActiveStep('sender')}
-                          onSent={() => {
-                            setTestSmsStepComplete(true);
-                            setActiveStep('review');
-                          }}
-                          onSkip={() => {
-                            setTestSmsStepComplete(true);
-                            setActiveStep('review');
-                          }}
-                          senderReady={senderReady}
-                        />
-                      </CampaignSetupStep>
-                    ) : null}
-
                     {activeStep === 'review' ? (
-                      <CampaignSetupStep
+                      <GuidedFlowSection
                         description="Confirm the final setup before sending the campaign."
                         title="Review campaign"
                       >
                         <div className="grid gap-5">
-                          <CampaignReview
-                            campaign={campaign}
-                            organizationId={organizationId}
-                            senderReady={senderReady}
-                            values={values}
-                          />
+                          <ContentSection asChild>
+                            <section>
+                              <CampaignReview
+                                campaign={campaign}
+                                organizationId={organizationId}
+                                senderReady={senderReady}
+                                values={values}
+                              />
+                            </section>
+                          </ContentSection>
 
                           {recentProtectionAckRequired ? (
-                            <label className="flex items-start gap-3 text-amber-950">
-                              <Checkbox
-                                checked={recentCampaignExclusionAcknowledged}
-                                onCheckedChange={(value) =>
-                                  setRecentCampaignExclusionAcknowledged(
-                                    value === true,
-                                  )
+                            <ContentSection>
+                              <ItemNotice
+                                action={
+                                  <label className="flex items-center gap-2">
+                                    <Checkbox
+                                      checked={recentCampaignExclusionAcknowledged}
+                                      onCheckedChange={(value) =>
+                                        setRecentCampaignExclusionAcknowledged(
+                                          value === true,
+                                        )
+                                      }
+                                    />
+                                    <span className={textStyles.itemTitle}>
+                                      I understand
+                                    </span>
+                                  </label>
                                 }
+                                description="Some contacts may receive another campaign sooner than the standard 30 days."
+                                title="Confirm recent campaign protection"
+                                variant="warning"
                               />
-                              <span className="grid gap-1">
-                                <span className={textStyles.itemTitle}>
-                                  Confirm recent campaign protection
-                                </span>
-                                <span className={textStyles.meta}>
-                                  Some contacts may receive another campaign
-                                  sooner than the standard 30 days.
-                                </span>
-                              </span>
-                            </label>
+                            </ContentSection>
                           ) : null}
 
-                          <GuidedFlowActions onBack={() => setActiveStep('test')}>
+                          <ContentSection
+                            description="Send yourself the message before launching. This is optional."
+                            title="Send a test SMS"
+                          >
+                            <CampaignTestSms
+                              campaignId={campaign?.id ?? null}
+                              defaultCountryCode={defaultSenderCountryCode}
+                              organizationId={organizationId}
+                              senderReady={senderReady}
+                            />
+                          </ContentSection>
+
+                          <GuidedFlowActions
+                            onBack={() =>
+                              setActiveStep(
+                                includeSenderStep ? 'sender' : 'message',
+                              )
+                            }
+                          >
                             <Button
                               disabled={
                                 !canSendCampaign ||
                                 !canSubmit ||
+                                !isAudienceStepComplete(values) ||
+                                !isMessageAndLinkStepComplete(values) ||
                                 !senderReady ||
                                 !campaign ||
                                 isSaving ||
@@ -654,7 +688,7 @@ export function CampaignForm({
                             </Button>
                           </GuidedFlowActions>
                         </div>
-                      </CampaignSetupStep>
+                      </GuidedFlowSection>
                     ) : null}
               </div>
             </GuidedFlowFrame>
@@ -676,9 +710,9 @@ function CampaignSetupStep({
 }) {
   return (
     <GuidedFlowSection description={description} title={title}>
-      <AppPageItem asChild>
+      <ContentSection asChild>
         <section>{children}</section>
-      </AppPageItem>
+      </ContentSection>
     </GuidedFlowSection>
   );
 }

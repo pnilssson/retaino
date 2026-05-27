@@ -1,6 +1,10 @@
 "use client";
 
-import { useAuth, useOrganization, useOrganizationList } from '@clerk/nextjs';
+import {
+  useAuth,
+  useOrganization,
+  useOrganizationList,
+} from '@clerk/nextjs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';

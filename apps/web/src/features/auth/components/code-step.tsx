@@ -2,7 +2,11 @@
 
 import { useForm } from '@tanstack/react-form';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
-import { ArrowRight, Loader2, RefreshCw } from 'lucide-react';
+import {
+  ArrowRight,
+  Loader2,
+  RefreshCw,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   InputOTP,
@@ -13,7 +17,10 @@ import { Label } from '@/components/ui/label';
 import type { useEmailCodeAuth } from '@/features/auth/hooks/use-email-code-auth';
 import { getFieldError } from '@/lib/form-errors';
 import { textStyles } from '@/lib/text-styles';
-import { clerkOtpLength, clerkOtpPattern } from '../form-constants';
+import {
+  clerkOtpLength,
+  clerkOtpPattern,
+} from '../form-constants';
 
 type EmailCodeAuth = ReturnType<typeof useEmailCodeAuth>;
 

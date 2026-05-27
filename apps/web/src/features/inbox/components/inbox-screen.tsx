@@ -1,14 +1,15 @@
 "use client";
 
 import type { InboxConversationActivityFilter } from '@retaino/shared/contracts';
-import { useEffect, useMemo, useState } from 'react';
-import { ItemNotice } from '@/components/item-notice';
 import {
-  AppPageContent,
-  AppPageItem,
-  AppPageLoading,
-} from '@/features/appshell/components/app-page-content';
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { ItemNotice } from '@/components/item-notice';
+import { AppPageLoading } from '@/features/appshell/components/app-page-loading';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { cn } from '@/lib/utils';
 import { useInboxConversation } from '../hooks/use-inbox-conversation';
@@ -89,9 +90,9 @@ export function InboxScreen() {
           title="Inbox"
         />
 
-        <AppPageContent>
+        <div className="grid gap-5">
           {!session.data.readiness.ready ? (
-            <AppPageItem asChild>
+            <ContentSection asChild>
               <section>
                 <ItemNotice
                   description="Finish organization setup before sending campaigns and managing SMS replies."
@@ -99,9 +100,9 @@ export function InboxScreen() {
                   variant="warning"
                 />
               </section>
-            </AppPageItem>
+            </ContentSection>
           ) : conversations.isError ? (
-            <AppPageItem asChild>
+            <ContentSection asChild>
               <section>
                 <ItemNotice
                   description={
@@ -113,7 +114,7 @@ export function InboxScreen() {
                   variant="error"
                 />
               </section>
-            </AppPageItem>
+            </ContentSection>
           ) : (
             <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
               <InboxConversationList
@@ -146,7 +147,7 @@ export function InboxScreen() {
               />
             </div>
           )}
-        </AppPageContent>
+        </div>
       </section>
     </main>
   );

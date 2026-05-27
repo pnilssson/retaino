@@ -5,14 +5,14 @@ import {
   canManageOrganizationSetup,
   type OrganizationSession,
 } from '@retaino/shared/contracts';
-import { CheckCircle2, Settings2 } from 'lucide-react';
+import {
+  CheckCircle2,
+  Settings2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
-import {
-  AppPageContent,
-  AppPageLoading,
-} from '@/features/appshell/components/app-page-content';
+import { AppPageLoading } from '@/features/appshell/components/app-page-loading';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
@@ -94,11 +94,11 @@ function SettingsContent({
           title={session.organization.name}
         />
 
-        <AppPageContent>
+        <div className="grid gap-5">
           <ProfileSection canManageSetup={canManageSetup} session={session} />
           <TeamInvitationSection session={session} />
           <ComplianceSection session={session} />
-        </AppPageContent>
+        </div>
       </section>
     </main>
   );

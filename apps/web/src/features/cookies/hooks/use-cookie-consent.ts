@@ -1,6 +1,9 @@
 "use client";
 
-import { createContext, useContext } from 'react';
+import {
+  createContext,
+  useContext,
+} from 'react';
 import type { CookieConsent } from '@/features/cookies/consent-storage';
 
 export type CookieConsentContextValue = {

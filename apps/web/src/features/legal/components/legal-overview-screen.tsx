@@ -6,7 +6,12 @@ import {
   type OrganizationSession,
 } from '@retaino/shared/contracts';
 import { useForm } from '@tanstack/react-form';
-import { ArrowLeft, CheckCircle2, FileText, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  FileText,
+  Loader2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
@@ -18,12 +23,9 @@ import {
   ItemTitle,
 } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
-import {
-  AppPageContent,
-  AppPageLoading,
-  AppPageSection,
-} from '@/features/appshell/components/app-page-content';
+import { AppPageLoading } from '@/features/appshell/components/app-page-loading';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { useCreateCurrentOrganizationLegalAcceptance } from '@/features/onboarding/hooks/use-create-current-organization-legal-acceptance';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import {
@@ -86,13 +88,13 @@ export function LegalOverviewScreen() {
           title="Legal agreement"
         />
 
-        <AppPageContent>
+        <div className="grid gap-5">
           <LegalBundleSection session={session.data} />
           <LegalAcceptanceSection
             canManageSetup={canManageSetup}
             session={session.data}
           />
-        </AppPageContent>
+        </div>
       </section>
     </main>
   );
@@ -100,7 +102,7 @@ export function LegalOverviewScreen() {
 
 function LegalBundleSection({ session }: { session: OrganizationSession }) {
   return (
-    <AppPageSection
+    <ContentSection
       description="These are the current documents that govern this organization."
       title="Current bundle"
     >
@@ -166,7 +168,7 @@ function LegalBundleSection({ session }: { session: OrganizationSession }) {
             })}
           </ul>
         </div>
-    </AppPageSection>
+    </ContentSection>
   );
 }
 
@@ -199,7 +201,7 @@ function LegalAcceptanceSection({
 
   if (session.readiness.legalUpdatesRequired && canManageSetup) {
     return (
-      <AppPageSection
+      <ContentSection
         description="Imports are blocked until the current legal bundle is accepted."
         title="Accept updated terms"
       >
@@ -302,7 +304,7 @@ function LegalAcceptanceSection({
               </form.Subscribe>
             </div>
           </form>
-      </AppPageSection>
+      </ContentSection>
     );
   }
 

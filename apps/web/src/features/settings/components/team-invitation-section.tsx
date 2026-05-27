@@ -4,7 +4,7 @@ import { useClerk } from '@clerk/nextjs';
 import type { OrganizationSession } from '@retaino/shared/contracts';
 import { UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AppPageSection } from '@/features/appshell/components/app-page-content';
+import { ContentSection } from '@/features/appshell/components/content-section';
 
 type TeamInvitationSectionProps = {
   session: OrganizationSession;
@@ -15,7 +15,7 @@ export function TeamInvitationSection({ session }: TeamInvitationSectionProps) {
   const canManageTeam = session.readiness.setupComplete;
 
   return (
-    <AppPageSection
+    <ContentSection
       actions={
             <Button
               disabled={!canManageTeam}

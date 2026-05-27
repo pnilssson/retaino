@@ -4,12 +4,18 @@ import type {
   InboxConversationActivityFilter,
   InboxConversationSummary,
 } from '@retaino/shared/contracts';
-import { MessageCircle, ShieldAlert } from 'lucide-react';
+import {
+  MessageCircle,
+  ShieldAlert,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { textStyles } from '@/lib/text-styles';
-import { formatInboxDateTime, inboxActivityLabel } from '../inbox-format';
+import {
+  formatInboxDateTime,
+  inboxActivityLabel,
+} from '../inbox-format';
 
 const activityFilters: InboxConversationActivityFilter[] = [
   'inbound',

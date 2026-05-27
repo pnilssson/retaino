@@ -1,6 +1,9 @@
 "use client";
 
-import type { InputHTMLAttributes, Ref } from 'react';
+import type {
+  InputHTMLAttributes,
+  Ref,
+} from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { textStyles } from '@/lib/text-styles';

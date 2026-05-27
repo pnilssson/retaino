@@ -4,7 +4,11 @@ import {
   legalDocumentUrl,
   type OrganizationSession,
 } from '@retaino/shared/contracts';
-import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Loader2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { GuidedFlowActions } from '@/components/guided-flow';
 import { ItemNotice } from '@/components/item-notice';

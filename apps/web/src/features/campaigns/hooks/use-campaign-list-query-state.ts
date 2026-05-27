@@ -1,6 +1,9 @@
 "use client";
 
-import { parseAsString, useQueryStates } from 'nuqs';
+import {
+  parseAsString,
+  useQueryStates,
+} from 'nuqs';
 import type {
   CampaignListDirection,
   CampaignListSort,

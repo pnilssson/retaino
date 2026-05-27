@@ -2,12 +2,18 @@
 
 import type { BillingStatusResponse } from '@retaino/shared/contracts';
 import { ExternalLink } from 'lucide-react';
-import { StatusBadge, type StatusBadgeTone } from '@/components/status-badge';
+import {
+  StatusBadge,
+  type StatusBadgeTone,
+} from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import { AppPageSection } from '@/features/appshell/components/app-page-content';
+import { ContentSection } from '@/features/appshell/components/content-section';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
-import { formatBillingDate, formatCreditCount } from '../billing-format';
+import {
+  formatBillingDate,
+  formatCreditCount,
+} from '../billing-format';
 
 export function BillingStatusPanel({
   billingStatus,
@@ -24,7 +30,7 @@ export function BillingStatusPanel({
   const status = subscriptionStatusView(subscription.status);
 
   return (
-    <AppPageSection
+    <ContentSection
       actions={
             <Button
               disabled={
@@ -66,7 +72,7 @@ export function BillingStatusPanel({
             }
           />
         </dl>
-    </AppPageSection>
+    </ContentSection>
   );
 }
 

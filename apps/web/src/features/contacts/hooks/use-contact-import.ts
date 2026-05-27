@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import type { ContactImportDetailResponse } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
 import { invalidateContactDependentQueries } from '../contact-cache';

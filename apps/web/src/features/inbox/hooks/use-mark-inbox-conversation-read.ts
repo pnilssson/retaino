@@ -1,6 +1,9 @@
 "use client";
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 import type { MarkInboxConversationReadResponse } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
 import { inboxQueryKeys } from '../inbox-query-keys';

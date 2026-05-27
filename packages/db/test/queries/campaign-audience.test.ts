@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   campaignAudienceWhere,
   findCampaignSendExclusionForRecipient,
+  getCampaignTestSmsContact,
+  searchCampaignTestSmsContacts,
 } from '../../src/queries/campaign-audience';
 import { campaignRow, recipientRow } from './campaign-fixtures';
 
@@ -72,6 +74,138 @@ describe('campaign audience query helpers', () => {
 
     expect(query.sql).toContain('"contacts"."last_booking_at" <= $');
     expect(query.sql).toContain('"contacts"."last_booking_at" is null');
+  });
+
+  it('searches eligible audience contacts for test SMS samples', async () => {
+    let selectedColumns: unknown;
+    let whereCondition: SQL | undefined;
+    const db = {
+      select: (columns: unknown) => {
+        selectedColumns = columns;
+
+        return {
+          from: () => ({
+            where: (condition: SQL | undefined) => {
+              whereCondition = condition;
+
+              return {
+                orderBy: () => ({
+                  limit: () => [
+                    {
+                      id: '66666666-6666-4666-8666-666666666666',
+                      name: 'Ada Lovelace',
+                      phone: '+46700000000',
+                      email: 'ada@example.com',
+                      lastBookingAt: new Date('2026-01-01T00:00:00.000Z'),
+                    },
+                  ],
+                }),
+              };
+            },
+          }),
+        };
+      },
+    };
+
+    await expect(
+      searchCampaignTestSmsContacts(db as never, {
+        organizationId: campaignRow.organizationId,
+        audienceRule: {
+          lapsedDays: 90,
+          includeNoBookingDate: false,
+          excludeCampaignIds: [],
+          recentCampaignExclusionDays: 30,
+        },
+        search: 'ada',
+        now: new Date('2026-05-16T10:00:00.000Z'),
+      }),
+    ).resolves.toEqual({
+      contacts: [
+        {
+          id: '66666666-6666-4666-8666-666666666666',
+          name: 'Ada Lovelace',
+          phone: '+46700000000',
+          email: 'ada@example.com',
+          lastBookingAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+
+    expect(selectedColumns).toBeDefined();
+    if (!whereCondition) {
+      throw new Error('Expected test SMS contact search condition.');
+    }
+
+    const query = new PgDialect().sqlToQuery(
+      sql`select 1 where ${whereCondition}`,
+    );
+
+    expect(query.sql).toContain('"contacts"."organization_id" =');
+    expect(query.sql).toContain('"contacts"."normalized_phone" is not null');
+    expect(query.sql).toContain('"contacts"."consent_status" =');
+    expect(query.sql).toContain('"contacts"."name" ilike');
+    expect(query.sql).toContain('"contacts"."phone" ilike');
+    expect(query.sql).toContain('"contacts"."email" ilike');
+    expect(query.sql).toContain('not exists');
+    expect(query.params).toContain('%ada%');
+  });
+
+  it('returns one eligible audience contact for test SMS personalization', async () => {
+    let whereCondition: SQL | undefined;
+    const db = {
+      select: () => ({
+        from: () => ({
+          where: (condition: SQL | undefined) => {
+            whereCondition = condition;
+
+            return {
+              limit: () => [
+                {
+                  id: '66666666-6666-4666-8666-666666666666',
+                  name: 'Ada Lovelace',
+                  phone: '+46700000000',
+                  email: 'ada@example.com',
+                  lastBookingAt: new Date('2026-01-01T00:00:00.000Z'),
+                },
+              ],
+            };
+          },
+        }),
+      }),
+    };
+
+    await expect(
+      getCampaignTestSmsContact(db as never, {
+        organizationId: campaignRow.organizationId,
+        audienceRule: {
+          lapsedDays: 90,
+          includeNoBookingDate: false,
+          excludeCampaignIds: [],
+          recentCampaignExclusionDays: 30,
+        },
+        contactId: '66666666-6666-4666-8666-666666666666',
+        now: new Date('2026-05-16T10:00:00.000Z'),
+      }),
+    ).resolves.toEqual({
+      id: '66666666-6666-4666-8666-666666666666',
+      name: 'Ada Lovelace',
+      phone: '+46700000000',
+      email: 'ada@example.com',
+      lastBookingAt: '2026-01-01T00:00:00.000Z',
+    });
+
+    if (!whereCondition) {
+      throw new Error('Expected test SMS contact lookup condition.');
+    }
+
+    const query = new PgDialect().sqlToQuery(
+      sql`select 1 where ${whereCondition}`,
+    );
+
+    expect(query.sql).toContain('"contacts"."id" =');
+    expect(query.sql).toContain('"contacts"."normalized_phone" is not null');
+    expect(query.sql).toContain('not exists');
+    expect(query.params).toContain('66666666-6666-4666-8666-666666666666');
   });
 
   it('rechecks selected campaign send exclusions before provider send', async () => {
