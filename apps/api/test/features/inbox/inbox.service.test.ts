@@ -153,7 +153,6 @@ describe('inbox service', () => {
     vi.mocked(createSmsProvider).mockReturnValue({
       name: 'fake',
       listSenderCountries: vi.fn(),
-      searchSenderOptions: vi.fn(),
       ensureSender: vi.fn(),
       sendSms: vi.fn().mockResolvedValue({
         provider: 'fake',
@@ -341,7 +340,6 @@ describe('inbox service', () => {
     vi.mocked(createSmsProvider).mockReturnValue({
       name: 'fake',
       listSenderCountries: vi.fn(),
-      searchSenderOptions: vi.fn(),
       ensureSender: vi.fn(),
       sendSms: vi.fn().mockRejectedValue(providerError),
       parseStatusWebhook: vi.fn(),

@@ -1,27 +1,24 @@
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import type { PublicOrganizationSmsSender } from '@retaino/shared/contracts';
 import { Phone } from 'lucide-react';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { SelectItem } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { textStyles } from '@/lib/text-styles';
 import { useProvisionSmsSender } from '../hooks/use-provision-sms-sender';
 import { useSmsSenderCountries } from '../hooks/use-sms-sender-countries';
-import { useSmsSenderNumbers } from '../hooks/use-sms-sender-numbers';
-import {
-  SenderCountryCombobox,
-  SenderSelect,
-} from './sender-setup-controls';
+import { SenderCountryCombobox } from './sender-setup-controls';
 
 export function SenderSetup({
+  defaultCountryCode,
   organizationId,
   sender,
 }: {
+  defaultCountryCode: string;
   organizationId: string | null;
   sender: PublicOrganizationSmsSender | null;
 }) {
@@ -29,38 +26,18 @@ export function SenderSetup({
   const setupOrganizationId = !senderReady ? organizationId : null;
   const countries = useSmsSenderCountries(setupOrganizationId);
   const [countryCode, setCountryCode] = useState('');
-  const effectiveCountryCode =
-    countryCode ||
-    sender?.countryCode ||
-    countries.data?.countries[0]?.countryCode ||
-    '';
-  const numbers = useSmsSenderNumbers({
-    countryCode: effectiveCountryCode,
-    organizationId: setupOrganizationId,
-  });
-  const [selectedPhoneNumber, setSelectedPhoneNumber] = useState('');
-  const senderPhoneNumberIsAvailable = Boolean(
-    sender?.phoneNumber &&
-      numbers.data?.numbers.some(
-        (number) => number.phoneNumber === sender.phoneNumber,
-      ),
-  );
-  const effectiveSelectedPhoneNumber =
-    selectedPhoneNumber &&
-    numbers.data?.numbers.some(
-      (number) => number.phoneNumber === selectedPhoneNumber,
-    )
-      ? selectedPhoneNumber
-      : senderPhoneNumberIsAvailable
-        ? (sender?.phoneNumber ?? '')
-      : numbers.data?.numbers[0]?.phoneNumber ?? '';
-  const selectedSender = useMemo(
-    () =>
-      numbers.data?.numbers.find(
-        (number) => number.phoneNumber === effectiveSelectedPhoneNumber,
-      ) ?? null,
-    [effectiveSelectedPhoneNumber, numbers.data?.numbers],
-  );
+  const preferredCountryCode =
+    countryCode || sender?.countryCode || defaultCountryCode;
+  const countryOptions = countries.data?.countries ?? [];
+  const effectiveCountryCode = countryOptions.some(
+    (country) => country.countryCode === preferredCountryCode,
+  )
+    ? preferredCountryCode
+    : countryOptions[0]?.countryCode ?? preferredCountryCode;
+  const selectedCountry =
+    countryOptions.find(
+      (country) => country.countryCode === effectiveCountryCode,
+    ) ?? null;
   const provisionSender = useProvisionSmsSender(setupOrganizationId);
 
   return (
@@ -72,7 +49,7 @@ export function SenderSetup({
             <p className={textStyles.mutedBody}>
               {sender?.phoneNumber
                 ? sender.phoneNumber
-                : 'Choose the number recipients will see.'}
+                : 'Choose where the sender number should be based.'}
             </p>
           </div>
           <StatusBadge
@@ -92,41 +69,24 @@ export function SenderSetup({
 
       {!senderReady ? (
         <section className="grid gap-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="campaign-sender-country">Country</Label>
-              <SenderCountryCombobox
-                countries={countries.data?.countries ?? []}
-                disabled={countries.isLoading}
-                id="campaign-sender-country"
-                onChange={(value) => {
-                  setCountryCode(value);
-                  setSelectedPhoneNumber('');
-                }}
-                value={effectiveCountryCode}
-              />
-            </div>
-
-            <SenderSelect
-              disabled={numbers.isLoading || !numbers.data?.numbers.length}
-              id="campaign-sender-number"
-              label="Number"
-              onValueChange={setSelectedPhoneNumber}
-              placeholder={numbers.isLoading ? 'Loading...' : 'Choose number'}
-              value={effectiveSelectedPhoneNumber}
-            >
-              {(numbers.data?.numbers ?? []).map((number) => (
-                <SelectItem key={number.phoneNumber} value={number.phoneNumber}>
-                  {number.label}
-                </SelectItem>
-              ))}
-            </SenderSelect>
+          <div className="grid gap-2 sm:max-w-sm">
+            <Label htmlFor="campaign-sender-country">Country</Label>
+            <SenderCountryCombobox
+              countries={countryOptions}
+              disabled={countries.isLoading}
+              id="campaign-sender-country"
+              onChange={setCountryCode}
+              value={effectiveCountryCode}
+            />
+            <p className={textStyles.mutedBody}>
+              Retaino will assign an available SMS number for this country.
+            </p>
           </div>
 
-          {numbers.isError || countries.isError || provisionSender.isError ? (
+          {countries.isError || provisionSender.isError ? (
             <ItemNotice
               description={setupErrorMessage(
-                numbers.error ?? countries.error ?? provisionSender.error,
+                countries.error ?? provisionSender.error,
             )}
             title="Sender setup failed"
             variant="error"
@@ -136,19 +96,16 @@ export function SenderSetup({
           <div className="flex justify-end">
             <Button
               disabled={
-                !selectedSender ||
+                !selectedCountry ||
                 provisionSender.isPending
               }
               onClick={() => {
-                if (!selectedSender) {
+                if (!selectedCountry) {
                   return;
                 }
 
                 provisionSender.mutate({
-                  selectedSender: {
-                    phoneNumber: selectedSender.phoneNumber,
-                    countryCode: selectedSender.countryCode,
-                  },
+                  countryCode: selectedCountry.countryCode,
                 });
               }}
               type="button"
@@ -188,5 +145,5 @@ function senderStatusLabel(
 function setupErrorMessage(error: unknown) {
   return error instanceof Error
     ? error.message
-    : 'Try choosing another sender number.';
+    : 'Try choosing another sender country.';
 }

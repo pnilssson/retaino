@@ -5,12 +5,9 @@ import {
 } from '@retaino/db';
 import {
   provisionOrganizationSmsSenderSchema,
-  smsSenderNumbersRequestSchema,
   type OrganizationSmsSender,
-  type ProvisionSmsSenderSelection,
   type PublicOrganizationSmsSender,
-  type PublicSmsSenderOption,
-  type SmsSenderOption,
+  type SmsSenderCountry,
 } from '@retaino/shared/contracts';
 import { Hono, type Context } from 'hono';
 import { apiError } from '../../lib/errors';
@@ -42,52 +39,13 @@ export const smsRoutes = new Hono<AppEnv>()
     try {
       const provider = createSmsProvider(c.env);
       const countries = (await provider.listSenderCountries())
-        .filter((country) => country.supportedNumberTypes.includes('mobile'))
-        .map(({ countryCode, label, selfServeAvailable }) => ({
+        .filter(isProvisionableMobileSenderCountry)
+        .map(({ countryCode, label }) => ({
           countryCode,
           label,
-          selfServeAvailable,
         }));
 
       return c.json({ countries });
-    } catch (error) {
-      return providerErrorResponse(c, error);
-    }
-  })
-  .get('/numbers', async (c) => {
-    const eligibility = await requireCampaignEligibility(c);
-
-    if (!eligibility.ok) {
-      return eligibility.response;
-    }
-
-    const parsed = smsSenderNumbersRequestSchema.safeParse({
-      countryCode: c.req.query('countryCode'),
-    });
-
-    if (!parsed.success) {
-      return c.json(
-        apiError(
-          'validation_failed',
-          'Invalid sender number search.',
-          parsed.error.flatten(),
-        ),
-        400,
-      );
-    }
-
-    try {
-      const provider = createSmsProvider(c.env);
-      const numbers = (
-        await provider.searchSenderOptions({
-          countryCode: parsed.data.countryCode,
-          numberType: 'mobile',
-        })
-      )
-        .filter(isTwoWaySenderOption)
-        .map(publicSenderOption);
-
-      return c.json({ numbers });
     } catch (error) {
       return providerErrorResponse(c, error);
     }
@@ -128,32 +86,33 @@ export const smsRoutes = new Hono<AppEnv>()
         return c.json({ sender: publicSender(existing) });
       }
 
-      const selectedSender = await getProviderVerifiedSender(
+      const countryCode = await getProviderVerifiedCountry(
         provider,
-        parsed.data.selectedSender,
-        existing,
+        parsed.data.countryCode,
       );
-      const sameSelection = isSameSenderSelection(existing, selectedSender);
+      const sameCountry =
+        existing?.countryCode === countryCode &&
+        existing.numberType === 'mobile';
       const pendingSender = await upsertOrganizationSmsSender(db, {
         organizationId: organization.id,
         provider: provider.name,
         status: 'pending',
-        phoneNumber: selectedSender.phoneNumber,
-        countryCode: selectedSender.countryCode,
-        numberType: selectedSender.numberType,
+        phoneNumber: sameCountry ? (existing?.phoneNumber ?? null) : null,
+        countryCode,
+        numberType: 'mobile',
         providerMessagingServiceId:
           existing?.providerMessagingServiceId ?? null,
-        providerPhoneNumberId: sameSelection
+        providerPhoneNumberId: sameCountry
           ? (existing?.providerPhoneNumberId ?? null)
           : null,
-        regulatoryStatus: sameSelection
+        regulatoryStatus: sameCountry
           ? (existing?.regulatoryStatus ?? null)
           : null,
         failureReason: null,
-        provisionedAt: sameSelection && existing?.provisionedAt
+        provisionedAt: sameCountry && existing?.provisionedAt
           ? new Date(existing.provisionedAt)
           : null,
-        lastVerifiedAt: sameSelection && existing?.lastVerifiedAt
+        lastVerifiedAt: sameCountry && existing?.lastVerifiedAt
           ? new Date(existing.lastVerifiedAt)
           : null,
       });
@@ -164,7 +123,9 @@ export const smsRoutes = new Hono<AppEnv>()
         result = await provider.ensureSender({
           organizationId: organization.id,
           actorUserId: c.get('user').id,
-          selectedSender,
+          countryCode,
+          existingPhoneNumber:
+            sameCountry ? (pendingSender?.phoneNumber ?? null) : null,
           existingProviderPhoneNumberId:
             pendingSender?.providerPhoneNumberId ?? null,
           inboundCallbackUrl: callbackUrl(
@@ -182,9 +143,9 @@ export const smsRoutes = new Hono<AppEnv>()
           organizationId: organization.id,
           provider: provider.name,
           status: 'failed',
-          phoneNumber: selectedSender.phoneNumber,
-          countryCode: selectedSender.countryCode,
-          numberType: selectedSender.numberType,
+          phoneNumber: pendingSender?.phoneNumber ?? null,
+          countryCode,
+          numberType: 'mobile',
           providerMessagingServiceId:
             pendingSender?.providerMessagingServiceId ?? null,
           providerPhoneNumberId: pendingSender?.providerPhoneNumberId ?? null,
@@ -218,83 +179,32 @@ export const smsRoutes = new Hono<AppEnv>()
     }
   });
 
-async function getProviderVerifiedSender(
+async function getProviderVerifiedCountry(
   provider: ReturnType<typeof createSmsProvider>,
-  selectedSender: ProvisionSmsSenderSelection,
-  existing: {
-    status: string;
-    phoneNumber: string | null;
-    countryCode: string | null;
-    numberType: string | null;
-  } | null,
+  countryCode: string,
 ) {
-  if (
-    (existing?.status === 'pending' || existing?.status === 'failed') &&
-    existing.phoneNumber === selectedSender.phoneNumber &&
-    existing.countryCode === selectedSender.countryCode &&
-    existing.numberType === 'mobile'
-  ) {
-    return {
-      phoneNumber: selectedSender.phoneNumber,
-      countryCode: selectedSender.countryCode,
-      numberType: 'mobile' as const,
-    };
-  }
-
-  const availableNumbers = (
-    await provider.searchSenderOptions({
-      countryCode: selectedSender.countryCode,
-      numberType: 'mobile',
-    })
-  ).filter(isTwoWaySenderOption);
-  const verifiedSender = availableNumbers.find(
-    (option) => option.phoneNumber === selectedSender.phoneNumber,
+  const availableCountry = (await provider.listSenderCountries()).find(
+    (country) =>
+      country.countryCode === countryCode &&
+      isProvisionableMobileSenderCountry(country),
   );
 
-  if (!verifiedSender) {
+  if (!availableCountry) {
     throw new SmsProviderError({
       code: 'message_invalid',
       retryable: false,
-      publicMessage: 'Selected SMS sender is not available.',
+      publicMessage: 'SMS sender setup is not available for this country.',
     });
   }
 
-  return verifiedSender;
+  return availableCountry.countryCode;
 }
 
-function isTwoWaySenderOption(option: SmsSenderOption) {
+function isProvisionableMobileSenderCountry(country: SmsSenderCountry) {
   return (
-    option.capabilities.outboundSms &&
-    option.capabilities.inboundSms &&
-    option.capabilities.twoWaySms
+    country.supportedNumberTypes.includes('mobile') &&
+    country.selfServeAvailable
   );
-}
-
-function isSameSenderSelection(
-  existing: {
-    phoneNumber: string | null;
-    countryCode: string | null;
-    numberType: string | null;
-  } | null,
-  selectedSender: {
-    phoneNumber: string;
-    countryCode: string;
-    numberType: string;
-  },
-) {
-  return (
-    existing?.phoneNumber === selectedSender.phoneNumber &&
-    existing.countryCode === selectedSender.countryCode &&
-    existing.numberType === selectedSender.numberType
-  );
-}
-
-function publicSenderOption(option: SmsSenderOption): PublicSmsSenderOption {
-  return {
-    phoneNumber: option.phoneNumber,
-    countryCode: option.countryCode,
-    label: option.label,
-  };
 }
 
 async function requireActiveBilling(c: Context<AppEnv>) {

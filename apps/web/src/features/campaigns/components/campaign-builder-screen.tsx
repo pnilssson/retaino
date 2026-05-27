@@ -176,6 +176,7 @@ export function CampaignBuilderScreen({
           <>
             <CampaignForm
               campaign={latestCampaign}
+              defaultSenderCountryCode={session.data?.profile?.countryCode ?? 'SE'}
               initialStep={createdCampaignInitialStep}
               key={latestCampaign?.id ?? 'new'}
               onCreated={(createdCampaignId, initialStep) => {

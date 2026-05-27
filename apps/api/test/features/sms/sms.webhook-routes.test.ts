@@ -63,7 +63,6 @@ describe('twilioMessagingWebhookRoutes', () => {
     vi.mocked(createSmsProvider).mockReturnValue({
       name: 'twilio',
       listSenderCountries: vi.fn(),
-      searchSenderOptions: vi.fn(),
       ensureSender: vi.fn(),
       sendSms: vi.fn(),
       verifyWebhook: vi.fn().mockResolvedValue(true),

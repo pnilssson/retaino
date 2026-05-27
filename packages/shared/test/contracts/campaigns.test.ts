@@ -20,7 +20,6 @@ import {
   requiresRecentCampaignExclusionAcknowledgement,
   MAX_REPORTED_BOOKING_ROWS,
   smsSenderCountriesResponseSchema,
-  smsSenderNumbersRequestSchema,
   updateCampaignDraftSchema,
 } from '../../src/contracts';
 
@@ -375,14 +374,13 @@ describe('campaign contracts', () => {
     ).toBe(false);
   });
 
-  it('accepts public SMS sender countries and number searches', () => {
+  it('accepts public SMS sender countries', () => {
     expect(
       smsSenderCountriesResponseSchema.parse({
         countries: [
           {
             countryCode: 'se',
             label: 'Sweden',
-            selfServeAvailable: true,
           },
         ],
       }),
@@ -391,36 +389,20 @@ describe('campaign contracts', () => {
         {
           countryCode: 'SE',
           label: 'Sweden',
-          selfServeAvailable: true,
         },
       ],
     });
 
-    expect(
-      smsSenderNumbersRequestSchema.parse({
-        countryCode: 'us',
-      }),
-    ).toEqual({
-      countryCode: 'US',
-    });
-
-    expect(() =>
-      smsSenderNumbersRequestSchema.parse({
-        countryCode: 'SE',
-        numberType: 'local',
-      }),
-    ).toThrow();
   });
 
-  it('accepts the selected sender needed for provisioning', () => {
+  it('accepts the sender country needed for provisioning', () => {
     expect(
-      provisionOrganizationSmsSenderSchema.safeParse({
-        selectedSender: {
-          phoneNumber: '+46700000000',
-          countryCode: 'SE',
-        },
-      }).success,
-    ).toBe(true);
+      provisionOrganizationSmsSenderSchema.parse({
+        countryCode: 'se',
+      }),
+    ).toEqual({
+      countryCode: 'SE',
+    });
   });
 
   it('accepts campaign send response contracts', () => {

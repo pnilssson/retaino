@@ -1,8 +1,7 @@
 import type {
   OrganizationSmsSender,
-  SmsSenderCapability,
   SmsSenderCountry,
-  SmsSenderOption,
+  SmsSenderNumberType,
   SmsSenderProvider,
   SmsSenderStatus,
 } from '@retaino/shared/contracts';
@@ -11,15 +10,19 @@ import { createTwilioSmsProvider } from './twilio-provider';
 
 export type SmsProviderName = SmsSenderProvider;
 
-export type SmsSenderSelection = Pick<
-  SmsSenderOption,
-  'phoneNumber' | 'countryCode' | 'numberType'
->;
+export type SmsSenderCapability = {
+  outboundSms: boolean;
+  inboundSms: boolean;
+  statusCallbacks: boolean;
+  twoWaySms: boolean;
+  smartEncoding?: boolean;
+};
 
 export type SmsSenderProvisioningInput = {
   organizationId: string;
   actorUserId: string;
-  selectedSender: SmsSenderSelection;
+  countryCode: string;
+  existingPhoneNumber: string | null;
   existingProviderPhoneNumberId: string | null;
   inboundCallbackUrl: string | null;
   statusCallbackUrl: string | null;
@@ -31,7 +34,7 @@ export type SmsSenderProvisioningResult = {
   status: SmsSenderStatus;
   phoneNumber: string | null;
   countryCode: string | null;
-  numberType: SmsSenderOption['numberType'] | null;
+  numberType: SmsSenderNumberType | null;
   providerMessagingServiceId: string | null;
   providerPhoneNumberId: string | null;
   capabilities: SmsSenderCapability | null;
@@ -133,10 +136,6 @@ export class SmsProviderError extends Error {
 export type SmsProvider = {
   name: SmsProviderName;
   listSenderCountries: () => Promise<SmsSenderCountry[]>;
-  searchSenderOptions: (input: {
-    countryCode: string;
-    numberType?: SmsSenderOption['numberType'];
-  }) => Promise<SmsSenderOption[]>;
   ensureSender: (
     input: SmsSenderProvisioningInput,
   ) => Promise<SmsSenderProvisioningResult>;
@@ -191,57 +190,68 @@ export function createFakeSmsProvider(): SmsProvider {
     twoWaySms: true,
     smartEncoding: false,
   };
-  const senderOptions: SmsSenderOption[] = [
+  const senders: Array<{
+    phoneNumber: string;
+    countryCode: string;
+    numberType: SmsSenderNumberType;
+  }> = [
     {
       phoneNumber: '+46700000000',
       countryCode: 'SE',
       numberType: 'mobile',
-      capabilities,
-      regulatoryRequirementSummary: null,
-      label: '+46 70 000 00 00',
     },
     {
       phoneNumber: '+15005550006',
       countryCode: 'US',
       numberType: 'local',
-      capabilities,
-      regulatoryRequirementSummary: null,
-      label: '+1 500 555 0006',
     },
     {
       phoneNumber: '+18885550123',
       countryCode: 'US',
       numberType: 'toll_free',
-      capabilities,
-      regulatoryRequirementSummary: null,
-      label: '+1 888 555 0123',
     },
   ];
 
   return {
     name: 'fake',
     listSenderCountries: async () => countries,
-    searchSenderOptions: async (input) =>
-      senderOptions.filter(
-        (option) =>
-          option.countryCode === input.countryCode.toUpperCase() &&
-          (!input.numberType || option.numberType === input.numberType),
-      ),
-    ensureSender: async (input) => ({
-      provider: 'fake',
-      status: 'ready',
-      phoneNumber: input.selectedSender.phoneNumber,
-      countryCode: input.selectedSender.countryCode,
-      numberType: input.selectedSender.numberType,
-      providerMessagingServiceId: `fake-ms-${input.organizationId}`,
-      providerPhoneNumberId:
-        `fake-pn-${input.selectedSender.phoneNumber.replace(/\D/g, '')}`,
-      capabilities,
-      regulatoryStatus: 'not_required',
-      failureReason: null,
-      provisionedAt: new Date(),
-      lastVerifiedAt: new Date(),
-    }),
+    ensureSender: async (input) => {
+      const countryCode = input.countryCode.toUpperCase();
+      const sender = input.existingPhoneNumber
+        ? {
+            phoneNumber: input.existingPhoneNumber,
+            countryCode,
+            numberType: 'mobile' as const,
+          }
+        : senders.find(
+            (option) =>
+              option.countryCode === countryCode && option.numberType === 'mobile',
+          );
+
+      if (!sender) {
+        throw new SmsProviderError({
+          code: 'message_invalid',
+          retryable: false,
+          publicMessage: 'SMS sender setup is not available for this country.',
+        });
+      }
+
+      return {
+        provider: 'fake',
+        status: 'ready',
+        phoneNumber: sender.phoneNumber,
+        countryCode: sender.countryCode,
+        numberType: sender.numberType,
+        providerMessagingServiceId: `fake-ms-${input.organizationId}`,
+        providerPhoneNumberId:
+          `fake-pn-${sender.phoneNumber.replace(/\D/g, '')}`,
+        capabilities,
+        regulatoryStatus: 'not_required',
+        failureReason: null,
+        provisionedAt: new Date(),
+        lastVerifiedAt: new Date(),
+      };
+    },
     sendSms: async (input) => sendFakeSms(input),
     parseStatusWebhook: async (input) => parseFakeStatusWebhook(input),
     parseInboundWebhook: async (input) => parseFakeInboundWebhook(input),
@@ -375,7 +385,6 @@ function createDisabledSmsProvider(): SmsProvider {
   return {
     name: 'fake',
     listSenderCountries: fail,
-    searchSenderOptions: fail,
     ensureSender: fail,
     sendSms: fail,
     parseStatusWebhook: fail,

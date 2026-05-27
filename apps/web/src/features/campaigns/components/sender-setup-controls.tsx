@@ -1,22 +1,15 @@
 "use client";
 
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import type { SmsSenderCountriesResponse } from '@retaino/shared/contracts';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import {
-  Select,
-  SelectContent,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 type SenderCountry = SmsSenderCountriesResponse['countries'][number];
@@ -120,39 +113,5 @@ export function SenderCountryCombobox({
         </div>
       </PopoverContent>
     </Popover>
-  );
-}
-
-export function SenderSelect({
-  children,
-  disabled,
-  id,
-  label,
-  onValueChange,
-  placeholder,
-  value,
-}: {
-  children: ReactNode;
-  disabled: boolean;
-  id: string;
-  label: string;
-  onValueChange: (value: string) => void;
-  placeholder: string;
-  value: string;
-}) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Select
-        disabled={disabled}
-        onValueChange={onValueChange}
-        value={value || undefined}
-      >
-        <SelectTrigger aria-label={label} className="w-full" id={id}>
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>{children}</SelectContent>
-      </Select>
-    </div>
   );
 }

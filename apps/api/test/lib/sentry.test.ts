@@ -57,7 +57,7 @@ describe('Sentry helpers', () => {
     const event = {
       type: undefined,
       request: {
-        url: 'https://api.retaino.io/v1/sms/numbers?countryCode=SE&email=ada@example.com',
+        url: 'https://api.retaino.io/v1/sms/countries?countryCode=SE&email=ada@example.com',
         headers: {
           authorization: 'Bearer secret',
           cookie: 'session=secret',
@@ -84,7 +84,7 @@ describe('Sentry helpers', () => {
 
     const sanitized = options.beforeSend?.(event, {}) as ErrorEvent | null;
 
-    expect(sanitized?.request?.url).toBe('https://api.retaino.io/v1/sms/numbers');
+    expect(sanitized?.request?.url).toBe('https://api.retaino.io/v1/sms/countries');
     expect(sanitized?.request?.headers).toEqual({
       'user-agent': 'Vitest',
     });
@@ -107,8 +107,8 @@ describe('Sentry helpers', () => {
     const context = {
       req: {
         method: 'GET',
-        path: '/v1/sms/numbers',
-        url: 'https://api.retaino.io/v1/sms/numbers?countryCode=SE',
+        path: '/v1/sms/countries',
+        url: 'https://api.retaino.io/v1/sms/countries?countryCode=SE',
       },
       get: vi.fn().mockReturnValue({
         id: '22222222-2222-4222-8222-222222222222',
@@ -128,7 +128,7 @@ describe('Sentry helpers', () => {
         tags: expect.objectContaining({
           feature: 'sms',
           operation: 'sender_numbers',
-          route: '/v1/sms/numbers',
+          route: '/v1/sms/countries',
           method: 'GET',
           http_status: '429',
           organization_id: '22222222-2222-4222-8222-222222222222',

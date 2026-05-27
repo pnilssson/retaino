@@ -84,12 +84,14 @@ const campaignSteps: GuidedFlowStep<CampaignStepId>[] = [
 
 export function CampaignForm({
   campaign,
+  defaultSenderCountryCode,
   initialStep,
   onCreated,
   onSent,
   organizationId,
 }: {
   campaign: Campaign | null;
+  defaultSenderCountryCode: string;
   initialStep?: CampaignStepId;
   onCreated: (campaignId: string, initialStep: CampaignStepId) => void;
   onSent?: (response: CampaignSendResponse) => void;
@@ -529,11 +531,12 @@ export function CampaignForm({
 
                     {activeStep === 'sender' ? (
                       <CampaignSetupStep
-                        description="Choose the number recipients will see before this campaign can send."
+                        description="Choose the sender country before this campaign can send."
                         title={senderReady ? 'Sender ready' : 'Set up the sender'}
                       >
                         <div className="grid gap-5">
                           <SenderSetup
+                            defaultCountryCode={defaultSenderCountryCode}
                             organizationId={organizationId}
                             sender={sender.data?.sender ?? null}
                           />

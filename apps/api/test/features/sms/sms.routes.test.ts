@@ -209,37 +209,14 @@ describe('smsRoutes', () => {
         expect.objectContaining({
           countryCode: 'SE',
           label: 'Sweden',
-          selfServeAvailable: true,
         }),
       ],
     );
     expect(body.countries[0]).not.toHaveProperty('supportedNumberTypes');
+    expect(body.countries[0]).not.toHaveProperty('selfServeAvailable');
   });
 
-  it('lists two-way sender numbers by country', async () => {
-    const response = await testApp().request(
-      '/v1/sms/numbers?countryCode=SE',
-      {},
-      { SMS_SENDING_MODE: 'test' },
-    );
-
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as {
-      numbers: Array<Record<string, unknown>>;
-    };
-
-    expect(body.numbers).toEqual([
-      expect.objectContaining({
-        phoneNumber: '+46700000000',
-        countryCode: 'SE',
-        label: '+46 70 000 00 00',
-      }),
-    ]);
-    expect(body.numbers[0]).not.toHaveProperty('numberType');
-    expect(body.numbers[0]).not.toHaveProperty('capabilities');
-  });
-
-  it('provisions a selected SMS sender once billing is active', async () => {
+  it('provisions an SMS sender from the selected country once billing is active', async () => {
     vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
     vi.mocked(getOrganizationSmsSender).mockResolvedValue(null);
     vi.mocked(upsertOrganizationSmsSender).mockImplementation(
@@ -268,10 +245,7 @@ describe('smsRoutes', () => {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          selectedSender: {
-            phoneNumber: '+46700000000',
-            countryCode: 'SE',
-          },
+          countryCode: 'SE',
         }),
       },
       { SMS_SENDING_MODE: 'test' },
@@ -290,7 +264,9 @@ describe('smsRoutes', () => {
         organizationId: organization.id,
         provider: 'fake',
         status: 'pending',
-        phoneNumber: '+46700000000',
+        phoneNumber: null,
+        countryCode: 'SE',
+        numberType: 'mobile',
         providerMessagingServiceId: null,
         providerPhoneNumberId: null,
       }),
@@ -353,10 +329,7 @@ describe('smsRoutes', () => {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          selectedSender: {
-            phoneNumber: '+46799999999',
-            countryCode: 'SE',
-          },
+          countryCode: 'SE',
         }),
       },
       { SMS_SENDING_MODE: 'test' },
@@ -417,10 +390,7 @@ describe('smsRoutes', () => {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          selectedSender: {
-            phoneNumber: '+46799999999',
-            countryCode: 'SE',
-          },
+          countryCode: 'SE',
         }),
       },
       { SMS_SENDING_MODE: 'test' },
@@ -455,9 +425,9 @@ describe('smsRoutes', () => {
       organizationId: organization.id,
       provider: 'fake',
       status: 'failed',
-      phoneNumber: '+46799999999',
-      countryCode: 'SE',
-      numberType: 'mobile',
+      phoneNumber: '+15005550006',
+      countryCode: 'US',
+      numberType: 'local',
       providerMessagingServiceId: `fake-ms-${organization.id}`,
       providerPhoneNumberId: 'PN_old',
       regulatoryStatus: 'ready',
@@ -493,10 +463,7 @@ describe('smsRoutes', () => {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          selectedSender: {
-            phoneNumber: '+46700000000',
-            countryCode: 'SE',
-          },
+          countryCode: 'SE',
         }),
       },
       { SMS_SENDING_MODE: 'test' },
@@ -508,7 +475,9 @@ describe('smsRoutes', () => {
       expect.anything(),
       expect.objectContaining({
         status: 'pending',
-        phoneNumber: '+46700000000',
+        phoneNumber: null,
+        countryCode: 'SE',
+        numberType: 'mobile',
         providerMessagingServiceId: `fake-ms-${organization.id}`,
         providerPhoneNumberId: null,
         regulatoryStatus: null,
@@ -535,7 +504,7 @@ describe('smsRoutes', () => {
     expect(upsertOrganizationSmsSender).not.toHaveBeenCalled();
   });
 
-  it('rejects unavailable SMS sender selections before provisioning', async () => {
+  it('rejects unsupported SMS sender countries before provisioning', async () => {
     vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
     vi.mocked(getOrganizationSmsSender).mockResolvedValue(null);
 
@@ -545,10 +514,7 @@ describe('smsRoutes', () => {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          selectedSender: {
-            phoneNumber: '+46799999999',
-            countryCode: 'SE',
-          },
+          countryCode: 'FR',
         }),
       },
       { SMS_SENDING_MODE: 'test' },
@@ -558,7 +524,7 @@ describe('smsRoutes', () => {
     expect(upsertOrganizationSmsSender).not.toHaveBeenCalled();
   });
 
-  it('rejects sender provisioning selections that are not two-way numbers', async () => {
+  it('rejects SMS sender countries without two-way mobile senders', async () => {
     vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
     vi.mocked(getOrganizationSmsSender).mockResolvedValue(null);
 
@@ -568,10 +534,7 @@ describe('smsRoutes', () => {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          selectedSender: {
-            phoneNumber: '+15005550006',
-            countryCode: 'US',
-          },
+          countryCode: 'US',
         }),
       },
       { SMS_SENDING_MODE: 'test' },
@@ -591,15 +554,41 @@ describe('smsRoutes', () => {
     vi.stubGlobal('fetch', fetchImpl);
     vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValue(profile);
     vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
+    vi.mocked(getOrganizationSmsSender).mockResolvedValue(null);
+    vi.mocked(upsertOrganizationSmsSender).mockImplementation(
+      async (_db, input) => ({
+        id: '66666666-6666-4666-8666-666666666666',
+        organizationId: input.organizationId,
+        provider: input.provider,
+        status: input.status,
+        phoneNumber: input.phoneNumber,
+        countryCode: input.countryCode,
+        numberType: input.numberType,
+        providerMessagingServiceId: input.providerMessagingServiceId,
+        providerPhoneNumberId: input.providerPhoneNumberId,
+        regulatoryStatus: input.regulatoryStatus,
+        failureReason: input.failureReason,
+        provisionedAt: input.provisionedAt?.toISOString() ?? null,
+        lastVerifiedAt: input.lastVerifiedAt?.toISOString() ?? null,
+        createdAt: '2026-05-18T00:00:00.000Z',
+        updatedAt: '2026-05-18T00:00:00.000Z',
+      }),
+    );
 
     const response = await testApp().request(
-      '/v1/sms/numbers?countryCode=SE',
-      {},
+      '/v1/sms',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ countryCode: 'SE' }),
+      },
       {
         SMS_SENDING_MODE: 'live',
         TWILIO_ACCOUNT_SID: 'AC123',
         TWILIO_API_KEY_SID: 'SK123',
         TWILIO_API_KEY_SECRET: 'secret',
+        TWILIO_INBOUND_CALLBACK_BASE_URL: 'https://api.retaino.test',
+        TWILIO_STATUS_CALLBACK_BASE_URL: 'https://api.retaino.test',
       },
     );
 

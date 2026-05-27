@@ -293,7 +293,6 @@ describe('campaign send service', () => {
     vi.mocked(createSmsProvider).mockReturnValue({
       name: 'fake',
       listSenderCountries: vi.fn(),
-      searchSenderOptions: vi.fn(),
       ensureSender: vi.fn(),
       sendSms: vi.fn().mockResolvedValue({
         provider: 'fake',
@@ -357,7 +356,6 @@ describe('campaign send service', () => {
     vi.mocked(createSmsProvider).mockReturnValue({
       name: 'fake',
       listSenderCountries: vi.fn(),
-      searchSenderOptions: vi.fn(),
       ensureSender: vi.fn(),
       sendSms: vi.fn().mockRejectedValue(providerError),
       parseStatusWebhook: vi.fn(),
@@ -793,7 +791,6 @@ describe('campaign send service', () => {
     const provider = {
       name: 'fake' as const,
       listSenderCountries: vi.fn(),
-      searchSenderOptions: vi.fn(),
       ensureSender: vi.fn(),
       sendSms: vi.fn().mockResolvedValue({
         provider: 'fake',
@@ -844,7 +841,6 @@ describe('campaign send service', () => {
     const provider = {
       name: 'fake' as const,
       listSenderCountries: vi.fn(),
-      searchSenderOptions: vi.fn(),
       ensureSender: vi.fn(),
       sendSms: vi.fn().mockResolvedValue({
         provider: 'fake',
@@ -964,7 +960,6 @@ describe('campaign send service', () => {
     const provider = {
       name: 'fake' as const,
       listSenderCountries: vi.fn(),
-      searchSenderOptions: vi.fn(),
       ensureSender: vi.fn(),
       sendSms: vi.fn().mockRejectedValue(providerError),
       parseStatusWebhook: vi.fn(),

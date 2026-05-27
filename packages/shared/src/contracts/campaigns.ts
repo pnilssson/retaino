@@ -293,16 +293,6 @@ export const campaignAudiencePreviewResponseSchema = z.object({
   sampleContacts: z.array(campaignAudiencePreviewContactSchema).max(10),
 });
 
-export const smsSenderCapabilitySchema = z
-  .object({
-    outboundSms: z.boolean(),
-    inboundSms: z.boolean(),
-    statusCallbacks: z.boolean(),
-    twoWaySms: z.boolean(),
-    smartEncoding: z.boolean().optional(),
-  })
-  .strict();
-
 export const smsSenderCountrySchema = z
   .object({
     countryCode: z
@@ -313,21 +303,6 @@ export const smsSenderCountrySchema = z
     label: nonEmptyStringSchema,
     supportedNumberTypes: z.array(smsSenderNumberTypeSchema).min(1),
     selfServeAvailable: z.boolean(),
-  })
-  .strict();
-
-export const smsSenderOptionSchema = z
-  .object({
-    phoneNumber: nonEmptyStringSchema,
-    countryCode: z
-      .string()
-      .trim()
-      .length(2)
-      .transform((value) => value.toUpperCase()),
-    numberType: smsSenderNumberTypeSchema,
-    capabilities: smsSenderCapabilitySchema,
-    regulatoryRequirementSummary: nonEmptyStringSchema.nullable(),
-    label: nonEmptyStringSchema,
   })
   .strict();
 
@@ -358,26 +333,10 @@ export const publicOrganizationSmsSenderSchema = organizationSmsSenderSchema.omi
 
 export const publicSmsSenderCountrySchema = smsSenderCountrySchema.omit({
   supportedNumberTypes: true,
+  selfServeAvailable: true,
 });
 
-export const publicSmsSenderOptionSchema = smsSenderOptionSchema.pick({
-  phoneNumber: true,
-  countryCode: true,
-  label: true,
-});
-
-export const provisionSmsSenderSelectionSchema = publicSmsSenderOptionSchema
-  .pick({
-    phoneNumber: true,
-    countryCode: true,
-  })
-  .strict();
-
-export const smsSenderCountriesResponseSchema = z.object({
-  countries: z.array(publicSmsSenderCountrySchema),
-});
-
-export const smsSenderNumbersRequestSchema = z
+export const provisionSmsSenderCountrySchema = z
   .object({
     countryCode: z
       .string()
@@ -387,13 +346,13 @@ export const smsSenderNumbersRequestSchema = z
   })
   .strict();
 
-export const smsSenderNumbersResponseSchema = z.object({
-  numbers: z.array(publicSmsSenderOptionSchema),
+export const smsSenderCountriesResponseSchema = z.object({
+  countries: z.array(publicSmsSenderCountrySchema),
 });
 
 export const provisionOrganizationSmsSenderSchema = z
   .object({
-    selectedSender: provisionSmsSenderSelectionSchema,
+    countryCode: provisionSmsSenderCountrySchema.shape.countryCode,
   })
   .strict();
 
@@ -483,13 +442,7 @@ export type CampaignAudiencePreviewContact = z.infer<
 export type CampaignAudiencePreviewResponse = z.infer<
   typeof campaignAudiencePreviewResponseSchema
 >;
-export type SmsSenderCapability = z.infer<typeof smsSenderCapabilitySchema>;
 export type SmsSenderCountry = z.infer<typeof smsSenderCountrySchema>;
-export type SmsSenderOption = z.infer<typeof smsSenderOptionSchema>;
-export type PublicSmsSenderOption = z.infer<typeof publicSmsSenderOptionSchema>;
-export type ProvisionSmsSenderSelection = z.infer<
-  typeof provisionSmsSenderSelectionSchema
->;
 export type OrganizationSmsSender = z.infer<
   typeof organizationSmsSenderSchema
 >;
@@ -498,12 +451,6 @@ export type PublicOrganizationSmsSender = z.infer<
 >;
 export type SmsSenderCountriesResponse = z.infer<
   typeof smsSenderCountriesResponseSchema
->;
-export type SmsSenderNumbersRequest = z.infer<
-  typeof smsSenderNumbersRequestSchema
->;
-export type SmsSenderNumbersResponse = z.infer<
-  typeof smsSenderNumbersResponseSchema
 >;
 export type ProvisionOrganizationSmsSenderInput = z.infer<
   typeof provisionOrganizationSmsSenderSchema

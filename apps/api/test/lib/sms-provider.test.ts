@@ -18,14 +18,6 @@ describe('SMS provider factory', () => {
       supportedNumberTypes: ['mobile'],
       selfServeAvailable: true,
     });
-    await expect(
-      provider.searchSenderOptions({ countryCode: 'SE' }),
-    ).resolves.toMatchObject([
-      {
-        phoneNumber: '+46700000000',
-        numberType: 'mobile',
-      },
-    ]);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -121,14 +113,11 @@ describe('SMS provider factory', () => {
   });
 
   it('uses Twilio API key credentials in live mode', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          available_phone_numbers: [],
-        }),
-        { status: 200 },
-      ),
-    );
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ services: [] }))
+      .mockResolvedValueOnce(jsonResponse({ sid: 'MG_new' }))
+      .mockResolvedValueOnce(jsonResponse({ available_phone_numbers: [] }));
     const provider = createSmsProvider(
       {
         SMS_SENDING_MODE: 'live',
@@ -139,13 +128,49 @@ describe('SMS provider factory', () => {
       fetchImpl as never,
     );
 
-    await provider.searchSenderOptions({ countryCode: 'US', numberType: 'local' });
+    await expect(
+      provider.ensureSender({
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        actorUserId: '11111111-1111-4111-8111-111111111111',
+        idempotencyKey: '22222222-2222-4222-8222-222222222222',
+        countryCode: 'SE',
+        existingPhoneNumber: null,
+        existingProviderPhoneNumberId: null,
+        inboundCallbackUrl:
+          'https://api.retaino.com/v1/webhooks/twilio/messaging/inbound',
+        statusCallbackUrl:
+          'https://api.retaino.com/v1/webhooks/twilio/messaging/status',
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'message_invalid',
+    });
 
     const request = fetchImpl.mock.calls[0]?.[1] as RequestInit;
 
     expect((request.headers as Headers).get('authorization')).toBe(
       `Basic ${btoa('SK123:secret')}`,
     );
+  });
+
+  it('auto-selects a fake sender by country during provisioning', async () => {
+    const provider = createSmsProvider({ SMS_SENDING_MODE: 'test' } as never);
+
+    await expect(
+      provider.ensureSender({
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        actorUserId: '11111111-1111-4111-8111-111111111111',
+        idempotencyKey: '22222222-2222-4222-8222-222222222222',
+        countryCode: 'SE',
+        existingPhoneNumber: null,
+        existingProviderPhoneNumberId: null,
+        inboundCallbackUrl: null,
+        statusCallbackUrl: null,
+      } as never),
+    ).resolves.toMatchObject({
+      phoneNumber: '+46700000000',
+      countryCode: 'SE',
+      numberType: 'mobile',
+    });
   });
 
   it('preserves Twilio error codes on failed REST requests', async () => {
@@ -170,12 +195,102 @@ describe('SMS provider factory', () => {
     );
 
     await expect(
-      provider.searchSenderOptions({ countryCode: 'US', numberType: 'local' }),
+      provider.ensureSender({
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        actorUserId: '11111111-1111-4111-8111-111111111111',
+        idempotencyKey: '22222222-2222-4222-8222-222222222222',
+        countryCode: 'SE',
+        existingPhoneNumber: null,
+        existingProviderPhoneNumberId: null,
+        inboundCallbackUrl:
+          'https://api.retaino.com/v1/webhooks/twilio/messaging/inbound',
+        statusCallbackUrl:
+          'https://api.retaino.com/v1/webhooks/twilio/messaging/status',
+      } as never),
     ).rejects.toMatchObject({
       code: 'configuration_missing',
       providerErrorCode: '20003',
       retryable: false,
     });
+  });
+
+  it('retries the next Twilio sender when the first candidate is unavailable', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ services: [] }))
+      .mockResolvedValueOnce(jsonResponse({ sid: 'MG_new' }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          available_phone_numbers: [
+            {
+              phone_number: '+46700000001',
+              friendly_name: '+46 70 000 00 01',
+              capabilities: { SMS: true },
+            },
+            {
+              phone_number: '+46700000002',
+              friendly_name: '+46 70 000 00 02',
+              capabilities: { SMS: true },
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ incoming_phone_numbers: [] }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            code: 21422,
+            message: 'PhoneNumber is not available',
+            status: 400,
+          }),
+          { status: 400 },
+        ),
+      )
+      .mockResolvedValueOnce(jsonResponse({ incoming_phone_numbers: [] }))
+      .mockResolvedValueOnce(
+        jsonResponse({ sid: 'PN_new', phone_number: '+46700000002' }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ phone_numbers: [] }))
+      .mockResolvedValueOnce(jsonResponse({ sid: 'PN_attached' }));
+    const provider = createSmsProvider(
+      {
+        SMS_SENDING_MODE: 'live',
+        TWILIO_ACCOUNT_SID: 'AC123',
+        TWILIO_API_KEY_SID: 'SK123',
+        TWILIO_API_KEY_SECRET: 'secret',
+        TWILIO_AUTH_TOKEN: 'auth-token',
+      } as never,
+      fetchImpl as never,
+    );
+
+    await expect(
+      provider.ensureSender({
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        actorUserId: '11111111-1111-4111-8111-111111111111',
+        idempotencyKey: '22222222-2222-4222-8222-222222222222',
+        countryCode: 'SE',
+        existingPhoneNumber: null,
+        existingProviderPhoneNumberId: null,
+        inboundCallbackUrl:
+          'https://api.retaino.com/v1/webhooks/twilio/messaging/inbound',
+        statusCallbackUrl:
+          'https://api.retaino.com/v1/webhooks/twilio/messaging/status',
+      } as never),
+    ).resolves.toMatchObject({
+      phoneNumber: '+46700000002',
+      providerPhoneNumberId: 'PN_new',
+    });
+
+    const purchasedNumbers = fetchImpl.mock.calls
+      .filter(([url, init]) =>
+        new URL(String(url)).pathname.endsWith('/IncomingPhoneNumbers.json') &&
+        (init as RequestInit).method === 'POST',
+      )
+      .map(([, init]) =>
+        ((init as RequestInit).body as URLSearchParams).get('PhoneNumber'),
+      );
+
+    expect(purchasedNumbers).toEqual(['+46700000001', '+46700000002']);
   });
 
   it('rejects unsupported live sender markets before calling Twilio', async () => {
@@ -191,7 +306,18 @@ describe('SMS provider factory', () => {
     );
 
     await expect(
-      provider.searchSenderOptions({ countryCode: 'FR', numberType: 'local' }),
+      provider.ensureSender({
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        actorUserId: '11111111-1111-4111-8111-111111111111',
+        idempotencyKey: '22222222-2222-4222-8222-222222222222',
+        countryCode: 'FR',
+        existingPhoneNumber: null,
+        existingProviderPhoneNumberId: null,
+        inboundCallbackUrl:
+          'https://api.retaino.com/v1/webhooks/twilio/messaging/inbound',
+        statusCallbackUrl:
+          'https://api.retaino.com/v1/webhooks/twilio/messaging/status',
+      } as never),
     ).rejects.toMatchObject({
       code: 'message_invalid',
     });
@@ -211,13 +337,13 @@ describe('SMS provider factory', () => {
       .mockResolvedValueOnce(
         jsonResponse({
           incoming_phone_numbers: [
-            { sid: 'PN_existing', phone_number: '+15005550006' },
+            { sid: 'PN_existing', phone_number: '+46700000006' },
           ],
         }),
       )
       .mockResolvedValueOnce(
         jsonResponse({
-          phone_numbers: [{ sid: 'PN_existing', phone_number: '+15005550006' }],
+          phone_numbers: [{ sid: 'PN_existing', phone_number: '+46700000006' }],
         }),
       );
     const provider = createSmsProvider(
@@ -236,16 +362,13 @@ describe('SMS provider factory', () => {
         organizationId,
         actorUserId: '11111111-1111-4111-8111-111111111111',
         idempotencyKey: organizationId,
+        countryCode: 'SE',
+        existingPhoneNumber: '+46700000006',
         existingProviderPhoneNumberId: 'PN_existing',
         inboundCallbackUrl:
           'https://api.retaino.com/v1/webhooks/twilio/messaging/inbound',
         statusCallbackUrl:
           'https://api.retaino.com/v1/webhooks/twilio/messaging/status',
-        selectedSender: {
-          phoneNumber: '+15005550006',
-          countryCode: 'US',
-          numberType: 'local',
-        },
       }),
     ).resolves.toMatchObject({
       providerMessagingServiceId: 'MG_existing',
@@ -283,14 +406,11 @@ describe('SMS provider factory', () => {
         organizationId: '22222222-2222-4222-8222-222222222222',
         actorUserId: '11111111-1111-4111-8111-111111111111',
         idempotencyKey: '22222222-2222-4222-8222-222222222222',
+        countryCode: 'SE',
+        existingPhoneNumber: null,
         existingProviderPhoneNumberId: null,
         inboundCallbackUrl: null,
         statusCallbackUrl: null,
-        selectedSender: {
-          phoneNumber: '+15005550006',
-          countryCode: 'US',
-          numberType: 'local',
-        },
       }),
     ).rejects.toMatchObject({
       code: 'configuration_missing',
@@ -305,8 +425,19 @@ describe('SMS provider factory', () => {
       .mockResolvedValueOnce(jsonResponse({ sid: 'MG_new' }))
       .mockResolvedValueOnce(
         jsonResponse({
+          available_phone_numbers: [
+            {
+              phone_number: '+46700000006',
+              friendly_name: '+46 70 000 00 06',
+              capabilities: { SMS: true },
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
           incoming_phone_numbers: [
-            { sid: 'PN_other_org', phone_number: '+15005550006' },
+            { sid: 'PN_other_org', phone_number: '+46700000006' },
           ],
         }),
       )
@@ -330,16 +461,13 @@ describe('SMS provider factory', () => {
         organizationId,
         actorUserId: '11111111-1111-4111-8111-111111111111',
         idempotencyKey: organizationId,
+        countryCode: 'SE',
+        existingPhoneNumber: null,
         existingProviderPhoneNumberId: null,
         inboundCallbackUrl:
           'https://api.retaino.com/v1/webhooks/twilio/messaging/inbound',
         statusCallbackUrl:
           'https://api.retaino.com/v1/webhooks/twilio/messaging/status',
-        selectedSender: {
-          phoneNumber: '+15005550006',
-          countryCode: 'US',
-          numberType: 'local',
-        },
       }),
     ).rejects.toMatchObject({
       code: 'message_invalid',

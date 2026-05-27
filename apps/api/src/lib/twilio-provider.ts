@@ -1,7 +1,5 @@
 import type {
-  SmsSenderCapability,
   SmsSenderCountry,
-  SmsSenderNumberType,
 } from '@retaino/shared/contracts';
 import type { AppEnv } from '../types';
 import {
@@ -9,20 +7,20 @@ import {
   type InboundSmsMessage,
   type OutboundSmsInput,
   type OutboundSmsResult,
+  type SmsSenderCapability,
   type SmsOutboundStatus,
   type SmsProvider,
   type SmsSenderProvisioningResult,
   type SmsStatusEvent,
 } from './sms-provider';
+import {
+  createTwilioRestClient,
+  getTwilioConfig,
+  type TwilioConfig,
+} from './twilio-rest-client';
+import { verifyTwilioWebhook } from './twilio-webhook-verification';
 
 type AppBindings = AppEnv['Bindings'];
-
-type TwilioConfig = {
-  accountSid: string;
-  authUser: string;
-  authSecret: string;
-  authToken: string | null;
-};
 
 type TwilioAvailableNumber = {
   phone_number: string;
@@ -93,35 +91,11 @@ export function createTwilioSmsProvider(
   return {
     name: 'twilio',
     listSenderCountries: async () => twilioSenderCountries(),
-    searchSenderOptions: async (input) => {
-      const countryCode = input.countryCode.toUpperCase();
-      const numberType = input.numberType ?? defaultNumberType(countryCode);
-      assertSupportedSenderRequest(countryCode, numberType);
-      const data = await client.request<TwilioAvailableNumbersResponse>({
-        host: 'api.twilio.com',
-        method: 'GET',
-        path:
-          `/2010-04-01/Accounts/${config.accountSid}/AvailablePhoneNumbers` +
-          `/${countryCode}/${twilioNumberTypePath(numberType)}.json`,
-        query: { SmsEnabled: 'true' },
-      });
-
-      return (data.available_phone_numbers ?? [])
-        .filter((number) => number.capabilities?.SMS ?? number.capabilities?.sms ?? true)
-        .map((number) => ({
-          phoneNumber: number.phone_number,
-          countryCode,
-          numberType,
-          capabilities: SENDER_CAPABILITIES,
-          regulatoryRequirementSummary: null,
-          label: number.friendly_name ?? number.phone_number,
-        }));
-    },
     ensureSender: async (input) => {
-      assertSupportedSenderRequest(
-        input.selectedSender.countryCode,
-        input.selectedSender.numberType,
-      );
+      const countryCode = input.countryCode.toUpperCase();
+      const numberType = 'mobile';
+
+      assertSupportedMobileSenderCountry(countryCode);
 
       const service = await ensureMessagingService(client, input);
       const phoneNumber = await ensureIncomingPhoneNumber(
@@ -138,10 +112,9 @@ export function createTwilioSmsProvider(
       return {
         provider: 'twilio',
         status: 'ready',
-        phoneNumber:
-          phoneNumber.phone_number ?? input.selectedSender.phoneNumber,
-        countryCode: input.selectedSender.countryCode,
-        numberType: input.selectedSender.numberType,
+        phoneNumber: phoneNumber.phone_number ?? null,
+        countryCode,
+        numberType,
         providerMessagingServiceId: service.sid,
         providerPhoneNumberId: phoneNumber.sid,
         capabilities: SENDER_CAPABILITIES,
@@ -156,6 +129,29 @@ export function createTwilioSmsProvider(
     parseInboundWebhook: async (input) => parseTwilioInboundWebhook(input),
     verifyWebhook: async (input) => verifyTwilioWebhook(config, input),
   };
+}
+
+async function searchTwilioAvailableMobileNumbers(
+  client: ReturnType<typeof createTwilioRestClient>,
+  config: TwilioConfig,
+  countryCode: string,
+) {
+  const normalizedCountryCode = countryCode.toUpperCase();
+
+  assertSupportedMobileSenderCountry(normalizedCountryCode);
+
+  const data = await client.request<TwilioAvailableNumbersResponse>({
+    host: 'api.twilio.com',
+    method: 'GET',
+    path:
+      `/2010-04-01/Accounts/${config.accountSid}/AvailablePhoneNumbers` +
+      `/${normalizedCountryCode}/Mobile.json`,
+    query: { SmsEnabled: 'true' },
+  });
+
+  return (data.available_phone_numbers ?? []).filter(
+    (number) => number.capabilities?.SMS ?? number.capabilities?.sms ?? true,
+  );
 }
 
 async function ensureMessagingService(
@@ -215,7 +211,8 @@ async function ensureIncomingPhoneNumber(
   config: TwilioConfig,
   input: {
     idempotencyKey: string;
-    selectedSender: { phoneNumber: string };
+    countryCode: string;
+    existingPhoneNumber: string | null;
     existingProviderPhoneNumberId: string | null;
     inboundCallbackUrl: string | null;
     statusCallbackUrl: string | null;
@@ -224,10 +221,83 @@ async function ensureIncomingPhoneNumber(
 ) {
   const callbacks = requireCallbackUrls(input);
   const friendlyName = phoneNumberFriendlyName(input.idempotencyKey);
+  const existingCandidate = input.existingPhoneNumber;
+
+  if (existingCandidate) {
+    try {
+      return await ensureCandidatePhoneNumber(
+        client,
+        config,
+        input,
+        serviceSid,
+        callbacks,
+        friendlyName,
+        existingCandidate,
+      );
+    } catch (error) {
+      if (!isTwilioPhoneNumberUnavailableError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  const candidates = await senderCandidates(client, config, input);
+
+  for (const candidate of candidates) {
+    try {
+      return await ensureCandidatePhoneNumber(
+        client,
+        config,
+        input,
+        serviceSid,
+        callbacks,
+        friendlyName,
+        candidate,
+      );
+    } catch (error) {
+      if (!isTwilioPhoneNumberUnavailableError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  if (input.existingProviderPhoneNumberId) {
+    throw new SmsProviderError({
+      code: 'sender_not_ready',
+      retryable: false,
+      publicMessage: 'The SMS sender is not ready.',
+      internalMessage:
+        'Stored Twilio phone number SID was not found on the Twilio account.',
+    });
+  }
+
+  throw new SmsProviderError({
+    code: 'message_invalid',
+    retryable: false,
+    publicMessage: 'SMS sender setup is not available for this country.',
+    internalMessage:
+      'No available Twilio phone numbers could be provisioned for the requested country.',
+  });
+}
+
+async function ensureCandidatePhoneNumber(
+  client: ReturnType<typeof createTwilioRestClient>,
+  config: TwilioConfig,
+  input: {
+    existingProviderPhoneNumberId: string | null;
+  },
+  serviceSid: string,
+  callbacks: {
+    inboundCallbackUrl: string;
+    statusCallbackUrl: string;
+  },
+  friendlyName: string,
+  phoneNumber: string,
+) {
   const existing = await findIncomingPhoneNumber(
     client,
     config,
-    input.selectedSender.phoneNumber,
+    phoneNumber,
   );
 
   if (existing) {
@@ -248,32 +318,43 @@ async function ensureIncomingPhoneNumber(
     throw new SmsProviderError({
       code: 'message_invalid',
       retryable: false,
-      publicMessage: 'Selected SMS sender is not available.',
+      publicMessage: 'SMS sender setup is not available for this country.',
       internalMessage:
-        'Selected Twilio phone number is already owned by this account but is not linked to this organization sender.',
+        'Twilio phone number is already owned by this account but is not linked to this organization sender.',
     });
   }
 
-  if (input.existingProviderPhoneNumberId) {
-    throw new SmsProviderError({
-      code: 'sender_not_ready',
-      retryable: false,
-      publicMessage: 'The SMS sender is not ready.',
-      internalMessage:
-        'Stored Twilio phone number SID was not found on the Twilio account.',
-    });
-  }
   return client.request<TwilioPhoneNumberResponse>({
     host: 'api.twilio.com',
     method: 'POST',
     path: `/2010-04-01/Accounts/${config.accountSid}/IncomingPhoneNumbers.json`,
     body: {
       FriendlyName: friendlyName,
-      PhoneNumber: input.selectedSender.phoneNumber,
+      PhoneNumber: phoneNumber,
       SmsUrl: callbacks.inboundCallbackUrl,
       StatusCallback: callbacks.statusCallbackUrl,
     },
   });
+}
+
+async function senderCandidates(
+  client: ReturnType<typeof createTwilioRestClient>,
+  config: TwilioConfig,
+  input: {
+    countryCode: string;
+  },
+) {
+  const available = await searchTwilioAvailableMobileNumbers(
+    client,
+    config,
+    input.countryCode,
+  );
+
+  return available.map((number) => number.phone_number);
+}
+
+function isTwilioPhoneNumberUnavailableError(error: unknown) {
+  return error instanceof SmsProviderError && error.providerErrorCode === '21422';
 }
 
 async function findIncomingPhoneNumber(
@@ -368,22 +449,19 @@ function twilioSenderCountries(): SmsSenderCountry[] {
   ];
 }
 
-function assertSupportedSenderRequest(
-  countryCode: string,
-  numberType: SmsSenderNumberType,
-) {
+function assertSupportedMobileSenderCountry(countryCode: string) {
   const country = twilioSenderCountries().find(
     (option) => option.countryCode === countryCode.toUpperCase(),
   );
 
   if (
     !country?.selfServeAvailable ||
-    !country.supportedNumberTypes.includes(numberType)
+    !country.supportedNumberTypes.includes('mobile')
   ) {
     throw new SmsProviderError({
       code: 'message_invalid',
       retryable: false,
-      publicMessage: 'Selected SMS sender market is not available.',
+      publicMessage: 'SMS sender setup is not available for this country.',
     });
   }
 }
@@ -508,265 +586,6 @@ function parseTwilioInboundWebhook(input: unknown): InboundSmsMessage {
   };
 }
 
-async function verifyTwilioWebhook(
-  config: TwilioConfig,
-  input: {
-    url: string;
-    headers: Headers;
-    body: string;
-  },
-) {
-  const signature = input.headers.get('x-twilio-signature');
-
-  if (!config.authToken || !signature) {
-    return false;
-  }
-
-  if (
-    input.headers.get('content-type')?.toLowerCase().includes('application/json') &&
-    !(await hasValidJsonBodyHash(input.url, input.body))
-  ) {
-    return false;
-  }
-
-  const expectedSignature = await signTwilioWebhook({
-    authToken: config.authToken,
-    url: input.url,
-    body: input.body,
-    contentType: input.headers.get('content-type') ?? '',
-  });
-
-  return constantTimeEqual(signature, expectedSignature);
-}
-
-async function signTwilioWebhook(input: {
-  authToken: string;
-  url: string;
-  body: string;
-  contentType: string;
-}) {
-  const baseString = twilioSignatureBaseString(input);
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(input.authToken),
-    { name: 'HMAC', hash: 'SHA-1' },
-    false,
-    ['sign'],
-  );
-  const signature = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    new TextEncoder().encode(baseString),
-  );
-
-  return bytesToBase64(new Uint8Array(signature));
-}
-
-function twilioSignatureBaseString(input: {
-  url: string;
-  body: string;
-  contentType: string;
-}) {
-  if (input.contentType.toLowerCase().includes('application/json')) {
-    return input.url;
-  }
-
-  const params = Array.from(new URLSearchParams(input.body).entries()).sort(
-    ([left], [right]) => {
-      if (left < right) {
-        return -1;
-      }
-
-      if (left > right) {
-        return 1;
-      }
-
-      return 0;
-    },
-  );
-
-  return params.reduce(
-    (baseString, [key, value]) => `${baseString}${key}${value}`,
-    input.url,
-  );
-}
-
-async function hasValidJsonBodyHash(url: string, body: string) {
-  const bodyHash = new URL(url).searchParams.get('bodySHA256');
-
-  if (!bodyHash) {
-    return false;
-  }
-
-  return constantTimeEqual(bodyHash, await sha256Hex(body));
-}
-
-async function sha256Hex(value: string) {
-  const digest = await crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode(value),
-  );
-
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-function bytesToBase64(bytes: Uint8Array) {
-  let binary = '';
-
-  bytes.forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
-
-  return btoa(binary);
-}
-
-function constantTimeEqual(left: string, right: string) {
-  let difference = left.length ^ right.length;
-  const length = Math.max(left.length, right.length);
-
-  for (let index = 0; index < length; index += 1) {
-    difference |=
-      (left.charCodeAt(index) || 0) ^ (right.charCodeAt(index) || 0);
-  }
-
-  return difference === 0;
-}
-
-function getTwilioConfig(env: AppBindings): TwilioConfig {
-  const accountSid = env.TWILIO_ACCOUNT_SID;
-  const apiKeySid = env.TWILIO_API_KEY_SID;
-  const apiKeySecret = env.TWILIO_API_KEY_SECRET;
-  const authToken = env.TWILIO_AUTH_TOKEN;
-
-  if (!accountSid) {
-    throw new SmsProviderError({
-      code: 'configuration_missing',
-      retryable: false,
-      publicMessage: 'SMS sending is not configured.',
-      internalMessage: 'TWILIO_ACCOUNT_SID is missing.',
-    });
-  }
-
-  if (apiKeySid && apiKeySecret) {
-    return {
-      accountSid,
-      authUser: apiKeySid,
-      authSecret: apiKeySecret,
-      authToken: authToken ?? null,
-    };
-  }
-
-  if (authToken) {
-    return {
-      accountSid,
-      authUser: accountSid,
-      authSecret: authToken,
-      authToken,
-    };
-  }
-
-  throw new SmsProviderError({
-    code: 'configuration_missing',
-    retryable: false,
-    publicMessage: 'SMS sending is not configured.',
-    internalMessage:
-      'TWILIO_API_KEY_SECRET or TWILIO_AUTH_TOKEN is missing.',
-  });
-}
-
-function createTwilioRestClient(
-  config: TwilioConfig,
-  fetchImpl: typeof fetch,
-) {
-  return {
-    request: async <TResponse = unknown>(input: {
-      host: string;
-      method: 'GET' | 'POST';
-      path: string;
-      query?: Record<string, string>;
-      body?: Record<string, string | undefined>;
-    }) => {
-      const url = new URL(`https://${input.host}${input.path}`);
-
-      Object.entries(input.query ?? {}).forEach(([key, value]) => {
-        url.searchParams.set(key, value);
-      });
-
-      const headers = new Headers({
-        authorization: `Basic ${toBasicAuth(config.authUser, config.authSecret)}`,
-      });
-      let body: URLSearchParams | undefined;
-
-      if (input.body) {
-        headers.set('content-type', 'application/x-www-form-urlencoded');
-        body = new URLSearchParams();
-
-        Object.entries(input.body).forEach(([key, value]) => {
-          if (value !== undefined) {
-            body?.set(key, value);
-          }
-        });
-      }
-
-      const requestInit: RequestInit = {
-        method: input.method,
-        headers,
-      };
-
-      if (body) {
-        requestInit.body = body;
-      }
-
-      const response = await fetchImpl(url, requestInit);
-
-      if (!response.ok) {
-        const responseText = await response.text();
-
-        throw new SmsProviderError({
-          code: normalizeTwilioError(response.status),
-          retryable: response.status === 429 || response.status >= 500,
-          publicMessage: 'The SMS provider could not complete the request.',
-          internalMessage: responseText,
-          providerErrorCode:
-            twilioProviderErrorCode(responseText) ?? String(response.status),
-        });
-      }
-
-      return (await response.json()) as TResponse;
-    },
-  };
-}
-
-function twilioProviderErrorCode(responseText: string) {
-  try {
-    const body = JSON.parse(responseText) as { code?: unknown };
-
-    return typeof body.code === 'number' || typeof body.code === 'string'
-      ? String(body.code)
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-function toBasicAuth(user: string, secret: string) {
-  return btoa(`${user}:${secret}`);
-}
-
-function defaultNumberType(countryCode: string): SmsSenderNumberType {
-  return countryCode === 'SE' ? 'mobile' : 'local';
-}
-
-function twilioNumberTypePath(numberType: SmsSenderNumberType) {
-  if (numberType === 'toll_free') {
-    return 'TollFree';
-  }
-
-  return numberType === 'mobile' ? 'Mobile' : 'Local';
-}
-
 function normalizeTwilioStatus(status: string | null | undefined): SmsOutboundStatus {
   if (status === 'delivered') {
     return 'delivered';
@@ -789,24 +608,4 @@ function normalizeTwilioStatus(status: string | null | undefined): SmsOutboundSt
   }
 
   return 'queued';
-}
-
-function normalizeTwilioError(status: number) {
-  if (status === 429) {
-    return 'provider_rate_limited';
-  }
-
-  if (status >= 500) {
-    return 'provider_temporary_failure';
-  }
-
-  if (status === 400) {
-    return 'message_invalid';
-  }
-
-  if (status === 401 || status === 403) {
-    return 'configuration_missing';
-  }
-
-  return 'provider_permanent_failure';
 }
