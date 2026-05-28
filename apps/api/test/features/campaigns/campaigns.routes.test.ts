@@ -482,7 +482,7 @@ describe('campaignsRoutes', () => {
     };
 
     expect(body.preview.renderedBody).toContain('Hi Anna');
-    expect(body.preview.renderedBody).toContain('https://go.retaino.com/r/');
+    expect(body.preview.renderedBody).toContain('https://go.retaino.io/r/');
     expect(body.preview.renderedBody).toContain('Reply STOP to opt out');
     expect(body.preview.estimatedSmsPerRecipient).toBeGreaterThan(0);
   });

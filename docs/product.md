@@ -117,7 +117,7 @@ Rules:
 
 ## Tracking
 
-Every campaign SMS contains a unique short link for one campaign recipient, for example `https://go.retaino.com/r/0123456789abcdef`.
+Every campaign SMS contains a unique short link for one campaign recipient, for example `https://go.retaino.io/r/0123456789abcdef`.
 
 The short link record stores organization ID, campaign ID, recipient ID, target booking URL, short code, and timestamps. Recipient hashes stay on the campaign recipient snapshot and are not duplicated on tracking links.
 

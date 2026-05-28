@@ -51,9 +51,12 @@ export async function getCampaignReport(
         coalesce(sum(estimated_segment_count) filter (
           where direction = ${'outbound'}
         ), 0)::integer as estimated_sms_segments,
-        coalesce(sum(coalesce(actual_segment_count, 0)) filter (
-          where direction = ${'outbound'}
-        ), 0)::integer as actual_sms_segments
+        coalesce(
+          sum(coalesce(actual_segment_count, estimated_segment_count, 0)) filter (
+            where direction = ${'outbound'}
+          ),
+          0
+        )::integer as actual_sms_segments
       from ${smsMessages}, input
       where ${smsMessages.campaignId} = input.campaign_id
         and ${smsMessages.organizationId} = input.organization_id

@@ -464,7 +464,7 @@ describe('campaign contracts', () => {
       campaignSmsPreviewResponseSchema.safeParse({
         preview: {
           renderedBody:
-            'Hi Anna\n\nhttps://go.retaino.com/r/abc123\n\nReply STOP to opt out',
+            'Hi Anna\n\nhttps://go.retaino.io/r/abc123\n\nReply STOP to opt out',
           smsLength: 70,
           estimatedSmsPerRecipient: 1,
           optOutText: 'Reply STOP to opt out',
@@ -503,7 +503,7 @@ describe('campaign contracts', () => {
         testSend: {
           to: '+46700000000',
           renderedBody:
-            'Hi Anna\n\nhttps://go.retaino.com/r/abc123\n\nReply STOP to opt out',
+            'Hi Anna\n\nhttps://go.retaino.io/r/abc123\n\nReply STOP to opt out',
           estimatedSmsPerRecipient: 1,
           chargedCredits: 1,
           status: 'queued',

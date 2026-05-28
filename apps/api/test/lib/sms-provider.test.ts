@@ -137,9 +137,9 @@ describe('SMS provider factory', () => {
         existingPhoneNumber: null,
         existingProviderPhoneNumberId: null,
         inboundCallbackUrl:
-          'https://api.retaino.com/v1/webhooks/twilio/messaging/inbound',
+          'https://api.retaino.io/v1/webhooks/twilio/messaging/inbound',
         statusCallbackUrl:
-          'https://api.retaino.com/v1/webhooks/twilio/messaging/status',
+          'https://api.retaino.io/v1/webhooks/twilio/messaging/status',
       } as never),
     ).rejects.toMatchObject({
       code: 'message_invalid',
@@ -203,9 +203,9 @@ describe('SMS provider factory', () => {
         existingPhoneNumber: null,
         existingProviderPhoneNumberId: null,
         inboundCallbackUrl:
-          'https://api.retaino.com/v1/webhooks/twilio/messaging/inbound',
+          'https://api.retaino.io/v1/webhooks/twilio/messaging/inbound',
         statusCallbackUrl:
-          'https://api.retaino.com/v1/webhooks/twilio/messaging/status',
+          'https://api.retaino.io/v1/webhooks/twilio/messaging/status',
       } as never),
     ).rejects.toMatchObject({
       code: 'configuration_missing',
@@ -272,9 +272,9 @@ describe('SMS provider factory', () => {
         existingPhoneNumber: null,
         existingProviderPhoneNumberId: null,
         inboundCallbackUrl:
-          'https://api.retaino.com/v1/webhooks/twilio/messaging/inbound',
+          'https://api.retaino.io/v1/webhooks/twilio/messaging/inbound',
         statusCallbackUrl:
-          'https://api.retaino.com/v1/webhooks/twilio/messaging/status',
+          'https://api.retaino.io/v1/webhooks/twilio/messaging/status',
       } as never),
     ).resolves.toMatchObject({
       phoneNumber: '+46700000002',
@@ -314,9 +314,9 @@ describe('SMS provider factory', () => {
         existingPhoneNumber: null,
         existingProviderPhoneNumberId: null,
         inboundCallbackUrl:
-          'https://api.retaino.com/v1/webhooks/twilio/messaging/inbound',
+          'https://api.retaino.io/v1/webhooks/twilio/messaging/inbound',
         statusCallbackUrl:
-          'https://api.retaino.com/v1/webhooks/twilio/messaging/status',
+          'https://api.retaino.io/v1/webhooks/twilio/messaging/status',
       } as never),
     ).rejects.toMatchObject({
       code: 'message_invalid',
@@ -366,9 +366,9 @@ describe('SMS provider factory', () => {
         existingPhoneNumber: '+46700000006',
         existingProviderPhoneNumberId: 'PN_existing',
         inboundCallbackUrl:
-          'https://api.retaino.com/v1/webhooks/twilio/messaging/inbound',
+          'https://api.retaino.io/v1/webhooks/twilio/messaging/inbound',
         statusCallbackUrl:
-          'https://api.retaino.com/v1/webhooks/twilio/messaging/status',
+          'https://api.retaino.io/v1/webhooks/twilio/messaging/status',
       }),
     ).resolves.toMatchObject({
       providerMessagingServiceId: 'MG_existing',
@@ -465,9 +465,9 @@ describe('SMS provider factory', () => {
         existingPhoneNumber: null,
         existingProviderPhoneNumberId: null,
         inboundCallbackUrl:
-          'https://api.retaino.com/v1/webhooks/twilio/messaging/inbound',
+          'https://api.retaino.io/v1/webhooks/twilio/messaging/inbound',
         statusCallbackUrl:
-          'https://api.retaino.com/v1/webhooks/twilio/messaging/status',
+          'https://api.retaino.io/v1/webhooks/twilio/messaging/status',
       }),
     ).rejects.toMatchObject({
       code: 'message_invalid',
@@ -495,7 +495,7 @@ describe('SMS provider factory', () => {
 
     await expect(
       provider.verifyWebhook({
-        url: 'https://api.retaino.com/v1/webhooks/twilio/messaging/status',
+        url: 'https://api.retaino.io/v1/webhooks/twilio/messaging/status',
         headers: new Headers({
           'x-twilio-signature': 'anything',
           'content-type': 'application/x-www-form-urlencoded',
@@ -507,7 +507,7 @@ describe('SMS provider factory', () => {
 
   it('validates Twilio webhook signatures with the auth token', async () => {
     const authToken = '12345';
-    const url = 'https://api.retaino.com/v1/webhooks/twilio/messaging/status';
+    const url = 'https://api.retaino.io/v1/webhooks/twilio/messaging/status';
     const body = 'MessageStatus=delivered&MessageSid=SM123';
     const provider = createSmsProvider(
       {
@@ -548,7 +548,7 @@ describe('SMS provider factory', () => {
     const body = '{"MessageSid":"SM123","MessageStatus":"delivered"}';
     const bodyHash = await sha256Hex(body);
     const url =
-      'https://api.retaino.com/v1/webhooks/twilio/messaging/status' +
+      'https://api.retaino.io/v1/webhooks/twilio/messaging/status' +
       `?bodySHA256=${bodyHash}`;
     const provider = createSmsProvider(
       {

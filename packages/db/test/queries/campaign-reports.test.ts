@@ -65,6 +65,9 @@ describe('campaign report query helpers', () => {
     expect(query.sql).toContain('"sms_messages"."organization_id"');
     expect(query.sql).toContain('"click_events"."organization_id"');
     expect(query.sql).toContain('"reported_bookings"."organization_id"');
+    expect(query.sql).toContain(
+      'coalesce(actual_segment_count, estimated_segment_count, 0)',
+    );
     expect(query.sql).toContain('count(distinct');
     expect(query.params.slice(0, 2)).toEqual([
       campaignRow.id,

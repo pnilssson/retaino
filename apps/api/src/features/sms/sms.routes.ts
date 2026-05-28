@@ -10,6 +10,7 @@ import {
   type SmsSenderCountry,
 } from '@retaino/shared/contracts';
 import { Hono, type Context } from 'hono';
+import { callbackUrl } from '../../lib/callback-url';
 import { apiError } from '../../lib/errors';
 import { captureHandledError } from '../../lib/sentry';
 import { createSmsProvider, SmsProviderError } from '../../lib/sms-provider';
@@ -227,14 +228,6 @@ async function requireActiveBilling(c: Context<AppEnv>) {
   }
 
   return { ok: true as const };
-}
-
-function callbackUrl(baseUrl: string | undefined, path: string) {
-  if (!baseUrl) {
-    return null;
-  }
-
-  return `${baseUrl.replace(/\/$/, '')}${path}`;
 }
 
 function providerErrorResponse(c: Context<AppEnv>, error: unknown) {

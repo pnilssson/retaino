@@ -14,7 +14,7 @@ describe('SMS preview helpers', () => {
     ).toMatchObject({
       estimatedSmsPerRecipient: 1,
       renderedBody:
-        'Hi Anna, your last visit was Feb 14, 2026.\n\nhttps://go.retaino.com/r/abc123\n\nReply STOP to opt out',
+        'Hi Anna, your last visit was Feb 14, 2026.\n\nhttps://go.retaino.io/r/abc123\n\nReply STOP to opt out',
     });
   });
 
@@ -51,13 +51,13 @@ describe('SMS preview helpers', () => {
         },
         smsBody:
           'Hi {first_name}, your last booking was {last_booking_date}.',
-        trackedBookingLink: 'https://go.retaino.com/r/live1',
+        trackedBookingLink: 'https://go.retaino.io/r/live1',
       }),
     ).toMatchObject({
       estimatedSmsPerRecipient: 1,
       optOutText: 'Reply STOP to opt out',
       renderedBody:
-        'Hi Christopher, your last booking was May 1, 2026.\n\nhttps://go.retaino.com/r/live1\n\nReply STOP to opt out',
+        'Hi Christopher, your last booking was May 1, 2026.\n\nhttps://go.retaino.io/r/live1\n\nReply STOP to opt out',
     });
   });
 
@@ -69,10 +69,10 @@ describe('SMS preview helpers', () => {
           lastBookingDate: null,
         },
         smsBody: 'Hi {first_name}, book again.',
-        trackedBookingLink: 'https://go.retaino.com/r/live2',
+        trackedBookingLink: 'https://go.retaino.io/r/live2',
       }).renderedBody,
     ).toBe(
-      'Hi, book again.\n\nhttps://go.retaino.com/r/live2\n\nReply STOP to opt out',
+      'Hi, book again.\n\nhttps://go.retaino.io/r/live2\n\nReply STOP to opt out',
     );
   });
 

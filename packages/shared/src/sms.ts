@@ -8,7 +8,7 @@ const GSM_7_MULTI_SEGMENT_LIMIT = 153;
 const UNICODE_SINGLE_SEGMENT_LIMIT = 70;
 const UNICODE_MULTI_SEGMENT_LIMIT = 67;
 
-const DEFAULT_TRACKED_BOOKING_LINK = 'https://go.retaino.com/r/abc123';
+const DEFAULT_TRACKED_BOOKING_LINK = 'https://go.retaino.io/r/abc123';
 export const DEFAULT_SMS_OPT_OUT_TEXT = 'Reply STOP to opt out';
 
 export type SmsEncoding = 'gsm7' | 'unicode';

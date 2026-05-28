@@ -144,8 +144,8 @@ Sender provisioning is lazy and idempotent. Organizations can create campaigns a
 
 Provider callbacks are configured at sender-group level:
 
-- Inbound webhook: `https://api.retaino.com/v1/webhooks/twilio/messaging/inbound`
-- Status webhook: `https://api.retaino.com/v1/webhooks/twilio/messaging/status`
+- Inbound webhook: `https://api.retaino.io/v1/webhooks/twilio/messaging/inbound`
+- Status webhook: `https://api.retaino.io/v1/webhooks/twilio/messaging/status`
 
 Webhook rules:
 
@@ -195,4 +195,4 @@ Manual reply failure boundary:
 
 Authenticated app routes use `/app/...` and are scoped by the active organization.
 
-Public recipient links use `https://go.retaino.com/r/:code`. Tracking link lookup resolves organization from the stored link record, not from the URL.
+Public recipient links use `https://go.retaino.io/r/:code`. Tracking link lookup resolves organization from the stored link record, not from the URL.

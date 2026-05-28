@@ -27,7 +27,7 @@ const fontMono = JetBrains_Mono({
 const title = "Retaino";
 const description =
   "Bring back previous clients and report recovered bookings.";
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://retaino.com";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://retaino.io";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

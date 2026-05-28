@@ -83,7 +83,7 @@ type PreparedRecipient = {
   estimatedSegments: number;
 };
 
-export const TEST_TRACKED_BOOKING_LINK = 'https://go.retaino.com/r/test';
+export const TEST_TRACKED_BOOKING_LINK = 'https://go.retaino.io/r/test';
 const TRACKING_CODE_ESTIMATE = '0'.repeat(TRACKING_CODE_LENGTH);
 
 type CampaignSendCreditReservation = {
