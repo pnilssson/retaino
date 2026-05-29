@@ -89,7 +89,8 @@ export function LegalOverviewScreen() {
         />
 
         <div className="grid gap-5">
-          <LegalBundleSection session={session.data} />
+          <CurrentBundleSection session={session.data} />
+          <LegalDocumentsSection session={session.data} />
           <LegalAcceptanceSection
             canManageSetup={canManageSetup}
             session={session.data}
@@ -100,74 +101,80 @@ export function LegalOverviewScreen() {
   );
 }
 
-function LegalBundleSection({ session }: { session: OrganizationSession }) {
+function CurrentBundleSection({ session }: { session: OrganizationSession }) {
   return (
     <ContentSection
       description="These are the current documents that govern this organization."
       title="Current bundle"
     >
-        <dl className="grid gap-4 py-2 text-sm sm:grid-cols-3">
-          <LegalMetadata
-            label="Bundle version"
-            value={session.legalBundle.version}
-          />
-          <LegalMetadata
-            label="Accepted by"
-            value={session.legalAcceptance?.acceptedByEmail ?? 'Not accepted'}
-          />
-          <LegalMetadata
-            label="Accepted at"
-            value={
-              session.legalAcceptance
-                ? formatDateTime(session.legalAcceptance.acceptedAt)
-                : 'Not accepted'
-            }
-          />
-        </dl>
+      <dl className="grid gap-4 py-2 text-sm sm:grid-cols-3">
+        <LegalMetadata
+          label="Bundle version"
+          value={session.legalBundle.version}
+        />
+        <LegalMetadata
+          label="Accepted by"
+          value={session.legalAcceptance?.acceptedByEmail ?? 'Not accepted'}
+        />
+        <LegalMetadata
+          label="Accepted at"
+          value={
+            session.legalAcceptance
+              ? formatDateTime(session.legalAcceptance.acceptedAt)
+              : 'Not accepted'
+          }
+        />
+      </dl>
+    </ContentSection>
+  );
+}
 
-        <div className="grid gap-3">
-          <ItemTitle>Documents</ItemTitle>
-          <ul className="grid gap-2 text-sm">
-            {session.legalBundle.documents.map((document) => {
-              const documentType =
-                document.documentType as keyof typeof legalBundleDocumentLabels;
-              const label =
-                legalBundleDocumentLabels[documentType] ?? document.title;
-              const description =
-                legalBundleDocumentDescriptions[documentType] ??
-                'Legal document included in this bundle.';
+function LegalDocumentsSection({ session }: { session: OrganizationSession }) {
+  return (
+    <ContentSection
+      description="Read the terms, privacy documents, and policy notices included in this bundle."
+      title="Documents"
+    >
+      <ul className="grid gap-2 text-sm">
+        {session.legalBundle.documents.map((document) => {
+          const documentType =
+            document.documentType as keyof typeof legalBundleDocumentLabels;
+          const label =
+            legalBundleDocumentLabels[documentType] ?? document.title;
+          const description =
+            legalBundleDocumentDescriptions[documentType] ??
+            'Legal document included in this bundle.';
 
-              return (
-                <li
-                  className="grid gap-3 border-t py-3 first:border-t-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-                  key={document.id}
-                >
-                  <div className="grid min-w-0 gap-1">
-                    <ItemTitle>{label}</ItemTitle>
-                    <ItemDescription>{description}</ItemDescription>
-                    <p className={textStyles.meta}>
-                      Version {document.documentVersion}, effective{' '}
-                      {document.effectiveDate}
-                    </p>
-                  </div>
-                  <ItemActions>
-                    <Button asChild type="button" variant="outline">
-                      <Link
-                        href={appLegalDocumentUrl({
-                          documentType: document.documentType,
-                          documentVersion: document.documentVersion,
-                        })}
-                      >
-                        <FileText aria-hidden="true" data-icon="inline-start" />
-                        Read document
-                      </Link>
-                    </Button>
-                  </ItemActions>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+          return (
+            <li
+              className="grid gap-3 border-t py-3 first:border-t-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+              key={document.id}
+            >
+              <div className="grid min-w-0 gap-1">
+                <ItemTitle>{label}</ItemTitle>
+                <ItemDescription>{description}</ItemDescription>
+                <p className={textStyles.meta}>
+                  Version {document.documentVersion}, effective{' '}
+                  {document.effectiveDate}
+                </p>
+              </div>
+              <ItemActions>
+                <Button asChild type="button" variant="outline">
+                  <Link
+                    href={appLegalDocumentUrl({
+                      documentType: document.documentType,
+                      documentVersion: document.documentVersion,
+                    })}
+                  >
+                    <FileText aria-hidden="true" data-icon="inline-start" />
+                    Read document
+                  </Link>
+                </Button>
+              </ItemActions>
+            </li>
+          );
+        })}
+      </ul>
     </ContentSection>
   );
 }
