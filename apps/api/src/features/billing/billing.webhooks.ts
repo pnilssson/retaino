@@ -1,8 +1,10 @@
 import {
+  clearOrganizationSmsSenderReleaseSchedule,
   createSmsCreditTransaction,
   getBillingWebhookEventByStripeEventId,
   markBillingWebhookEventProcessed,
   recordBillingWebhookEvent,
+  scheduleOrganizationSmsSenderRelease,
   upsertOrganizationBillingProfile,
 } from '@retaino/db';
 import {
@@ -18,6 +20,7 @@ import type Stripe from 'stripe';
 import type { AppEnv } from '../../types';
 
 type DbClient = AppEnv['Variables']['db'];
+const SMS_SENDER_RELEASE_GRACE_DAYS = 3;
 
 export type BillingWebhookStripeClient = {
   webhooks: {
@@ -31,6 +34,7 @@ export type BillingWebhookStripeClient = {
 
 export type BillingWebhookProcessingResult = {
   status: 'processed' | 'duplicate';
+  senderReleaseDueOrganizationId?: string;
 };
 
 export async function verifyStripeWebhookEvent(input: {
@@ -69,10 +73,18 @@ export async function processStripeBillingWebhook(input: {
     }
   }
 
-  await processSupportedEvent(input.db, input.event);
+  const senderReleaseDueOrganizationId = await processSupportedEvent(
+    input.db,
+    input.event,
+  );
   await markBillingWebhookEventProcessed(input.db, input.event.id);
 
-  return { status: 'processed' };
+  return {
+    status: 'processed',
+    ...(senderReleaseDueOrganizationId
+      ? { senderReleaseDueOrganizationId }
+      : {}),
+  };
 }
 
 async function processSupportedEvent(db: DbClient, event: Stripe.Event) {
@@ -89,6 +101,8 @@ async function processSupportedEvent(db: DbClient, event: Stripe.Event) {
     case 'customer.subscription.created':
     case 'customer.subscription.updated':
     case 'customer.subscription.deleted':
+    case 'customer.subscription.paused':
+    case 'customer.subscription.resumed':
       return processSubscriptionChanged(
         db,
         event.data.object as Stripe.Subscription,
@@ -96,7 +110,7 @@ async function processSupportedEvent(db: DbClient, event: Stripe.Event) {
     case 'charge.refunded':
       return processChargeRefunded(db, event.data.object as Stripe.Charge);
     default:
-      return undefined;
+      return null;
   }
 }
 
@@ -108,7 +122,7 @@ async function processCheckoutSessionCompleted(
     session.payment_status !== 'paid' ||
     session.metadata?.purpose !== 'credit_pack'
   ) {
-    return;
+    return null;
   }
 
   const organizationId = requiredMetadata(session.metadata, 'organizationId');
@@ -125,17 +139,18 @@ async function processCheckoutSessionCompleted(
     sourceId: session.id,
     description: `${getCreditPackCredits(packKey).toLocaleString('en-US')} credits purchase`,
   });
+  return null;
 }
 
 async function processInvoicePaid(db: DbClient, invoice: Stripe.Invoice) {
   if (!isSubscriptionCreditInvoice(invoice)) {
-    return;
+    return null;
   }
 
   const metadata = getInvoiceSubscriptionMetadataOptional(invoice);
 
   if (!metadata) {
-    return;
+    return null;
   }
 
   const organizationId = requiredMetadata(metadata, 'organizationId');
@@ -156,6 +171,7 @@ async function processInvoicePaid(db: DbClient, invoice: Stripe.Invoice) {
     sourceId: `${subscriptionId}:${period.start}:${period.end}`,
     description: `${capitalizePlanKey(planKey)} monthly credits`,
   });
+  return null;
 }
 
 async function processInvoicePaymentFailed(
@@ -165,7 +181,7 @@ async function processInvoicePaymentFailed(
   const metadata = getInvoiceSubscriptionMetadataOptional(invoice);
 
   if (!metadata) {
-    return;
+    return null;
   }
 
   const organizationId = requiredMetadata(metadata, 'organizationId');
@@ -173,7 +189,7 @@ async function processInvoicePaymentFailed(
   const stripeCustomerId = getStripeId(invoice.customer);
 
   if (!stripeCustomerId) {
-    return;
+    return null;
   }
 
   await upsertOrganizationBillingProfile(db, {
@@ -187,6 +203,14 @@ async function processInvoicePaymentFailed(
     currentPeriodEnd: null,
     cancelAtPeriodEnd: false,
   });
+  await scheduleOrganizationSmsSenderRelease(db, {
+    organizationId,
+    provider: 'twilio',
+    status: 'ready',
+    releaseScheduledAt: smsSenderReleaseGraceDeadline(),
+    preserveEarlierSchedule: true,
+  });
+  return null;
 }
 
 async function processSubscriptionChanged(
@@ -194,7 +218,7 @@ async function processSubscriptionChanged(
   subscription: Stripe.Subscription,
 ) {
   if (!isRetainoMetadata(subscription.metadata)) {
-    return;
+    return null;
   }
 
   const organizationId = requiredMetadata(subscription.metadata, 'organizationId');
@@ -203,8 +227,11 @@ async function processSubscriptionChanged(
   const stripeCustomerId = getStripeId(subscription.customer);
 
   if (!stripeCustomerId) {
-    return;
+    return null;
   }
+
+  const subscriptionStatus = parseBillingSubscriptionStatus(subscription.status);
+  const currentPeriodEnd = stripeTimestampToDate(item?.current_period_end);
 
   await upsertOrganizationBillingProfile(db, {
     organizationId,
@@ -212,10 +239,16 @@ async function processSubscriptionChanged(
     stripeSubscriptionId: subscription.id,
     stripePriceId: item?.price.id ?? null,
     planKey,
-    subscriptionStatus: parseBillingSubscriptionStatus(subscription.status),
+    subscriptionStatus,
     currentPeriodStart: stripeTimestampToDate(item?.current_period_start),
-    currentPeriodEnd: stripeTimestampToDate(item?.current_period_end),
+    currentPeriodEnd,
     cancelAtPeriodEnd: subscription.cancel_at_period_end,
+  });
+  return syncSenderReleaseScheduleForSubscription(db, {
+    organizationId,
+    subscriptionStatus,
+    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    currentPeriodEnd,
   });
 }
 
@@ -229,7 +262,7 @@ async function processChargeRefunded(db: DbClient, charge: Stripe.Charge) {
     !charge.refunded ||
     charge.amount_refunded < charge.amount
   ) {
-    return;
+    return null;
   }
 
   await createSmsCreditTransaction(db, {
@@ -243,6 +276,7 @@ async function processChargeRefunded(db: DbClient, charge: Stripe.Charge) {
     sourceId: charge.id,
     description: `${getCreditPackCredits(packKey).toLocaleString('en-US')} credits refund adjustment`,
   });
+  return null;
 }
 
 function getEventOrganizationId(event: Stripe.Event) {
@@ -406,6 +440,76 @@ function parseBillingSubscriptionStatus(value: string) {
 
 function stripeTimestampToDate(value: number | null | undefined) {
   return value ? new Date(value * 1000) : null;
+}
+
+async function syncSenderReleaseScheduleForSubscription(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    subscriptionStatus: BillingSubscriptionStatus;
+    cancelAtPeriodEnd: boolean;
+    currentPeriodEnd: Date | null;
+  },
+) {
+  if (
+    (input.subscriptionStatus === 'active' ||
+      input.subscriptionStatus === 'trialing') &&
+    input.cancelAtPeriodEnd &&
+    input.currentPeriodEnd
+  ) {
+    await scheduleOrganizationSmsSenderRelease(db, {
+      organizationId: input.organizationId,
+      provider: 'twilio',
+      status: 'ready',
+      releaseScheduledAt: input.currentPeriodEnd,
+    });
+    return null;
+  }
+
+  if (
+    input.subscriptionStatus === 'active' ||
+    input.subscriptionStatus === 'trialing'
+  ) {
+    await clearOrganizationSmsSenderReleaseSchedule(db, {
+      organizationId: input.organizationId,
+      provider: 'twilio',
+    });
+    return null;
+  }
+
+  if (input.subscriptionStatus === 'past_due') {
+    await scheduleOrganizationSmsSenderRelease(db, {
+      organizationId: input.organizationId,
+      provider: 'twilio',
+      status: 'ready',
+      releaseScheduledAt: smsSenderReleaseGraceDeadline(),
+      preserveEarlierSchedule: true,
+    });
+    return null;
+  }
+
+  if (
+    input.subscriptionStatus === 'canceled' ||
+    input.subscriptionStatus === 'unpaid' ||
+    input.subscriptionStatus === 'paused' ||
+    input.subscriptionStatus === 'incomplete_expired'
+  ) {
+    await scheduleOrganizationSmsSenderRelease(db, {
+      organizationId: input.organizationId,
+      provider: 'twilio',
+      status: 'release_pending',
+      releaseScheduledAt: new Date(),
+    });
+    return input.organizationId;
+  }
+
+  return null;
+}
+
+function smsSenderReleaseGraceDeadline() {
+  return new Date(
+    Date.now() + SMS_SENDER_RELEASE_GRACE_DAYS * 24 * 60 * 60 * 1000,
+  );
 }
 
 function isValidStripePeriod(

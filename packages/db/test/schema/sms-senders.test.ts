@@ -17,6 +17,10 @@ describe('organization SMS senders schema', () => {
     expect(organizationSmsSenders.providerPhoneNumberId.name).toBe(
       'provider_phone_number_id',
     );
+    expect(organizationSmsSenders.releaseScheduledAt.name).toBe(
+      'release_scheduled_at',
+    );
+    expect(organizationSmsSenders.releasedAt.name).toBe('released_at');
     expect('authToken' in organizationSmsSenders).toBe(false);
     expect('apiKeySecret' in organizationSmsSenders).toBe(false);
   });

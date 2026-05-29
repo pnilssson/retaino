@@ -9,7 +9,7 @@ import type {
   ProvisionOrganizationSmsSenderInput,
 } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
-import { smsQueryKeys } from '../sms-query-keys';
+import { smsQueryKeys } from '@/lib/sms-query-keys';
 
 export function useProvisionSmsSender(organizationId: string | null) {
   const api = useApi();

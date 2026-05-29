@@ -168,6 +168,7 @@ describe('inbox service', () => {
       parseStatusWebhook: vi.fn(),
       parseInboundWebhook: vi.fn(),
       verifyWebhook: vi.fn(),
+      releaseSender: vi.fn(),
     });
   });
 
@@ -345,6 +346,7 @@ describe('inbox service', () => {
       parseStatusWebhook: vi.fn(),
       parseInboundWebhook: vi.fn(),
       verifyWebhook: vi.fn(),
+      releaseSender: vi.fn(),
     });
 
     await expect(sendReply()).rejects.toThrow(providerError);

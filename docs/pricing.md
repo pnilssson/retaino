@@ -11,6 +11,7 @@ Retaino pricing is usage-aware but simple. MVP tiers differ by included monthly 
 - An active subscription is required to use any credits for SMS sends.
 - Test sends, live campaign sends, and manual inbox replies consume credits.
 - Retaino blocks sends and replies when credits are insufficient.
+- Retaino releases dedicated sender numbers when subscription access ends so unpaid organizations do not continue creating monthly number cost.
 - Sends reserve estimated credits before provider cost is incurred, then reconcile actual segment usage after send completion.
 - Credits-only spending is required. Do not create automatic overage invoices in MVP.
 

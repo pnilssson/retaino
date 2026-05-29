@@ -124,11 +124,58 @@ export function createTwilioSmsProvider(
         lastVerifiedAt: now,
       } satisfies SmsSenderProvisioningResult;
     },
+    releaseSender: async (input) => releaseTwilioSender(client, config, input),
     sendSms: async (input) => sendTwilioSms(client, config, input),
     parseStatusWebhook: async (input) => parseTwilioStatusWebhook(input),
     parseInboundWebhook: async (input) => parseTwilioInboundWebhook(input),
     verifyWebhook: async (input) => verifyTwilioWebhook(config, input),
   };
+}
+
+async function releaseTwilioSender(
+  client: ReturnType<typeof createTwilioRestClient>,
+  config: TwilioConfig,
+  input: {
+    providerMessagingServiceId: string | null;
+    providerPhoneNumberId: string | null;
+  },
+) {
+  if (input.providerPhoneNumberId) {
+    await ignoreMissingTwilioResource(() =>
+      client.request({
+        host: 'api.twilio.com',
+        method: 'DELETE',
+        path:
+          `/2010-04-01/Accounts/${config.accountSid}/IncomingPhoneNumbers/` +
+          `${input.providerPhoneNumberId}.json`,
+      }),
+    );
+  }
+
+  if (input.providerMessagingServiceId) {
+    await ignoreMissingTwilioResource(() =>
+      client.request({
+        host: 'messaging.twilio.com',
+        method: 'DELETE',
+        path: `/v1/Services/${input.providerMessagingServiceId}`,
+      }),
+    );
+  }
+}
+
+async function ignoreMissingTwilioResource(operation: () => Promise<unknown>) {
+  try {
+    await operation();
+  } catch (error) {
+    if (
+      error instanceof SmsProviderError &&
+      error.providerErrorCode === '20404'
+    ) {
+      return;
+    }
+
+    throw error;
+  }
 }
 
 async function searchTwilioAvailableMobileNumbers(

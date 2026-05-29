@@ -58,7 +58,7 @@ export function createTwilioRestClient(
   return {
     request: async <TResponse = unknown>(input: {
       host: string;
-      method: 'GET' | 'POST';
+      method: 'DELETE' | 'GET' | 'POST';
       path: string;
       query?: Record<string, string>;
       body?: Record<string, string | undefined>;
@@ -107,6 +107,10 @@ export function createTwilioRestClient(
           providerErrorCode:
             twilioProviderErrorCode(responseText) ?? String(response.status),
         });
+      }
+
+      if (response.status === 204) {
+        return undefined as TResponse;
       }
 
       return (await response.json()) as TResponse;

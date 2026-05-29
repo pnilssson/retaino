@@ -44,6 +44,11 @@ export type SmsSenderProvisioningResult = {
   lastVerifiedAt: Date | null;
 };
 
+export type SmsSenderReleaseInput = {
+  providerMessagingServiceId: string | null;
+  providerPhoneNumberId: string | null;
+};
+
 export type OutboundSmsInput = {
   retainoMessageId: string;
   organizationSender: OrganizationSmsSender;
@@ -139,6 +144,7 @@ export type SmsProvider = {
   ensureSender: (
     input: SmsSenderProvisioningInput,
   ) => Promise<SmsSenderProvisioningResult>;
+  releaseSender: (input: SmsSenderReleaseInput) => Promise<void>;
   sendSms: (input: OutboundSmsInput) => Promise<OutboundSmsResult>;
   parseStatusWebhook: (input: unknown) => Promise<SmsStatusEvent>;
   parseInboundWebhook: (input: unknown) => Promise<InboundSmsMessage>;
@@ -252,6 +258,7 @@ export function createFakeSmsProvider(): SmsProvider {
         lastVerifiedAt: new Date(),
       };
     },
+    releaseSender: async () => undefined,
     sendSms: async (input) => sendFakeSms(input),
     parseStatusWebhook: async (input) => parseFakeStatusWebhook(input),
     parseInboundWebhook: async (input) => parseFakeInboundWebhook(input),
@@ -386,6 +393,7 @@ function createDisabledSmsProvider(): SmsProvider {
     name: 'fake',
     listSenderCountries: fail,
     ensureSender: fail,
+    releaseSender: fail,
     sendSms: fail,
     parseStatusWebhook: fail,
     parseInboundWebhook: fail,

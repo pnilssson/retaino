@@ -2,8 +2,10 @@ import { Hono } from 'hono';
 import Stripe from 'stripe';
 import { connectAppDb } from '../../lib/db';
 import { apiError } from '../../lib/errors';
+import { captureHandledError } from '../../lib/sentry';
 import { getStripeWebhookSecret } from '../../lib/stripe';
 import type { AppEnv } from '../../types';
+import { enqueueSmsSenderReleaseProcessing } from '../sms/sms.sender-release.jobs';
 import {
   processStripeBillingWebhook,
   verifyStripeWebhookEvent,
@@ -36,6 +38,21 @@ export const billingWebhookRoutes = new Hono<AppEnv>().post(
       db: await connectAppDb(c.env),
       event,
     });
+
+    if (result.senderReleaseDueOrganizationId) {
+      try {
+        await enqueueSmsSenderReleaseProcessing(c.env, {
+          organizationId: result.senderReleaseDueOrganizationId,
+          sourceId: `stripe-event:${event.id}`,
+        });
+      } catch (error) {
+        captureHandledError(error, c, {
+          feature: 'billing',
+          operation: 'enqueue_sms_sender_release',
+          organizationId: result.senderReleaseDueOrganizationId,
+        });
+      }
+    }
 
     return c.json({ received: true, status: result.status });
   },

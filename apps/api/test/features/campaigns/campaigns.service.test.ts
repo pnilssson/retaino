@@ -312,6 +312,7 @@ describe('campaign send service', () => {
       parseStatusWebhook: vi.fn(),
       parseInboundWebhook: vi.fn(),
       verifyWebhook: vi.fn(),
+      releaseSender: vi.fn(),
     });
     vi.mocked(findCampaignSendExclusionForRecipient).mockResolvedValue(null);
   });
@@ -459,6 +460,7 @@ describe('campaign send service', () => {
       parseStatusWebhook: vi.fn(),
       parseInboundWebhook: vi.fn(),
       verifyWebhook: vi.fn(),
+      releaseSender: vi.fn(),
     });
 
     await expect(
@@ -904,6 +906,7 @@ describe('campaign send service', () => {
       parseStatusWebhook: vi.fn(),
       parseInboundWebhook: vi.fn(),
       verifyWebhook: vi.fn(),
+      releaseSender: vi.fn(),
     };
     vi.mocked(createSmsProvider).mockReturnValue(provider);
 
@@ -954,6 +957,7 @@ describe('campaign send service', () => {
       parseStatusWebhook: vi.fn(),
       parseInboundWebhook: vi.fn(),
       verifyWebhook: vi.fn(),
+      releaseSender: vi.fn(),
     };
     vi.mocked(createSmsProvider).mockReturnValue(provider);
 
@@ -1063,6 +1067,7 @@ describe('campaign send service', () => {
       parseStatusWebhook: vi.fn(),
       parseInboundWebhook: vi.fn(),
       verifyWebhook: vi.fn(),
+      releaseSender: vi.fn(),
     };
     vi.mocked(createSmsProvider).mockReturnValue(provider);
 

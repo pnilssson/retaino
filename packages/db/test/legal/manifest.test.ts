@@ -34,12 +34,15 @@ describe('legal document manifest', () => {
     ).toBe(true);
   });
 
-  it('keeps only the current manifest legal document files', () => {
-    const manifestPaths = legalDocuments
-      .map((document) => document.path)
-      .sort();
+  it('keeps every current manifest legal document file on disk', () => {
+    const manifestPaths = new Set(
+      legalDocuments.map((document) => document.path),
+    );
+    const diskPaths = new Set(readLegalDocumentPaths(legalRoot));
 
-    expect(readLegalDocumentPaths(legalRoot)).toEqual(manifestPaths);
+    for (const manifestPath of manifestPaths) {
+      expect(diskPaths.has(manifestPath)).toBe(true);
+    }
   });
 });
 

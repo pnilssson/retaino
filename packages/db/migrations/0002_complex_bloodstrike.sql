@@ -1,0 +1,2 @@
+ALTER TABLE "organization_sms_senders" ADD COLUMN "release_scheduled_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "organization_sms_senders" ADD COLUMN "released_at" timestamp with time zone;

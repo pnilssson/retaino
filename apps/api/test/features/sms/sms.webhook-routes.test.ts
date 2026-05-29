@@ -66,6 +66,7 @@ describe('twilioMessagingWebhookRoutes', () => {
       ensureSender: vi.fn(),
       sendSms: vi.fn(),
       verifyWebhook: vi.fn().mockResolvedValue(true),
+      releaseSender: vi.fn(),
       parseStatusWebhook: vi.fn().mockResolvedValue({
         providerMessageId: 'SM123',
         retainoMessageReference: null,

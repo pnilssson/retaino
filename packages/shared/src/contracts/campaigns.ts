@@ -9,6 +9,9 @@ export const SMS_SENDER_STATUSES = [
   'ready',
   'failed',
   'manual_action_required',
+  'release_pending',
+  'released',
+  'release_failed',
 ] as const;
 export const SMS_SENDER_NUMBER_TYPES = [
   'local',
@@ -321,6 +324,8 @@ export const organizationSmsSenderSchema = z.object({
   failureReason: nonEmptyStringSchema.nullable(),
   provisionedAt: timestampSchema.nullable(),
   lastVerifiedAt: timestampSchema.nullable(),
+  releaseScheduledAt: timestampSchema.nullable().optional(),
+  releasedAt: timestampSchema.nullable().optional(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
 });

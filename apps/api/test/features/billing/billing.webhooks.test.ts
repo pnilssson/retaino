@@ -1,9 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createSmsCreditTransaction,
   getBillingWebhookEventByStripeEventId,
   markBillingWebhookEventProcessed,
   recordBillingWebhookEvent,
+  clearOrganizationSmsSenderReleaseSchedule,
+  scheduleOrganizationSmsSenderRelease,
   upsertOrganizationBillingProfile,
 } from '@retaino/db';
 import {
@@ -20,6 +22,8 @@ vi.mock('@retaino/db', async (importOriginal) => {
     getBillingWebhookEventByStripeEventId: vi.fn(),
     markBillingWebhookEventProcessed: vi.fn(),
     recordBillingWebhookEvent: vi.fn(),
+    clearOrganizationSmsSenderReleaseSchedule: vi.fn(),
+    scheduleOrganizationSmsSenderRelease: vi.fn(),
     upsertOrganizationBillingProfile: vi.fn(),
   };
 });
@@ -29,11 +33,15 @@ const organizationId = '22222222-2222-4222-8222-222222222222';
 
 describe('Stripe billing webhooks', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.mocked(createSmsCreditTransaction).mockReset();
     vi.mocked(getBillingWebhookEventByStripeEventId).mockReset();
     vi.mocked(markBillingWebhookEventProcessed).mockReset();
     vi.mocked(recordBillingWebhookEvent).mockReset();
+    vi.mocked(clearOrganizationSmsSenderReleaseSchedule).mockReset();
+    vi.mocked(scheduleOrganizationSmsSenderRelease).mockReset();
     vi.mocked(upsertOrganizationBillingProfile).mockReset();
+    vi.setSystemTime(new Date('2026-05-15T12:00:00.000Z'));
     vi.mocked(recordBillingWebhookEvent).mockResolvedValue({
       id: '11111111-1111-4111-8111-111111111111',
       stripeEventId: 'evt_123',
@@ -44,6 +52,10 @@ describe('Stripe billing webhooks', () => {
       receivedAt: new Date('2026-05-15T00:00:00.000Z'),
       processedAt: null,
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('verifies Stripe webhook signatures from the raw request body', async () => {
@@ -198,6 +210,30 @@ describe('Stripe billing webhooks', () => {
         cancelAtPeriodEnd: false,
       },
     );
+    expect(clearOrganizationSmsSenderReleaseSchedule).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        organizationId,
+        provider: 'twilio',
+      },
+    );
+  });
+
+  it('keeps scheduled cancellations active until period end', async () => {
+    await processStripeBillingWebhook({
+      db,
+      event: subscriptionUpdatedEvent({ cancelAtPeriodEnd: true }),
+    });
+
+    expect(scheduleOrganizationSmsSenderRelease).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        organizationId,
+        provider: 'twilio',
+        status: 'ready',
+        releaseScheduledAt: new Date('2026-06-15T00:00:00.000Z'),
+      },
+    );
   });
 
   it('marks subscription payment failures as past due', async () => {
@@ -220,14 +256,46 @@ describe('Stripe billing webhooks', () => {
         cancelAtPeriodEnd: false,
       },
     );
+    expect(scheduleOrganizationSmsSenderRelease).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        organizationId,
+        provider: 'twilio',
+        status: 'ready',
+        releaseScheduledAt: new Date('2026-05-18T12:00:00.000Z'),
+        preserveEarlierSchedule: true,
+      },
+    );
+  });
+
+  it('preserves the first grace deadline for past due subscription updates', async () => {
+    await processStripeBillingWebhook({
+      db,
+      event: subscriptionUpdatedEvent({ status: 'past_due' }),
+    });
+
+    expect(scheduleOrganizationSmsSenderRelease).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        organizationId,
+        provider: 'twilio',
+        status: 'ready',
+        releaseScheduledAt: new Date('2026-05-18T12:00:00.000Z'),
+        preserveEarlierSchedule: true,
+      },
+    );
   });
 
   it('updates the local billing projection from cancellation events', async () => {
-    await processStripeBillingWebhook({
+    const result = await processStripeBillingWebhook({
       db,
       event: subscriptionDeletedEvent(),
     });
 
+    expect(result).toEqual({
+      status: 'processed',
+      senderReleaseDueOrganizationId: organizationId,
+    });
     expect(upsertOrganizationBillingProfile).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -235,6 +303,58 @@ describe('Stripe billing webhooks', () => {
         stripeSubscriptionId: 'sub_123',
         subscriptionStatus: 'canceled',
       }),
+    );
+    expect(scheduleOrganizationSmsSenderRelease).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        organizationId,
+        provider: 'twilio',
+        status: 'release_pending',
+        releaseScheduledAt: new Date('2026-05-15T12:00:00.000Z'),
+      },
+    );
+  });
+
+  it('schedules paused subscriptions for immediate sender release', async () => {
+    const result = await processStripeBillingWebhook({
+      db,
+      event: subscriptionUpdatedEvent({
+        eventType: 'customer.subscription.paused',
+        status: 'paused',
+      }),
+    });
+
+    expect(result).toEqual({
+      status: 'processed',
+      senderReleaseDueOrganizationId: organizationId,
+    });
+    expect(scheduleOrganizationSmsSenderRelease).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        organizationId,
+        provider: 'twilio',
+        status: 'release_pending',
+        releaseScheduledAt: new Date('2026-05-15T12:00:00.000Z'),
+      },
+    );
+  });
+
+  it('clears sender release schedules when subscriptions resume', async () => {
+    const result = await processStripeBillingWebhook({
+      db,
+      event: subscriptionUpdatedEvent({
+        eventType: 'customer.subscription.resumed',
+        status: 'active',
+      }),
+    });
+
+    expect(result).toEqual({ status: 'processed' });
+    expect(clearOrganizationSmsSenderReleaseSchedule).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        organizationId,
+        provider: 'twilio',
+      },
     );
   });
 
@@ -395,17 +515,21 @@ function invoicePaymentFailedEvent() {
   } as never;
 }
 
-function subscriptionUpdatedEvent() {
+function subscriptionUpdatedEvent(input?: {
+  cancelAtPeriodEnd?: boolean;
+  eventType?: string;
+  status?: string;
+}) {
   return {
     id: 'evt_subscription_updated',
-    type: 'customer.subscription.updated',
+    type: input?.eventType ?? 'customer.subscription.updated',
     data: {
       object: {
         id: 'sub_123',
         object: 'subscription',
         customer: 'cus_123',
-        status: 'active',
-        cancel_at_period_end: false,
+        status: input?.status ?? 'active',
+        cancel_at_period_end: input?.cancelAtPeriodEnd ?? false,
         metadata: {
           organizationId,
           planKey: 'growth',

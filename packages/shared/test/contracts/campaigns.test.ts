@@ -524,6 +524,8 @@ describe('campaign contracts', () => {
         failureReason: null,
         provisionedAt: '2026-05-18T00:00:00.000Z',
         lastVerifiedAt: '2026-05-18T00:00:00.000Z',
+        releaseScheduledAt: null,
+        releasedAt: null,
         createdAt: '2026-05-18T00:00:00.000Z',
         updatedAt: '2026-05-18T00:00:00.000Z',
       },
@@ -533,6 +535,48 @@ describe('campaign contracts', () => {
     expect(response.sender).not.toHaveProperty('providerMessagingServiceId');
     expect(response.sender).not.toHaveProperty('providerPhoneNumberId');
     expect(response.sender).not.toHaveProperty('numberType');
+  });
+
+  it('accepts public sender release lifecycle state', () => {
+    expect(
+      organizationSmsSenderResponseSchema.safeParse({
+        sender: {
+          id: '11111111-1111-4111-8111-111111111111',
+          organizationId: '22222222-2222-4222-8222-222222222222',
+          status: 'release_pending',
+          phoneNumber: '+46700000000',
+          countryCode: 'SE',
+          regulatoryStatus: 'ready',
+          failureReason: null,
+          provisionedAt: '2026-05-18T00:00:00.000Z',
+          lastVerifiedAt: '2026-05-18T00:01:00.000Z',
+          releaseScheduledAt: '2026-06-18T00:00:00.000Z',
+          releasedAt: null,
+          createdAt: '2026-05-18T00:00:00.000Z',
+          updatedAt: '2026-05-18T00:01:00.000Z',
+        },
+      }).success,
+    ).toBe(true);
+
+    expect(
+      organizationSmsSenderResponseSchema.safeParse({
+        sender: {
+          id: '11111111-1111-4111-8111-111111111111',
+          organizationId: '22222222-2222-4222-8222-222222222222',
+          status: 'released',
+          phoneNumber: null,
+          countryCode: 'SE',
+          regulatoryStatus: null,
+          failureReason: null,
+          provisionedAt: '2026-05-18T00:00:00.000Z',
+          lastVerifiedAt: '2026-05-18T00:01:00.000Z',
+          releaseScheduledAt: '2026-06-18T00:00:00.000Z',
+          releasedAt: '2026-06-18T00:00:30.000Z',
+          createdAt: '2026-05-18T00:00:00.000Z',
+          updatedAt: '2026-06-18T00:00:30.000Z',
+        },
+      }).success,
+    ).toBe(true);
   });
 
   it('accepts campaign report responses', () => {

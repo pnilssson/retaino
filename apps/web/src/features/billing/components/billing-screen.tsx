@@ -20,6 +20,7 @@ import { AppPageLoading } from '@/features/appshell/components/app-page-loading'
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { useApi } from '@/hooks/use-api';
+import { useSmsSender } from '@/hooks/use-sms-sender';
 import {
   createBillingPortalSession,
   createCreditCheckout,
@@ -40,6 +41,7 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
     queryKey: billingQueryKeys.status(organizationId ?? 'pending'),
     queryFn: () => fetchBillingStatus(api),
   });
+  const sender = useSmsSender(organizationId);
 
   const subscriptionCheckout = useMutation({
     mutationFn: (planKey: BillingPlanKey) =>
@@ -140,6 +142,7 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
                 canManageBilling={canManageBilling}
                 isPortalPending={portal.isPending}
                 onOpenPortal={() => portal.mutate()}
+                sender={sender.data?.sender ?? null}
               />
               <BillingPlanList
                 billingStatus={billingStatus.data}

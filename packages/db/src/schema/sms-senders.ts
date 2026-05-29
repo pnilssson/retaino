@@ -27,6 +27,10 @@ export const organizationSmsSenders = pgTable(
     failureReason: text('failure_reason'),
     provisionedAt: timestamp('provisioned_at', { withTimezone: true }),
     lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
+    releaseScheduledAt: timestamp('release_scheduled_at', {
+      withTimezone: true,
+    }),
+    releasedAt: timestamp('released_at', { withTimezone: true }),
     createdAt,
     updatedAt,
   },

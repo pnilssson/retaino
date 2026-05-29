@@ -3,6 +3,8 @@ import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { processStripeBillingWebhook } from '../../../src/features/billing/billing.webhooks';
 import { billingWebhookRoutes } from '../../../src/features/billing/billing.webhook-routes';
+import { enqueueSmsSenderReleaseProcessing } from '../../../src/features/sms/sms.sender-release.jobs';
+import { captureHandledError } from '../../../src/lib/sentry';
 import type { AppEnv } from '../../../src/types';
 
 const dbMocks = vi.hoisted(() => ({
@@ -23,6 +25,14 @@ vi.mock('../../../src/features/billing/billing.webhooks', async (importOriginal)
     processStripeBillingWebhook: vi.fn(),
   };
 });
+
+vi.mock('../../../src/features/sms/sms.sender-release.jobs', () => ({
+  enqueueSmsSenderReleaseProcessing: vi.fn(),
+}));
+
+vi.mock('../../../src/lib/sentry', () => ({
+  captureHandledError: vi.fn(),
+}));
 
 const env = {
   HYPERDRIVE: {
@@ -59,6 +69,8 @@ describe('billing webhook routes', () => {
     vi.mocked(processStripeBillingWebhook).mockResolvedValue({
       status: 'processed',
     });
+    vi.mocked(enqueueSmsSenderReleaseProcessing).mockReset();
+    vi.mocked(captureHandledError).mockReset();
     dbMocks.connectDb.mockReset();
     dbMocks.connectDb.mockResolvedValue({ db: {}, close: vi.fn() });
   });
@@ -113,5 +125,83 @@ describe('billing webhook routes', () => {
         type: 'invoice.paid',
       }),
     });
+    expect(enqueueSmsSenderReleaseProcessing).not.toHaveBeenCalled();
+  });
+
+  it('enqueues sender release processing for immediately due releases', async () => {
+    vi.mocked(processStripeBillingWebhook).mockResolvedValue({
+      status: 'processed',
+      senderReleaseDueOrganizationId: '22222222-2222-4222-8222-222222222222',
+    });
+    const payload = JSON.stringify({
+      id: 'evt_subscription_deleted',
+      object: 'event',
+      type: 'customer.subscription.deleted',
+      data: { object: { id: 'sub_123', object: 'subscription' } },
+    });
+    const signature = Stripe.webhooks.generateTestHeaderString({
+      payload,
+      secret: env.STRIPE_WEBHOOK_SECRET,
+    });
+
+    const response = await testApp().request(
+      '/v1/billing/webhooks',
+      {
+        method: 'POST',
+        headers: {
+          'stripe-signature': signature,
+        },
+        body: payload,
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(enqueueSmsSenderReleaseProcessing).toHaveBeenCalledWith(env, {
+      organizationId: '22222222-2222-4222-8222-222222222222',
+      sourceId: 'stripe-event:evt_subscription_deleted',
+    });
+  });
+
+  it('still accepts webhooks when sender release enqueue fails', async () => {
+    const error = new Error('Inngest unavailable');
+    vi.mocked(processStripeBillingWebhook).mockResolvedValue({
+      status: 'processed',
+      senderReleaseDueOrganizationId: '22222222-2222-4222-8222-222222222222',
+    });
+    vi.mocked(enqueueSmsSenderReleaseProcessing).mockRejectedValue(error);
+    const payload = JSON.stringify({
+      id: 'evt_subscription_deleted',
+      object: 'event',
+      type: 'customer.subscription.deleted',
+      data: { object: { id: 'sub_123', object: 'subscription' } },
+    });
+    const signature = Stripe.webhooks.generateTestHeaderString({
+      payload,
+      secret: env.STRIPE_WEBHOOK_SECRET,
+    });
+
+    const response = await testApp().request(
+      '/v1/billing/webhooks',
+      {
+        method: 'POST',
+        headers: {
+          'stripe-signature': signature,
+        },
+        body: payload,
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(captureHandledError).toHaveBeenCalledWith(
+      error,
+      expect.anything(),
+      expect.objectContaining({
+        feature: 'billing',
+        operation: 'enqueue_sms_sender_release',
+        organizationId: '22222222-2222-4222-8222-222222222222',
+      }),
+    );
   });
 });

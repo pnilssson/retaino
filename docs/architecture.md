@@ -142,6 +142,8 @@ Each organization gets one dedicated two-way SMS-capable sender number and one p
 
 Sender provisioning is lazy and idempotent. Organizations can create campaigns and preview audiences before a sender exists, but test sends, live sends, and manual inbox replies require an active subscription, current legal acceptance, and a ready sender.
 
+Sender numbers are retained only while the organization has paid subscription access. If a subscription is canceled for period end, keep the sender until the paid period ends. If payment becomes past due, block outbound SMS and schedule release after three days unless payment recovers. If the subscription is canceled, unpaid, paused, or incomplete expired, schedule release immediately. Release the provider phone number before deleting the provider sender group so the recurring number cost stops. Do not recycle released numbers between Retaino organizations, and do not promise the same number after resubscription.
+
 Provider callbacks are configured at sender-group level:
 
 - Inbound webhook: `https://api.retaino.io/v1/webhooks/twilio/messaging/inbound`

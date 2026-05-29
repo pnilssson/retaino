@@ -65,6 +65,13 @@ export function SenderSetup({
             variant="error"
           />
         ) : null}
+        {sender?.status === 'released' ? (
+          <ItemNotice
+            description="Previous sender numbers cannot be guaranteed after a subscription ends."
+            title="Set up a new sender number"
+            variant="warning"
+          />
+        ) : null}
       </section>
 
       {!senderReady ? (
@@ -137,6 +144,18 @@ function senderStatusLabel(
 
   if (status === 'failed') {
     return 'Failed';
+  }
+
+  if (status === 'release_pending') {
+    return 'Ending';
+  }
+
+  if (status === 'released') {
+    return 'Released';
+  }
+
+  if (status === 'release_failed') {
+    return 'Needs attention';
   }
 
   return 'Not set up';

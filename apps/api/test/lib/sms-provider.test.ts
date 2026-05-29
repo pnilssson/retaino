@@ -214,6 +214,72 @@ describe('SMS provider factory', () => {
     });
   });
 
+  it('releases Twilio phone numbers before deleting messaging services', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(emptyResponse())
+      .mockResolvedValueOnce(emptyResponse());
+    const provider = createSmsProvider(
+      {
+        SMS_SENDING_MODE: 'live',
+        TWILIO_ACCOUNT_SID: 'AC123',
+        TWILIO_API_KEY_SID: 'SK123',
+        TWILIO_API_KEY_SECRET: 'secret',
+      } as never,
+      fetchImpl as never,
+    );
+
+    await expect(
+      provider.releaseSender({
+        providerPhoneNumberId: 'PN123',
+        providerMessagingServiceId: 'MG123',
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(new URL(String(fetchImpl.mock.calls[0]?.[0])).pathname).toBe(
+      '/2010-04-01/Accounts/AC123/IncomingPhoneNumbers/PN123.json',
+    );
+    expect((fetchImpl.mock.calls[0]?.[1] as RequestInit).method).toBe('DELETE');
+    expect(new URL(String(fetchImpl.mock.calls[1]?.[0])).pathname).toBe(
+      '/v1/Services/MG123',
+    );
+    expect((fetchImpl.mock.calls[1]?.[1] as RequestInit).method).toBe('DELETE');
+  });
+
+  it('treats missing Twilio sender resources as already released', async () => {
+    const fetchImpl = vi.fn().mockImplementation(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            code: 20404,
+            message: 'The requested resource was not found',
+            status: 404,
+          }),
+          { status: 404 },
+        ),
+      ),
+    );
+    const provider = createSmsProvider(
+      {
+        SMS_SENDING_MODE: 'live',
+        TWILIO_ACCOUNT_SID: 'AC123',
+        TWILIO_API_KEY_SID: 'SK123',
+        TWILIO_API_KEY_SECRET: 'secret',
+      } as never,
+      fetchImpl as never,
+    );
+
+    await expect(
+      provider.releaseSender({
+        providerPhoneNumberId: 'PN_missing',
+        providerMessagingServiceId: 'MG_missing',
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
   it('retries the next Twilio sender when the first candidate is unavailable', async () => {
     const fetchImpl = vi
       .fn()
@@ -593,6 +659,10 @@ describe('SMS provider factory', () => {
 
 function jsonResponse(body: unknown) {
   return new Response(JSON.stringify(body), { status: 200 });
+}
+
+function emptyResponse() {
+  return new Response(null, { status: 204 });
 }
 
 async function signTwilioTestWebhook(

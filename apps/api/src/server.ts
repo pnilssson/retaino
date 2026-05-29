@@ -11,6 +11,10 @@ import { healthRoutes } from './features/health/health.routes';
 import { inboxRoutes } from './features/inbox/inbox.routes';
 import { legalRoutes } from './features/legal/legal.routes';
 import { organizationRoutes } from './features/organization/organization.routes';
+import {
+  processSmsSenderReleaseFunction,
+  sweepSmsSenderReleasesFunction,
+} from './features/sms/sms.sender-release.jobs';
 import { smsRoutes } from './features/sms/sms.routes';
 import { twilioMessagingWebhookRoutes } from './features/sms/sms.webhook-routes';
 import { trackingRoutes } from './features/tracking/tracking.routes';
@@ -25,7 +29,12 @@ import type { AppEnv } from './types';
 export const app = new Hono<AppEnv>();
 const inngestHandler = serve({
   client: inngest,
-  functions: [processContactImportFunction, processCampaignSendFunction],
+  functions: [
+    processContactImportFunction,
+    processCampaignSendFunction,
+    processSmsSenderReleaseFunction,
+    sweepSmsSenderReleasesFunction,
+  ],
 });
 
 app.route('/health', healthRoutes);

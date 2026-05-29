@@ -116,6 +116,8 @@ export const smsRoutes = new Hono<AppEnv>()
         lastVerifiedAt: sameCountry && existing?.lastVerifiedAt
           ? new Date(existing.lastVerifiedAt)
           : null,
+        releaseScheduledAt: null,
+        releasedAt: null,
       });
 
       let result;
@@ -155,6 +157,8 @@ export const smsRoutes = new Hono<AppEnv>()
             'The sender could not be set up automatically. Try again or contact support if this keeps happening.',
           provisionedAt: null,
           lastVerifiedAt: null,
+          releaseScheduledAt: null,
+          releasedAt: null,
         });
 
         throw error;
@@ -172,6 +176,8 @@ export const smsRoutes = new Hono<AppEnv>()
         failureReason: result.failureReason,
         provisionedAt: result.provisionedAt,
         lastVerifiedAt: result.lastVerifiedAt,
+        releaseScheduledAt: null,
+        releasedAt: null,
       });
 
       return c.json({ sender: publicSender(sender) }, 201);
@@ -269,6 +275,8 @@ function publicSender(
     failureReason: sender.failureReason,
     provisionedAt: sender.provisionedAt,
     lastVerifiedAt: sender.lastVerifiedAt,
+    releaseScheduledAt: sender.releaseScheduledAt,
+    releasedAt: sender.releasedAt,
     createdAt: sender.createdAt,
     updatedAt: sender.updatedAt,
   };
