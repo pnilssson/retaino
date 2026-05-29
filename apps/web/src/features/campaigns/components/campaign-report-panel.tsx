@@ -90,9 +90,8 @@ export function CampaignReportPanel({
             onUpdate={updateReport}
           />
         }
-        description="Campaign result, delivery state, and next action."
         framed={false}
-        title="Campaign results summary"
+        title="Outcome"
       >
         {report.isError ? (
           <ItemNotice
@@ -156,7 +155,6 @@ function DeliveryHealthSection({ report }: { report: CampaignReport }) {
 
   return (
     <ContentSection
-      description="Selected recipients through delivery outcome."
       title={
         <span className="inline-flex items-center gap-1.5">
           Delivery health

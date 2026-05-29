@@ -4,4 +4,5 @@ export * from './contacts';
 export * from './inbox';
 export * from './legal';
 export * from './organizations';
+export * from './overview';
 export * from './users';

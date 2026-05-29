@@ -60,7 +60,6 @@ export function BillingStatusPanel({
               {isPortalPending ? 'Opening' : 'Manage'}
             </Button>
       }
-      description="Current subscription access, renewal timing, and available SMS credits."
       title={
         <span className="flex flex-wrap items-center gap-2">
           Account summary

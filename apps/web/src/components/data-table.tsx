@@ -44,7 +44,7 @@ export function DataTable<TData>({
   return (
     <div className="overflow-hidden rounded-lg border border-border">
       <Table>
-        <TableHeader className="bg-muted/60">
+        <TableHeader className="bg-sidebar">
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow
               className="border-border hover:bg-transparent"

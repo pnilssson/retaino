@@ -14,7 +14,7 @@ import {
 import { CampaignReportPanel } from './campaign-report-panel';
 import { CampaignStatusBadge } from './campaign-status-badge';
 import {
-  messageEstimateText,
+  MessageEstimate,
   MessagePreview,
 } from './message-preview';
 
@@ -40,7 +40,6 @@ export function CampaignOverview({
       <div className="grid gap-5">
         <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
           <ContentSection
-            description="Audience, destination, and send details."
             title={
               <span className="flex flex-wrap items-center gap-2">
                 Campaign details
@@ -89,11 +88,9 @@ export function CampaignOverview({
             </dl>
           </ContentSection>
 
-          <ContentSection
-            description={messageEstimateText(values.smsBody)}
-            title="Message preview"
-          >
+          <ContentSection title="Message preview">
             <MessagePreview showLabel={false} smsBody={values.smsBody} />
+            <MessageEstimate smsBody={values.smsBody} />
           </ContentSection>
         </div>
       </div>

@@ -1,7 +1,10 @@
-import { formatMinorCurrencyAmount } from '@retaino/shared';
+import {
+  formatDisplayMinorCurrency,
+  formatDisplayNumber,
+} from '@/lib/format-display';
 
 export function formatReportNumber(value: number) {
-  return new Intl.NumberFormat(undefined).format(value);
+  return formatDisplayNumber(value);
 }
 
 export function formatReportPercent(value: number, total: number) {
@@ -16,7 +19,7 @@ export function formatReportPercent(value: number, total: number) {
 }
 
 export function formatReportCurrency(value: number, currency: string) {
-  return formatMinorCurrencyAmount(value, currency);
+  return formatDisplayMinorCurrency(value, currency);
 }
 
 export function formatReportDate(value: string) {

@@ -56,7 +56,6 @@ export function ResponseActivitySection({ report }: { report: CampaignReport }) 
 
   return (
     <ContentSection
-      description="Clicks, replies, and opt-outs from recipients."
       framed={false}
       title="Response activity"
     >

@@ -20,6 +20,8 @@ import { useCampaigns } from '@/features/campaigns/hooks/use-campaigns';
 import { useContactPresence } from '@/features/contacts/hooks/use-contact-presence';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
+import { useOverviewDashboard } from '../hooks/use-overview-dashboard';
+import { OverviewDashboard } from './overview-dashboard';
 
 export function OverviewScreen() {
   const session = useOrganizationSession();
@@ -31,6 +33,10 @@ export function OverviewScreen() {
   });
   const campaigns = useCampaigns({
     enabled: dataEnabled,
+    organizationId,
+  });
+  const overview = useOverviewDashboard({
+    enabled: dataEnabled && Boolean(campaigns.data?.campaigns.length),
     organizationId,
   });
 
@@ -63,7 +69,7 @@ export function OverviewScreen() {
     <main className="flex flex-1 bg-background">
       <section className="mx-auto grid w-full max-w-6xl content-start gap-6 px-5 py-8 sm:px-8 lg:px-10">
         <AppPageHeader
-          description="Bookings, attributed revenue, and confidence reporting will live here."
+          description="Last 30 days of campaign results and flow, plus recent campaign activity."
           eyebrow="Workspace"
           title="Overview"
         />
@@ -118,7 +124,20 @@ export function OverviewScreen() {
             icon={Megaphone}
             title="Create your first campaign"
           />
-        ) : null}
+        ) : overview.isError ? (
+          <OverviewNotice
+            description={
+              overview.error instanceof Error
+                ? overview.error.message
+                : 'Try refreshing the page.'
+            }
+            title="Overview dashboard could not be loaded"
+          />
+        ) : overview.isLoading || !overview.data ? (
+          <OverviewLoading label="Loading overview" />
+        ) : (
+          <OverviewDashboard overview={overview.data} />
+        )}
       </section>
     </main>
   );

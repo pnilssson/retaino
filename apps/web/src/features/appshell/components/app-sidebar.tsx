@@ -25,6 +25,9 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -210,28 +213,36 @@ export function AppSidebar() {
                   Profile
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href={routes.terms}>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
                     <Shield aria-hidden="true" strokeWidth={1.5} />
-                    Terms and Conditions
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={routes.privacy}>
-                    <Shield aria-hidden="true" strokeWidth={1.5} />
-                    Privacy Policy
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={routes.cookies}>
-                    <Cookie aria-hidden="true" strokeWidth={1.5} />
-                    Cookie Policy
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={openPreferences}>
-                  <Cookie aria-hidden="true" strokeWidth={1.5} />
-                  Cookie preferences
-                </DropdownMenuItem>
+                    Legal and privacy
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem asChild>
+                      <Link href={routes.terms}>
+                        <Shield aria-hidden="true" strokeWidth={1.5} />
+                        Terms and Conditions
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={routes.privacy}>
+                        <Shield aria-hidden="true" strokeWidth={1.5} />
+                        Privacy Policy
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={routes.cookies}>
+                        <Cookie aria-hidden="true" strokeWidth={1.5} />
+                        Cookie Policy
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={openPreferences}>
+                      <Cookie aria-hidden="true" strokeWidth={1.5} />
+                      Cookie preferences
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onSelect={() => void signOut({ redirectUrl: routes.home })}

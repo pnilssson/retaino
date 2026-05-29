@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 
 export type SankeyBreakdownNode = {
   color: string;
+  displayValue?: number;
   name: string;
 };
 
@@ -44,6 +45,7 @@ export function SankeyBreakdown({
   links,
   nodes,
   showHeader = true,
+  showTooltip = true,
   summary,
   title,
 }: {
@@ -52,6 +54,7 @@ export function SankeyBreakdown({
   links: SankeyBreakdownLink[];
   nodes: SankeyBreakdownNode[];
   showHeader?: boolean;
+  showTooltip?: boolean;
   summary: SankeyBreakdownSummaryItem[];
   title: string;
 }) {
@@ -119,9 +122,11 @@ export function SankeyBreakdown({
                 nodeWidth={10}
                 sort={false}
               >
-                <ChartTooltip
-                  content={<ChartTooltipContent hideLabel indicator="line" />}
-                />
+                {showTooltip ? (
+                  <ChartTooltip
+                    content={<ChartTooltipContent hideLabel indicator="line" />}
+                  />
+                ) : null}
               </Sankey>
             </ChartContainer>
           </div>
@@ -150,7 +155,12 @@ function SankeyNodeContent({
   const isSource = (node.sourceNodes?.length ?? 0) === 0;
   const textX = isSource ? x - 10 : x + width + 10;
   const textAnchor = isSource ? 'end' : 'start';
-  const value = typeof node.value === 'number' ? node.value : null;
+  const value =
+    typeof node.displayValue === 'number'
+      ? node.displayValue
+      : typeof node.value === 'number'
+        ? node.value
+        : null;
 
   return (
     <Layer>

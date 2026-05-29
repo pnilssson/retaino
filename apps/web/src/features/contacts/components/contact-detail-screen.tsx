@@ -149,7 +149,6 @@ function ContactDetailContent({
                 </Button>
           ) : null
         }
-        description="Core identity and contact information."
         title="Contact details"
       >
           {isEditing ? (
@@ -170,7 +169,6 @@ function ContactDetailContent({
       </ContentSection>
 
       <ContentSection
-        description="Why this contact can or cannot receive SMS campaigns."
         title={
           <span className="flex flex-wrap items-center gap-2">
             SMS readiness
@@ -200,7 +198,6 @@ function ContactDetailContent({
       </ContentSection>
 
       <ContentSection
-        description="Import and outreach context for this contact."
         title="Activity"
       >
           <dl className="grid gap-3 sm:grid-cols-2">
@@ -354,7 +351,6 @@ function ContactSuppressionSection({
 
   return (
     <ContentSection
-      description="Methods excluded from future outreach."
       title="Suppressions"
     >
         {contact.suppressions.length > 0 ? (

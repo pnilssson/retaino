@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { InboxConversationResponse } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
+import { INBOX_REFETCH_INTERVAL_MS } from '../inbox-polling';
 import { inboxQueryKeys } from '../inbox-query-keys';
 
 export function useInboxConversation({
@@ -31,7 +32,7 @@ export function useInboxConversation({
         `/v1/inbox/conversations/${conversationId}`,
       );
     },
-    staleTime: 10_000,
-    refetchInterval: 10_000,
+    staleTime: INBOX_REFETCH_INTERVAL_MS,
+    refetchInterval: INBOX_REFETCH_INTERVAL_MS,
   });
 }

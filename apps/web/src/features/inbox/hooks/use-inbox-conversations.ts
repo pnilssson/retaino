@@ -6,6 +6,7 @@ import type {
   InboxConversationListResponse,
 } from '@retaino/shared/contracts';
 import { useApi } from '@/hooks/use-api';
+import { INBOX_REFETCH_INTERVAL_MS } from '../inbox-polling';
 import { inboxQueryKeys } from '../inbox-query-keys';
 
 export function useInboxConversations({
@@ -31,7 +32,7 @@ export function useInboxConversations({
         `/v1/inbox/conversations?activity=${activity}`,
       );
     },
-    staleTime: 10_000,
-    refetchInterval: 10_000,
+    staleTime: INBOX_REFETCH_INTERVAL_MS,
+    refetchInterval: INBOX_REFETCH_INTERVAL_MS,
   });
 }

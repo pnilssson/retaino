@@ -68,7 +68,6 @@ export function ReportedBookingsSection({
           />
         ) : null
       }
-      description="Add booking outcomes from this campaign."
       framed={false}
       id="reported-bookings"
       title="Reported bookings"

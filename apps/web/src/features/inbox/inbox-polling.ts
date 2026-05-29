@@ -1,0 +1,1 @@
+export const INBOX_REFETCH_INTERVAL_MS = 30_000;

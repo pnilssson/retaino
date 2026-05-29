@@ -11,6 +11,7 @@ import { healthRoutes } from './features/health/health.routes';
 import { inboxRoutes } from './features/inbox/inbox.routes';
 import { legalRoutes } from './features/legal/legal.routes';
 import { organizationRoutes } from './features/organization/organization.routes';
+import { overviewRoutes } from './features/overview/overview.routes';
 import {
   processSmsSenderReleaseFunction,
   sweepSmsSenderReleasesFunction,
@@ -52,6 +53,7 @@ app.route('/v1/webhooks/twilio/messaging', twilioMessagingWebhookRoutes);
 app.use('/v1/*', authMiddleware);
 
 app.route('/v1/organization', organizationRoutes);
+app.route('/v1/overview', overviewRoutes);
 app.route('/v1/billing', billingRoutes);
 app.route('/v1/contacts', contactsRoutes);
 app.route('/v1/campaigns', campaignsRoutes);

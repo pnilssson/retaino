@@ -62,7 +62,6 @@ export function ProfileSection({
           </Button>
         ) : null
       }
-      description="Legal, billing, and responsible contact details for this organization."
       id="organization-profile"
       title={
         <span className="flex flex-wrap items-center gap-2">
