@@ -287,9 +287,12 @@ describe('contactsRoutes', () => {
       fileKey: expect.stringContaining(
         `organizations/${organization.id}/contact-imports/`,
       ),
+      fileName: 'contacts.csv',
+      fileSize: expect.any(Number),
       mapping: { name: 'Name', phone: 'Phone' },
       phoneCountryCode: 'SE',
       permissionAttestedByUserId: user.id,
+      userAgent: null,
     });
     expect(enqueueContactImportProcessing).toHaveBeenCalledWith(expect.anything(), {
       organizationId: organization.id,
@@ -471,6 +474,12 @@ describe('contactsRoutes', () => {
 
     expect(update.status).toBe(200);
     expect(deleted.status).toBe(204);
+    expect(deleteContact).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      contactId: contactDetail.id,
+      actorUserId: user.id,
+      userAgent: null,
+    });
   });
 
   it('lets members bulk delete selected contacts', async () => {
@@ -494,6 +503,8 @@ describe('contactsRoutes', () => {
     expect(deleteContacts).toHaveBeenCalledWith(expect.anything(), {
       organizationId: organization.id,
       contactIds,
+      actorUserId: user.id,
+      userAgent: null,
     });
     await expect(response.json()).resolves.toEqual({
       requestedCount: 2,
@@ -592,5 +603,12 @@ describe('contactsRoutes', () => {
 
     expect(created.status).toBe(201);
     expect(deleted.status).toBe(200);
+    expect(deleteContactSuppression).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      contactId: contactDetail.id,
+      suppressionId: '33333333-3333-4333-8333-333333333333',
+      actorUserId: user.id,
+      userAgent: null,
+    });
   });
 });

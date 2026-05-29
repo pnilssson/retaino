@@ -70,6 +70,8 @@ export const contactsRoutes = new Hono<AppEnv>()
     const affectedCount = await deleteContacts(c.get('db'), {
       organizationId: c.get('organization').id,
       contactIds: parsed.data.contactIds,
+      actorUserId: c.get('user').id,
+      userAgent: c.req.header('user-agent') ?? null,
     });
 
     return c.json({
@@ -164,6 +166,8 @@ export const contactsRoutes = new Hono<AppEnv>()
     const deleted = await deleteContact(c.get('db'), {
       organizationId: c.get('organization').id,
       contactId: c.req.param('id'),
+      actorUserId: c.get('user').id,
+      userAgent: c.req.header('user-agent') ?? null,
     });
 
     if (!deleted) {
@@ -210,6 +214,8 @@ export const contactsRoutes = new Hono<AppEnv>()
       organizationId: c.get('organization').id,
       contactId: c.req.param('id'),
       suppressionId: c.req.param('suppressionId'),
+      actorUserId: c.get('user').id,
+      userAgent: c.req.header('user-agent') ?? null,
     });
 
     if (result.status === 'not_found') {
@@ -281,6 +287,7 @@ export const contactsRoutes = new Hono<AppEnv>()
 
     const importRow = await createAndEnqueueContactImport(c, {
       fileKey,
+      file,
       mapping: startInput.data.mapping,
       phoneCountryCode: startInput.data.phoneCountryCode,
     });
@@ -311,6 +318,7 @@ async function createAndEnqueueContactImport(
   c: Context<AppEnv>,
   input: {
     fileKey: string;
+    file: File;
     mapping: z.infer<typeof contactImportStartSchema>['mapping'];
     phoneCountryCode: string;
   },
@@ -323,9 +331,12 @@ async function createAndEnqueueContactImport(
       organizationId: organization.id,
       createdByUserId: c.get('user').id,
       fileKey: input.fileKey,
+      fileName: input.file.name,
+      fileSize: input.file.size,
       mapping: input.mapping,
       phoneCountryCode: input.phoneCountryCode,
       permissionAttestedByUserId: c.get('user').id,
+      userAgent: c.req.header('user-agent') ?? null,
     });
 
     if (!importRow) {

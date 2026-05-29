@@ -1,6 +1,6 @@
 import {
+  auditEvents,
   countCampaignRecipients,
-  createAuditLog,
   createOutboundSmsMessage,
   findCampaignSendExclusionForRecipient,
   findSuppressionByHash,
@@ -16,6 +16,7 @@ import {
   markCampaignRecipientSkipped,
   markCampaignSendCompleted,
   markCampaignSendFailed,
+  recordAuditLog,
   recordSmsMessageProviderResult,
   startCampaignSend,
   upsertTrackingLink,
@@ -143,6 +144,8 @@ export async function queueCampaignSend(input: {
       organizationId: input.organizationId,
       campaignId: input.campaignId,
       actorUserId: input.userId,
+      recentCampaignExclusionAcknowledged:
+        input.recentCampaignExclusionAcknowledged ?? false,
       userAgent: input.userAgent,
     });
 
@@ -549,21 +552,20 @@ export async function processCampaignSend(input: {
       failureReason,
     });
 
-    await createAuditLog(input.db, {
-      organizationId: input.organizationId,
-      actorUserId: input.userId,
-      eventType: 'campaign.failed',
-      resourceType: 'campaign',
-      resourceId: input.campaignId,
-      metadata: {
+    await recordAuditLog(
+      input.db,
+      auditEvents.campaignFailed({
+        organizationId: input.organizationId,
+        actorUserId: input.userId,
+        campaignId: input.campaignId,
         recipientCount: recipients.length,
         sentCount,
         skippedCount,
         reservedCreditCount,
         actualCreditCount,
         failureReason,
-      },
-    });
+      }),
+    );
 
     throw error;
   }
@@ -577,20 +579,19 @@ export async function processCampaignSend(input: {
     reservationSourceId: reservation.sourceId,
   });
 
-  await createAuditLog(input.db, {
-    organizationId: input.organizationId,
-    actorUserId: input.userId,
-    eventType: 'campaign.sent',
-    resourceType: 'campaign',
-    resourceId: input.campaignId,
-    metadata: {
+  await recordAuditLog(
+    input.db,
+    auditEvents.campaignSent({
+      organizationId: input.organizationId,
+      actorUserId: input.userId,
+      campaignId: input.campaignId,
       recipientCount: recipients.length,
       sentCount,
       skippedCount,
       reservedCreditCount,
       actualCreditCount,
-    },
-  });
+    }),
+  );
 
   const completedCampaign = await markCampaignSendCompleted(input.db, {
     organizationId: input.organizationId,

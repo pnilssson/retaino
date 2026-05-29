@@ -9,6 +9,7 @@ describe('sms messages schema', () => {
     expect(smsMessages.campaignId.name).toBe('campaign_id');
     expect(smsMessages.recipientId.name).toBe('recipient_id');
     expect(smsMessages.contactId.name).toBe('contact_id');
+    expect(smsMessages.createdByUserId.name).toBe('created_by_user_id');
     expect(smsMessages.provider.name).toBe('provider');
     expect(smsMessages.providerMessageId.name).toBe('provider_message_id');
     expect(smsMessages.providerMessagingServiceId.name).toBe(

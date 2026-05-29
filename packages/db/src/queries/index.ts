@@ -1,3 +1,4 @@
+export * from './audit-logs';
 export * from './billing';
 export * from './campaign-audience';
 export * from './campaign-communications';

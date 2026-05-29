@@ -3,7 +3,6 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it, vi } from 'vitest';
 import {
   countCampaignRecipients,
-  createAuditLog,
   deleteCampaignDraft,
   getLatestCampaignRecipientByPhoneHash,
   listSelectedCampaignRecipientsForSend,
@@ -16,6 +15,7 @@ import {
   startCampaignSend,
   updateCampaignDraft,
 } from '../../src/queries/campaigns';
+import { recordAuditLog } from '../../src/queries/audit-logs';
 import { campaignRow, recipientRow } from './campaign-fixtures';
 
 describe('campaign query helpers', () => {
@@ -225,7 +225,12 @@ describe('campaign query helpers', () => {
             excludeCampaignIds: [],
             recentCampaignExclusionDays: 30,
           },
+          smsBody: campaignRow.smsBody,
+          bookingUrl: campaignRow.bookingUrl,
+          campaignCode: campaignRow.campaignCode,
+          attributionWindowDays: campaignRow.attributionWindowDays,
           recipientCount: 1,
+          recentCampaignExclusionAcknowledged: false,
         }),
       }),
     ]);
@@ -852,7 +857,7 @@ describe('campaign query helpers', () => {
       }),
     };
 
-    await createAuditLog(db as never, {
+    await recordAuditLog(db as never, {
       organizationId: campaignRow.organizationId,
       actorUserId: campaignRow.createdByUserId,
       eventType: 'campaign.ready_to_send',

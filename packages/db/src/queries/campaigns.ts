@@ -19,13 +19,14 @@ import {
   type CreateCampaignDraftInput,
   type UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
+import { auditEvents } from '../audit-events';
 import type { DbClient } from '../client';
 import {
-  auditLogs,
   campaignRecipients,
   campaigns,
   contacts,
 } from '../schema';
+import { recordAuditLog } from './audit-logs';
 import {
   campaignAudienceWhere,
 } from './campaign-audience';
@@ -557,6 +558,7 @@ export async function launchCampaign(
     organizationId: string;
     campaignId: string;
     actorUserId: string;
+    recentCampaignExclusionAcknowledged?: boolean | undefined;
     userAgent?: string | null;
     now?: Date;
   },
@@ -674,24 +676,23 @@ export async function launchCampaign(
       recipientCount += insertedRecipients.length;
     }
 
-    await tx
-      .insert(auditLogs)
-      .values(
-        auditLogValues({
-          organizationId: input.organizationId,
-          actorUserId: input.actorUserId,
-          eventType: 'campaign.ready_to_send',
-          resourceType: 'campaign',
-          resourceId: campaign.id,
-          metadata: {
-            audienceRule,
-            campaignCode: campaign.campaignCode,
-            recipientCount,
-          },
-          userAgent: input.userAgent ?? null,
-        }),
-      )
-      .returning();
+    await recordAuditLog(
+      tx,
+      auditEvents.campaignReadyToSend({
+        organizationId: input.organizationId,
+        actorUserId: input.actorUserId,
+        campaignId: campaign.id,
+        audienceRule,
+        smsBody: campaign.smsBody,
+        bookingUrl: campaign.bookingUrl,
+        campaignCode: campaign.campaignCode,
+        attributionWindowDays: campaign.attributionWindowDays,
+        recipientCount,
+        recentCampaignExclusionAcknowledged:
+          input.recentCampaignExclusionAcknowledged ?? false,
+        userAgent: input.userAgent ?? null,
+      }),
+    );
 
     return {
       status: 'launched',
@@ -699,46 +700,6 @@ export async function launchCampaign(
       recipientCount,
     };
   });
-}
-
-export async function createAuditLog(
-  db: DbClient,
-  input: {
-    organizationId: string;
-    actorUserId: string;
-    eventType: string;
-    resourceType: string;
-    resourceId: string;
-    metadata: Record<string, unknown>;
-    userAgent?: string | null;
-  },
-) {
-  assertOrganizationId(input.organizationId);
-
-  await db
-    .insert(auditLogs)
-    .values(auditLogValues(input))
-    .returning();
-}
-
-function auditLogValues(input: {
-  organizationId: string;
-  actorUserId: string;
-  eventType: string;
-  resourceType: string;
-  resourceId: string;
-  metadata: Record<string, unknown>;
-  userAgent?: string | null;
-}) {
-  return {
-    organizationId: input.organizationId,
-    actorUserId: input.actorUserId,
-    eventType: input.eventType,
-    resourceType: input.resourceType,
-    resourceId: input.resourceId,
-    metadata: input.metadata,
-    userAgent: input.userAgent ?? null,
-  };
 }
 
 function recipientForSendToContract(

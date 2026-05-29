@@ -4,14 +4,15 @@ import {
   type CreateReportedBookingsInput,
 } from '@retaino/shared';
 import type { CampaignReport } from '@retaino/shared/contracts';
+import { auditEvents } from '../audit-events';
 import type { DbClient } from '../client';
 import {
-  auditLogs,
   campaignRecipients,
   campaigns,
   organizationProfiles,
   reportedBookings,
 } from '../schema';
+import { recordAuditLog } from './audit-logs';
 import { assertOrganizationId } from './contacts';
 
 type ReportedBookingResult =
@@ -161,22 +162,18 @@ export async function createReportedBookings(
       0,
     );
 
-    await tx
-      .insert(auditLogs)
-      .values({
+    await recordAuditLog(
+      tx,
+      auditEvents.reportedBookingsCreated({
         organizationId: input.organizationId,
         actorUserId: input.actorUserId,
-        eventType: 'campaign.reported_bookings.created',
-        resourceType: 'campaign',
-        resourceId: input.campaignId,
-        metadata: {
-          bookingCount: preparedRows.length,
-          currency,
-          revenueAmountMinor,
-        },
+        campaignId: input.campaignId,
+        bookingCount: preparedRows.length,
+        currency,
+        revenueAmountMinor,
         userAgent: input.userAgent ?? null,
-      })
-      .returning();
+      }),
+    );
 
     return {
       status: 'created',

@@ -235,6 +235,7 @@ export async function createManualReplySmsMessage(
     conversationId: string;
     organizationId: string;
     contactId: string | null;
+    createdByUserId: string;
     provider: SmsSenderProvider;
     fromPhone: string | null;
     toPhone: string;
@@ -257,6 +258,7 @@ export async function createManualReplySmsMessage(
       campaignId: null,
       recipientId: null,
       contactId: input.contactId,
+      createdByUserId: input.createdByUserId,
       provider: input.provider,
       fromPhone: input.fromPhone,
       toPhone: input.toPhone,

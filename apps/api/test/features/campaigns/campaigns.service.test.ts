@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  auditEvents,
   countCampaignRecipients,
-  createAuditLog,
   createOutboundSmsMessage,
   findCampaignSendExclusionForRecipient,
   findSuppressionByHash,
@@ -17,6 +17,7 @@ import {
   markCampaignRecipientSkipped,
   markCampaignSendCompleted,
   markCampaignSendFailed,
+  recordAuditLog,
   recordSmsMessageProviderResult,
   startCampaignSend,
   upsertTrackingLink,
@@ -35,8 +36,36 @@ import { captureBackgroundError } from '../../../src/lib/sentry';
 import { createSmsProvider } from '../../../src/lib/sms-provider';
 
 vi.mock('@retaino/db', () => ({
+  auditEvents: {
+    campaignFailed: vi.fn((input) => ({
+      ...input,
+      eventType: 'campaign.failed',
+      resourceType: 'campaign',
+      resourceId: input.campaignId,
+      metadata: {
+        recipientCount: input.recipientCount,
+        sentCount: input.sentCount,
+        skippedCount: input.skippedCount,
+        reservedCreditCount: input.reservedCreditCount,
+        actualCreditCount: input.actualCreditCount,
+        failureReason: input.failureReason,
+      },
+    })),
+    campaignSent: vi.fn((input) => ({
+      ...input,
+      eventType: 'campaign.sent',
+      resourceType: 'campaign',
+      resourceId: input.campaignId,
+      metadata: {
+        recipientCount: input.recipientCount,
+        sentCount: input.sentCount,
+        skippedCount: input.skippedCount,
+        reservedCreditCount: input.reservedCreditCount,
+        actualCreditCount: input.actualCreditCount,
+      },
+    })),
+  },
   countCampaignRecipients: vi.fn(),
-  createAuditLog: vi.fn(),
   createOutboundSmsMessage: vi.fn(),
   findCampaignSendExclusionForRecipient: vi.fn(),
   findSuppressionByHash: vi.fn(),
@@ -52,6 +81,7 @@ vi.mock('@retaino/db', () => ({
   markCampaignRecipientSkipped: vi.fn(),
   markCampaignSendCompleted: vi.fn(),
   markCampaignSendFailed: vi.fn(),
+  recordAuditLog: vi.fn(),
   recordSmsMessageProviderResult: vi.fn(),
   startCampaignSend: vi.fn(),
   upsertTrackingLink: vi.fn(),
@@ -161,7 +191,9 @@ const legalAcceptance = {
 
 describe('campaign send service', () => {
   beforeEach(() => {
-    vi.mocked(createAuditLog).mockReset();
+    vi.mocked(recordAuditLog).mockReset();
+    vi.mocked(auditEvents.campaignFailed).mockClear();
+    vi.mocked(auditEvents.campaignSent).mockClear();
     vi.mocked(countCampaignRecipients).mockReset();
     vi.mocked(createOutboundSmsMessage).mockReset();
     vi.mocked(findCampaignSendExclusionForRecipient).mockReset();
@@ -723,7 +755,7 @@ describe('campaign send service', () => {
         actualCreditCount: 1,
       }),
     );
-    expect(createAuditLog).toHaveBeenCalledWith(
+    expect(recordAuditLog).toHaveBeenCalledWith(
       db,
       expect.objectContaining({
         organizationId,
@@ -732,7 +764,7 @@ describe('campaign send service', () => {
       }),
     );
     expect(
-      vi.mocked(createAuditLog).mock.invocationCallOrder[0],
+      vi.mocked(recordAuditLog).mock.invocationCallOrder[0],
     ).toBeLessThan(
       vi.mocked(markCampaignSendCompleted).mock.invocationCallOrder[0] ?? 0,
     );
@@ -1103,7 +1135,7 @@ describe('campaign send service', () => {
     ).toBeLessThan(
       vi.mocked(markCampaignSendFailed).mock.invocationCallOrder[0] ?? 0,
     );
-    expect(createAuditLog).toHaveBeenCalledWith(
+    expect(recordAuditLog).toHaveBeenCalledWith(
       db,
       expect.objectContaining({
         organizationId,

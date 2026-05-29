@@ -11,6 +11,7 @@ import { campaigns, campaignRecipients } from './campaigns';
 import { createdAt, updatedAt } from './common';
 import { contacts } from './contacts';
 import { organizations } from './organizations';
+import { users } from './users';
 
 export const smsMessages = pgTable(
   'sms_messages',
@@ -28,6 +29,9 @@ export const smsMessages = pgTable(
     }),
     contactId: uuid('contact_id').references(() => contacts.id, {
       onDelete: 'set null',
+    }),
+    createdByUserId: uuid('created_by_user_id').references(() => users.id, {
+      onDelete: 'restrict',
     }),
     provider: text('provider').notNull(),
     providerMessageId: text('provider_message_id'),

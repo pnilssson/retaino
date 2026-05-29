@@ -178,6 +178,7 @@ describe('inbox query helpers', () => {
             expect(value).toMatchObject({
               organizationId,
               direction: 'outbound',
+              createdByUserId: '99999999-9999-4999-8999-999999999999',
               normalizedPhone: '+46701111111',
               phoneHash: 'phone-hash-1',
               idempotencyKey: `manual-reply:${conversationId}:client-1`,
@@ -219,6 +220,7 @@ describe('inbox query helpers', () => {
         conversationId,
         organizationId,
         contactId: null,
+        createdByUserId: '99999999-9999-4999-8999-999999999999',
         provider: 'fake',
         fromPhone: '+46700000000',
         toPhone: '+46701111111',

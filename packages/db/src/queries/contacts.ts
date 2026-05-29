@@ -29,6 +29,7 @@ import {
   type UpdateContactInput,
   prepareContactMethodIdentity,
 } from '@retaino/shared/contracts';
+import { auditEvents } from '../audit-events';
 import type { DbClient } from '../client';
 import {
   contactImports,
@@ -36,6 +37,7 @@ import {
   organizationProfiles,
   suppressions,
 } from '../schema';
+import { recordAuditLog, type AuditLogDb } from './audit-logs';
 
 type ContactRow = typeof contacts.$inferSelect;
 type ContactImportDbRow = typeof contactImports.$inferSelect;
@@ -181,29 +183,54 @@ export async function createContactImport(
     organizationId: string;
     createdByUserId: string;
     fileKey: string;
+    fileName: string;
+    fileSize: number;
     mapping: CsvMapping;
     phoneCountryCode: string;
     permissionAttestedByUserId: string;
+    userAgent?: string | null;
   },
 ) {
   assertOrganizationId(input.organizationId);
+  const now = new Date();
 
-  const [row] = await db
-    .insert(contactImports)
-    .values({
-      organizationId: input.organizationId,
-      createdByUserId: input.createdByUserId,
-      status: 'processing',
-      fileKey: input.fileKey,
-      mapping: input.mapping,
-      phoneCountryCode: input.phoneCountryCode,
-      permissionAttestedAt: new Date(),
-      permissionAttestedByUserId: input.permissionAttestedByUserId,
-      startedAt: new Date(),
-    })
-    .returning();
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(contactImports)
+      .values({
+        organizationId: input.organizationId,
+        createdByUserId: input.createdByUserId,
+        status: 'processing',
+        fileKey: input.fileKey,
+        mapping: input.mapping,
+        phoneCountryCode: input.phoneCountryCode,
+        permissionAttestedAt: now,
+        permissionAttestedByUserId: input.permissionAttestedByUserId,
+        startedAt: now,
+      })
+      .returning();
 
-  return row ? contactImportToDetail(row) : null;
+    if (!row) {
+      return null;
+    }
+
+    await recordAuditLog(
+      tx,
+      auditEvents.contactImportStarted({
+        organizationId: input.organizationId,
+        actorUserId: input.createdByUserId,
+        contactImportId: row.id,
+        fileName: input.fileName,
+        fileSize: input.fileSize,
+        mapping: input.mapping,
+        phoneCountryCode: input.phoneCountryCode,
+        permissionAttestedAt: now,
+        userAgent: input.userAgent ?? null,
+      }),
+    );
+
+    return contactImportToDetail(row);
+  });
 }
 
 export async function getContactImportById(
@@ -445,26 +472,54 @@ export async function updateContact(
 
 export async function deleteContact(
   db: DbClient,
-  input: { organizationId: string; contactId: string },
+  input: {
+    organizationId: string;
+    contactId: string;
+    actorUserId: string;
+    userAgent?: string | null;
+  },
 ) {
   assertOrganizationId(input.organizationId);
 
-  const [deleted] = await db
-    .delete(contacts)
-    .where(
-      and(
-        eq(contacts.organizationId, input.organizationId),
-        eq(contacts.id, input.contactId),
-      ),
-    )
-    .returning({ id: contacts.id });
+  return db.transaction(async (tx) => {
+    const [deleted] = await tx
+      .delete(contacts)
+      .where(
+        and(
+          eq(contacts.organizationId, input.organizationId),
+          eq(contacts.id, input.contactId),
+        ),
+      )
+      .returning({ id: contacts.id });
 
-  return Boolean(deleted);
+    if (!deleted) {
+      return false;
+    }
+
+    await recordAuditLog(
+      tx,
+      auditEvents.contactsDeleted({
+        organizationId: input.organizationId,
+        actorUserId: input.actorUserId,
+        mode: 'single',
+        requestedContactIds: [input.contactId],
+        deletedContactIds: [deleted.id],
+        userAgent: input.userAgent ?? null,
+      }),
+    );
+
+    return true;
+  });
 }
 
 export async function deleteContacts(
   db: DbClient,
-  input: { organizationId: string; contactIds: string[] },
+  input: {
+    organizationId: string;
+    contactIds: string[];
+    actorUserId: string;
+    userAgent?: string | null;
+  },
 ) {
   assertOrganizationId(input.organizationId);
 
@@ -472,17 +527,35 @@ export async function deleteContacts(
     return 0;
   }
 
-  const deleted = await db
-    .delete(contacts)
-    .where(
-      and(
-        eq(contacts.organizationId, input.organizationId),
-        inArray(contacts.id, input.contactIds),
-      ),
-    )
-    .returning({ id: contacts.id });
+  return db.transaction(async (tx) => {
+    const deleted = await tx
+      .delete(contacts)
+      .where(
+        and(
+          eq(contacts.organizationId, input.organizationId),
+          inArray(contacts.id, input.contactIds),
+        ),
+      )
+      .returning({ id: contacts.id });
 
-  return deleted.length;
+    if (deleted.length === 0) {
+      return 0;
+    }
+
+    await recordAuditLog(
+      tx,
+      auditEvents.contactsDeleted({
+        organizationId: input.organizationId,
+        actorUserId: input.actorUserId,
+        mode: 'bulk',
+        requestedContactIds: input.contactIds,
+        deletedContactIds: deleted.map((contact) => contact.id),
+        userAgent: input.userAgent ?? null,
+      }),
+    );
+
+    return deleted.length;
+  });
 }
 
 export async function suppressContacts(
@@ -666,77 +739,97 @@ export async function deleteContactSuppression(
     organizationId: string;
     contactId: string;
     suppressionId: string;
+    actorUserId: string;
+    userAgent?: string | null;
   },
 ): Promise<DeleteContactSuppressionResult> {
   assertOrganizationId(input.organizationId);
 
-  const [contact] = await db
-    .select()
-    .from(contacts)
-    .where(
-      and(
-        eq(contacts.organizationId, input.organizationId),
-        eq(contacts.id, input.contactId),
-      ),
-    )
-    .limit(1);
+  return db.transaction(async (tx) => {
+    const [contact] = await tx
+      .select()
+      .from(contacts)
+      .where(
+        and(
+          eq(contacts.organizationId, input.organizationId),
+          eq(contacts.id, input.contactId),
+        ),
+      )
+      .limit(1);
 
-  if (!contact) {
-    return { status: 'not_found' };
-  }
+    if (!contact) {
+      return { status: 'not_found' };
+    }
 
-  const methodFilter = contactSuppressionMethodFilter(contact);
+    const methodFilter = contactSuppressionMethodFilter(contact);
 
-  if (!methodFilter) {
-    return { status: 'not_found' };
-  }
+    if (!methodFilter) {
+      return { status: 'not_found' };
+    }
 
-  const [suppression] = await db
-    .select()
-    .from(suppressions)
-    .where(
-      and(
-        eq(suppressions.organizationId, input.organizationId),
-        eq(suppressions.id, input.suppressionId),
-        methodFilter,
-      ),
-    )
-    .limit(1);
+    const [suppression] = await tx
+      .select()
+      .from(suppressions)
+      .where(
+        and(
+          eq(suppressions.organizationId, input.organizationId),
+          eq(suppressions.id, input.suppressionId),
+          methodFilter,
+        ),
+      )
+      .limit(1);
 
-  if (!suppression) {
-    return { status: 'not_found' };
-  }
+    if (!suppression) {
+      return { status: 'not_found' };
+    }
 
-  const [deleted] = await db
-    .delete(suppressions)
-    .where(
-      and(
-        eq(suppressions.organizationId, input.organizationId),
-        eq(suppressions.id, input.suppressionId),
-      ),
-    )
-    .returning({ id: suppressions.id });
+    const [deleted] = await tx
+      .delete(suppressions)
+      .where(
+        and(
+          eq(suppressions.organizationId, input.organizationId),
+          eq(suppressions.id, input.suppressionId),
+        ),
+      )
+      .returning({ id: suppressions.id });
 
-  if (!deleted) {
-    return { status: 'not_found' };
-  }
+    if (!deleted) {
+      return { status: 'not_found' };
+    }
 
-  const updatedContact = await touchContactUpdatedAt(db, {
-    organizationId: input.organizationId,
-    contactId: input.contactId,
-  });
+    await recordAuditLog(
+      tx,
+      auditEvents.contactSuppressionDeleted({
+        organizationId: input.organizationId,
+        actorUserId: input.actorUserId,
+        contactId: input.contactId,
+        suppressionId: suppression.id,
+        type: suppression.type as SuppressionType,
+        valueHash: suppression.valueHash,
+        reason: suppression.reason,
+        source: suppression.source,
+        createdAt: suppression.createdAt,
+        userAgent: input.userAgent ?? null,
+      }),
+    );
 
-  return {
-    status: 'deleted',
-    contact: contactDetailToContract(
-      updatedContact ?? contact,
-      await listContactSuppressionsForRow(
-        db,
-        input.organizationId,
+    const updatedContact = await touchContactUpdatedAt(tx, {
+      organizationId: input.organizationId,
+      contactId: input.contactId,
+    });
+
+    return {
+      status: 'deleted',
+      contact: contactDetailToContract(
         updatedContact ?? contact,
+        await listContactSuppressionsForRow(
+          tx,
+          input.organizationId,
+          updatedContact ?? contact,
+        ),
       ),
-    ),
-  };
+    };
+  });
 }
 
 export function contactSuppressionMethodFilter(
@@ -770,7 +863,7 @@ export function contactSuppressionMethodFilter(
 }
 
 async function touchContactUpdatedAt(
-  db: DbClient,
+  db: Pick<AuditLogDb, 'update'>,
   input: { organizationId: string; contactId: string },
 ) {
   const [row] = await db
@@ -788,7 +881,7 @@ async function touchContactUpdatedAt(
 }
 
 async function listContactSuppressionsForRow(
-  db: DbClient,
+  db: Pick<AuditLogDb, 'select'>,
   organizationId: string,
   row: ContactRow,
 ) {
@@ -1041,34 +1134,50 @@ export async function completeContactImport(
 ) {
   assertOrganizationId(input.organizationId);
 
-  const [row] = await db
-    .update(contactImports)
-    .set({
-      totalRows: input.counts.totalRows,
-      processedRows: input.counts.processedRows,
-      createdCount: input.counts.createdCount,
-      updatedCount: input.counts.updatedCount,
-      skippedCount: input.counts.skippedCount,
-      invalidCount: input.counts.invalidCount,
-      duplicateCount: input.counts.duplicateCount,
-      suppressedCount: input.counts.suppressedCount,
-      errorSummary: input.counts.errorSummary,
-      status: 'completed',
-      fileKey: null,
-      mapping: null,
-      completedAt: new Date(),
-      failedAt: null,
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(contactImports.organizationId, input.organizationId),
-        eq(contactImports.id, input.contactImportId),
-      ),
-    )
-    .returning();
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(contactImports)
+      .set({
+        totalRows: input.counts.totalRows,
+        processedRows: input.counts.processedRows,
+        createdCount: input.counts.createdCount,
+        updatedCount: input.counts.updatedCount,
+        skippedCount: input.counts.skippedCount,
+        invalidCount: input.counts.invalidCount,
+        duplicateCount: input.counts.duplicateCount,
+        suppressedCount: input.counts.suppressedCount,
+        errorSummary: input.counts.errorSummary,
+        status: 'completed',
+        fileKey: null,
+        mapping: null,
+        completedAt: new Date(),
+        failedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(contactImports.organizationId, input.organizationId),
+          eq(contactImports.id, input.contactImportId),
+        ),
+      )
+      .returning();
 
-  return row ? contactImportToDetail(row) : null;
+    if (!row) {
+      return null;
+    }
+
+    await recordAuditLog(
+      tx,
+      auditEvents.contactImportCompleted({
+        organizationId: input.organizationId,
+        actorUserId: row.createdByUserId,
+        contactImportId: input.contactImportId,
+        counts: input.counts,
+      }),
+    );
+
+    return contactImportToDetail(row);
+  });
 }
 
 export async function failContactImport(
@@ -1077,26 +1186,43 @@ export async function failContactImport(
 ) {
   assertOrganizationId(input.organizationId);
 
-  const [row] = await db
-    .update(contactImports)
-    .set({
-      status: 'failed',
-      fileKey: null,
-      mapping: null,
-      errorSummary: [input.error],
-      failedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(contactImports.organizationId, input.organizationId),
-        eq(contactImports.id, input.contactImportId),
-        eq(contactImports.status, 'processing'),
-      ),
-    )
-    .returning();
+  return db.transaction(async (tx) => {
+    const errorSummary = [input.error];
+    const [row] = await tx
+      .update(contactImports)
+      .set({
+        status: 'failed',
+        fileKey: null,
+        mapping: null,
+        errorSummary,
+        failedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(contactImports.organizationId, input.organizationId),
+          eq(contactImports.id, input.contactImportId),
+          eq(contactImports.status, 'processing'),
+        ),
+      )
+      .returning();
 
-  return row ? contactImportToDetail(row) : null;
+    if (!row) {
+      return null;
+    }
+
+    await recordAuditLog(
+      tx,
+      auditEvents.contactImportFailed({
+        organizationId: input.organizationId,
+        actorUserId: row.createdByUserId,
+        contactImportId: input.contactImportId,
+        errorSummary,
+      }),
+    );
+
+    return contactImportToDetail(row);
+  });
 }
 
 export function contactStatusFilter(

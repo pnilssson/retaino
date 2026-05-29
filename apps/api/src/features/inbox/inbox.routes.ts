@@ -101,6 +101,7 @@ export const inboxRoutes = new Hono<AppEnv>()
         db: c.get('db'),
         env: c.env,
         organizationId: c.get('organization').id,
+        actorUserId: c.get('user').id,
         conversationId: c.req.param('id'),
         reply: parsed.data,
       });

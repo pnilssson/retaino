@@ -11,25 +11,6 @@ import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 
-const heroMetrics = [
-  {
-    label: 'of SMS messages read within 3 minutes',
-    value: '90%'
-  },
-  {
-    label: 'want appointment scheduling texts',
-    value: '85%'
-  },
-  {
-    label: 'say text is best for a response',
-    value: '59%'
-  },
-  {
-    label: 'booking-system switch required',
-    value: '0'
-  }
-] as const;
-
 export function HeroSection() {
   const shouldReduceMotion = useReducedMotion();
 
@@ -82,36 +63,6 @@ export function HeroSection() {
             </div>
           </div>
         </div>
-
-        <motion.div
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-12 grid grid-cols-2 border-x border-y bg-background/90 backdrop-blur sm:mb-16 lg:grid-cols-4"
-          initial={{ opacity: 0, y: 14 }}
-          transition={{
-            delay: shouldReduceMotion ? 0 : 0.32,
-            duration: shouldReduceMotion ? 0 : 0.45
-          }}
-        >
-          {heroMetrics.map((metric, index) => (
-            <div
-              className={[
-                'min-h-24 p-4 sm:min-h-28 sm:px-8 sm:py-7',
-                index < 2 ? 'border-b lg:border-b-0' : '',
-                index % 2 === 1 ? 'border-l' : '',
-                index > 0 ? 'lg:border-l' : ''
-              ].join(' ')}
-              key={metric.label}
-            >
-              <p className={textStyles.numeric}>
-                {metric.value}
-              </p>
-              <p className={cn('mt-2 max-w-40 sm:mt-3 sm:max-w-48', textStyles.meta)}>
-                {metric.label}
-              </p>
-            </div>
-          ))}
-        </motion.div>
-
       </div>
     </section>
   );

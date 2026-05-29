@@ -52,6 +52,7 @@ vi.mock('../../../src/lib/sms-provider', () => ({
 
 const db = {} as never;
 const organizationId = '22222222-2222-4222-8222-222222222222';
+const userId = '99999999-9999-4999-8999-999999999999';
 const conversationId = '11111111-1111-4111-8111-111111111111';
 const messageId = '33333333-3333-4333-8333-333333333333';
 const clientRequestId = '44444444-4444-4444-8444-444444444444';
@@ -233,6 +234,7 @@ describe('inbox service', () => {
         conversationId,
         organizationId,
         contactId: conversation.contactId,
+        createdByUserId: userId,
         fromPhone: sender.phoneNumber,
         toPhone: conversation.phone,
         normalizedPhone: conversation.phone,
@@ -386,6 +388,7 @@ function sendReply() {
       TWILIO_STATUS_CALLBACK_BASE_URL: 'https://api.retaino.test',
     } as never,
     organizationId,
+    actorUserId: userId,
     conversationId,
     reply: {
       body: message.body,

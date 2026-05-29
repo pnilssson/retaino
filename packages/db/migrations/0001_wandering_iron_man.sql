@@ -1,0 +1,2 @@
+ALTER TABLE "sms_messages" ADD COLUMN "created_by_user_id" uuid;--> statement-breakpoint
+ALTER TABLE "sms_messages" ADD CONSTRAINT "sms_messages_created_by_user_id_users_id_fk" FOREIGN KEY ("created_by_user_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;

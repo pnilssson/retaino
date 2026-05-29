@@ -4,10 +4,10 @@ import { SiteHeader } from '@/features/marketing/components/site-header';
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
-    <>
+    <div className="flex min-h-dvh flex-col bg-background">
       <SiteHeader />
-      {children}
+      <div className="flex flex-1 flex-col">{children}</div>
       <SiteFooter />
-    </>
+    </div>
   );
 }

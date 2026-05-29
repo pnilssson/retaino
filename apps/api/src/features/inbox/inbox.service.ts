@@ -96,6 +96,7 @@ export async function sendInboxReply(input: {
   db: DbClient;
   env: AppEnv['Bindings'];
   organizationId: string;
+  actorUserId: string;
   conversationId: string;
   reply: SendInboxReplyInput;
 }): Promise<SendInboxReplyResult> {
@@ -158,6 +159,7 @@ export async function sendInboxReply(input: {
       conversationId: input.conversationId,
       organizationId: input.organizationId,
       contactId: conversation.contactId,
+      createdByUserId: input.actorUserId,
       provider: provider.name,
       fromPhone: sender.phoneNumber,
       toPhone: phoneIdentity.normalizedPhone,

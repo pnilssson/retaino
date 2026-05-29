@@ -168,7 +168,7 @@ describe('contact query helpers', () => {
 
   it('only fails imports that are still processing', async () => {
     let whereCondition: SQL | undefined;
-    const db = {
+    const tx = {
       update: () => ({
         set: () => ({
           where: (condition: SQL | undefined) => {
@@ -180,6 +180,10 @@ describe('contact query helpers', () => {
           },
         }),
       }),
+    };
+    const db = {
+      transaction: async (callback: (inner: typeof tx) => unknown) =>
+        callback(tx),
     };
 
     await failContactImport(db as never, {
@@ -206,7 +210,8 @@ describe('contact query helpers', () => {
 
   it('bulk deletes only contacts owned by the organization', async () => {
     let whereCondition: SQL | undefined;
-    const db = {
+    const auditValues: unknown[] = [];
+    const tx = {
       delete: () => ({
         where: (condition: SQL | undefined) => {
           whereCondition = condition;
@@ -218,6 +223,19 @@ describe('contact query helpers', () => {
           };
         },
       }),
+      insert: () => ({
+        values: (values: unknown) => {
+          auditValues.push(values);
+
+          return {
+            returning: () => [],
+          };
+        },
+      }),
+    };
+    const db = {
+      transaction: async (callback: (inner: typeof tx) => unknown) =>
+        callback(tx),
     };
 
     await deleteContacts(db as never, {
@@ -226,6 +244,7 @@ describe('contact query helpers', () => {
         '11111111-1111-4111-8111-111111111111',
         '33333333-3333-4333-8333-333333333333',
       ],
+      actorUserId: '99999999-9999-4999-8999-999999999999',
     });
 
     if (!whereCondition) {
@@ -242,6 +261,18 @@ describe('contact query helpers', () => {
       '22222222-2222-4222-8222-222222222222',
       '11111111-1111-4111-8111-111111111111',
       '33333333-3333-4333-8333-333333333333',
+    ]);
+    expect(auditValues).toEqual([
+      expect.objectContaining({
+        actorUserId: '99999999-9999-4999-8999-999999999999',
+        eventType: 'contacts.deleted',
+        resourceType: 'organization',
+        metadata: expect.objectContaining({
+          mode: 'bulk',
+          deletedCount: 1,
+          deletedContactIds: ['11111111-1111-4111-8111-111111111111'],
+        }),
+      }),
     ]);
   });
 
