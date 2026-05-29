@@ -56,7 +56,7 @@ export function ProfileSection({
     <ContentSection
       actions={
         canManageSetup && !isEditing ? (
-          <Button onClick={openEditMode} type="button" variant="outline">
+          <Button onClick={openEditMode} type="button">
             <Pencil aria-hidden="true" data-icon="inline-start" />
             {profile ? 'Edit profile' : 'Complete profile'}
           </Button>

@@ -70,7 +70,7 @@ function SettingsContent({
 }) {
   const headerActions = canManageSetup ? (
     session.readiness.setupComplete ? (
-      <Button onClick={onManageOrganization} type="button" variant="outline">
+      <Button onClick={onManageOrganization} type="button">
         <Settings2 aria-hidden="true" data-icon="inline-start" />
         Manage organization
       </Button>

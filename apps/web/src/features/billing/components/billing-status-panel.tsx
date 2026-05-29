@@ -54,7 +54,6 @@ export function BillingStatusPanel({
               }
               onClick={onOpenPortal}
               type="button"
-              variant="outline"
             >
               <ExternalLink aria-hidden="true" data-icon="inline-start" />
               {isPortalPending ? 'Opening' : 'Manage'}

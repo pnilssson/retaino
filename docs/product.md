@@ -21,7 +21,7 @@ Required:
 
 - organization-scoped product data and access control
 - self-serve onboarding with legal company profile, billing details, responsible contact, sender-compliance company fields, and legal bundle acceptance
-- self-serve Stripe billing with subscriptions, credit packs, and portal access
+- self-serve Stripe billing with subscriptions and portal access
 - CSV contact import with field mapping, validation, dedupe, suppression checks, and permission attestation
 - campaign-owned lapsed-customer audience rules with internal draft persistence
 - one dedicated two-way SMS-capable sender number and Messaging Service per organization

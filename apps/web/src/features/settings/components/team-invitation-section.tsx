@@ -22,7 +22,6 @@ export function TeamInvitationSection({ session }: TeamInvitationSectionProps) {
               disabled={!canManageTeam}
               onClick={() => openOrganizationProfile()}
               type="button"
-              variant="outline"
             >
               <UsersRound aria-hidden="true" data-icon="inline-start" />
               Manage access

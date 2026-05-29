@@ -32,7 +32,6 @@ CREATE TABLE "sms_credit_transactions" (
 	"credits" integer NOT NULL,
 	"source" text NOT NULL,
 	"source_id" text NOT NULL,
-	"credit_bucket" text DEFAULT 'purchased' NOT NULL,
 	"period_start" timestamp with time zone,
 	"period_end" timestamp with time zone,
 	"description" text NOT NULL,
@@ -274,6 +273,18 @@ CREATE TABLE "organization_sms_senders" (
 	"failure_reason" text,
 	"provisioned_at" timestamp with time zone,
 	"last_verified_at" timestamp with time zone,
+	"release_scheduled_at" timestamp with time zone,
+	"released_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "sms_conversations" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"phone_hash" text NOT NULL,
+	"normalized_phone" text NOT NULL,
+	"last_read_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -291,6 +302,9 @@ CREATE TABLE "sms_messages" (
 	"provider_phone_number_id" text,
 	"from_phone" text,
 	"to_phone" text NOT NULL,
+	"normalized_phone" text,
+	"phone_hash" text,
+	"idempotency_key" text,
 	"body" text NOT NULL,
 	"status" text NOT NULL,
 	"estimated_segment_count" integer NOT NULL,
@@ -360,6 +374,7 @@ ALTER TABLE "reported_bookings" ADD CONSTRAINT "reported_bookings_campaign_recip
 ALTER TABLE "reported_bookings" ADD CONSTRAINT "reported_bookings_contact_id_contacts_id_fk" FOREIGN KEY ("contact_id") REFERENCES "public"."contacts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "reported_bookings" ADD CONSTRAINT "reported_bookings_created_by_user_id_users_id_fk" FOREIGN KEY ("created_by_user_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "organization_sms_senders" ADD CONSTRAINT "organization_sms_senders_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "sms_conversations" ADD CONSTRAINT "sms_conversations_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sms_messages" ADD CONSTRAINT "sms_messages_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sms_messages" ADD CONSTRAINT "sms_messages_campaign_id_campaigns_id_fk" FOREIGN KEY ("campaign_id") REFERENCES "public"."campaigns"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sms_messages" ADD CONSTRAINT "sms_messages_recipient_id_campaign_recipients_id_fk" FOREIGN KEY ("recipient_id") REFERENCES "public"."campaign_recipients"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -375,7 +390,7 @@ CREATE UNIQUE INDEX "organization_billing_profiles_organization_id_idx" ON "orga
 CREATE UNIQUE INDEX "organization_billing_profiles_stripe_customer_id_idx" ON "organization_billing_profiles" USING btree ("stripe_customer_id");--> statement-breakpoint
 CREATE INDEX "organization_billing_profiles_subscription_status_idx" ON "organization_billing_profiles" USING btree ("subscription_status");--> statement-breakpoint
 CREATE INDEX "sms_credit_transactions_organization_created_idx" ON "sms_credit_transactions" USING btree ("organization_id","created_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "sms_credit_transactions_source_idx" ON "sms_credit_transactions" USING btree ("source","source_id","credit_bucket");--> statement-breakpoint
+CREATE UNIQUE INDEX "sms_credit_transactions_source_idx" ON "sms_credit_transactions" USING btree ("organization_id","source","source_id","period_start","period_end");--> statement-breakpoint
 CREATE INDEX "audit_logs_organization_created_idx" ON "audit_logs" USING btree ("organization_id","created_at");--> statement-breakpoint
 CREATE INDEX "audit_logs_resource_idx" ON "audit_logs" USING btree ("resource_type","resource_id");--> statement-breakpoint
 CREATE INDEX "campaign_recipients_organization_campaign_idx" ON "campaign_recipients" USING btree ("organization_id","campaign_id");--> statement-breakpoint
@@ -415,12 +430,15 @@ CREATE INDEX "organization_sms_senders_organization_status_idx" ON "organization
 CREATE INDEX "organization_sms_senders_provider_service_idx" ON "organization_sms_senders" USING btree ("provider","provider_messaging_service_id");--> statement-breakpoint
 CREATE INDEX "organization_sms_senders_provider_phone_ref_idx" ON "organization_sms_senders" USING btree ("provider","provider_phone_number_id");--> statement-breakpoint
 CREATE INDEX "organization_sms_senders_provider_phone_idx" ON "organization_sms_senders" USING btree ("provider","phone_number");--> statement-breakpoint
+CREATE UNIQUE INDEX "sms_conversations_organization_phone_hash_idx" ON "sms_conversations" USING btree ("organization_id","phone_hash");--> statement-breakpoint
 CREATE INDEX "sms_messages_organization_campaign_idx" ON "sms_messages" USING btree ("organization_id","campaign_id");--> statement-breakpoint
 CREATE INDEX "sms_messages_organization_received_idx" ON "sms_messages" USING btree ("organization_id","received_at");--> statement-breakpoint
 CREATE INDEX "sms_messages_organization_contact_idx" ON "sms_messages" USING btree ("organization_id","contact_id");--> statement-breakpoint
 CREATE INDEX "sms_messages_organization_recipient_idx" ON "sms_messages" USING btree ("organization_id","recipient_id");--> statement-breakpoint
+CREATE INDEX "sms_messages_organization_phone_created_idx" ON "sms_messages" USING btree ("organization_id","phone_hash","created_at");--> statement-breakpoint
+CREATE INDEX "sms_messages_organization_contact_created_idx" ON "sms_messages" USING btree ("organization_id","contact_id","created_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "sms_messages_provider_message_idx" ON "sms_messages" USING btree ("provider","provider_message_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "sms_messages_campaign_recipient_direction_idx" ON "sms_messages" USING btree ("organization_id","campaign_id","recipient_id","direction");--> statement-breakpoint
+CREATE UNIQUE INDEX "sms_messages_organization_idempotency_idx" ON "sms_messages" USING btree ("organization_id","idempotency_key");--> statement-breakpoint
 CREATE UNIQUE INDEX "tracking_links_code_idx" ON "tracking_links" USING btree ("code");--> statement-breakpoint
 CREATE UNIQUE INDEX "tracking_links_recipient_idx" ON "tracking_links" USING btree ("organization_id","recipient_id");--> statement-breakpoint
 CREATE INDEX "tracking_links_organization_campaign_idx" ON "tracking_links" USING btree ("organization_id","campaign_id");--> statement-breakpoint

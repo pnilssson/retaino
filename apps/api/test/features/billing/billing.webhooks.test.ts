@@ -1,15 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  claimBillingWebhookEventProcessing,
   createSmsCreditTransaction,
-  getBillingWebhookEventByStripeEventId,
+  markBillingWebhookEventFailed,
   markBillingWebhookEventProcessed,
-  recordBillingWebhookEvent,
   clearOrganizationSmsSenderReleaseSchedule,
   scheduleOrganizationSmsSenderRelease,
   upsertOrganizationBillingProfile,
 } from '@retaino/db';
 import {
   processStripeBillingWebhook,
+  BillingWebhookProcessingInProgressError,
   verifyStripeWebhookEvent,
 } from '../../../src/features/billing/billing.webhooks';
 
@@ -18,10 +19,10 @@ vi.mock('@retaino/db', async (importOriginal) => {
 
   return {
     ...actual,
+    claimBillingWebhookEventProcessing: vi.fn(),
     createSmsCreditTransaction: vi.fn(),
-    getBillingWebhookEventByStripeEventId: vi.fn(),
+    markBillingWebhookEventFailed: vi.fn(),
     markBillingWebhookEventProcessed: vi.fn(),
-    recordBillingWebhookEvent: vi.fn(),
     clearOrganizationSmsSenderReleaseSchedule: vi.fn(),
     scheduleOrganizationSmsSenderRelease: vi.fn(),
     upsertOrganizationBillingProfile: vi.fn(),
@@ -34,23 +35,16 @@ const organizationId = '22222222-2222-4222-8222-222222222222';
 describe('Stripe billing webhooks', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.mocked(claimBillingWebhookEventProcessing).mockReset();
     vi.mocked(createSmsCreditTransaction).mockReset();
-    vi.mocked(getBillingWebhookEventByStripeEventId).mockReset();
+    vi.mocked(markBillingWebhookEventFailed).mockReset();
     vi.mocked(markBillingWebhookEventProcessed).mockReset();
-    vi.mocked(recordBillingWebhookEvent).mockReset();
     vi.mocked(clearOrganizationSmsSenderReleaseSchedule).mockReset();
     vi.mocked(scheduleOrganizationSmsSenderRelease).mockReset();
     vi.mocked(upsertOrganizationBillingProfile).mockReset();
     vi.setSystemTime(new Date('2026-05-15T12:00:00.000Z'));
-    vi.mocked(recordBillingWebhookEvent).mockResolvedValue({
-      id: '11111111-1111-4111-8111-111111111111',
-      stripeEventId: 'evt_123',
-      eventType: 'checkout.session.completed',
-      organizationId,
-      status: 'received',
-      payload: {},
-      receivedAt: new Date('2026-05-15T00:00:00.000Z'),
-      processedAt: null,
+    vi.mocked(claimBillingWebhookEventProcessing).mockResolvedValue({
+      claimStatus: 'claimed',
     });
   });
 
@@ -84,55 +78,50 @@ describe('Stripe billing webhooks', () => {
     );
   });
 
-  it('skips already processed duplicate Stripe events', async () => {
-    vi.mocked(recordBillingWebhookEvent).mockResolvedValue(null);
-    vi.mocked(getBillingWebhookEventByStripeEventId).mockResolvedValue({
-      id: '11111111-1111-4111-8111-111111111111',
-      stripeEventId: 'evt_123',
-      eventType: 'checkout.session.completed',
-      organizationId,
-      status: 'processed',
-      payload: {},
-      receivedAt: new Date('2026-05-15T00:00:00.000Z'),
-      processedAt: new Date('2026-05-15T00:00:00.000Z'),
+  it('skips duplicate Stripe events that were already processed', async () => {
+    vi.mocked(claimBillingWebhookEventProcessing).mockResolvedValue({
+      claimStatus: 'processed',
     });
 
     await expect(
       processStripeBillingWebhook({
         db,
-        event: creditPackCheckoutEvent(),
+        event: invoicePaidEvent(),
       }),
     ).resolves.toEqual({ status: 'duplicate' });
     expect(createSmsCreditTransaction).not.toHaveBeenCalled();
   });
 
-  it('grants purchased credits from completed credit pack Checkout sessions', async () => {
-    await processStripeBillingWebhook({
-      db,
-      event: creditPackCheckoutEvent(),
+  it('rejects duplicate Stripe events that are still processing', async () => {
+    vi.mocked(claimBillingWebhookEventProcessing).mockResolvedValue({
+      claimStatus: 'processing',
     });
 
-    expect(recordBillingWebhookEvent).toHaveBeenCalledWith(expect.anything(), {
-      stripeEventId: 'evt_123',
-      eventType: 'checkout.session.completed',
-      organizationId,
-      payload: expect.objectContaining({ id: 'evt_123' }),
-    });
-    expect(createSmsCreditTransaction).toHaveBeenCalledWith(expect.anything(), {
-      organizationId,
-      transactionType: 'grant',
-      credits: 1500,
-      creditBucket: 'purchased',
-      periodStart: null,
-      periodEnd: null,
-      source: 'stripe_checkout_session',
-      sourceId: 'cs_123',
-      description: '1,500 credits purchase',
-    });
-    expect(markBillingWebhookEventProcessed).toHaveBeenCalledWith(
-      expect.anything(),
-      'evt_123',
+    await expect(
+      processStripeBillingWebhook({
+        db,
+        event: invoicePaidEvent(),
+      }),
+    ).rejects.toBeInstanceOf(BillingWebhookProcessingInProgressError);
+    expect(createSmsCreditTransaction).not.toHaveBeenCalled();
+  });
+
+  it('marks claimed Stripe events as failed when processing throws', async () => {
+    vi.mocked(createSmsCreditTransaction).mockRejectedValue(
+      new Error('database unavailable'),
     );
+
+    await expect(
+      processStripeBillingWebhook({
+        db,
+        event: invoicePaidEvent(),
+      }),
+    ).rejects.toThrow('database unavailable');
+    expect(markBillingWebhookEventFailed).toHaveBeenCalledWith(
+      expect.anything(),
+      'evt_invoice_paid',
+    );
+    expect(markBillingWebhookEventProcessed).not.toHaveBeenCalled();
   });
 
   it('grants included subscription credits from paid invoices', async () => {
@@ -144,10 +133,9 @@ describe('Stripe billing webhooks', () => {
     expect(createSmsCreditTransaction).toHaveBeenCalledWith(expect.anything(), {
       organizationId,
       transactionType: 'grant',
-      credits: 1000,
-      creditBucket: 'subscription_period',
+      credits: 1500,
       periodStart: new Date('2026-05-15T00:00:00.000Z'),
-      periodEnd: new Date('2026-06-15T00:00:00.000Z'),
+      periodEnd: new Date('2026-07-15T00:00:00.000Z'),
       source: 'stripe_invoice',
       sourceId: 'sub_123:1778803200:1781481600',
       description: 'Growth monthly credits',
@@ -160,12 +148,15 @@ describe('Stripe billing webhooks', () => {
       event: invoicePaidEvent(),
     });
 
-    expect(recordBillingWebhookEvent).toHaveBeenCalledWith(expect.anything(), {
-      stripeEventId: 'evt_invoice_paid',
-      eventType: 'invoice.paid',
-      organizationId,
-      payload: expect.objectContaining({ id: 'evt_invoice_paid' }),
-    });
+    expect(claimBillingWebhookEventProcessing).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        stripeEventId: 'evt_invoice_paid',
+        eventType: 'invoice.paid',
+        organizationId,
+        payload: expect.objectContaining({ id: 'evt_invoice_paid' }),
+      },
+    );
   });
 
   it('does not grant monthly credits for prorated subscription update invoices', async () => {
@@ -358,53 +349,7 @@ describe('Stripe billing webhooks', () => {
     );
   });
 
-  it('does not adjust credits for partial credit pack refunds', async () => {
-    await processStripeBillingWebhook({
-      db,
-      event: partialChargeRefundedEvent(),
-    });
-
-    expect(createSmsCreditTransaction).not.toHaveBeenCalled();
-  });
-
-  it('creates negative credit adjustments for fully refunded credit packs', async () => {
-    await processStripeBillingWebhook({
-      db,
-      event: fullChargeRefundedEvent(),
-    });
-
-    expect(createSmsCreditTransaction).toHaveBeenCalledWith(expect.anything(), {
-      organizationId,
-      transactionType: 'adjustment',
-      credits: -1500,
-      creditBucket: 'purchased',
-      periodStart: null,
-      periodEnd: null,
-      source: 'stripe_refund',
-      sourceId: 'ch_123',
-      description: '1,500 credits refund adjustment',
-    });
-  });
 });
-
-function creditPackCheckoutEvent() {
-  return {
-    id: 'evt_123',
-    type: 'checkout.session.completed',
-    data: {
-      object: {
-        id: 'cs_123',
-        object: 'checkout.session',
-        payment_status: 'paid',
-        metadata: {
-          organizationId,
-          purpose: 'credit_pack',
-          packKey: 'credits_1500',
-        },
-      },
-    },
-  } as never;
-}
 
 function invoicePaidEvent() {
   return {
@@ -575,46 +520,6 @@ function subscriptionDeletedEvent() {
               },
             },
           ],
-        },
-      },
-    },
-  } as never;
-}
-
-function partialChargeRefundedEvent() {
-  return {
-    id: 'evt_charge_partially_refunded',
-    type: 'charge.refunded',
-    data: {
-      object: {
-        id: 'ch_123',
-        object: 'charge',
-        amount: 165000,
-        amount_refunded: 82500,
-        refunded: false,
-        metadata: {
-          organizationId,
-          packKey: 'credits_1500',
-        },
-      },
-    },
-  } as never;
-}
-
-function fullChargeRefundedEvent() {
-  return {
-    id: 'evt_charge_refunded',
-    type: 'charge.refunded',
-    data: {
-      object: {
-        id: 'ch_123',
-        object: 'charge',
-        amount: 165000,
-        amount_refunded: 165000,
-        refunded: true,
-        metadata: {
-          organizationId,
-          packKey: 'credits_1500',
         },
       },
     },

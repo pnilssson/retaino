@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BillingSubscriptionAlreadyExistsError,
-  createCreditCheckout,
   createCustomerPortalSession,
   createSubscriptionCheckout,
   getBillingStatus,
@@ -17,7 +16,6 @@ vi.mock('../../../src/features/billing/billing.service', async (importOriginal) 
 
   return {
     ...actual,
-    createCreditCheckout: vi.fn(),
     createCustomerPortalSession: vi.fn(),
     createSubscriptionCheckout: vi.fn(),
     getBillingStatus: vi.fn(),
@@ -41,10 +39,10 @@ const organization = {
 };
 const env = {
   STRIPE_CANCEL_URL: 'https://retaino.test/app/settings/billing',
-  STRIPE_PRICE_CREDITS_1500_ID: 'price_credits_1500',
-  STRIPE_PRICE_CREDITS_5000_ID: 'price_credits_5000',
-  STRIPE_PRICE_CREDITS_500_ID: 'price_credits_500',
+  STRIPE_PRICE_ADVANCED_ID: 'price_advanced',
+  STRIPE_PRICE_CORE_ID: 'price_core',
   STRIPE_PRICE_GROWTH_ID: 'price_growth',
+  STRIPE_PRICE_PRO_ID: 'price_pro',
   STRIPE_PRICE_SCALE_ID: 'price_scale',
   STRIPE_PRICE_STARTER_ID: 'price_starter',
   STRIPE_RETURN_URL: 'https://retaino.test/app/settings/billing',
@@ -74,7 +72,6 @@ describe('billing routes', () => {
   beforeEach(() => {
     vi.mocked(getBillingStatus).mockReset();
     vi.mocked(createSubscriptionCheckout).mockReset();
-    vi.mocked(createCreditCheckout).mockReset();
     vi.mocked(createCustomerPortalSession).mockReset();
   });
 
@@ -186,31 +183,6 @@ describe('billing routes', () => {
         code: 'validation_failed',
       },
     });
-  });
-
-  it('creates credit pack checkout for organization admins', async () => {
-    vi.mocked(createCreditCheckout).mockResolvedValue({
-      url: 'https://checkout.test/credits',
-    });
-
-    const response = await testApp().request(
-      '/v1/billing/checkout/credits',
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ packKey: 'credits_1500' }),
-      },
-      env,
-    );
-
-    expect(response.status).toBe(200);
-    expect(createCreditCheckout).toHaveBeenCalledWith(
-      expect.objectContaining({
-        organization,
-        user,
-        packKey: 'credits_1500',
-      }),
-    );
   });
 
   it('creates customer portal sessions for organization admins', async () => {

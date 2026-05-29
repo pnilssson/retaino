@@ -1,9 +1,8 @@
-import { and, eq, gt, lte, or, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, lt, lte, or, sql } from 'drizzle-orm';
 import type {
   BillingPlanKey,
   BillingSubscription,
   BillingSubscriptionStatus,
-  SmsCreditBucket,
   SmsCreditTransaction,
   SmsCreditTransactionSource,
   SmsCreditTransactionType,
@@ -24,12 +23,12 @@ type RawSmsCreditTransactionRow = {
   credits: number;
   source: string;
   source_id: string;
-  credit_bucket: string;
   period_start: Date | string | null;
   period_end: Date | string | null;
   description: string;
   created_at: Date | string;
 };
+const BILLING_WEBHOOK_PROCESSING_STALE_AFTER_MINUTES = 5;
 
 export type UpsertOrganizationBillingProfileInput = {
   organizationId: string;
@@ -50,13 +49,17 @@ export type RecordBillingWebhookEventInput = {
   payload: unknown;
 };
 
+export type BillingWebhookEventProcessingClaim =
+  | { claimStatus: 'claimed' }
+  | { claimStatus: 'processed' }
+  | { claimStatus: 'processing' };
+
 export type CreateSmsCreditTransactionInput = {
   organizationId: string;
   transactionType: SmsCreditTransactionType;
   credits: number;
   source: SmsCreditTransactionSource;
   sourceId: string;
-  creditBucket: SmsCreditBucket;
   periodStart: Date | null;
   periodEnd: Date | null;
   description: string;
@@ -106,7 +109,6 @@ export function smsCreditTransactionToContract(
     transactionType: row.transactionType as SmsCreditTransactionType,
     source: row.source as SmsCreditTransactionSource,
     sourceId: row.sourceId,
-    creditBucket: row.creditBucket as SmsCreditBucket,
     credits: row.credits,
     periodStart: row.periodStart?.toISOString() ?? null,
     periodEnd: row.periodEnd?.toISOString() ?? null,
@@ -163,32 +165,70 @@ export async function getOrganizationBillingProfile(
   return row ?? null;
 }
 
-export async function recordBillingWebhookEvent(
+export async function claimBillingWebhookEventProcessing(
   db: DbClient,
   input: RecordBillingWebhookEventInput,
 ) {
+  const now = new Date();
   const [row] = await db
     .insert(billingWebhookEvents)
-    .values(input)
+    .values({
+      ...input,
+      status: 'processing',
+      receivedAt: now,
+      processedAt: null,
+    })
     .onConflictDoNothing({
       target: billingWebhookEvents.stripeEventId,
     })
     .returning();
 
-  return row ?? null;
-}
+  if (row) {
+    return { claimStatus: 'claimed' } satisfies BillingWebhookEventProcessingClaim;
+  }
 
-export async function getBillingWebhookEventByStripeEventId(
-  db: DbClient,
-  stripeEventId: string,
-) {
-  const [row] = await db
-    .select()
+  const [retryRow] = await db
+    .update(billingWebhookEvents)
+    .set({
+      eventType: input.eventType,
+      organizationId: input.organizationId,
+      payload: input.payload,
+      status: 'processing',
+      receivedAt: now,
+      processedAt: null,
+    })
+    .where(
+      and(
+        eq(billingWebhookEvents.stripeEventId, input.stripeEventId),
+        or(
+          inArray(billingWebhookEvents.status, ['received', 'failed']),
+          and(
+            eq(billingWebhookEvents.status, 'processing'),
+            lt(
+              billingWebhookEvents.receivedAt,
+              sql`now() - (${BILLING_WEBHOOK_PROCESSING_STALE_AFTER_MINUTES} * interval '1 minute')`,
+            ),
+          ),
+        ),
+      ),
+    )
+    .returning();
+
+  if (retryRow) {
+    return { claimStatus: 'claimed' } satisfies BillingWebhookEventProcessingClaim;
+  }
+
+  const [existing] = await db
+    .select({ status: billingWebhookEvents.status })
     .from(billingWebhookEvents)
-    .where(eq(billingWebhookEvents.stripeEventId, stripeEventId))
+    .where(eq(billingWebhookEvents.stripeEventId, input.stripeEventId))
     .limit(1);
 
-  return row ?? null;
+  if (existing?.status === 'processed') {
+    return { claimStatus: 'processed' } satisfies BillingWebhookEventProcessingClaim;
+  }
+
+  return { claimStatus: 'processing' } satisfies BillingWebhookEventProcessingClaim;
 }
 
 export async function markBillingWebhookEventProcessed(
@@ -207,6 +247,22 @@ export async function markBillingWebhookEventProcessed(
   return row ?? null;
 }
 
+export async function markBillingWebhookEventFailed(
+  db: DbClient,
+  stripeEventId: string,
+) {
+  const [row] = await db
+    .update(billingWebhookEvents)
+    .set({
+      status: 'failed',
+      processedAt: null,
+    })
+    .where(eq(billingWebhookEvents.stripeEventId, stripeEventId))
+    .returning();
+
+  return row ?? null;
+}
+
 export async function createSmsCreditTransaction(
   db: DbClient,
   input: CreateSmsCreditTransactionInput,
@@ -218,9 +274,11 @@ export async function createSmsCreditTransaction(
     .values(input)
     .onConflictDoNothing({
       target: [
+        smsCreditTransactions.organizationId,
         smsCreditTransactions.source,
         smsCreditTransactions.sourceId,
-        smsCreditTransactions.creditBucket,
+        smsCreditTransactions.periodStart,
+        smsCreditTransactions.periodEnd,
       ],
     })
     .returning();
@@ -246,47 +304,45 @@ export async function reserveSmsCreditsIfSufficient(
           and ${organizationBillingProfiles.subscriptionStatus} = ${'active'}
         for update
       ),
-      balances as (
+      grant_balances as (
         select
-          active_profile.organization_id,
-          active_profile.current_period_start,
-          active_profile.current_period_end,
-          coalesce(
-            sum(${smsCreditTransactions.credits}) filter (
-              where ${smsCreditTransactions.creditBucket} = ${'subscription_period'}
-                and ${smsCreditTransactions.periodStart} <= now()
-                and ${smsCreditTransactions.periodEnd} > now()
-            ),
-            0
-          )::integer as subscription_period,
-          coalesce(
-            sum(${smsCreditTransactions.credits}) filter (
-              where ${smsCreditTransactions.creditBucket} = ${'purchased'}
-            ),
-            0
-          )::integer as purchased
+          ${smsCreditTransactions.periodStart} as period_start,
+          ${smsCreditTransactions.periodEnd} as period_end,
+          sum(${smsCreditTransactions.credits})::integer as balance
         from active_profile
-        left join ${smsCreditTransactions}
+        join ${smsCreditTransactions}
           on ${smsCreditTransactions.organizationId} = active_profile.organization_id
-        group by
-          active_profile.organization_id,
-          active_profile.current_period_start,
-          active_profile.current_period_end
+        where ${smsCreditTransactions.periodStart} <= now()
+          and ${smsCreditTransactions.periodEnd} > now()
+        group by ${smsCreditTransactions.periodStart}, ${smsCreditTransactions.periodEnd}
+        having sum(${smsCreditTransactions.credits}) > 0
+      ),
+      ordered_balances as (
+        select
+          grant_balances.period_start,
+          grant_balances.period_end,
+          grant_balances.balance,
+          coalesce(
+            sum(grant_balances.balance) over (
+              order by grant_balances.period_end, grant_balances.period_start
+              rows between unbounded preceding and 1 preceding
+            ),
+            0
+          )::integer as previous_balance,
+          sum(grant_balances.balance) over ()::integer as total_balance
+        from grant_balances
       ),
       allocation as (
         select
-          balances.organization_id,
-          balances.current_period_start,
-          balances.current_period_end,
-          (balances.subscription_period + balances.purchased)::integer as total,
-          least(${input.credits}, greatest(balances.subscription_period, 0))::integer
-            as subscription_debit,
-          (
-            ${input.credits} -
-            least(${input.credits}, greatest(balances.subscription_period, 0))
-          )::integer as purchased_debit
-        from balances
-        where (balances.subscription_period + balances.purchased) >= ${input.credits}
+          ordered_balances.period_start,
+          ordered_balances.period_end,
+          least(
+            ordered_balances.balance,
+            ${input.credits} - ordered_balances.previous_balance
+          )::integer as debit
+        from ordered_balances
+        where ordered_balances.total_balance >= ${input.credits}
+          and ordered_balances.previous_balance < ${input.credits}
           and not exists (
             select 1
             from ${smsCreditTransactions}
@@ -294,14 +350,13 @@ export async function reserveSmsCreditsIfSufficient(
               and ${smsCreditTransactions.sourceId} = ${input.sourceId}
           )
       ),
-      inserted_subscription as (
+      inserted as (
         insert into ${smsCreditTransactions} (
           organization_id,
           transaction_type,
           credits,
           source,
           source_id,
-          credit_bucket,
           period_start,
           period_end,
           description
@@ -309,68 +364,26 @@ export async function reserveSmsCreditsIfSufficient(
         select
           ${input.organizationId},
           ${'debit'},
-          -allocation.subscription_debit,
+          -allocation.debit,
           ${input.source},
           ${input.sourceId},
-          ${'subscription_period'},
-          allocation.current_period_start,
-          allocation.current_period_end,
+          allocation.period_start,
+          allocation.period_end,
           ${input.description}
         from allocation
-        where allocation.subscription_debit > 0
-          and allocation.current_period_start is not null
-          and allocation.current_period_end is not null
+        where allocation.debit > 0
         on conflict do nothing
         returning
           transaction_type,
           credits,
           source,
           source_id,
-          credit_bucket,
-          period_start,
-          period_end,
-          description,
-          created_at
-      ),
-      inserted_purchased as (
-        insert into ${smsCreditTransactions} (
-          organization_id,
-          transaction_type,
-          credits,
-          source,
-          source_id,
-          credit_bucket,
-          period_start,
-          period_end,
-          description
-        )
-        select
-          ${input.organizationId},
-          ${'debit'},
-          -allocation.purchased_debit,
-          ${input.source},
-          ${input.sourceId},
-          ${'purchased'},
-          null,
-          null,
-          ${input.description}
-        from allocation
-        where allocation.purchased_debit > 0
-        on conflict do nothing
-        returning
-          transaction_type,
-          credits,
-          source,
-          source_id,
-          credit_bucket,
           period_start,
           period_end,
           description,
           created_at
       )
-      select * from inserted_subscription
-      union all
-      select * from inserted_purchased
+      select * from inserted
     `);
     const rows = Array.from(result.rows ?? []) as RawSmsCreditTransactionRow[];
     const debitedCredits = rows.reduce((total, row) => {
@@ -472,7 +485,6 @@ function rawSmsCreditTransactionToContract(row: RawSmsCreditTransactionRow) {
     transactionType: row.transaction_type as SmsCreditTransactionType,
     source: row.source as SmsCreditTransactionSource,
     sourceId: row.source_id,
-    creditBucket: row.credit_bucket as SmsCreditBucket,
     credits: row.credits,
     periodStart: rawTimestampToIso(row.period_start),
     periodEnd: rawTimestampToIso(row.period_end),
@@ -499,50 +511,22 @@ export async function getSmsCreditBalance(
   db: DbClient,
   organizationId: string,
 ) {
-  const balance = await getSmsCreditBalanceBreakdown(db, organizationId);
-  return balance.total;
-}
-
-export async function getSmsCreditBalanceBreakdown(
-  db: DbClient,
-  organizationId: string,
-) {
   assertOrganizationId(organizationId);
 
-  const rows = await db
+  const [row] = await db
     .select({
-      creditBucket: smsCreditTransactions.creditBucket,
       balance: sql<number>`coalesce(sum(${smsCreditTransactions.credits}), 0)`,
     })
     .from(smsCreditTransactions)
-    .where(getSpendableCreditCondition(organizationId))
-    .groupBy(smsCreditTransactions.creditBucket);
+    .where(getSpendableCreditCondition(organizationId));
 
-  const purchased = Number(
-    rows.find((row) => row.creditBucket === 'purchased')?.balance ?? 0,
-  );
-  const subscriptionPeriod = Number(
-    rows.find((row) => row.creditBucket === 'subscription_period')?.balance ??
-      0,
-  );
-
-  return {
-    purchased,
-    subscriptionPeriod,
-    total: purchased + subscriptionPeriod,
-  };
+  return Number(row?.balance ?? 0);
 }
 
 function getSpendableCreditCondition(organizationId: string) {
   return and(
     eq(smsCreditTransactions.organizationId, organizationId),
-    or(
-      eq(smsCreditTransactions.creditBucket, 'purchased'),
-      and(
-        eq(smsCreditTransactions.creditBucket, 'subscription_period'),
-        lte(smsCreditTransactions.periodStart, sql`now()`),
-        gt(smsCreditTransactions.periodEnd, sql`now()`),
-      ),
-    ),
+    lte(smsCreditTransactions.periodStart, sql`now()`),
+    gt(smsCreditTransactions.periodEnd, sql`now()`),
   );
 }

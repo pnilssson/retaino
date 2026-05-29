@@ -3,6 +3,7 @@
 import {
   BILLING_PLAN_CATALOG,
   BILLING_PLAN_KEYS,
+  getRecommendedBillingPlanKey,
   hasCurrentBillingSubscription,
   type BillingPlanKey,
   type BillingStatusResponse,
@@ -24,29 +25,7 @@ import { cn } from "@/lib/utils";
 import {
   formatCreditCount,
   formatSek,
-  formatUnitSek,
 } from "../billing-format";
-
-const PLAN_VIEW = {
-  starter: {
-    cta: "Start first campaign",
-    description: "For a first reactivation test.",
-  },
-  growth: {
-    cta: "Start with Growth",
-    description: "Best for regular monthly campaigns.",
-  },
-  scale: {
-    cta: "Start with Scale",
-    description: "For larger lists or several campaigns.",
-  },
-} as const satisfies Record<
-  BillingPlanKey,
-  {
-    cta: string;
-    description: string;
-  }
->;
 
 const SHARED_PLAN_FEATURES = [
   "Unlimited users",
@@ -55,6 +34,8 @@ const SHARED_PLAN_FEATURES = [
   "Campaign sending",
   "Tracking links",
   "Basic reporting",
+  "Unused credits roll over for one extra billing cycle",
+  "Same credit rate in every plan",
 ] as const;
 
 export function BillingPlanList({
@@ -87,11 +68,10 @@ export function BillingPlanList({
         titleId="billing-plans-title"
       />
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {BILLING_PLAN_KEYS.map((planKey) => {
           const plan = BILLING_PLAN_CATALOG[planKey];
-          const view = PLAN_VIEW[planKey];
-          const isRecommendedPlan = planKey === "growth";
+          const isRecommendedPlan = planKey === getRecommendedBillingPlanKey();
           const isCurrentPlan =
             hasCurrentSubscription &&
             billingStatus.subscription.planKey === planKey;
@@ -107,7 +87,7 @@ export function BillingPlanList({
             isPending,
             isPortalPending,
             isUpgradePlan,
-            planCta: view.cta,
+            planCta: `Choose ${plan.label}`,
             subscriptionLocked,
           });
           const buttonDisabled =
@@ -185,7 +165,8 @@ export function BillingPlanList({
                         isSelectedPlan && "text-primary-foreground/80",
                       )}
                     >
-                      {view.description}
+                      For up to {formatCreditCount(plan.includedSmsCredits)} SMS
+                      credits each month.
                     </p>
                     <p
                       className={cn(
@@ -215,12 +196,6 @@ export function BillingPlanList({
                       isSelectedPlan && "text-primary-foreground/85",
                     )}
                   >
-                    <PlanFeature isSelected={isSelectedPlan}>
-                      {formatUnitSek(
-                        plan.monthlyPriceSek / plan.includedSmsCredits,
-                      )}{" "}
-                      per SMS credit
-                    </PlanFeature>
                     {SHARED_PLAN_FEATURES.map((feature) => (
                       <PlanFeature isSelected={isSelectedPlan} key={feature}>
                         {feature}

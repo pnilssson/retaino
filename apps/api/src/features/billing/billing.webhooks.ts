@@ -1,18 +1,16 @@
 import {
   clearOrganizationSmsSenderReleaseSchedule,
+  claimBillingWebhookEventProcessing,
   createSmsCreditTransaction,
-  getBillingWebhookEventByStripeEventId,
+  markBillingWebhookEventFailed,
   markBillingWebhookEventProcessed,
-  recordBillingWebhookEvent,
   scheduleOrganizationSmsSenderRelease,
   upsertOrganizationBillingProfile,
 } from '@retaino/db';
 import {
   billingPlanKeySchema,
   billingSubscriptionStatusSchema,
-  creditPackKeySchema,
   getBillingPlanCredits,
-  getCreditPackCredits,
   type BillingPlanKey,
   type BillingSubscriptionStatus,
 } from '@retaino/shared/contracts';
@@ -37,6 +35,13 @@ export type BillingWebhookProcessingResult = {
   senderReleaseDueOrganizationId?: string;
 };
 
+export class BillingWebhookProcessingInProgressError extends Error {
+  constructor() {
+    super('Stripe event is already processing.');
+    this.name = 'BillingWebhookProcessingInProgressError';
+  }
+}
+
 export async function verifyStripeWebhookEvent(input: {
   stripe: BillingWebhookStripeClient;
   payload: string;
@@ -55,45 +60,42 @@ export async function processStripeBillingWebhook(input: {
   event: Stripe.Event;
 }): Promise<BillingWebhookProcessingResult> {
   const organizationId = getEventOrganizationId(input.event);
-  const recorded = await recordBillingWebhookEvent(input.db, {
+  const claimed = await claimBillingWebhookEventProcessing(input.db, {
     stripeEventId: input.event.id,
     eventType: input.event.type,
     organizationId,
     payload: input.event,
   });
 
-  if (!recorded) {
-    const existing = await getBillingWebhookEventByStripeEventId(
-      input.db,
-      input.event.id,
-    );
-
-    if (existing?.status === 'processed') {
-      return { status: 'duplicate' };
-    }
+  if (claimed.claimStatus === 'processed') {
+    return { status: 'duplicate' };
   }
 
-  const senderReleaseDueOrganizationId = await processSupportedEvent(
-    input.db,
-    input.event,
-  );
-  await markBillingWebhookEventProcessed(input.db, input.event.id);
+  if (claimed.claimStatus === 'processing') {
+    throw new BillingWebhookProcessingInProgressError();
+  }
 
-  return {
-    status: 'processed',
-    ...(senderReleaseDueOrganizationId
-      ? { senderReleaseDueOrganizationId }
-      : {}),
-  };
+  try {
+    const senderReleaseDueOrganizationId = await processSupportedEvent(
+      input.db,
+      input.event,
+    );
+    await markBillingWebhookEventProcessed(input.db, input.event.id);
+
+    return {
+      status: 'processed',
+      ...(senderReleaseDueOrganizationId
+        ? { senderReleaseDueOrganizationId }
+        : {}),
+    };
+  } catch (error) {
+    await markBillingWebhookEventFailed(input.db, input.event.id);
+    throw error;
+  }
 }
 
 async function processSupportedEvent(db: DbClient, event: Stripe.Event) {
   switch (event.type) {
-    case 'checkout.session.completed':
-      return processCheckoutSessionCompleted(
-        db,
-        event.data.object as Stripe.Checkout.Session,
-      );
     case 'invoice.paid':
       return processInvoicePaid(db, event.data.object as Stripe.Invoice);
     case 'invoice.payment_failed':
@@ -107,39 +109,9 @@ async function processSupportedEvent(db: DbClient, event: Stripe.Event) {
         db,
         event.data.object as Stripe.Subscription,
       );
-    case 'charge.refunded':
-      return processChargeRefunded(db, event.data.object as Stripe.Charge);
     default:
       return null;
   }
-}
-
-async function processCheckoutSessionCompleted(
-  db: DbClient,
-  session: Stripe.Checkout.Session,
-) {
-  if (
-    session.payment_status !== 'paid' ||
-    session.metadata?.purpose !== 'credit_pack'
-  ) {
-    return null;
-  }
-
-  const organizationId = requiredMetadata(session.metadata, 'organizationId');
-  const packKey = parseCreditPackKey(session.metadata.packKey);
-
-  await createSmsCreditTransaction(db, {
-    organizationId,
-    transactionType: 'grant',
-    credits: getCreditPackCredits(packKey),
-    creditBucket: 'purchased',
-    periodStart: null,
-    periodEnd: null,
-    source: 'stripe_checkout_session',
-    sourceId: session.id,
-    description: `${getCreditPackCredits(packKey).toLocaleString('en-US')} credits purchase`,
-  });
-  return null;
 }
 
 async function processInvoicePaid(db: DbClient, invoice: Stripe.Invoice) {
@@ -164,9 +136,8 @@ async function processInvoicePaid(db: DbClient, invoice: Stripe.Invoice) {
     organizationId,
     transactionType: 'grant',
     credits: getBillingPlanCredits(planKey),
-    creditBucket: 'subscription_period',
     periodStart,
-    periodEnd,
+    periodEnd: rolloverPeriodEnd(periodStart, periodEnd),
     source: 'stripe_invoice',
     sourceId: `${subscriptionId}:${period.start}:${period.end}`,
     description: `${capitalizePlanKey(planKey)} monthly credits`,
@@ -250,33 +221,6 @@ async function processSubscriptionChanged(
     cancelAtPeriodEnd: subscription.cancel_at_period_end,
     currentPeriodEnd,
   });
-}
-
-async function processChargeRefunded(db: DbClient, charge: Stripe.Charge) {
-  const organizationId = optionalMetadata(charge.metadata, 'organizationId');
-  const packKey = parseOptionalCreditPackKey(charge.metadata?.packKey);
-
-  if (
-    !organizationId ||
-    !packKey ||
-    !charge.refunded ||
-    charge.amount_refunded < charge.amount
-  ) {
-    return null;
-  }
-
-  await createSmsCreditTransaction(db, {
-    organizationId,
-    transactionType: 'adjustment',
-    credits: -getCreditPackCredits(packKey),
-    creditBucket: 'purchased',
-    periodStart: null,
-    periodEnd: null,
-    source: 'stripe_refund',
-    sourceId: charge.id,
-    description: `${getCreditPackCredits(packKey).toLocaleString('en-US')} credits refund adjustment`,
-  });
-  return null;
 }
 
 function getEventOrganizationId(event: Stripe.Event) {
@@ -385,7 +329,6 @@ function isRetainoMetadata(metadata: Stripe.Metadata | null | undefined) {
   return Boolean(
     optionalMetadata(metadata, 'organizationId') ||
       optionalMetadata(metadata, 'planKey') ||
-      optionalMetadata(metadata, 'packKey') ||
       optionalMetadata(metadata, 'purpose'),
   );
 }
@@ -413,21 +356,6 @@ function parseOptionalBillingPlanKey(value: string | null | undefined) {
   return parsed.success ? parsed.data : null;
 }
 
-function parseCreditPackKey(value: string | null | undefined) {
-  const parsed = creditPackKeySchema.safeParse(value);
-
-  if (!parsed.success) {
-    throw new Error('Stripe metadata packKey is invalid.');
-  }
-
-  return parsed.data;
-}
-
-function parseOptionalCreditPackKey(value: string | null | undefined) {
-  const parsed = creditPackKeySchema.safeParse(value);
-  return parsed.success ? parsed.data : null;
-}
-
 function parseBillingSubscriptionStatus(value: string) {
   const parsed = billingSubscriptionStatusSchema.safeParse(value);
 
@@ -440,6 +368,30 @@ function parseBillingSubscriptionStatus(value: string) {
 
 function stripeTimestampToDate(value: number | null | undefined) {
   return value ? new Date(value * 1000) : null;
+}
+
+function rolloverPeriodEnd(periodStart: Date, periodEnd: Date) {
+  const rolloverEnd = new Date(periodEnd);
+  const billingMonthSpan =
+    (periodEnd.getUTCFullYear() - periodStart.getUTCFullYear()) * 12 +
+    periodEnd.getUTCMonth() -
+    periodStart.getUTCMonth();
+  const monthsToAdd = Math.max(1, billingMonthSpan);
+  const targetMonth = rolloverEnd.getUTCMonth() + monthsToAdd;
+  const targetYear =
+    rolloverEnd.getUTCFullYear() + Math.floor(targetMonth / 12);
+  const normalizedTargetMonth = ((targetMonth % 12) + 12) % 12;
+  const day = Math.min(
+    rolloverEnd.getUTCDate(),
+    daysInUtcMonth(targetYear, normalizedTargetMonth),
+  );
+
+  rolloverEnd.setUTCFullYear(targetYear, normalizedTargetMonth, day);
+  return rolloverEnd;
+}
+
+function daysInUtcMonth(year: number, zeroBasedMonth: number) {
+  return new Date(Date.UTC(year, zeroBasedMonth + 1, 0)).getUTCDate();
 }
 
 async function syncSenderReleaseScheduleForSubscription(

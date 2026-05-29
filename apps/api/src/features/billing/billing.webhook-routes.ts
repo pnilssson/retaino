@@ -7,6 +7,7 @@ import { getStripeWebhookSecret } from '../../lib/stripe';
 import type { AppEnv } from '../../types';
 import { enqueueSmsSenderReleaseProcessing } from '../sms/sms.sender-release.jobs';
 import {
+  BillingWebhookProcessingInProgressError,
   processStripeBillingWebhook,
   verifyStripeWebhookEvent,
 } from './billing.webhooks';
@@ -34,10 +35,24 @@ export const billingWebhookRoutes = new Hono<AppEnv>().post(
       return c.json(apiError('validation_failed', 'Invalid Stripe signature.'), 400);
     }
 
-    const result = await processStripeBillingWebhook({
-      db: await connectAppDb(c.env),
-      event,
-    });
+    let result;
+
+    try {
+      result = await processStripeBillingWebhook({
+        db: await connectAppDb(c.env),
+        event,
+      });
+    } catch (error) {
+      if (error instanceof BillingWebhookProcessingInProgressError) {
+        c.header('Retry-After', '10');
+        return c.json(
+          apiError('conflict', 'Stripe event is already processing.'),
+          409,
+        );
+      }
+
+      throw error;
+    }
 
     if (result.senderReleaseDueOrganizationId) {
       try {

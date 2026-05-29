@@ -2,61 +2,66 @@ import { describe, expect, it } from 'vitest';
 import {
   BILLING_PLAN_CATALOG,
   BILLING_PLAN_KEYS,
-  CREDIT_PACK_CATALOG,
-  CREDIT_PACK_KEYS,
-  SMS_CREDIT_BUCKETS,
   SMS_CREDIT_TRANSACTION_SOURCES,
   SMS_CREDIT_TRANSACTION_TYPES,
   billingStatusResponseSchema,
-  createCreditCheckoutSchema,
   createSubscriptionCheckoutSchema,
   getBillingPlanCredits,
-  getCreditPackCredits,
+  getRecommendedBillingPlanKey,
   hasCurrentBillingSubscription,
   smsCreditTransactionSchema,
 } from '../../src/contracts';
 
 describe('billing contracts', () => {
   it('defines the MVP subscription plans and included SMS credits', () => {
-    expect(BILLING_PLAN_KEYS).toEqual(['starter', 'growth', 'scale']);
+    expect(BILLING_PLAN_KEYS).toEqual([
+      'starter',
+      'core',
+      'growth',
+      'pro',
+      'scale',
+      'advanced',
+    ]);
     expect(BILLING_PLAN_CATALOG).toMatchObject({
       starter: {
-        monthlyPriceSek: 699,
+        label: 'Starter',
+        monthlyPriceSek: 849,
         includedSmsCredits: 300,
+        recommended: false,
+      },
+      core: {
+        label: 'Core',
+        monthlyPriceSek: 1749,
+        includedSmsCredits: 750,
+        recommended: false,
       },
       growth: {
-        monthlyPriceSek: 1499,
-        includedSmsCredits: 1000,
+        label: 'Growth',
+        monthlyPriceSek: 3249,
+        includedSmsCredits: 1500,
+        recommended: true,
+      },
+      pro: {
+        label: 'Pro',
+        monthlyPriceSek: 5249,
+        includedSmsCredits: 2500,
+        recommended: false,
       },
       scale: {
-        monthlyPriceSek: 2999,
-        includedSmsCredits: 3000,
+        label: 'Scale',
+        monthlyPriceSek: 8249,
+        includedSmsCredits: 4000,
+        recommended: false,
+      },
+      advanced: {
+        label: 'Advanced',
+        monthlyPriceSek: 15249,
+        includedSmsCredits: 7500,
+        recommended: false,
       },
     });
-    expect(getBillingPlanCredits('growth')).toBe(1000);
-  });
-
-  it('defines the MVP credit packs', () => {
-    expect(CREDIT_PACK_KEYS).toEqual([
-      'credits_500',
-      'credits_1500',
-      'credits_5000',
-    ]);
-    expect(CREDIT_PACK_CATALOG).toMatchObject({
-      credits_500: {
-        priceSek: 595,
-        smsCredits: 500,
-      },
-      credits_1500: {
-        priceSek: 1650,
-        smsCredits: 1500,
-      },
-      credits_5000: {
-        priceSek: 5000,
-        smsCredits: 5000,
-      },
-    });
-    expect(getCreditPackCredits('credits_5000')).toBe(5000);
+    expect(getBillingPlanCredits('growth')).toBe(1500);
+    expect(getRecommendedBillingPlanKey()).toBe('growth');
   });
 
   it('validates checkout request payloads strictly', () => {
@@ -72,13 +77,6 @@ describe('billing contracts', () => {
         planKey: 'growth',
         organizationId: '11111111-1111-4111-8111-111111111111',
       }).success,
-    ).toBe(false);
-
-    expect(createCreditCheckoutSchema.parse({ packKey: 'credits_1500' })).toEqual(
-      { packKey: 'credits_1500' },
-    );
-    expect(
-      createCreditCheckoutSchema.safeParse({ packKey: 'credits_999' }).success,
     ).toBe(false);
   });
 
@@ -136,15 +134,11 @@ describe('billing contracts', () => {
       'debit',
       'adjustment',
     ]);
-    expect(SMS_CREDIT_BUCKETS).toEqual(['subscription_period', 'purchased']);
     expect(SMS_CREDIT_TRANSACTION_SOURCES).toEqual([
       'stripe_invoice',
-      'stripe_checkout_session',
       'campaign_send',
       'campaign_test_send',
       'manual_reply',
-      'stripe_refund',
-      'stripe_credit_note',
       'manual_adjustment',
     ]);
     expect(
@@ -152,7 +146,6 @@ describe('billing contracts', () => {
         transactionType: 'grant',
         source: 'stripe_invoice',
         sourceId: 'in_123',
-        creditBucket: 'subscription_period',
         credits: 1000,
         periodStart: '2026-05-14T00:00:00.000Z',
         periodEnd: '2026-06-14T00:00:00.000Z',
@@ -162,24 +155,7 @@ describe('billing contracts', () => {
     ).toMatchObject({
       transactionType: 'grant',
       source: 'stripe_invoice',
-      creditBucket: 'subscription_period',
       credits: 1000,
-    });
-    expect(
-      smsCreditTransactionSchema.parse({
-        transactionType: 'grant',
-        source: 'stripe_checkout_session',
-        sourceId: 'cs_123',
-        creditBucket: 'purchased',
-        credits: 1500,
-        periodStart: null,
-        periodEnd: null,
-        description: '1,500 credits purchase',
-        createdAt: '2026-05-14T00:00:00.000Z',
-      }),
-    ).toMatchObject({
-      source: 'stripe_checkout_session',
-      creditBucket: 'purchased',
     });
     expect(
       smsCreditTransactionSchema.safeParse({

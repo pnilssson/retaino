@@ -15,7 +15,7 @@ export function ComplianceSection({
   return (
     <ContentSection
       actions={
-            <Button asChild type="button" variant="outline">
+            <Button asChild type="button">
               <Link href={routes.legal}>
                 <FileText aria-hidden="true" data-icon="inline-start" />
                 View legal

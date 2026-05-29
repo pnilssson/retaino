@@ -13,7 +13,6 @@ import type {
   BillingPlanKey,
   BillingPortalUrlResponse,
   BillingStatusResponse,
-  CreditPackKey,
   OrganizationContext,
   SmsCreditTransaction,
   SmsCreditTransactionSource,
@@ -154,51 +153,6 @@ export async function createSubscriptionCheckout(input: {
       metadata: {
         organizationId: input.organization.id,
         planKey: input.planKey,
-      },
-    },
-  });
-
-  return checkoutUrlResponse(session.url);
-}
-
-export async function createCreditCheckout(input: {
-  db: DbClient;
-  stripe: BillingStripeClient;
-  config: StripeConfig;
-  catalog: StripeBillingCatalog;
-  organization: OrganizationContext;
-  user: User;
-  packKey: CreditPackKey;
-}): Promise<BillingCheckoutUrlResponse> {
-  const customerId = await ensureStripeCustomer(input);
-  const pack = input.catalog.creditPacks[input.packKey];
-  const session = await input.stripe.checkout.sessions.create({
-    mode: 'payment',
-    allow_promotion_codes: true,
-    customer: customerId,
-    success_url: input.config.successUrl,
-    cancel_url: input.config.cancelUrl,
-    client_reference_id: input.organization.id,
-    line_items: [{ price: pack.stripePriceId, quantity: 1 }],
-    automatic_tax: { enabled: true },
-    tax_id_collection: { enabled: true },
-    billing_address_collection: 'auto',
-    customer_update: {
-      address: 'auto',
-      name: 'auto',
-    },
-    branding_settings: {
-      display_name: input.config.checkoutDisplayName,
-    },
-    metadata: {
-      organizationId: input.organization.id,
-      purpose: 'credit_pack',
-      packKey: input.packKey,
-    },
-    payment_intent_data: {
-      metadata: {
-        organizationId: input.organization.id,
-        packKey: input.packKey,
       },
     },
   });
@@ -351,7 +305,6 @@ export async function releaseSmsCreditUsage(input: {
         organizationId: input.organizationId,
         transactionType: 'adjustment',
         credits: releaseCredits,
-        creditBucket: transaction.creditBucket,
         periodStart: transaction.periodStart
           ? new Date(transaction.periodStart)
           : null,

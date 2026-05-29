@@ -4,13 +4,11 @@ import {
   getSmsCreditReservationState,
   getOrganizationBillingProfile,
   getSmsCreditBalance,
-  getSmsCreditBalanceBreakdown,
   reserveSmsCreditsIfSufficient,
   upsertOrganizationBillingProfile,
 } from '@retaino/db';
 import { getStripeBillingCatalog } from '../../../src/features/billing/billing.catalog';
 import {
-  createCreditCheckout,
   assertOrganizationCanSpendSmsCredits,
   BillingSubscriptionAlreadyExistsError,
   createSubscriptionCheckout,
@@ -31,7 +29,6 @@ vi.mock('@retaino/db', async (importOriginal) => {
     getSmsCreditReservationState: vi.fn(),
     getOrganizationBillingProfile: vi.fn(),
     getSmsCreditBalance: vi.fn(),
-    getSmsCreditBalanceBreakdown: vi.fn(),
     reserveSmsCreditsIfSufficient: vi.fn(),
     upsertOrganizationBillingProfile: vi.fn(),
   };
@@ -62,10 +59,10 @@ const config: StripeConfig = {
   checkoutDisplayName: 'Retaino',
 };
 const catalog = getStripeBillingCatalog({
-  STRIPE_PRICE_CREDITS_1500_ID: 'price_credits_1500',
-  STRIPE_PRICE_CREDITS_5000_ID: 'price_credits_5000',
-  STRIPE_PRICE_CREDITS_500_ID: 'price_credits_500',
+  STRIPE_PRICE_ADVANCED_ID: 'price_advanced',
+  STRIPE_PRICE_CORE_ID: 'price_core',
   STRIPE_PRICE_GROWTH_ID: 'price_growth',
+  STRIPE_PRICE_PRO_ID: 'price_pro',
   STRIPE_PRICE_SCALE_ID: 'price_scale',
   STRIPE_PRICE_STARTER_ID: 'price_starter',
 });
@@ -94,7 +91,6 @@ describe('billing service', () => {
     vi.mocked(createSmsCreditTransaction).mockReset();
     vi.mocked(getSmsCreditReservationState).mockReset();
     vi.mocked(getSmsCreditBalance).mockReset();
-    vi.mocked(getSmsCreditBalanceBreakdown).mockReset();
     vi.mocked(reserveSmsCreditsIfSufficient).mockReset();
     vi.mocked(upsertOrganizationBillingProfile).mockReset();
     vi.mocked(getSmsCreditReservationState).mockResolvedValue({
@@ -222,61 +218,6 @@ describe('billing service', () => {
     expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
-  it('creates a credit pack checkout session with payment metadata', async () => {
-    vi.mocked(getOrganizationBillingProfile).mockResolvedValue({
-      id: '33333333-3333-4333-8333-333333333333',
-      organizationId: organization.id,
-      stripeCustomerId: 'cus_existing',
-      stripeSubscriptionId: null,
-      stripePriceId: null,
-      planKey: null,
-      subscriptionStatus: 'none',
-      currentPeriodStart: null,
-      currentPeriodEnd: null,
-      cancelAtPeriodEnd: false,
-      syncedAt: new Date('2026-05-15T00:00:00.000Z'),
-      createdAt: new Date('2026-05-15T00:00:00.000Z'),
-      updatedAt: new Date('2026-05-15T00:00:00.000Z'),
-    });
-    const stripe = fakeStripe();
-
-    await createCreditCheckout({
-      db,
-      stripe,
-      config,
-      catalog,
-      organization,
-      user,
-      packKey: 'credits_1500',
-    });
-
-    expect(stripe.customers.create).not.toHaveBeenCalled();
-    expect(stripe.checkout.sessions.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        mode: 'payment',
-        customer: 'cus_existing',
-        line_items: [{ price: 'price_credits_1500', quantity: 1 }],
-        automatic_tax: { enabled: true },
-        tax_id_collection: { enabled: true },
-        customer_update: {
-          address: 'auto',
-          name: 'auto',
-        },
-        metadata: {
-          organizationId: organization.id,
-          purpose: 'credit_pack',
-          packKey: 'credits_1500',
-        },
-        payment_intent_data: {
-          metadata: {
-            organizationId: organization.id,
-            packKey: 'credits_1500',
-          },
-        },
-      }),
-    );
-  });
-
   it('allows campaign spending when subscription and credits are enough', async () => {
     vi.mocked(getOrganizationBillingProfile).mockResolvedValue({
       id: '33333333-3333-4333-8333-333333333333',
@@ -362,7 +303,6 @@ describe('billing service', () => {
       source: 'campaign_send',
       sourceId: 'campaign_send_123',
       credits: -42,
-      creditBucket: 'subscription_period',
       periodStart: '2026-05-15T00:00:00.000Z',
       periodEnd: '2026-06-15T00:00:00.000Z',
       description: 'Campaign SMS usage',
@@ -387,45 +327,6 @@ describe('billing service', () => {
     });
   });
 
-  it('splits SMS debit rows when usage crosses subscription and purchased credits', async () => {
-    vi.mocked(reserveSmsCreditsIfSufficient).mockResolvedValue({
-      debitedCredits: 42,
-      transactions: [
-        {
-          transactionType: 'debit',
-          source: 'campaign_send',
-          sourceId: 'campaign_send_123',
-          credits: -30,
-          creditBucket: 'subscription_period',
-          periodStart: '2026-05-15T00:00:00.000Z',
-          periodEnd: '2026-06-15T00:00:00.000Z',
-          description: 'Campaign SMS usage',
-          createdAt: '2026-05-15T00:00:00.000Z',
-        },
-        {
-          transactionType: 'debit',
-          source: 'campaign_send',
-          sourceId: 'campaign_send_123',
-          credits: -12,
-          creditBucket: 'purchased',
-          periodStart: null,
-          periodEnd: null,
-          description: 'Campaign SMS usage',
-          createdAt: '2026-05-15T00:00:00.000Z',
-        },
-      ],
-    });
-
-    await expect(debitSmsCreditUsage({
-      db,
-      organizationId: organization.id,
-      actualSegments: 42,
-      sourceId: 'campaign_send_123',
-    })).resolves.toHaveLength(2);
-
-    expect(reserveSmsCreditsIfSufficient).toHaveBeenCalledOnce();
-  });
-
   it('reuses an active campaign send reservation source', async () => {
     vi.mocked(getSmsCreditReservationState).mockResolvedValue({
       activeSourceId: 'campaign-send-123:active',
@@ -439,7 +340,6 @@ describe('billing service', () => {
           source: 'campaign_send',
           sourceId: 'campaign-send-123:active',
           credits: -2,
-          creditBucket: 'subscription_period',
           periodStart: '2026-05-15T00:00:00.000Z',
           periodEnd: '2026-06-15T00:00:00.000Z',
           description: 'Campaign SMS usage',
@@ -477,7 +377,6 @@ describe('billing service', () => {
           source: 'campaign_send',
           sourceId: 'campaign-send-123:new',
           credits: -2,
-          creditBucket: 'subscription_period',
           periodStart: '2026-05-15T00:00:00.000Z',
           periodEnd: '2026-06-15T00:00:00.000Z',
           description: 'Campaign SMS usage',
@@ -538,7 +437,6 @@ describe('billing service', () => {
       source: 'campaign_send',
       sourceId: 'campaign-send-123:release',
       credits: 2,
-      creditBucket: 'subscription_period',
       periodStart: '2026-05-15T00:00:00.000Z',
       periodEnd: '2026-06-15T00:00:00.000Z',
       description: 'Campaign SMS reservation release',
@@ -555,7 +453,6 @@ describe('billing service', () => {
           source: 'campaign_send',
           sourceId: 'campaign-send-123',
           credits: -5,
-          creditBucket: 'subscription_period',
           periodStart: '2026-05-15T00:00:00.000Z',
           periodEnd: '2026-06-15T00:00:00.000Z',
           description: 'Campaign SMS reservation',
@@ -571,7 +468,6 @@ describe('billing service', () => {
       organizationId: organization.id,
       transactionType: 'adjustment',
       credits: 2,
-      creditBucket: 'subscription_period',
       periodStart: new Date('2026-05-15T00:00:00.000Z'),
       periodEnd: new Date('2026-06-15T00:00:00.000Z'),
       source: 'campaign_send',

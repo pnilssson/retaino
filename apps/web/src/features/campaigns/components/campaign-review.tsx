@@ -58,9 +58,11 @@ export function CampaignReview({
       ? null
       : usageRecipientCount * smsPreview.estimatedSmsPerRecipient;
   const campaignReference = values.campaignCode.trim();
-  const shouldShowReference =
+  const referenceValue =
     campaignReference &&
-    campaignReference.toLowerCase() !== values.name.trim().toLowerCase();
+    campaignReference.toLowerCase() !== values.name.trim().toLowerCase()
+      ? campaignReference
+      : 'Not added';
   const audienceLabel =
     usageRecipientCount === null
       ? 'Audience unavailable'
@@ -143,37 +145,36 @@ export function CampaignReview({
 
       <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)]">
         <section className="grid content-start gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ReviewItem
+              label="Booking link"
+              tooltip="Booking page recipients will reach."
+              value={
+                values.bookingUrl ? (
+                  <a
+                    className={cn(
+                      'break-words underline underline-offset-4',
+                      textStyles.body,
+                    )}
+                    href={values.bookingUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {values.bookingUrl}
+                  </a>
+                ) : (
+                  'Not added'
+                )
+              }
+            />
+            <ReviewItem label="Reference" value={referenceValue} />
+          </div>
+
           <ReviewItem
             detail={audienceSummary.detail}
             label="Audience rule"
             value={audienceSummary.value}
           />
-
-          <ReviewItem
-            label="Booking link"
-            tooltip="Booking page recipients will reach."
-            value={
-              values.bookingUrl ? (
-                <a
-                  className={cn(
-                    'break-words underline underline-offset-4',
-                    textStyles.body,
-                  )}
-                  href={values.bookingUrl}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  {values.bookingUrl}
-                </a>
-              ) : (
-                'Not added'
-              )
-            }
-          />
-
-          {shouldShowReference ? (
-            <ReviewItem label="Reference" value={campaignReference} />
-          ) : null}
 
           {campaign && campaign.status !== 'draft' ? (
             <ReviewItem

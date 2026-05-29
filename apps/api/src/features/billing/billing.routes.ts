@@ -1,6 +1,5 @@
-import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import {
-  createCreditCheckoutSchema,
+  canManageOrganizationSetup,
   createSubscriptionCheckoutSchema,
 } from '@retaino/shared/contracts';
 import { Hono, type Context } from 'hono';
@@ -9,7 +8,6 @@ import {
   BillingCustomerMissingError,
   BillingSessionUrlMissingError,
   BillingSubscriptionAlreadyExistsError,
-  createCreditCheckout,
   createCustomerPortalSession,
   createSubscriptionCheckout,
   getBillingStatus,
@@ -73,35 +71,6 @@ export const billingRoutes = new Hono<AppEnv>()
 
       throw error;
     }
-  })
-  .post('/checkout/credits', async (c) => {
-    const gate = requireBillingAdmin(c);
-
-    if (!gate.ok) {
-      return gate.response;
-    }
-
-    const parsed = await parseJsonBody(
-      c,
-      createCreditCheckoutSchema,
-      'Invalid credit checkout request.',
-    );
-
-    if (!parsed.ok) {
-      return parsed.response;
-    }
-
-    return c.json(
-      await createCreditCheckout({
-        db: c.get('db'),
-        stripe: createStripeClient(c.env),
-        config: getStripeConfig(c.env),
-        catalog: getStripeBillingCatalog(c.env),
-        organization: c.get('organization'),
-        user: c.get('user'),
-        packKey: parsed.data.packKey,
-      }),
-    );
   })
   .post('/portal', async (c) => {
     const gate = requireBillingAdmin(c);

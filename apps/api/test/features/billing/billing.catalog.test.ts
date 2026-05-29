@@ -1,18 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import {
-  BILLING_PLAN_KEYS,
-  CREDIT_PACK_KEYS,
-} from '@retaino/shared/contracts';
+import { BILLING_PLAN_KEYS } from '@retaino/shared/contracts';
 import {
   getBillingCatalogBindingNames,
   getStripeBillingCatalog,
 } from '../../../src/features/billing/billing.catalog';
 
 const catalogBindings = {
-  STRIPE_PRICE_CREDITS_1500_ID: 'price_credits_1500',
-  STRIPE_PRICE_CREDITS_5000_ID: 'price_credits_5000',
-  STRIPE_PRICE_CREDITS_500_ID: 'price_credits_500',
+  STRIPE_PRICE_ADVANCED_ID: 'price_advanced',
+  STRIPE_PRICE_CORE_ID: 'price_core',
   STRIPE_PRICE_GROWTH_ID: 'price_growth',
+  STRIPE_PRICE_PRO_ID: 'price_pro',
   STRIPE_PRICE_SCALE_ID: 'price_scale',
   STRIPE_PRICE_STARTER_ID: 'price_starter',
 };
@@ -22,7 +19,14 @@ describe('Stripe billing catalog', () => {
     const bindingNames = getBillingCatalogBindingNames();
 
     expect(Object.keys(bindingNames.plans)).toEqual([...BILLING_PLAN_KEYS]);
-    expect(Object.keys(bindingNames.creditPacks)).toEqual([...CREDIT_PACK_KEYS]);
+    expect(bindingNames.plans).toEqual({
+      starter: 'STRIPE_PRICE_STARTER_ID',
+      core: 'STRIPE_PRICE_CORE_ID',
+      growth: 'STRIPE_PRICE_GROWTH_ID',
+      pro: 'STRIPE_PRICE_PRO_ID',
+      scale: 'STRIPE_PRICE_SCALE_ID',
+      advanced: 'STRIPE_PRICE_ADVANCED_ID',
+    });
   });
 
   it('maps subscription plans to configured Stripe price IDs', () => {
@@ -31,43 +35,39 @@ describe('Stripe billing catalog', () => {
     expect(catalog.plans.starter).toMatchObject({
       key: 'starter',
       stripePriceId: 'price_starter',
-      monthlyPriceSek: 699,
+      monthlyPriceSek: 849,
       includedSmsCredits: 300,
+    });
+    expect(catalog.plans.core).toMatchObject({
+      key: 'core',
+      stripePriceId: 'price_core',
+      monthlyPriceSek: 1749,
+      includedSmsCredits: 750,
     });
     expect(catalog.plans.growth).toMatchObject({
       key: 'growth',
       stripePriceId: 'price_growth',
-      monthlyPriceSek: 1499,
-      includedSmsCredits: 1000,
+      monthlyPriceSek: 3249,
+      includedSmsCredits: 1500,
+      recommended: true,
+    });
+    expect(catalog.plans.pro).toMatchObject({
+      key: 'pro',
+      stripePriceId: 'price_pro',
+      monthlyPriceSek: 5249,
+      includedSmsCredits: 2500,
     });
     expect(catalog.plans.scale).toMatchObject({
       key: 'scale',
       stripePriceId: 'price_scale',
-      monthlyPriceSek: 2999,
-      includedSmsCredits: 3000,
+      monthlyPriceSek: 8249,
+      includedSmsCredits: 4000,
     });
-  });
-
-  it('maps credit packs to configured Stripe price IDs', () => {
-    const catalog = getStripeBillingCatalog(catalogBindings);
-
-    expect(catalog.creditPacks.credits_500).toMatchObject({
-      key: 'credits_500',
-      stripePriceId: 'price_credits_500',
-      priceSek: 595,
-      smsCredits: 500,
-    });
-    expect(catalog.creditPacks.credits_1500).toMatchObject({
-      key: 'credits_1500',
-      stripePriceId: 'price_credits_1500',
-      priceSek: 1650,
-      smsCredits: 1500,
-    });
-    expect(catalog.creditPacks.credits_5000).toMatchObject({
-      key: 'credits_5000',
-      stripePriceId: 'price_credits_5000',
-      priceSek: 5000,
-      smsCredits: 5000,
+    expect(catalog.plans.advanced).toMatchObject({
+      key: 'advanced',
+      stripePriceId: 'price_advanced',
+      monthlyPriceSek: 15249,
+      includedSmsCredits: 7500,
     });
   });
 

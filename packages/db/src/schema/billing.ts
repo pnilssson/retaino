@@ -83,7 +83,6 @@ export const smsCreditTransactions = pgTable(
     credits: integer('credits').notNull(),
     source: text('source').notNull(),
     sourceId: text('source_id').notNull(),
-    creditBucket: text('credit_bucket').notNull().default('purchased'),
     periodStart: timestamp('period_start', { withTimezone: true }),
     periodEnd: timestamp('period_end', { withTimezone: true }),
     description: text('description').notNull(),
@@ -95,9 +94,11 @@ export const smsCreditTransactions = pgTable(
       table.createdAt,
     ),
     uniqueIndex('sms_credit_transactions_source_idx').on(
+      table.organizationId,
       table.source,
       table.sourceId,
-      table.creditBucket,
+      table.periodStart,
+      table.periodEnd,
     ),
   ],
 );

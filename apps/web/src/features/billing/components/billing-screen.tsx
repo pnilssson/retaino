@@ -4,14 +4,8 @@ import {
   useMutation,
   useQuery,
 } from '@tanstack/react-query';
-import {
-  canManageOrganizationSetup,
-  hasCurrentBillingSubscription,
-} from '@retaino/shared/contracts';
-import type {
-  BillingPlanKey,
-  CreditPackKey,
-} from '@retaino/shared/contracts';
+import { canManageOrganizationSetup } from '@retaino/shared/contracts';
+import type { BillingPlanKey } from '@retaino/shared/contracts';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { ItemNotice } from '@/components/item-notice';
@@ -23,14 +17,12 @@ import { useApi } from '@/hooks/use-api';
 import { useSmsSender } from '@/hooks/use-sms-sender';
 import {
   createBillingPortalSession,
-  createCreditCheckout,
   createSubscriptionCheckout,
   fetchBillingStatus,
 } from '../billing-api';
 import { billingQueryKeys } from '../billing-query-keys';
 import { BillingPlanList } from './billing-plan-list';
 import { BillingStatusPanel } from './billing-status-panel';
-import { CreditPackList } from './credit-pack-list';
 
 export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
   const api = useApi();
@@ -48,16 +40,11 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
       createSubscriptionCheckout(api, planKey),
     onSuccess: redirectToCheckout,
   });
-  const creditCheckout = useMutation({
-    mutationFn: (packKey: CreditPackKey) => createCreditCheckout(api, packKey),
-    onSuccess: redirectToCheckout,
-  });
   const portal = useMutation({
     mutationFn: () => createBillingPortalSession(api),
     onSuccess: redirectToCheckout,
   });
-  const actionError =
-    subscriptionCheckout.error ?? creditCheckout.error ?? portal.error;
+  const actionError = subscriptionCheckout.error ?? portal.error;
 
   useEffect(() => {
     if (showSuccess) {
@@ -97,7 +84,7 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
     <main className="flex flex-1 items-start bg-background">
       <section className="mx-auto grid w-full max-w-6xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
-          description="Choose a plan, buy extra credits, and manage payment details."
+          description="Choose a plan and manage payment details."
           eyebrow="Billing"
           title="Billing"
         />
@@ -154,16 +141,6 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
                   subscriptionCheckout.isPending
                     ? subscriptionCheckout.variables ?? null
                     : null
-                }
-              />
-              <CreditPackList
-                canBuyCredits={hasCurrentBillingSubscription(
-                  billingStatus.data.subscription.status,
-                )}
-                canManageBilling={canManageBilling}
-                onSelectPack={(packKey) => creditCheckout.mutate(packKey)}
-                pendingPackKey={
-                  creditCheckout.isPending ? creditCheckout.variables ?? null : null
                 }
               />
             </>

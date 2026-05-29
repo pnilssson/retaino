@@ -38,9 +38,9 @@ describe('billing schema', () => {
     expect(smsCreditTransactions.credits.name).toBe('credits');
     expect(smsCreditTransactions.source.name).toBe('source');
     expect(smsCreditTransactions.sourceId.name).toBe('source_id');
-    expect(smsCreditTransactions.creditBucket.name).toBe('credit_bucket');
     expect(smsCreditTransactions.periodStart.name).toBe('period_start');
     expect(smsCreditTransactions.periodEnd.name).toBe('period_end');
     expect('balance' in smsCreditTransactions).toBe(false);
+    expect('creditBucket' in smsCreditTransactions).toBe(false);
   });
 });

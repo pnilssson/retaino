@@ -3,12 +3,10 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 import {
   billingProfileToContract,
+  claimBillingWebhookEventProcessing,
   createSmsCreditTransaction,
-  getBillingWebhookEventByStripeEventId,
   getSmsCreditBalance,
-  getSmsCreditBalanceBreakdown,
   getSmsCreditReservationState,
-  recordBillingWebhookEvent,
   reserveSmsCreditsIfSufficient,
   smsCreditTransactionToContract,
   upsertOrganizationBillingProfile,
@@ -58,7 +56,6 @@ describe('billing query helpers', () => {
         credits: 1000,
         source: 'stripe_invoice',
         sourceId: 'in_123',
-        creditBucket: 'subscription_period',
         periodStart: new Date('2026-05-14T00:00:00.000Z'),
         periodEnd: new Date('2026-06-14T00:00:00.000Z'),
         description: 'Growth monthly credits',
@@ -67,7 +64,6 @@ describe('billing query helpers', () => {
     ).toMatchObject({
       transactionType: 'grant',
       source: 'stripe_invoice',
-      creditBucket: 'subscription_period',
       credits: 1000,
       periodStart: '2026-05-14T00:00:00.000Z',
       periodEnd: '2026-06-14T00:00:00.000Z',
@@ -116,13 +112,15 @@ describe('billing query helpers', () => {
     });
   });
 
-  it('records webhook events idempotently by Stripe event id', async () => {
+  it('claims webhook events idempotently by Stripe event id', async () => {
     let conflictTarget: unknown;
+    let valuesInput: Record<string, unknown> | null = null;
     const db = {
       insert: () => ({
         values: (values: unknown) => ({
           onConflictDoNothing: (config: { target: unknown }) => {
             conflictTarget = config.target;
+            valuesInput = values as Record<string, unknown>;
 
             return {
               returning: () => [values],
@@ -132,7 +130,7 @@ describe('billing query helpers', () => {
       }),
     };
 
-    const event = await recordBillingWebhookEvent(db as never, {
+    const event = await claimBillingWebhookEventProcessing(db as never, {
       stripeEventId: 'evt_123',
       eventType: 'checkout.session.completed',
       organizationId: '22222222-2222-4222-8222-222222222222',
@@ -140,34 +138,58 @@ describe('billing query helpers', () => {
     });
 
     expect(conflictTarget).toBeDefined();
-    expect(event?.stripeEventId).toBe('evt_123');
+    expect(valuesInput).toMatchObject({
+      status: 'processing',
+      stripeEventId: 'evt_123',
+    });
+    expect(event).toEqual({ claimStatus: 'claimed' });
   });
 
-  it('reads webhook event processing state by Stripe event id', async () => {
+  it('reclaims failed webhook events for Stripe retries', async () => {
+    let updateSet: unknown;
     let whereCondition: SQL | undefined;
     const db = {
-      select: () => ({
-        from: () => ({
-          where: (condition: SQL | undefined) => {
-            whereCondition = condition;
-
-            return {
-              limit: () => [{ stripeEventId: 'evt_123', status: 'processed' }],
-            };
-          },
+      insert: () => ({
+        values: () => ({
+          onConflictDoNothing: () => ({
+            returning: () => [],
+          }),
         }),
+      }),
+      update: () => ({
+        set: (values: unknown) => {
+          updateSet = values;
+
+          return {
+            where: (condition: SQL | undefined) => {
+              whereCondition = condition;
+
+              return {
+                returning: () => [
+                  {
+                    stripeEventId: 'evt_123',
+                    status: 'processing',
+                  },
+                ],
+              };
+            },
+          };
+        },
       }),
     };
 
-    const event = await getBillingWebhookEventByStripeEventId(
-      db as never,
-      'evt_123',
-    );
+    const event = await claimBillingWebhookEventProcessing(db as never, {
+      stripeEventId: 'evt_123',
+      eventType: 'invoice.paid',
+      organizationId: '22222222-2222-4222-8222-222222222222',
+      payload: { id: 'evt_123' },
+    });
 
-    expect(event?.status).toBe('processed');
+    expect(event).toEqual({ claimStatus: 'claimed' });
+    expect(updateSet).toMatchObject({ status: 'processing' });
 
     if (!whereCondition) {
-      throw new Error('Expected webhook lookup to build a where condition.');
+      throw new Error('Expected webhook reclaim to build a where condition.');
     }
 
     const query = new PgDialect().sqlToQuery(
@@ -175,10 +197,82 @@ describe('billing query helpers', () => {
     );
 
     expect(query.sql).toContain('"billing_webhook_events"."stripe_event_id"');
-    expect(query.params).toEqual(['evt_123']);
+    expect(query.sql).toContain('"billing_webhook_events"."status" in');
+    expect(query.sql).toContain('"billing_webhook_events"."received_at"');
+    expect(query.params).toEqual(['evt_123', 'received', 'failed', 'processing', 5]);
   });
 
-  it('creates credit transactions idempotently by source and bucket', async () => {
+  it('reports in-flight webhook events without reclaiming them', async () => {
+    const db = {
+      insert: () => ({
+        values: () => ({
+          onConflictDoNothing: () => ({
+            returning: () => [],
+          }),
+        }),
+      }),
+      update: () => ({
+        set: () => ({
+          where: () => ({
+            returning: () => [],
+          }),
+        }),
+      }),
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            limit: () => [{ status: 'processing' }],
+          }),
+        }),
+      }),
+    };
+
+    await expect(
+      claimBillingWebhookEventProcessing(db as never, {
+        stripeEventId: 'evt_123',
+        eventType: 'invoice.paid',
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        payload: { id: 'evt_123' },
+      }),
+    ).resolves.toEqual({ claimStatus: 'processing' });
+  });
+
+  it('reports processed webhook events as duplicates', async () => {
+    const db = {
+      insert: () => ({
+        values: () => ({
+          onConflictDoNothing: () => ({
+            returning: () => [],
+          }),
+        }),
+      }),
+      update: () => ({
+        set: () => ({
+          where: () => ({
+            returning: () => [],
+          }),
+        }),
+      }),
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            limit: () => [{ status: 'processed' }],
+          }),
+        }),
+      }),
+    };
+
+    await expect(
+      claimBillingWebhookEventProcessing(db as never, {
+        stripeEventId: 'evt_123',
+        eventType: 'invoice.paid',
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        payload: { id: 'evt_123' },
+      }),
+    ).resolves.toEqual({ claimStatus: 'processed' });
+  });
+
+  it('creates credit transactions idempotently by source and period', async () => {
     let conflictTarget: unknown;
     const db = {
       insert: () => ({
@@ -203,21 +297,24 @@ describe('billing query helpers', () => {
       organizationId: '22222222-2222-4222-8222-222222222222',
       transactionType: 'grant',
       credits: 500,
-      creditBucket: 'purchased',
-      periodStart: null,
-      periodEnd: null,
-      source: 'stripe_checkout_session',
-      sourceId: 'cs_123',
-      description: '500 credits purchase',
+      periodStart: new Date('2026-05-14T00:00:00.000Z'),
+      periodEnd: new Date('2026-07-14T00:00:00.000Z'),
+      source: 'stripe_invoice',
+      sourceId: 'sub_123:period',
+      description: 'Starter monthly credits',
     });
 
     expect(conflictTarget).toBeDefined();
+    expect(conflictTarget).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'organization_id' }),
+      ]),
+    );
     expect(transaction).toMatchObject({
       transactionType: 'grant',
       credits: 500,
-      creditBucket: 'purchased',
-      source: 'stripe_checkout_session',
-      sourceId: 'cs_123',
+      source: 'stripe_invoice',
+      sourceId: 'sub_123:period',
     });
   });
 
@@ -229,12 +326,7 @@ describe('billing query helpers', () => {
           where: (condition: SQL | undefined) => {
             whereCondition = condition;
 
-            return {
-              groupBy: () => [
-                { creditBucket: 'purchased', balance: 500 },
-                { creditBucket: 'subscription_period', balance: 300 },
-              ],
-            };
+            return [{ balance: 300 }];
           },
         }),
       }),
@@ -245,7 +337,7 @@ describe('billing query helpers', () => {
       '22222222-2222-4222-8222-222222222222',
     );
 
-    expect(balance).toBe(800);
+    expect(balance).toBe(300);
 
     if (!whereCondition) {
       throw new Error('Expected getSmsCreditBalance to build a where condition.');
@@ -256,10 +348,10 @@ describe('billing query helpers', () => {
     );
 
     expect(query.sql).toContain('"sms_credit_transactions"."organization_id"');
+    expect(query.sql).toContain('"sms_credit_transactions"."period_start" <= now()');
+    expect(query.sql).toContain('"sms_credit_transactions"."period_end" > now()');
     expect(query.params).toEqual([
       '22222222-2222-4222-8222-222222222222',
-      'purchased',
-      'subscription_period',
     ]);
   });
 
@@ -276,7 +368,6 @@ describe('billing query helpers', () => {
               credits: -1,
               source: 'campaign_test_send',
               source_id: 'campaign-test-123',
-              credit_bucket: 'subscription_period',
               period_start: '2026-05-14T00:00:00.000Z',
               period_end: '2026-06-14T00:00:00.000Z',
               description: 'Campaign test SMS usage',
@@ -306,7 +397,6 @@ describe('billing query helpers', () => {
         credits: -1,
         source: 'campaign_test_send',
         sourceId: 'campaign-test-123',
-        creditBucket: 'subscription_period',
         periodStart: '2026-05-14T00:00:00.000Z',
         periodEnd: '2026-06-14T00:00:00.000Z',
         description: 'Campaign test SMS usage',
@@ -320,9 +410,8 @@ describe('billing query helpers', () => {
 
     const query = new PgDialect().sqlToQuery(statement);
 
-    expect(query.sql).toContain(
-      '(balances.subscription_period + balances.purchased) >=',
-    );
+    expect(query.sql).toContain('ordered_balances.total_balance >=');
+    expect(query.sql).toContain('order by grant_balances.period_end');
     expect(query.sql).toContain('from "organization_billing_profiles"');
     expect(query.sql).toContain('for update');
     expect(query.sql).not.toContain('pg_advisory_xact_lock');
@@ -347,7 +436,6 @@ describe('billing query helpers', () => {
               credits: -3,
               source: 'campaign_send',
               sourceId: 'campaign-send-123',
-              creditBucket: 'subscription_period',
               periodStart: new Date('2026-05-14T00:00:00.000Z'),
               periodEnd: new Date('2026-06-14T00:00:00.000Z'),
               description: 'Campaign SMS reservation',
@@ -380,7 +468,6 @@ describe('billing query helpers', () => {
           credits: -3,
           source: 'campaign_send',
           sourceId: 'campaign-send-123',
-          creditBucket: 'subscription_period',
           periodStart: '2026-05-14T00:00:00.000Z',
           periodEnd: '2026-06-14T00:00:00.000Z',
           description: 'Campaign SMS reservation',
@@ -434,32 +521,6 @@ describe('billing query helpers', () => {
         'campaign-send-123:%',
       ]),
     );
-  });
-
-  it('returns SMS credit balance breakdown by purchased and current period credits', async () => {
-    const db = {
-      select: () => ({
-        from: () => ({
-          where: () => ({
-            groupBy: () => [
-              { creditBucket: 'purchased', balance: 500 },
-              { creditBucket: 'subscription_period', balance: 300 },
-            ],
-          }),
-        }),
-      }),
-    };
-
-    await expect(
-      getSmsCreditBalanceBreakdown(
-        db as never,
-        '22222222-2222-4222-8222-222222222222',
-      ),
-    ).resolves.toEqual({
-      purchased: 500,
-      subscriptionPeriod: 300,
-      total: 800,
-    });
   });
 
 });

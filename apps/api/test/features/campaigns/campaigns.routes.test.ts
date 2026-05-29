@@ -16,7 +16,6 @@ import {
   getOrganizationProfileByOrganizationId,
   getOrganizationSmsSender,
   getSmsCreditBalance,
-  getSmsCreditBalanceBreakdown,
   getSmsCreditReservationState,
   launchCampaign,
   listSelectedCampaignRecipientsForSend,
@@ -53,7 +52,6 @@ vi.mock('@retaino/db', () => ({
   getOrganizationProfileByOrganizationId: vi.fn(),
   getOrganizationSmsSender: vi.fn(),
   getSmsCreditBalance: vi.fn(),
-  getSmsCreditBalanceBreakdown: vi.fn(),
   getSmsCreditReservationState: vi.fn(),
   launchCampaign: vi.fn(),
   listSelectedCampaignRecipientsForSend: vi.fn(),
@@ -235,7 +233,6 @@ describe('campaignsRoutes', () => {
     vi.mocked(getOrganizationProfileByOrganizationId).mockReset();
     vi.mocked(getOrganizationSmsSender).mockReset();
     vi.mocked(getSmsCreditBalance).mockReset();
-    vi.mocked(getSmsCreditBalanceBreakdown).mockReset();
     vi.mocked(getSmsCreditReservationState).mockReset();
     vi.mocked(launchCampaign).mockReset();
     vi.mocked(enqueueCampaignSendProcessing).mockReset();
@@ -266,7 +263,6 @@ describe('campaignsRoutes', () => {
           source: 'campaign_send',
           sourceId: `campaign-send:${campaign.id}`,
           credits: -1,
-          creditBucket: 'subscription_period',
           periodStart: '2026-05-01T00:00:00.000Z',
           periodEnd: '2026-06-01T00:00:00.000Z',
           description: 'Campaign SMS reservation',
@@ -1131,11 +1127,6 @@ describe('campaignsRoutes', () => {
     vi.mocked(getCampaignById).mockResolvedValue(campaign);
     vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
     vi.mocked(getSmsCreditBalance).mockResolvedValue(10);
-    vi.mocked(getSmsCreditBalanceBreakdown).mockResolvedValue({
-      purchased: 0,
-      subscriptionPeriod: 10,
-      total: 10,
-    });
     vi.mocked(getOrganizationSmsSender).mockResolvedValue(readySender());
     vi.mocked(reserveSmsCreditsIfSufficient).mockResolvedValue({
       debitedCredits: 1,
@@ -1145,7 +1136,6 @@ describe('campaignsRoutes', () => {
           source: 'campaign_test_send',
           sourceId: 'campaign-test-123',
           credits: -1,
-          creditBucket: 'subscription_period',
           periodStart: '2026-05-01T00:00:00.000Z',
           periodEnd: '2026-06-01T00:00:00.000Z',
           description: 'Campaign test SMS usage',
@@ -1210,11 +1200,6 @@ describe('campaignsRoutes', () => {
     });
     vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
     vi.mocked(getSmsCreditBalance).mockResolvedValue(10);
-    vi.mocked(getSmsCreditBalanceBreakdown).mockResolvedValue({
-      purchased: 0,
-      subscriptionPeriod: 10,
-      total: 10,
-    });
     vi.mocked(getOrganizationSmsSender).mockResolvedValue(readySender());
     vi.mocked(reserveSmsCreditsIfSufficient).mockResolvedValue({
       debitedCredits: 1,
@@ -1253,11 +1238,6 @@ describe('campaignsRoutes', () => {
     vi.mocked(getCampaignById).mockResolvedValue(campaign);
     vi.mocked(getOrganizationBillingProfile).mockResolvedValue(activeBilling());
     vi.mocked(getSmsCreditBalance).mockResolvedValue(10);
-    vi.mocked(getSmsCreditBalanceBreakdown).mockResolvedValue({
-      purchased: 0,
-      subscriptionPeriod: 10,
-      total: 10,
-    });
     vi.mocked(getOrganizationSmsSender).mockResolvedValue(readySender());
     vi.mocked(reserveSmsCreditsIfSufficient).mockResolvedValue({
       debitedCredits: 1,

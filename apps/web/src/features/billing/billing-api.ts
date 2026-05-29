@@ -3,7 +3,6 @@ import type {
   BillingPlanKey,
   BillingPortalUrlResponse,
   BillingStatusResponse,
-  CreditPackKey,
 } from '@retaino/shared/contracts';
 import type { createApiClient } from '@/lib/api-client';
 
@@ -21,12 +20,6 @@ export function createSubscriptionCheckout(
     '/v1/billing/checkout/subscription',
     { planKey },
   );
-}
-
-export function createCreditCheckout(api: ApiClient, packKey: CreditPackKey) {
-  return api.post<BillingCheckoutUrlResponse>('/v1/billing/checkout/credits', {
-    packKey,
-  });
 }
 
 export function createBillingPortalSession(api: ApiClient) {

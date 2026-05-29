@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1779646520276,
-      "tag": "0000_initial_schema",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1779654131737,
-      "tag": "0001_secret_overlord",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1780062645009,
-      "tag": "0002_complex_bloodstrike",
+      "when": 1780093123633,
+      "tag": "0000_perfect_kylun",
       "breakpoints": true
     }
   ]

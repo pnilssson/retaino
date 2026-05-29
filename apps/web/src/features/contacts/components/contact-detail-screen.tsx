@@ -90,7 +90,7 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
       <section className="mx-auto grid w-full max-w-6xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={
-            <Button asChild variant="outline">
+            <Button asChild className="px-0" variant="link">
               <Link href={routes.contacts}>
                 <ArrowLeft aria-hidden="true" data-icon="inline-start" />
                 Back to contacts
@@ -142,7 +142,6 @@ function ContactDetailContent({
                 <Button
                   onClick={() => setIsEditing(true)}
                   type="button"
-                  variant="outline"
                 >
                   <Pencil aria-hidden="true" data-icon="inline-start" />
                   Edit contact

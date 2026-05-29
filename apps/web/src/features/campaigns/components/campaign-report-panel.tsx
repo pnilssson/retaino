@@ -138,7 +138,6 @@ function ReportUpdateActions({
       disabled={isFetching}
       onClick={onUpdate}
       type="button"
-      variant="outline"
     >
       <RefreshCw
         aria-hidden="true"

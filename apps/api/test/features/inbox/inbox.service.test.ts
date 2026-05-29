@@ -109,7 +109,6 @@ const reservedTransactions = [
     credits: -1,
     source: 'manual_reply',
     sourceId: `manual-reply:${conversationId}:${clientRequestId}`,
-    creditBucket: 'subscription_period',
     periodStart: '2026-05-01T00:00:00.000Z',
     periodEnd: '2026-06-01T00:00:00.000Z',
     description: 'Inbox SMS reply usage',

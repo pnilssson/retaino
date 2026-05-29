@@ -9,7 +9,6 @@ import { useForm } from '@tanstack/react-form';
 import {
   ArrowLeft,
   CheckCircle2,
-  FileText,
   Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -18,7 +17,6 @@ import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  ItemActions,
   ItemDescription,
   ItemTitle,
 } from '@/components/ui/item';
@@ -71,7 +69,7 @@ export function LegalOverviewScreen() {
       <section className="mx-auto grid w-full max-w-6xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={
-            <Button asChild variant="outline">
+            <Button asChild className="px-0" variant="link">
               <Link href={routes.settings}>
                 <ArrowLeft aria-hidden="true" data-icon="inline-start" />
                 Back to settings
@@ -103,10 +101,7 @@ export function LegalOverviewScreen() {
 
 function CurrentBundleSection({ session }: { session: OrganizationSession }) {
   return (
-    <ContentSection
-      description="These are the current documents that govern this organization."
-      title="Current bundle"
-    >
+    <ContentSection title="Current bundle">
       <dl className="grid gap-4 py-2 sm:grid-cols-3">
         <LegalMetadata
           label="Bundle version"
@@ -131,10 +126,7 @@ function CurrentBundleSection({ session }: { session: OrganizationSession }) {
 
 function LegalDocumentsSection({ session }: { session: OrganizationSession }) {
   return (
-    <ContentSection
-      description="Read the terms, privacy documents, and policy notices included in this bundle."
-      title="Documents"
-    >
+    <ContentSection title="Documents">
       <ul className="grid gap-2">
         {session.legalBundle.documents.map((document) => {
           const documentType =
@@ -147,30 +139,27 @@ function LegalDocumentsSection({ session }: { session: OrganizationSession }) {
 
           return (
             <li
-              className="grid gap-3 border-t py-3 first:border-t-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+              className="grid gap-1 border-t py-3 first:border-t-0"
               key={document.id}
             >
               <div className="grid min-w-0 gap-1">
-                <ItemTitle>{label}</ItemTitle>
+                <ItemTitle>
+                  <Link
+                    className="hover:underline"
+                    href={appLegalDocumentUrl({
+                      documentType: document.documentType,
+                      documentVersion: document.documentVersion,
+                    })}
+                  >
+                    {label}
+                  </Link>
+                </ItemTitle>
                 <ItemDescription>{description}</ItemDescription>
                 <p className={textStyles.meta}>
                   Version {document.documentVersion}, effective{' '}
                   {document.effectiveDate}
                 </p>
               </div>
-              <ItemActions>
-                <Button asChild type="button" variant="outline">
-                  <Link
-                    href={appLegalDocumentUrl({
-                      documentType: document.documentType,
-                      documentVersion: document.documentVersion,
-                    })}
-                  >
-                    <FileText aria-hidden="true" data-icon="inline-start" />
-                    Read document
-                  </Link>
-                </Button>
-              </ItemActions>
             </li>
           );
         })}

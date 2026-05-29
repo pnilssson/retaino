@@ -1,5 +1,5 @@
 {
-  "id": "87f34488-0545-4f24-8b16-4c73d0c86d1f",
+  "id": "b2b901df-1963-4e0c-9e12-075868953679",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -341,13 +341,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "credit_bucket": {
-          "name": "credit_bucket",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'purchased'"
-        },
         "period_start": {
           "name": "period_start",
           "type": "timestamp with time zone",
@@ -400,6 +393,12 @@
           "name": "sms_credit_transactions_source_idx",
           "columns": [
             {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
               "expression": "source",
               "isExpression": false,
               "asc": true,
@@ -412,7 +411,13 @@
               "nulls": "last"
             },
             {
-              "expression": "credit_bucket",
+              "expression": "period_start",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "period_end",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2967,6 +2972,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "release_scheduled_at": {
+          "name": "release_scheduled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "released_at": {
+          "name": "released_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -3110,6 +3127,100 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.sms_conversations": {
+      "name": "sms_conversations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone_hash": {
+          "name": "phone_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "normalized_phone": {
+          "name": "normalized_phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_read_at": {
+          "name": "last_read_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "sms_conversations_organization_phone_hash_idx": {
+          "name": "sms_conversations_organization_phone_hash_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "phone_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sms_conversations_organization_id_organizations_id_fk": {
+          "name": "sms_conversations_organization_id_organizations_id_fk",
+          "tableFrom": "sms_conversations",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.sms_messages": {
       "name": "sms_messages",
       "schema": "",
@@ -3186,6 +3297,24 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "normalized_phone": {
+          "name": "normalized_phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone_hash": {
+          "name": "phone_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "body": {
           "name": "body",
@@ -3359,6 +3488,60 @@
           "method": "btree",
           "with": {}
         },
+        "sms_messages_organization_phone_created_idx": {
+          "name": "sms_messages_organization_phone_created_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "phone_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sms_messages_organization_contact_created_idx": {
+          "name": "sms_messages_organization_contact_created_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "contact_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "sms_messages_provider_message_idx": {
           "name": "sms_messages_provider_message_idx",
           "columns": [
@@ -3380,8 +3563,8 @@
           "method": "btree",
           "with": {}
         },
-        "sms_messages_campaign_recipient_direction_idx": {
-          "name": "sms_messages_campaign_recipient_direction_idx",
+        "sms_messages_organization_idempotency_idx": {
+          "name": "sms_messages_organization_idempotency_idx",
           "columns": [
             {
               "expression": "organization_id",
@@ -3390,19 +3573,7 @@
               "nulls": "last"
             },
             {
-              "expression": "campaign_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "recipient_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "direction",
+              "expression": "idempotency_key",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

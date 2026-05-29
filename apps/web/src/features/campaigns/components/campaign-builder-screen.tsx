@@ -135,7 +135,7 @@ export function CampaignBuilderScreen({
         <AppPageHeader
           actions={
             <>
-              <Button asChild variant="outline">
+              <Button asChild className="px-0" variant="link">
                 <Link href={routes.campaigns}>
                   <ArrowLeft aria-hidden="true" data-icon="inline-start" />
                   Back to campaigns

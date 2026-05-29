@@ -1,0 +1,41 @@
+# Retaino Subprocessor Notice
+
+Last updated: 2026-05-30
+
+The customer authorizes Retaino to use subprocessors needed to provide, secure,
+host, support, monitor, bill, and deliver the service.
+
+## General authorization
+
+Retaino may appoint subprocessors if they are bound by written obligations that
+protect customer personal data to a standard materially consistent with the Data
+Processing Agreement.
+
+## Notice of changes
+
+Retaino will provide notice of material subprocessor changes through the
+product, email, or a published legal page. The customer may object on reasonable
+data protection grounds before the change takes effect.
+
+If the customer objects to a new subprocessor and Retaino cannot reasonably
+resolve the objection, either party may terminate the affected service.
+
+## Current subprocessors
+
+| Subprocessor | Purpose | Data categories |
+| --- | --- | --- |
+| Clerk | Authentication, account access, user sessions, and organization membership. | Account user names, email addresses, authentication identifiers, organization membership, roles, session data, and related security metadata. |
+| Neon | Database hosting and storage. | Customer, campaign, SMS, opt-out, tracking, reporting, billing projection, legal acceptance, and audit data stored in Retaino. |
+| Vercel | Web application hosting and delivery. | Website and app request metadata, public page delivery data, and authenticated app traffic metadata. |
+| Cloudflare | API hosting, Workers runtime, R2 import object storage, Hyperdrive database connectivity, traffic routing, rate limiting, security, logs, and observability. | API request metadata, temporary raw import files, customer data processed by API routes and background jobs, routing metadata, rate limit metadata, and operational logs. |
+| Stripe | Checkout, payments, tax calculation, subscriptions, invoices, refunds, customer portal, and billing webhooks. | Billing contact data, payment metadata, tax information, invoice data, subscription data, checkout data, customer identifiers, organization identifiers, and payment status. |
+| Inngest | Background job orchestration for imports, campaign sends, and sender release tasks. | Job payload identifiers such as organization IDs, user IDs, contact import IDs, campaign IDs, sender IDs, timestamps, and job execution metadata. |
+| Twilio | SMS sender provisioning, campaign sends, test sends, delivery callbacks, inbound replies, and opt-out handling. | Sender numbers, recipient phone numbers, message bodies, delivery status data, provider message identifiers, reply content, opt-out events, timestamps, and related technical metadata. |
+| Sentry | Backend error monitoring, diagnostics, and operational alerting. | Error details, route and method metadata, environment, release, timestamps, operational tags such as organization, campaign, contact import, provider, and provider error identifiers. Sensitive fields are filtered before sending where Retaino controls the event payload. |
+
+## Customer-controlled tools
+
+Retaino customers may independently use booking systems, CRM systems,
+spreadsheets, or other tools before importing data into Retaino or after
+receiving booking links and replies. Those tools are not Retaino subprocessors
+unless Retaino directly engages them to provide the Retaino service.

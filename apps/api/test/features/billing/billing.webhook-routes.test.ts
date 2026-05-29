@@ -1,7 +1,10 @@
 import Stripe from 'stripe';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { processStripeBillingWebhook } from '../../../src/features/billing/billing.webhooks';
+import {
+  BillingWebhookProcessingInProgressError,
+  processStripeBillingWebhook,
+} from '../../../src/features/billing/billing.webhooks';
 import { billingWebhookRoutes } from '../../../src/features/billing/billing.webhook-routes';
 import { enqueueSmsSenderReleaseProcessing } from '../../../src/features/sms/sms.sender-release.jobs';
 import { captureHandledError } from '../../../src/lib/sentry';
@@ -39,10 +42,10 @@ const env = {
     connectionString: 'postgresql://user:password@example.test/retaino',
   },
   STRIPE_CANCEL_URL: 'https://retaino.test/app/settings/billing',
-  STRIPE_PRICE_CREDITS_1500_ID: 'price_credits_1500',
-  STRIPE_PRICE_CREDITS_5000_ID: 'price_credits_5000',
-  STRIPE_PRICE_CREDITS_500_ID: 'price_credits_500',
+  STRIPE_PRICE_ADVANCED_ID: 'price_advanced',
+  STRIPE_PRICE_CORE_ID: 'price_core',
   STRIPE_PRICE_GROWTH_ID: 'price_growth',
+  STRIPE_PRICE_PRO_ID: 'price_pro',
   STRIPE_PRICE_SCALE_ID: 'price_scale',
   STRIPE_PRICE_STARTER_ID: 'price_starter',
   STRIPE_RETURN_URL: 'https://retaino.test/app/settings/billing',
@@ -126,6 +129,43 @@ describe('billing webhook routes', () => {
       }),
     });
     expect(enqueueSmsSenderReleaseProcessing).not.toHaveBeenCalled();
+  });
+
+  it('asks Stripe to retry events that are already processing', async () => {
+    vi.mocked(processStripeBillingWebhook).mockRejectedValue(
+      new BillingWebhookProcessingInProgressError(),
+    );
+    const payload = JSON.stringify({
+      id: 'evt_123',
+      object: 'event',
+      type: 'invoice.paid',
+      data: { object: { id: 'in_123', object: 'invoice' } },
+    });
+    const signature = Stripe.webhooks.generateTestHeaderString({
+      payload,
+      secret: env.STRIPE_WEBHOOK_SECRET,
+    });
+
+    const response = await testApp().request(
+      '/v1/billing/webhooks',
+      {
+        method: 'POST',
+        headers: {
+          'stripe-signature': signature,
+        },
+        body: payload,
+      },
+      env,
+    );
+
+    expect(response.status).toBe(409);
+    expect(response.headers.get('retry-after')).toBe('10');
+    await expect(response.json()).resolves.toEqual({
+      error: {
+        code: 'conflict',
+        message: 'Stripe event is already processing.',
+      },
+    });
   });
 
   it('enqueues sender release processing for immediately due releases', async () => {

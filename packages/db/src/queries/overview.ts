@@ -213,14 +213,8 @@ export async function getOverviewDashboard(
         as sms_credit_balance
       from ${smsCreditTransactions}, input
       where ${smsCreditTransactions.organizationId} = input.organization_id
-        and (
-          ${smsCreditTransactions.creditBucket} = ${'purchased'}
-          or (
-            ${smsCreditTransactions.creditBucket} = ${'subscription_period'}
-            and ${smsCreditTransactions.periodStart} <= input.now_at
-            and ${smsCreditTransactions.periodEnd} > input.now_at
-          )
-        )
+        and ${smsCreditTransactions.periodStart} <= input.now_at
+        and ${smsCreditTransactions.periodEnd} > input.now_at
     ),
     funnel_recipients as (
       select
@@ -448,7 +442,7 @@ function attentionItems(input: {
       id: 'credits-empty',
       tone: 'critical',
       title: 'SMS credits are empty',
-      description: 'Buy credits before sending campaigns or inbox replies.',
+      description: 'Choose a plan with enough monthly credits before sending.',
       action: 'open_billing',
     });
   } else if (input.metrics.smsCreditBalance < 50) {
