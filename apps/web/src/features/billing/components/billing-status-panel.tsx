@@ -1,11 +1,13 @@
 "use client";
 
+import type { ReactNode } from 'react';
 import type {
   BillingStatusResponse,
   PublicOrganizationSmsSender,
 } from '@retaino/shared/contracts';
 import { hasCurrentBillingSubscription } from '@retaino/shared/contracts';
 import { ExternalLink } from 'lucide-react';
+import { InfoTooltip } from '@/components/info-tooltip';
 import { ItemNotice } from '@/components/item-notice';
 import {
   StatusBadge,
@@ -36,6 +38,10 @@ export function BillingStatusPanel({
   const subscription = billingStatus.subscription;
   const status = subscriptionStatusView(subscription.status);
   const senderPolicy = senderPolicyNotice(subscription, sender);
+  const senderTooltip =
+    senderPolicy?.variant === 'info' ? senderPolicy : null;
+  const senderNotice =
+    senderPolicy?.variant === 'warning' ? senderPolicy : null;
 
   return (
     <ContentSection
@@ -81,28 +87,42 @@ export function BillingStatusPanel({
           />
           <Metric
             label="Sender number"
+            tooltip={
+              senderTooltip ? (
+                <span>{senderTooltip.description}</span>
+              ) : null
+            }
             value={sender?.phoneNumber ?? 'Not active'}
           />
         </dl>
-        <ItemNotice
-          description={senderPolicy.description}
-          title={senderPolicy.title}
-          variant={senderPolicy.variant}
-        />
+        {senderNotice ? (
+          <ItemNotice
+            description={senderNotice.description}
+            title={senderNotice.title}
+            variant={senderNotice.variant}
+          />
+        ) : null}
     </ContentSection>
   );
 }
 
 function Metric({
   label,
+  tooltip,
   value,
 }: {
   label: string;
+  tooltip?: ReactNode;
   value: string;
 }) {
   return (
     <div className="min-w-0">
-      <dt className={textStyles.meta}>{label}</dt>
+      <dt className={cn('flex items-center gap-1.5', textStyles.meta)}>
+        {label}
+        {tooltip ? (
+          <InfoTooltip label={`${label} details`}>{tooltip}</InfoTooltip>
+        ) : null}
+      </dt>
       <dd className={cn('mt-1 truncate tabular-nums', textStyles.itemTitle)}>
         {value}
       </dd>
@@ -140,11 +160,7 @@ function planLabel(planKey: NonNullable<BillingStatusResponse['subscription']['p
 function senderPolicyNotice(
   subscription: BillingStatusResponse['subscription'],
   sender: PublicOrganizationSmsSender | null,
-): {
-  title: string;
-  description: string;
-  variant: 'info' | 'warning';
-} {
+): SenderPolicyNotice {
   if (sender?.status === 'released') {
     return {
       title: 'No active sender number',
@@ -182,9 +198,19 @@ function senderPolicyNotice(
   }
 
   return {
-    title: 'Sender number included',
     description:
       'Your sender number stays active while your subscription is active.',
     variant: 'info',
   };
 }
+
+type SenderPolicyNotice =
+  | {
+      title: string;
+      description: string;
+      variant: 'warning';
+    }
+  | {
+      description: string;
+      variant: 'info';
+    };

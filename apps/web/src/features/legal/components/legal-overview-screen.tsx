@@ -222,58 +222,60 @@ function LegalAcceptanceSection({
               />
             ) : null}
 
-            <form.Field
-              name="authorization"
-              validators={{
-                onBlur: ({ value }) =>
-                  value
-                    ? undefined
-                    : 'Confirm that you are authorized to accept the updated legal terms.',
-                onSubmit: ({ value }) =>
-                  value
-                    ? undefined
-                    : 'Confirm that you are authorized to accept the updated legal terms.',
-              }}
-            >
-              {(field) => {
-                const error = getFieldError(field.state.meta.errors);
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <form.Field
+                name="authorization"
+                validators={{
+                  onBlur: ({ value }) =>
+                    value
+                      ? undefined
+                      : 'Confirm that you are authorized to accept the updated legal terms.',
+                  onSubmit: ({ value }) =>
+                    value
+                      ? undefined
+                      : 'Confirm that you are authorized to accept the updated legal terms.',
+                }}
+              >
+                {(field) => {
+                  const error = getFieldError(field.state.meta.errors);
 
-                return (
-                  <div className="flex items-start gap-3">
-                    <Checkbox
-                      aria-describedby={
-                        error ? 'legal-updates-authorization-error' : undefined
-                      }
-                      checked={field.state.value}
-                      id="legal-updates-authorization"
-                      onBlur={field.handleBlur}
-                      onCheckedChange={(checked) =>
-                        field.handleChange(checked === true)
-                      }
-                    />
-                    <div className="grid gap-1">
-                      <Label htmlFor="legal-updates-authorization">
-                        I am authorized to accept the updated legal terms for
-                        this organization.
-                      </Label>
-                      <p className={textStyles.mutedBody}>
-                        Campaign sends will use the same gate when campaigns
-                        launch.
-                      </p>
-                      {error ? (
-                        <p
-                          className={textStyles.error}
-                          id="legal-updates-authorization-error"
-                        >
-                          {error}
+                  return (
+                    <div className="flex min-w-0 items-start gap-3">
+                      <Checkbox
+                        aria-describedby={
+                          error
+                            ? 'legal-updates-authorization-error'
+                            : undefined
+                        }
+                        checked={field.state.value}
+                        id="legal-updates-authorization"
+                        onBlur={field.handleBlur}
+                        onCheckedChange={(checked) =>
+                          field.handleChange(checked === true)
+                        }
+                      />
+                      <div className="grid gap-1">
+                        <Label htmlFor="legal-updates-authorization">
+                          I am authorized to accept the updated legal terms for
+                          this organization.
+                        </Label>
+                        <p className={textStyles.mutedBody}>
+                          Campaign sends will use the same gate when campaigns
+                          launch.
                         </p>
-                      ) : null}
+                        {error ? (
+                          <p
+                            className={textStyles.error}
+                            id="legal-updates-authorization-error"
+                          >
+                            {error}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                );
-              }}
-            </form.Field>
-            <div className="flex justify-end">
+                  );
+                }}
+              </form.Field>
               <form.Subscribe
                 selector={(state) => [state.canSubmit, state.isSubmitting]}
               >

@@ -3,8 +3,7 @@ import { idSchema, nonEmptyStringSchema, timestampSchema } from '../schemas';
 import { smsMessageDirectionSchema } from './campaigns';
 
 export const INBOX_CONVERSATION_ACTIVITY_FILTERS = [
-  'inbound',
-  'unread',
+  'needs_reply',
   'all',
 ] as const;
 export const INBOX_REPLY_BLOCKED_REASONS = ['suppressed_phone'] as const;
@@ -23,7 +22,7 @@ export const inboxReplyBlockedReasonSchema = z.enum(
 
 export const inboxConversationListQuerySchema = z
   .object({
-    activity: inboxConversationActivityFilterSchema.default('inbound'),
+    activity: inboxConversationActivityFilterSchema.default('needs_reply'),
   })
   .strict();
 

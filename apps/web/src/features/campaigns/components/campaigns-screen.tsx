@@ -149,11 +149,7 @@ export function CampaignsScreen() {
               </section>
             </ContentSection>
           ) : !contactPresenceLoaded ? (
-            <ContentSection
-              description="Filter campaigns by status, audience, and activity."
-              framed={false}
-              title="Campaign list"
-            >
+            <ContentSection framed={false}>
               <CampaignsTable
                 campaigns={[]}
                 direction={direction}
@@ -194,11 +190,7 @@ export function CampaignsScreen() {
               </section>
             </ContentSection>
           ) : campaigns.isLoading ? (
-            <ContentSection
-              description="Filter campaigns by status, audience, and activity."
-              framed={false}
-              title="Campaign list"
-            >
+            <ContentSection framed={false}>
               <CampaignFilters
                 onChange={(values) => {
                   setRowSelection({});
@@ -232,11 +224,7 @@ export function CampaignsScreen() {
               variant="page"
             />
           ) : (
-            <ContentSection
-              description="Filter campaigns by status, audience, and activity."
-              framed={false}
-              title="Campaign list"
-            >
+            <ContentSection framed={false}>
                 <>
                   <CampaignFilters
                     onChange={(values) => {

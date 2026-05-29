@@ -100,7 +100,7 @@ describe('inbox routes', () => {
     vi.mocked(listInbox).mockResolvedValue({ conversations: [conversation] });
 
     const response = await testApp().request(
-      '/v1/inbox/conversations?activity=unread',
+      '/v1/inbox/conversations?activity=needs_reply',
     );
 
     expect(response.status).toBe(200);
@@ -110,9 +110,21 @@ describe('inbox routes', () => {
     expect(listInbox).toHaveBeenCalledWith(
       expect.objectContaining({
         organizationId,
-        activity: 'unread',
+        activity: 'needs_reply',
       }),
     );
+  });
+
+  it('rejects the removed unread activity filter', async () => {
+    const response = await testApp().request(
+      '/v1/inbox/conversations?activity=unread',
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { message: 'Invalid inbox filter.' },
+    });
+    expect(listInbox).not.toHaveBeenCalled();
   });
 
   it('loads conversation detail and unread summary', async () => {

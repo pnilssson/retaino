@@ -79,7 +79,7 @@ describe('inbox query helpers', () => {
     await expect(
       listInboxConversations(db as never, {
         organizationId,
-        activity: 'inbound',
+        activity: 'needs_reply',
       }),
     ).resolves.toEqual({
       conversations: [

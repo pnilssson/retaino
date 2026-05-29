@@ -358,15 +358,13 @@ async function conversationSummaryRows(
     ? sql`and phone_hash = ${input.phoneHash}`
     : sql``;
   const activityFilter =
-    input.activity === 'unread'
-      ? sql`and unread_count > 0`
-      : input.activity === 'inbound'
-        ? sql`
+    input.activity === 'needs_reply'
+      ? sql`
           and last_inbound_at is not null
           and (last_outbound_at is null or last_inbound_at > last_outbound_at)
           and reply_blocked = false
         `
-        : sql``;
+      : sql``;
   const result = await db.execute(sql`
     with conversation_base as (
       select

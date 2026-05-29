@@ -134,11 +134,7 @@ export function ContactsScreen() {
               </section>
             </ContentSection>
           ) : !contactPresenceLoaded ? (
-            <ContentSection
-              description="Filter by SMS readiness and data issues."
-              framed={false}
-              title="Contact list"
-            >
+            <ContentSection framed={false}>
               <ContactsTable
                 contacts={[]}
                 direction={direction}
@@ -179,11 +175,7 @@ export function ContactsScreen() {
               </section>
             </ContentSection>
           ) : (
-            <ContentSection
-              description="Filter by SMS readiness and data issues."
-              framed={false}
-              title="Contact list"
-            >
+            <ContentSection framed={false}>
                 <>
                   <ContactFilters
                     issue={query.issue}

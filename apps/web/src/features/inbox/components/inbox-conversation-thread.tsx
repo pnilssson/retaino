@@ -5,6 +5,10 @@ import type {
   InboxMessage,
 } from '@retaino/shared/contracts';
 import {
+  useEffect,
+  useRef,
+} from 'react';
+import {
   ArrowLeft,
   Inbox,
   Loader2,
@@ -18,7 +22,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
-import { formatInboxDateTime } from '../inbox-format';
+import {
+  formatInboxDateSeparator,
+  formatInboxMessageTime,
+  inboxMessageDayKey,
+} from '../inbox-format';
 import { InboxReplyForm } from './inbox-reply-form';
 
 export function InboxConversationThread({
@@ -42,11 +50,17 @@ export function InboxConversationThread({
   onCheckForNewReplies: () => void;
   organizationId: string | null;
 }) {
+  const messagesEndRef = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: 'end' });
+  }, [conversation?.id, messages.length]);
+
   if (!conversation) {
     return (
       <section
         className={cn(
-          'grid min-h-[560px] rounded-lg border border-border bg-card',
+          'grid min-h-0 bg-card',
           className,
         )}
       >
@@ -63,7 +77,7 @@ export function InboxConversationThread({
   return (
     <section
       className={cn(
-        'grid min-h-[560px] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-lg border border-border bg-card',
+        'grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-card',
         className,
       )}
     >
@@ -112,7 +126,7 @@ export function InboxConversationThread({
         </Button>
       </header>
 
-      <div className="min-h-0 overflow-auto px-4 py-4">
+      <div className="min-h-0 overflow-auto bg-background px-4 py-4">
         {error ? (
           <ItemNotice
             description={error.message}
@@ -123,9 +137,28 @@ export function InboxConversationThread({
           <LoadingState className="min-h-[320px] justify-center" label="Loading conversation" />
         ) : messages.length > 0 ? (
           <ol className="grid gap-3">
-            {messages.map((message) => (
-              <InboxMessageBubble key={message.id} message={message} />
-            ))}
+            {messages.map((message, index) => {
+              const time = inboxMessageTime(message);
+              const dayKey = inboxMessageDayKey(time);
+              const previous = messages[index - 1];
+              const previousDayKey = previous
+                ? inboxMessageDayKey(inboxMessageTime(previous))
+                : null;
+
+              return (
+                <li className="contents" key={message.id}>
+                  {dayKey !== previousDayKey ? (
+                    <div className="flex justify-center py-1">
+                      <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs leading-4 text-muted-foreground shadow-xs">
+                        {formatInboxDateSeparator(time)}
+                      </span>
+                    </div>
+                  ) : null}
+                  <InboxMessageBubble message={message} />
+                </li>
+              );
+            })}
+            <li aria-hidden="true" className="h-px" ref={messagesEndRef} />
           </ol>
         ) : (
           <EmptyState
@@ -147,13 +180,13 @@ export function InboxConversationThread({
 
 function InboxMessageBubble({ message }: { message: InboxMessage }) {
   const isOutbound = message.direction === 'outbound';
-  const time = message.receivedAt ?? message.sentAt ?? message.createdAt;
+  const time = inboxMessageTime(message);
 
   return (
-    <li className={cn('flex', isOutbound ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex', isOutbound ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'grid max-w-[82%] gap-2 rounded-lg px-3 py-2 sm:max-w-[70%]',
+          'grid max-w-[84%] gap-2 rounded-lg px-3 py-2 shadow-xs sm:max-w-[68%]',
           isOutbound
             ? 'bg-primary text-primary-foreground'
             : 'bg-muted text-foreground',
@@ -183,7 +216,7 @@ function InboxMessageBubble({ message }: { message: InboxMessage }) {
             </span>
           ) : null}
           <span className="text-xs leading-5">
-            {formatInboxDateTime(time)}
+            {formatInboxMessageTime(time)}
           </span>
           {isOutbound ? (
             <span className="text-xs leading-5 capitalize">
@@ -192,6 +225,10 @@ function InboxMessageBubble({ message }: { message: InboxMessage }) {
           ) : null}
         </div>
       </div>
-    </li>
+    </div>
   );
+}
+
+function inboxMessageTime(message: InboxMessage) {
+  return message.receivedAt ?? message.sentAt ?? message.createdAt;
 }

@@ -186,7 +186,7 @@ describe('inbox service', () => {
     });
 
     await expect(
-      listInbox({ db, organizationId, activity: 'inbound' }),
+      listInbox({ db, organizationId, activity: 'needs_reply' }),
     ).resolves.toEqual({ conversations: [conversation] });
     await expect(
       getInboxConversation({ db, organizationId, conversationId }),
@@ -202,7 +202,7 @@ describe('inbox service', () => {
 
     expect(listInboxConversations).toHaveBeenCalledWith(db, {
       organizationId,
-      activity: 'inbound',
+      activity: 'needs_reply',
     });
     expect(listInboxMessages).toHaveBeenCalledWith(db, {
       organizationId,

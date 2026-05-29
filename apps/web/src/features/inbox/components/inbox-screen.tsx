@@ -1,12 +1,13 @@
 "use client";
 
-import type { InboxConversationActivityFilter } from '@retaino/shared/contracts';
+import type { InboxConversationSummary } from '@retaino/shared/contracts';
 import {
   useEffect,
   useMemo,
-  useState,
+  useRef,
 } from 'react';
 import { ItemNotice } from '@/components/item-notice';
+import { Item } from '@/components/ui/item';
 import { AppPageLoading } from '@/features/appshell/components/app-page-loading';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { ContentSection } from '@/features/appshell/components/content-section';
@@ -14,23 +15,30 @@ import { useOrganizationSession } from '@/features/onboarding/hooks/use-organiza
 import { cn } from '@/lib/utils';
 import { useInboxConversation } from '../hooks/use-inbox-conversation';
 import { useInboxConversations } from '../hooks/use-inbox-conversations';
+import { useInboxQueryState } from '../hooks/use-inbox-query-state';
 import { useMarkInboxConversationRead } from '../hooks/use-mark-inbox-conversation-read';
 import { InboxConversationList } from './inbox-conversation-list';
 import { InboxConversationThread } from './inbox-conversation-thread';
 
 export function InboxScreen() {
   const session = useOrganizationSession();
+  const [{ conversation: selectedConversationId, search, view }, setQuery] =
+    useInboxQueryState();
+  const readAttemptConversationIdRef = useRef<string | null>(null);
   const organizationId = session.data?.organization.id ?? null;
-  const [activity, setActivity] =
-    useState<InboxConversationActivityFilter>('inbound');
-  const [selectedConversationId, setSelectedConversationId] = useState<
-    string | null
-  >(null);
   const conversations = useInboxConversations({
-    activity,
+    activity: view,
     enabled: Boolean(session.data?.readiness.ready),
     organizationId,
   });
+  const filteredConversations = useMemo(
+    () =>
+      filterInboxConversations(
+        conversations.data?.conversations ?? [],
+        search ?? '',
+      ),
+    [conversations.data?.conversations, search],
+  );
   const selectedConversation = useMemo(
     () =>
       conversations.data?.conversations.find(
@@ -39,7 +47,7 @@ export function InboxScreen() {
     [conversations.data?.conversations, selectedConversationId],
   );
   const conversation = useInboxConversation({
-    conversationId: selectedConversationId,
+    conversationId: selectedConversationId || null,
     enabled: Boolean(session.data?.readiness.ready && selectedConversationId),
     organizationId,
   });
@@ -51,17 +59,28 @@ export function InboxScreen() {
   });
 
   useEffect(() => {
+    if (!threadConversation?.id || !threadConversation.unreadCount) {
+      readAttemptConversationIdRef.current = null;
+
+      return;
+    }
+
     if (
-      threadConversation?.unreadCount &&
       threadConversation.unreadCount > 0 &&
-      !markRead.isPending
+      !markRead.isPending &&
+      readAttemptConversationIdRef.current !== threadConversation.id
     ) {
+      readAttemptConversationIdRef.current = threadConversation.id;
       markRead.mutate();
     }
-  }, [markRead, threadConversation?.id, threadConversation?.unreadCount]);
+  }, [
+    markRead,
+    threadConversation?.id,
+    threadConversation?.unreadCount,
+  ]);
 
   if (session.isLoading) {
-    return <AppPageLoading className="max-w-7xl" label="Loading inbox" />;
+    return <AppPageLoading className="max-w-7xl" label="Loading inbox…" />;
   }
 
   if (session.isError) {
@@ -83,53 +102,75 @@ export function InboxScreen() {
   }
 
   return (
-    <main className="flex flex-1 items-start bg-background">
-      <section className="mx-auto grid w-full max-w-7xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
+    <main className="flex min-h-0 flex-1 overflow-hidden bg-background">
+      <section className="mx-auto grid min-h-0 w-full max-w-7xl flex-1 grid-rows-[auto_minmax(0,1fr)] gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           description="Review SMS replies and continue client conversations from one shared inbox."
           title="Inbox"
         />
 
-        <div className="grid gap-5">
-          {!session.data.readiness.ready ? (
-            <ContentSection asChild>
-              <section>
-                <ItemNotice
-                  description="Finish organization setup before sending campaigns and managing SMS replies."
-                  title="Setup required before inbox activity"
-                  variant="warning"
-                />
-              </section>
-            </ContentSection>
-          ) : conversations.isError ? (
-            <ContentSection asChild>
-              <section>
-                <ItemNotice
-                  description={
-                    conversations.error instanceof Error
-                      ? conversations.error.message
-                      : 'Try again in a moment.'
-                  }
-                  title="Conversations could not be fetched"
-                  variant="error"
-                />
-              </section>
-            </ContentSection>
-          ) : (
-            <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
-              <InboxConversationList
-                activity={activity}
-                className={cn(selectedConversationId && 'hidden lg:grid')}
-                conversations={conversations.data?.conversations ?? []}
-                onActivityChange={(nextActivity) => {
-                  setActivity(nextActivity);
-                  setSelectedConversationId(null);
-                }}
-                onSelect={setSelectedConversationId}
-                selectedConversationId={selectedConversationId}
+        {!session.data.readiness.ready ? (
+          <ContentSection asChild className="w-full">
+            <section>
+              <ItemNotice
+                description="Finish organization setup before sending campaigns and managing SMS replies."
+                title="Setup required before inbox activity"
+                variant="warning"
               />
+            </section>
+          </ContentSection>
+        ) : conversations.isError ? (
+          <ContentSection asChild className="w-full">
+            <section>
+              <ItemNotice
+                description={
+                  conversations.error instanceof Error
+                    ? conversations.error.message
+                    : 'Try again in a moment.'
+                }
+                title="Conversations could not be fetched"
+                variant="error"
+              />
+            </section>
+          </ContentSection>
+        ) : (
+          <div className="grid min-h-0 w-full flex-1 gap-3 overflow-hidden lg:grid-cols-[360px_minmax(0,1fr)]">
+            <Item
+              asChild
+              className={cn(
+                'grid min-h-0 overflow-hidden border-border bg-card p-0',
+                selectedConversationId && 'hidden lg:grid',
+              )}
+              variant="outline"
+            >
+              <InboxConversationList
+                activity={view}
+                conversations={filteredConversations}
+                onActivityChange={(nextActivity) => {
+                  void setQuery({
+                    conversation: '',
+                    view: nextActivity,
+                  });
+                }}
+                onSearchChange={(nextSearch) => {
+                  void setQuery({ search: nextSearch });
+                }}
+                onSelect={(conversationId) => {
+                  void setQuery({ conversation: conversationId });
+                }}
+                search={search ?? ''}
+                selectedConversationId={selectedConversationId || null}
+              />
+            </Item>
+            <Item
+              asChild
+              className={cn(
+                'grid min-h-0 overflow-hidden border-border bg-card p-0',
+                !selectedConversationId && 'hidden lg:grid',
+              )}
+              variant="outline"
+            >
               <InboxConversationThread
-                className={cn(!selectedConversationId && 'hidden lg:grid')}
                 conversation={threadConversation}
                 error={
                   conversation.error instanceof Error
@@ -139,16 +180,40 @@ export function InboxScreen() {
                 isFetching={conversation.isFetching}
                 isLoading={conversation.isLoading}
                 messages={conversation.data?.messages ?? []}
-                onBack={() => setSelectedConversationId(null)}
+                onBack={() => {
+                  void setQuery({ conversation: '' });
+                }}
                 onCheckForNewReplies={() => {
                   void conversation.refetch();
                 }}
                 organizationId={organizationId}
               />
-            </div>
-          )}
-        </div>
+            </Item>
+          </div>
+        )}
       </section>
     </main>
+  );
+}
+
+function filterInboxConversations(
+  conversations: InboxConversationSummary[],
+  search: string,
+) {
+  const normalizedSearch = search.trim().toLowerCase();
+
+  if (!normalizedSearch) {
+    return conversations;
+  }
+
+  return conversations.filter((conversation) =>
+    [
+      conversation.contactName,
+      conversation.phone,
+      conversation.latestCampaignName,
+      conversation.latestMessageBody,
+    ]
+      .filter((value): value is string => Boolean(value))
+      .some((value) => value.toLowerCase().includes(normalizedSearch)),
   );
 }

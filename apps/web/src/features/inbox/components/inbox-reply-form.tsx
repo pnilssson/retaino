@@ -54,7 +54,7 @@ export function InboxReplyForm({
 
   return (
     <form
-      className="grid gap-3 border-t border-border p-4"
+      className="grid gap-3 border-t border-border bg-card p-3"
       onSubmit={(event) => {
         event.preventDefault();
         void form.handleSubmit();
@@ -72,6 +72,8 @@ export function InboxReplyForm({
         {(field) => (
           <div className="grid gap-2">
             <Textarea
+              aria-label="Reply"
+              className="min-h-20 resize-none rounded-lg bg-background"
               disabled={disabled || sendReply.isPending}
               name={field.name}
               onBlur={field.handleBlur}
@@ -83,8 +85,8 @@ export function InboxReplyForm({
                   setDraftAttempt(null);
                 }
               }}
-              placeholder="Write a reply"
-              rows={4}
+              placeholder="Write a reply…"
+              rows={2}
               value={field.state.value}
             />
             <span className={textStyles.meta}>
@@ -124,7 +126,7 @@ export function InboxReplyForm({
               type="submit"
             >
               <Send aria-hidden="true" data-icon="inline-start" />
-              {sendReply.isPending || isSubmitting ? 'Sending...' : 'Send reply'}
+              {sendReply.isPending || isSubmitting ? 'Sending…' : 'Send'}
             </Button>
           </div>
         )}
