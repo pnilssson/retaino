@@ -5,10 +5,6 @@ import type {
   InboxMessage,
 } from '@retaino/shared/contracts';
 import {
-  useEffect,
-  useRef,
-} from 'react';
-import {
   ArrowLeft,
   Inbox,
   Loader2,
@@ -50,11 +46,9 @@ export function InboxConversationThread({
   onCheckForNewReplies: () => void;
   organizationId: string | null;
 }) {
-  const messagesEndRef = useRef<HTMLLIElement | null>(null);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ block: 'end' });
-  }, [conversation?.id, messages.length]);
+  const campaignMessageId = messages.find(
+    (message) => message.direction === 'outbound' && message.campaignName,
+  )?.id;
 
   if (!conversation) {
     return (
@@ -126,7 +120,7 @@ export function InboxConversationThread({
         </Button>
       </header>
 
-      <div className="min-h-0 overflow-auto bg-background px-4 py-4">
+      <div className="min-h-0 overflow-auto bg-card px-4 py-4">
         {error ? (
           <ItemNotice
             description={error.message}
@@ -154,11 +148,13 @@ export function InboxConversationThread({
                       </span>
                     </div>
                   ) : null}
-                  <InboxMessageBubble message={message} />
+                  <InboxMessageBubble
+                    message={message}
+                    showCampaignBadge={message.id === campaignMessageId}
+                  />
                 </li>
               );
             })}
-            <li aria-hidden="true" className="h-px" ref={messagesEndRef} />
           </ol>
         ) : (
           <EmptyState
@@ -178,7 +174,13 @@ export function InboxConversationThread({
   );
 }
 
-function InboxMessageBubble({ message }: { message: InboxMessage }) {
+function InboxMessageBubble({
+  message,
+  showCampaignBadge,
+}: {
+  message: InboxMessage;
+  showCampaignBadge: boolean;
+}) {
   const isOutbound = message.direction === 'outbound';
   const time = inboxMessageTime(message);
 
@@ -203,7 +205,7 @@ function InboxMessageBubble({ message }: { message: InboxMessage }) {
               : 'text-muted-foreground',
           )}
         >
-          {message.campaignName ? (
+          {showCampaignBadge && message.campaignName ? (
             <span
               className={cn(
                 'rounded-md border px-1.5 py-0.5 text-xs leading-4',

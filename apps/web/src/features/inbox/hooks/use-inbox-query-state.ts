@@ -7,7 +7,7 @@ export function useInboxQueryState() {
   const [query, setQuery] = useQueryStates({
     conversation: parseAsString.withDefault(''),
     search: parseAsString.withDefault(''),
-    view: parseAsString.withDefault('needs_reply'),
+    view: parseAsString.withDefault('all'),
   });
 
   return [
@@ -23,5 +23,5 @@ export function useInboxQueryState() {
 function inboxConversationView(
   value: string,
 ): InboxConversationActivityFilter {
-  return value === 'all' ? 'all' : 'needs_reply';
+  return value === 'needs_reply' ? 'needs_reply' : 'all';
 }

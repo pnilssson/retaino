@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   migrate:
-    name: Migrate production database
+    name: Migrate database
     runs-on: ubuntu-latest
 
     steps:
@@ -50,6 +50,30 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
+  publish-legal-documents:
+    name: Publish legal documents
+    needs: migrate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Publish legal documents
         run: pnpm --filter @retaino/db run legal:publish
         env:
@@ -57,7 +81,7 @@ jobs:
 
   deploy:
     name: Deploy API Worker
-    needs: migrate
+    needs: publish-legal-documents
     runs-on: ubuntu-latest
 
     steps:

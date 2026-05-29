@@ -20,8 +20,8 @@ import {
 } from '../inbox-format';
 
 const activityFilters: InboxConversationActivityFilter[] = [
-  'needs_reply',
   'all',
+  'needs_reply',
 ];
 
 export function InboxConversationList({

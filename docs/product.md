@@ -105,8 +105,8 @@ Rules:
 - The inbox is organization-scoped and threaded by SMS phone identity, not by campaign.
 - A customer who receives campaign 1, replies, then later receives campaign 2 has one continuous conversation.
 - Campaign context appears as message metadata, not as the primary thread grouping.
-- Default view is `Needs reply`: latest inbound message is newer than latest outbound message and the phone is not suppressed.
-- Additional view is `All conversations`.
+- Default view is `All conversations`.
+- Additional view is `Needs reply`: latest inbound message is newer than latest outbound message and the phone is not suppressed.
 - List order is newest message first. Thread order is oldest message first.
 - Sidebar and conversation rows show unread conversation counts.
 - Active thread is marked read when opened or when the user clicks a read action.

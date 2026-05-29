@@ -44,12 +44,12 @@ const message = {
 describe('inbox contracts', () => {
   it('validates inbox conversation filters', () => {
     expect(inboxConversationListQuerySchema.parse({})).toEqual({
-      activity: 'needs_reply',
+      activity: 'all',
     });
     expect(
-      inboxConversationListQuerySchema.parse({ activity: 'all' }),
+      inboxConversationListQuerySchema.parse({ activity: 'needs_reply' }),
     ).toEqual({
-      activity: 'all',
+      activity: 'needs_reply',
     });
     expect(
       inboxConversationListQuerySchema.safeParse({ activity: 'unread' })

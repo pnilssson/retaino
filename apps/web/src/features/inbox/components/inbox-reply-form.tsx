@@ -70,7 +70,7 @@ export function InboxReplyForm({
 
       <form.Field name="body">
         {(field) => (
-          <div className="grid gap-2">
+          <div>
             <Textarea
               aria-label="Reply"
               className="min-h-20 resize-none rounded-lg bg-background"
@@ -89,9 +89,6 @@ export function InboxReplyForm({
               rows={2}
               value={field.state.value}
             />
-            <span className={textStyles.meta}>
-              Replies use SMS credits and are sent from your Retaino sender.
-            </span>
           </div>
         )}
       </form.Field>
@@ -115,8 +112,12 @@ export function InboxReplyForm({
         })}
       >
         {({ body, isSubmitting }) => (
-          <div className="flex justify-end">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span className={textStyles.meta}>
+              Replies use SMS credits and are sent from your Retaino sender.
+            </span>
             <Button
+              className="self-end sm:self-auto"
               disabled={
                 disabled ||
                 sendReply.isPending ||
