@@ -5,6 +5,7 @@ import type { OrganizationSession } from '@retaino/shared/contracts';
 import { UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ContentSection } from '@/features/appshell/components/content-section';
+import { textStyles } from '@/lib/text-styles';
 
 type TeamInvitationSectionProps = {
   session: OrganizationSession;
@@ -38,7 +39,7 @@ export function TeamInvitationSection({ session }: TeamInvitationSectionProps) {
         <span className="flex flex-wrap items-center gap-2">
           Team access
           {!canManageTeam ? (
-            <span className="text-sm text-muted-foreground">
+            <span className={textStyles.mutedBody}>
               Locked until setup is complete
             </span>
           ) : null}

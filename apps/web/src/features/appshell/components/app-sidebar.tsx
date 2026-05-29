@@ -47,6 +47,8 @@ import { initialsFor } from '@/features/appshell/initials';
 import { useInboxSummary } from '@/features/inbox/hooks/use-inbox-summary';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 import { OrganizationSwitcher } from './organization-switcher';
 import { SidebarAvatar } from './sidebar-avatar';
 
@@ -76,7 +78,7 @@ const navigationItems = [
 
 const managementItems = [
   {
-    title: 'Settings',
+    title: 'Organization',
     href: routes.settings,
     icon: Building2
   },
@@ -169,13 +171,19 @@ export function AppSidebar() {
                 <SidebarMenuButton className="h-12 px-2" tooltip={userName}>
                   <SidebarAvatar
                     alt={userName}
-                    className="size-8 bg-sidebar-primary text-xs font-medium text-sidebar-primary-foreground"
+                    className={cn(
+                      'size-8 bg-sidebar-primary',
+                      textStyles.meta,
+                      'text-sidebar-primary-foreground',
+                    )}
                     fallback={userInitials}
                     hasImage={user?.hasImage}
                     imageUrl={user?.imageUrl}
                   />
-                  <span className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{userName}</span>
+                  <span className="grid flex-1 text-left">
+                    <span className={cn('truncate', textStyles.itemTitle)}>
+                      {userName}
+                    </span>
                   </span>
                   <ChevronsUpDown
                     aria-hidden="true"
@@ -190,9 +198,11 @@ export function AppSidebar() {
                 side={isMobile ? 'top' : 'right'}
                 sideOffset={4}
               >
-                <DropdownMenuLabel className="p-0 font-normal">
-                  <div className="grid gap-1 px-1 py-1.5 text-left text-sm">
-                    <span className="truncate font-medium">{userName}</span>
+                <DropdownMenuLabel className="p-0">
+                  <div className="grid gap-1 px-1 py-1.5 text-left">
+                    <span className={cn('truncate', textStyles.itemTitle)}>
+                      {userName}
+                    </span>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuItem onSelect={() => openUserProfile()}>

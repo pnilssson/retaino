@@ -20,7 +20,7 @@ export function AuthForm() {
   return (
     <section className="mx-auto flex min-h-svh w-full max-w-[420px] flex-col px-5 py-8 sm:px-8">
       <div className="flex items-center lg:hidden">
-        <span className="text-sm tracking-tight">retaino.</span>
+        <span className={textStyles.brand}>retaino.</span>
       </div>
 
       <div className="flex flex-1 flex-col justify-center">

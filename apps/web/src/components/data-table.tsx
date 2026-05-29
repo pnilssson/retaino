@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 export { EmptyState } from '@/components/empty-state';
 
@@ -134,7 +135,7 @@ export function PaginationControls({
   const hasNextPage = page < totalPages;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+    <div className={cn('flex flex-wrap items-center justify-between gap-3', textStyles.mutedBody)}>
       <span>{summary}</span>
       {totalPages > 1 ? (
         <Pagination className="mx-0 w-auto justify-end">

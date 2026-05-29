@@ -58,7 +58,7 @@ export function ReportedBookingRow({
   return (
     <fieldset className="grid gap-3">
       <div className="flex items-center justify-between gap-3">
-        <legend className={textStyles.metaStrong}>Booking {index + 1}</legend>
+        <legend className={textStyles.meta}>Booking {index + 1}</legend>
         <Button
           aria-label={`Remove booking ${index + 1}`}
           disabled={!removable}

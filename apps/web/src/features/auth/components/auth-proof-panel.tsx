@@ -83,7 +83,7 @@ export function AuthProofPanel() {
 
         <Link
           aria-label="Retaino home"
-          className="absolute left-8 top-8 text-base tracking-tight text-white"
+          className={cn('absolute left-8 top-8 text-white', textStyles.brand)}
           href={routes.home}
         >
           retaino.
@@ -102,9 +102,7 @@ export function AuthProofPanel() {
                 ease: 'easeOut'
               }}
             >
-              <blockquote
-                className={cn(textStyles.pageTitle, 'leading-snug text-white')}
-              >
+              <blockquote className={cn(textStyles.pageTitle, 'text-white')}>
                 {quote.text}
               </blockquote>
               <figcaption className={cn('mt-6', textStyles.body, 'text-white/75')}>

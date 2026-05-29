@@ -68,7 +68,7 @@ export function LegalOverviewScreen() {
 
   return (
     <main className="flex flex-1 items-start bg-background">
-      <section className="mx-auto grid w-full max-w-6xl content-start gap-8 px-5 py-6 sm:px-8 lg:px-10">
+      <section className="mx-auto grid w-full max-w-6xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={
             <Button asChild variant="outline">
@@ -107,7 +107,7 @@ function CurrentBundleSection({ session }: { session: OrganizationSession }) {
       description="These are the current documents that govern this organization."
       title="Current bundle"
     >
-      <dl className="grid gap-4 py-2 text-sm sm:grid-cols-3">
+      <dl className="grid gap-4 py-2 sm:grid-cols-3">
         <LegalMetadata
           label="Bundle version"
           value={session.legalBundle.version}
@@ -135,7 +135,7 @@ function LegalDocumentsSection({ session }: { session: OrganizationSession }) {
       description="Read the terms, privacy documents, and policy notices included in this bundle."
       title="Documents"
     >
-      <ul className="grid gap-2 text-sm">
+      <ul className="grid gap-2">
         {session.legalBundle.documents.map((document) => {
           const documentType =
             document.documentType as keyof typeof legalBundleDocumentLabels;

@@ -8,6 +8,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
 
 import { useCookieConsent } from './hooks/use-cookie-consent';
 import { CookiePreferencesDialog } from './cookie-preferences-dialog';
@@ -32,7 +33,7 @@ export function CookieBanner() {
             transition={{ duration: 0.24, ease: 'easeOut' }}
           >
             <div className="flex flex-col gap-4">
-              <p className="text-sm leading-6 text-muted-foreground">
+              <p className={textStyles.mutedBody}>
                 We use cookies and browser storage to make visits smoother,
                 remember choices, and understand how the site is used. You can
                 accept all cookies or keep only what is needed.{' '}

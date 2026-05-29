@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
 
 import { useCookieConsent } from './hooks/use-cookie-consent';
 
@@ -90,10 +91,8 @@ function CookiePreferencesForm({
       <div className="space-y-4 py-1">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <label className="text-sm leading-6 text-foreground">
-              Essential
-            </label>
-            <p className="text-xs leading-5 text-muted-foreground">
+            <label className={textStyles.body}>Essential</label>
+            <p className={textStyles.meta}>
               Required for authentication, app preferences, security, and your
               cookie choice.
             </p>
@@ -111,12 +110,12 @@ function CookiePreferencesForm({
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <label
-              className="text-sm leading-6 text-foreground"
+              className={textStyles.body}
               htmlFor="analytics-cookies"
             >
               Analytics
             </label>
-            <p className="text-xs leading-5 text-muted-foreground">
+            <p className={textStyles.meta}>
               Retaino does not set optional analytics cookies right now. This
               setting keeps analytics off unless you allow it.
             </p>
@@ -129,7 +128,7 @@ function CookiePreferencesForm({
         </div>
       </div>
 
-      <p className="text-xs leading-5 text-muted-foreground">
+      <p className={textStyles.meta}>
         Read the{' '}
         <Link
           className="text-foreground underline underline-offset-2"

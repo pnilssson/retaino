@@ -104,10 +104,8 @@ export function InboxConversationList({
                   <span className="flex min-w-0 items-start justify-between gap-3">
                     <span
                       className={cn(
-                        'truncate text-sm leading-5',
-                        conversation.unreadCount > 0
-                          ? 'font-semibold text-foreground'
-                          : 'font-medium text-foreground',
+                        'truncate',
+                        textStyles.itemTitle,
                       )}
                     >
                       {conversation.contactName ?? conversation.phone}
@@ -115,9 +113,9 @@ export function InboxConversationList({
                     <span className="flex shrink-0 items-center gap-2">
                       <span
                         className={cn(
-                          'text-xs leading-5 tabular-nums',
+                          textStyles.meta,
                           conversation.unreadCount > 0
-                            ? 'font-medium text-foreground'
+                            ? 'text-foreground'
                             : 'text-muted-foreground',
                         )}
                         title={formatInboxDateTime(
@@ -127,7 +125,7 @@ export function InboxConversationList({
                         {formatInboxListTime(conversation.latestMessageAt)}
                       </span>
                       {conversation.unreadCount > 0 ? (
-                        <Badge className="h-5 min-w-5 rounded-full px-1.5 tabular-nums">
+                        <Badge className="h-5 min-w-5 rounded-full px-1.5">
                           {conversation.unreadCount > 99
                             ? '99+'
                             : conversation.unreadCount}
@@ -138,10 +136,10 @@ export function InboxConversationList({
                   <span className="flex min-w-0 items-center gap-2">
                     <span
                       className={cn(
-                        'min-w-0 flex-1 truncate text-sm leading-5',
+                        'min-w-0 flex-1 truncate',
                         conversation.unreadCount > 0
-                          ? 'text-foreground'
-                          : 'text-muted-foreground',
+                          ? textStyles.body
+                          : textStyles.mutedBody,
                       )}
                     >
                       {conversation.latestMessageDirection === 'outbound'

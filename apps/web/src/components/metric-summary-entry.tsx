@@ -39,7 +39,7 @@ export function MetricSummaryEntry({
         {label}
       </dt>
       <dd>
-        <div className={cn(textStyles.numeric, 'tabular-nums')}>{value}</div>
+        <div className={textStyles.numeric}>{value}</div>
         {detail ? (
           <div className={cn('mt-1', textStyles.meta)}>
             {detail}

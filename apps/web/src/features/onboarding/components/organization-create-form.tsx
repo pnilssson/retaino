@@ -163,7 +163,7 @@ function OrganizationCreateFormFields({
           );
         }}
       </form.Field>
-      <p className="max-w-xl text-sm leading-6 text-muted-foreground">
+      <p className={textStyles.mutedBody}>
         {inviteCopy}
       </p>
       <GuidedFlowActions>

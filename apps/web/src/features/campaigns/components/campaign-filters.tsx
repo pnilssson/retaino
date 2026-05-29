@@ -81,7 +81,7 @@ export function CampaignFilters({
         <div className="flex flex-wrap items-center gap-2">
           {activeFilters.map((filter) => (
             <Badge
-              className="max-w-full font-normal"
+              className="max-w-full"
               key={filter}
               variant="secondary"
             >
@@ -89,7 +89,7 @@ export function CampaignFilters({
             </Badge>
           ))}
           <Button
-            className="h-7 px-2 text-xs"
+            className="h-7 px-2"
             onClick={() => onChange({ search: '', status: 'all' })}
             size="sm"
             type="button"

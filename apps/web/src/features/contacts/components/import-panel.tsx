@@ -294,7 +294,7 @@ function ImportForm({
                                 )}
                               </span>
                               <span className="grid min-w-0 gap-1">
-                                <span className="break-all text-sm font-medium">
+                              <span className={cn('break-all', textStyles.itemTitle)}>
                                   {selectedFile
                                     ? selectedFile.name
                                     : 'Choose a CSV file'}
@@ -342,7 +342,7 @@ function ImportForm({
                       <div
                         className={cn(
                           'hidden grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)] items-center gap-3 px-1 uppercase sm:grid',
-                          textStyles.metaStrong,
+                          textStyles.meta,
                         )}
                       >
                         <span>CSV column</span>
@@ -357,7 +357,7 @@ function ImportForm({
                                 <span
                                   className={cn(
                                     'uppercase sm:hidden',
-                                    textStyles.metaStrong,
+                                    textStyles.meta,
                                   )}
                                 >
                                   CSV column
@@ -393,7 +393,7 @@ function ImportForm({
                                 <span
                                   className={cn(
                                     'uppercase sm:hidden',
-                                    textStyles.metaStrong,
+                                    textStyles.meta,
                                   )}
                                 >
                                   Retaino field

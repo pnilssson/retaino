@@ -123,7 +123,7 @@ function Metric({
           <InfoTooltip label={`${label} details`}>{tooltip}</InfoTooltip>
         ) : null}
       </dt>
-      <dd className={cn('mt-1 truncate tabular-nums', textStyles.itemTitle)}>
+      <dd className={cn('mt-1 truncate', textStyles.numericInline)}>
         {value}
       </dd>
     </div>

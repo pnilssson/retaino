@@ -8,6 +8,7 @@ import {
   type TableSortDirection,
 } from '@/components/sortable-table-header';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
 import { formatDate } from '../contacts-format';
 import { ContactRowActions } from './contact-row-actions';
 import { ContactStatusBadge } from './status-badge';
@@ -67,7 +68,7 @@ export function createContactColumns({
 
         return (
           <Link className="block p-2" href={detailPath}>
-            <span className="font-medium">
+            <span className={textStyles.itemTitle}>
               {row.original.name ?? 'Unnamed'}
             </span>
             <span className="sr-only">Open contact details</span>
@@ -82,7 +83,7 @@ export function createContactColumns({
         <LinkedCell contact={row.original}>
           <div className="grid min-w-44 gap-1">
             <span>{row.original.phone ?? 'No phone'}</span>
-            <span className="text-xs text-muted-foreground">
+            <span className={textStyles.meta}>
               {row.original.email ?? 'No email'}
             </span>
           </div>

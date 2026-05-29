@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import type { Campaign } from '@retaino/shared/contracts';
 import { InfoTooltip } from '@/components/info-tooltip';
+import { StatusBadge } from '@/components/status-badge';
 import { ContentSection } from '@/features/appshell/components/content-section';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
@@ -11,6 +12,7 @@ import {
   campaignToFormValues,
 } from '../campaign-form-state';
 import { CampaignReportPanel } from './campaign-report-panel';
+import { CampaignStatusBadge } from './campaign-status-badge';
 import {
   messageEstimateText,
   MessagePreview,
@@ -39,7 +41,16 @@ export function CampaignOverview({
         <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
           <ContentSection
             description="Audience, destination, and send details."
-            title="Campaign details"
+            title={
+              <span className="flex flex-wrap items-center gap-2">
+                Campaign details
+                {sendAccepted ? (
+                  <StatusBadge label="Send queued" tone="amber" />
+                ) : (
+                  <CampaignStatusBadge status={campaign.status} />
+                )}
+              </span>
+            }
           >
             <dl className="grid content-start gap-4">
               <OverviewDetail
@@ -68,7 +79,7 @@ export function CampaignOverview({
               />
 
               <OverviewDetail
-                label="Sent"
+                label="Campaign status"
                 value={
                   sendAccepted
                     ? 'Send accepted. Waiting for delivery activity.'
@@ -95,16 +106,19 @@ function OverviewDetail({
   tooltip,
   value,
 }: {
-  label: string;
+  label: ReactNode;
   tooltip?: string;
   value: ReactNode;
 }) {
+  const tooltipLabel =
+    typeof label === 'string' ? `${label} details` : 'Campaign detail information';
+
   return (
     <div className="grid gap-1">
       <dt className={cn('flex items-center gap-1.5', textStyles.meta)}>
         {label}
         {tooltip ? (
-          <InfoTooltip label={`${label} details`}>{tooltip}</InfoTooltip>
+          <InfoTooltip label={tooltipLabel}>{tooltip}</InfoTooltip>
         ) : null}
       </dt>
       <dd className={cn('min-w-0', textStyles.itemTitle)}>{value}</dd>

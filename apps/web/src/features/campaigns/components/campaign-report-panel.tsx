@@ -92,7 +92,7 @@ export function CampaignReportPanel({
         }
         description="Campaign result, delivery state, and next action."
         framed={false}
-        title="At a glance"
+        title="Campaign results summary"
       >
         {report.isError ? (
           <ItemNotice

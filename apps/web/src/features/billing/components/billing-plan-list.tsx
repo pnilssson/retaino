@@ -170,7 +170,6 @@ export function BillingPlanList({
                       {formatSek(plan.monthlyPriceSek)}
                       <span
                         className={cn(
-                          "font-normal",
                           textStyles.meta,
                           isSelectedPlan && "text-primary-foreground/75",
                         )}
@@ -191,8 +190,7 @@ export function BillingPlanList({
                     <p
                       className={cn(
                         "mt-3",
-                        textStyles.body,
-                        "font-medium",
+                        textStyles.itemTitle,
                         isSelectedPlan && "text-primary-foreground",
                       )}
                     >
@@ -200,7 +198,6 @@ export function BillingPlanList({
                       credits
                       <span
                         className={cn(
-                          "font-normal",
                           textStyles.meta,
                           isSelectedPlan && "text-primary-foreground/75",
                         )}

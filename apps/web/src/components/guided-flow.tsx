@@ -56,7 +56,7 @@ function GuidedFlowSteps<StepId extends string>({
   return (
     <nav className="grid min-w-0 gap-2" aria-label={progressLabel}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className={cn('uppercase', textStyles.metaStrong)}>
+        <p className={cn('uppercase', textStyles.meta)}>
           {progressLabel}
         </p>
         <p className={textStyles.meta}>

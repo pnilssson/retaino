@@ -33,7 +33,6 @@ import {
   type CampaignStepId,
 } from './campaign-form';
 import { CampaignOverview } from './campaign-overview';
-import { CampaignStatusBadge } from './campaign-status-badge';
 import { useCampaign } from '../hooks/use-campaign';
 
 const CREATED_CAMPAIGN_INITIAL_STEP_STORAGE_KEY =
@@ -149,15 +148,6 @@ export function CampaignBuilderScreen({
                 />
               ) : null}
             </>
-          }
-          badge={
-            showOverview && latestCampaign ? (
-              sendAccepted ? (
-                <StatusBadge label="Send queued" tone="amber" />
-              ) : (
-                <CampaignStatusBadge status={latestCampaign.status} />
-              )
-            ) : undefined
           }
           eyebrow={showOverview ? 'Campaign overview' : 'Campaign builder'}
           title={title}

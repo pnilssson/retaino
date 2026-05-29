@@ -3,6 +3,7 @@ import {
   ArrowUp,
   ArrowUpDown,
 } from 'lucide-react';
+import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 
 export type TableSortDirection = 'asc' | 'desc';
@@ -36,7 +37,8 @@ export function SortableTableHeader({
     <button
       aria-label={`Sort by ${label.toLowerCase()} ${nextDirection === 'asc' ? 'ascending' : 'descending'}`}
       className={cn(
-        '-ml-2 inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-left font-medium text-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        '-ml-2 inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-left transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        textStyles.itemTitle,
       )}
       onClick={onSort}
       type="button"

@@ -13,6 +13,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 
 type SenderCountry = SmsSenderCountriesResponse['countries'][number];
@@ -84,7 +85,8 @@ export function SenderCountryCombobox({
               <button
                 aria-selected={country.countryCode === value}
                 className={cn(
-                  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+                  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+                  textStyles.body,
                   country.countryCode === value && 'bg-accent/60',
                 )}
                 key={country.countryCode}
@@ -96,7 +98,7 @@ export function SenderCountryCombobox({
                 type="button"
               >
                 <span className="min-w-0 flex-1 truncate">{country.label}</span>
-                <span className="shrink-0 text-muted-foreground">
+                <span className={cn('shrink-0', textStyles.meta)}>
                   {country.countryCode}
                 </span>
                 <Check
@@ -109,7 +111,7 @@ export function SenderCountryCombobox({
               </button>
             ))
           ) : (
-            <p className="px-2 py-3 text-sm text-muted-foreground">
+            <p className={cn('px-2 py-3', textStyles.mutedBody)}>
               No countries found.
             </p>
           )}

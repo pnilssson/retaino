@@ -13,6 +13,8 @@ import { LoadingState } from '@/components/loading-state';
 import { Button } from '@/components/ui/button';
 import { ApiClientError } from '@/lib/api-client';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 import { useActiveOrganizationBootstrap } from '../hooks/use-active-organization-bootstrap';
 import { useOrganizationSession } from '../hooks/use-organization-session';
 import { OnboardingItem } from './onboarding-item';
@@ -145,10 +147,10 @@ function LegalUpdatesBanner({ canManageSetup }: { canManageSetup: boolean }) {
             aria-hidden="true"
             className="mt-0.5 size-4 text-amber-600"
           />
-          <p className="min-w-0 text-sm font-medium">
+          <p className={cn('min-w-0 text-amber-950 dark:text-amber-100', textStyles.itemTitle)}>
             Legal agreement needs review
           </p>
-          <p className="col-start-2 min-w-0 text-sm leading-6 text-amber-900 dark:text-amber-100">
+          <p className={cn('col-start-2 min-w-0', textStyles.body, 'text-amber-900 dark:text-amber-100')}>
             {canManageSetup
               ? 'Updated terms must be accepted before imports or campaigns can continue.'
               : 'Updated terms require acceptance by an organization admin before imports or campaigns can continue.'}

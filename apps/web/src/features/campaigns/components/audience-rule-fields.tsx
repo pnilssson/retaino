@@ -308,7 +308,8 @@ export function AudienceExclusionFields({
                       <button
                         aria-selected={selected}
                         className={cn(
-                          'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+                          'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+                          textStyles.body,
                           selected && 'bg-accent/60',
                         )}
                         key={campaign.id}
@@ -346,7 +347,7 @@ export function AudienceExclusionFields({
                     );
                   })
                 ) : (
-                  <p className="px-2 py-3 text-sm text-muted-foreground">
+                  <p className={cn('px-2 py-3', textStyles.mutedBody)}>
                     No campaigns found.
                   </p>
                 )}

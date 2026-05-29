@@ -53,7 +53,7 @@ export function AgreementsStep({
             return (
               <span key={document.id}>
                 <Link
-                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                  className="text-foreground underline-offset-4 hover:underline"
                   href={legalDocumentUrl({
                     documentType: document.documentType,
                     documentVersion: document.documentVersion,

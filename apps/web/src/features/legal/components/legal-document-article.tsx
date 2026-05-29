@@ -9,6 +9,8 @@ import type {
 } from 'react';
 import type { LegalDocumentVersion } from '@retaino/shared/contracts';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 
 type LegalDocumentArticleProps = {
   document: LegalDocumentVersion;
@@ -31,7 +33,7 @@ const mdxComponents = {
   th: (props: ThHTMLAttributes<HTMLTableCellElement>) => (
     <th
       {...props}
-      className="border bg-muted px-3 py-2 text-left font-normal text-foreground"
+      className={cn('border bg-muted px-3 py-2 text-left', textStyles.body)}
     />
   ),
   td: (props: TdHTMLAttributes<HTMLTableCellElement>) => (
@@ -59,24 +61,27 @@ export async function LegalDocumentArticle({
     <main className="min-h-[calc(100svh-4rem)] w-full px-5 py-16 sm:px-8 lg:px-10">
       <article className="mx-auto w-full max-w-3xl">
         <Link
-          className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          className={cn(
+            'underline-offset-4 hover:text-foreground hover:underline',
+            textStyles.meta,
+          )}
           href={backHref}
         >
           {backLabel}
         </Link>
         <div className="mt-8 border-b pb-6">
-          <p className="text-sm font-medium text-muted-foreground">
+          <p className={cn(textStyles.itemTitle, 'text-muted-foreground')}>
             Retaino policy
           </p>
-          <h1 className="mt-4 text-4xl leading-tight tracking-normal text-foreground sm:text-5xl">
+          <h1 className={cn('mt-4', textStyles.displayTitle)}>
             {document.title}
           </h1>
-          <p className="mt-5 text-sm leading-6 text-muted-foreground">
+          <p className={cn('mt-5', textStyles.mutedBody)}>
             Effective {document.effectiveDate}, version{' '}
             {document.documentVersion}
           </p>
         </div>
-        <div className="mt-8 space-y-6 text-[15px] leading-7 text-muted-foreground [&_code]:font-mono [&_code]:text-xs [&_code]:text-foreground [&_h1]:hidden [&_h2]:pt-4 [&_h2]:text-xl [&_h2]:leading-8 [&_h2]:text-foreground [&_h3]:pt-2 [&_h3]:text-base [&_h3]:leading-7 [&_h3]:text-foreground [&_li]:ml-5 [&_li]:list-disc [&_strong]:text-foreground">
+        <div className={cn('mt-8 space-y-6', textStyles.legalProse)}>
           {content}
         </div>
       </article>

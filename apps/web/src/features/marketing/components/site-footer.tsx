@@ -5,13 +5,15 @@ import Link from 'next/link';
 
 import { useCookieConsent } from '@/features/cookies/hooks/use-cookie-consent';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 
 export function SiteFooter() {
   const { openPreferences } = useCookieConsent();
   const year = new Date().getFullYear();
 
   const linkClasses =
-    'text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none';
+    `${textStyles.mutedBody} transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none`;
 
   return (
     <footer className="border-t bg-background">
@@ -19,7 +21,7 @@ export function SiteFooter() {
         <div className="flex flex-col gap-2">
           <Link
             aria-label="Retaino home"
-            className="flex items-center gap-2 text-base tracking-tight text-foreground"
+            className={cn('flex items-center gap-2', textStyles.brand)}
             href={routes.home}
           >
             <Image
@@ -32,10 +34,10 @@ export function SiteFooter() {
             />
             retaino.
           </Link>
-          <p className="max-w-sm text-sm leading-6 text-muted-foreground">
+          <p className={cn('max-w-sm', textStyles.mutedBody)}>
             Bring back previous clients and report recovered bookings.
           </p>
-          <p className="text-xs leading-5 text-muted-foreground">
+          <p className={textStyles.meta}>
             &copy; {year} Retaino. All rights reserved.
           </p>
         </div>

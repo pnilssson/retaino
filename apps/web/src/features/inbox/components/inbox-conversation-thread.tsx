@@ -143,7 +143,12 @@ export function InboxConversationThread({
                 <li className="contents" key={message.id}>
                   {dayKey !== previousDayKey ? (
                     <div className="flex justify-center py-1">
-                      <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs leading-4 text-muted-foreground shadow-xs">
+                      <span
+                        className={cn(
+                          'rounded-full border border-border bg-card px-2.5 py-1 shadow-xs',
+                          textStyles.meta,
+                        )}
+                      >
                         {formatInboxDateSeparator(time)}
                       </span>
                     </div>
@@ -194,7 +199,13 @@ function InboxMessageBubble({
             : 'bg-muted text-foreground',
         )}
       >
-        <p className="whitespace-pre-wrap break-words text-sm leading-6">
+        <p
+          className={cn(
+            'whitespace-pre-wrap break-words',
+            textStyles.body,
+            isOutbound ? 'text-primary-foreground' : 'text-foreground',
+          )}
+        >
           {message.body || 'No message text'}
         </p>
         <div
@@ -208,20 +219,31 @@ function InboxMessageBubble({
           {showCampaignBadge && message.campaignName ? (
             <span
               className={cn(
-                'rounded-md border px-1.5 py-0.5 text-xs leading-4',
+                'rounded-md border px-1.5 py-0.5',
+                textStyles.meta,
                 isOutbound
-                  ? 'border-primary-foreground/30'
+                  ? 'border-primary-foreground/30 text-primary-foreground/75'
                   : 'border-border',
               )}
             >
               {message.campaignName}
             </span>
           ) : null}
-          <span className="text-xs leading-5">
+          <span
+            className={cn(
+              textStyles.meta,
+              isOutbound ? 'text-primary-foreground/75' : '',
+            )}
+          >
             {formatInboxMessageTime(time)}
           </span>
           {isOutbound ? (
-            <span className="text-xs leading-5 capitalize">
+            <span
+              className={cn(
+                textStyles.meta,
+                'capitalize text-primary-foreground/75',
+              )}
+            >
               {message.status}
             </span>
           ) : null}

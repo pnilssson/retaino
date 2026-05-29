@@ -12,6 +12,7 @@ This repository is the Retaino monorepo.
 
 - Never design cards inside cards. Use sections, bands, lists, tables, or split
   layouts instead of nesting framed surfaces.
+- Never run web or app dev servers. The user tests UI changes manually.
 
 ## Tests
 

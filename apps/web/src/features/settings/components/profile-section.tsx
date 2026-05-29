@@ -56,10 +56,10 @@ export function ProfileSection({
     <ContentSection
       actions={
         canManageSetup && !isEditing ? (
-              <Button onClick={openEditMode} type="button" variant="outline">
-                <Pencil aria-hidden="true" data-icon="inline-start" />
-                {profile ? 'Edit profile' : 'Complete profile'}
-              </Button>
+          <Button onClick={openEditMode} type="button" variant="outline">
+            <Pencil aria-hidden="true" data-icon="inline-start" />
+            {profile ? 'Edit profile' : 'Complete profile'}
+          </Button>
         ) : null
       }
       description="Legal, billing, and responsible contact details for this organization."
@@ -71,21 +71,21 @@ export function ProfileSection({
         </span>
       }
     >
-        {isEditing ? (
-          <ProfileEditor
-            onCancel={closeEditMode}
-            onSaved={closeEditMode}
-            session={session}
-          />
-        ) : profile ? (
-          <ProfileSummary profile={profile} />
-        ) : (
-          <ItemNotice
-            description="Organization admins need to add company and responsible contact details before the workspace is ready."
-            title="Profile is not complete"
-            variant="warning"
-          />
-        )}
+      {isEditing ? (
+        <ProfileEditor
+          onCancel={closeEditMode}
+          onSaved={closeEditMode}
+          session={session}
+        />
+      ) : profile ? (
+        <ProfileSummary profile={profile} />
+      ) : (
+        <ItemNotice
+          description="Organization admins need to add company and responsible contact details before the workspace is ready."
+          title="Profile is not complete"
+          variant="warning"
+        />
+      )}
     </ContentSection>
   );
 }

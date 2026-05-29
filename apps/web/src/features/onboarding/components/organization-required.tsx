@@ -14,6 +14,7 @@ import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import { ItemTitle } from '@/components/ui/item';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
 import { waitForClerkSessionPropagation } from '../session-propagation';
 import { OrganizationCreateForm } from './organization-create-form';
 import { OnboardingFrame } from './onboarding-frame';
@@ -130,7 +131,7 @@ export function OrganizationRequired() {
 
         {hasExistingOrganizations ? (
           <>
-            <p className="max-w-xl text-sm leading-6 text-muted-foreground">
+            <p className={textStyles.mutedBody}>
               Already invited? Open the invite link from your email to enter
               that workspace.
             </p>

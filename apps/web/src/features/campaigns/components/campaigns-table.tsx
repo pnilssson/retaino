@@ -18,6 +18,8 @@ import {
 } from '@/components/sortable-table-header';
 import { Checkbox } from '@/components/ui/checkbox';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 import type { CampaignListSort } from '../campaign-list-state';
 import { CampaignRowActions } from './campaign-row-actions';
 import { CampaignStatusBadge } from './campaign-status-badge';
@@ -163,7 +165,7 @@ function createCampaignColumns({
 
         return (
           <Link className="block min-w-44 p-2" href={detailPath}>
-            <span className="block break-words font-medium">
+            <span className={cn('block break-words', textStyles.itemTitle)}>
               {row.original.name}
             </span>
           </Link>

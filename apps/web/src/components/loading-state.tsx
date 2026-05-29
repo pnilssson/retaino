@@ -1,4 +1,5 @@
 import { Spinner } from '@/components/ui/spinner';
+import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 
 export function LoadingState({
@@ -13,7 +14,8 @@ export function LoadingState({
       aria-busy="true"
       aria-label={label}
       className={cn(
-        'flex items-center gap-2 text-sm text-muted-foreground',
+        'flex items-center gap-2',
+        textStyles.mutedBody,
         className,
       )}
       role="status"

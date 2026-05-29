@@ -20,6 +20,8 @@ import {
 } from '@/components/data-table';
 import { EmptyState } from '@/components/empty-state';
 import { ContentSection } from '@/features/appshell/components/content-section';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 import {
   formatReportCurrency,
   formatReportDate,
@@ -135,7 +137,7 @@ const reportedBookingColumns: ColumnDef<ReportedBookingRow>[] = [
     id: 'customer',
     header: 'Customer',
     cell: ({ row }) => (
-      <span className="font-medium">{bookingTitle(row.original)}</span>
+      <span className={textStyles.itemTitle}>{bookingTitle(row.original)}</span>
     ),
   },
   {
@@ -162,7 +164,7 @@ const reportedBookingColumns: ColumnDef<ReportedBookingRow>[] = [
     accessorKey: 'revenueAmountMinor',
     header: () => <div className="text-right">Revenue</div>,
     cell: ({ row }) => (
-      <div className="text-right font-medium tabular-nums">
+      <div className={cn('text-right', textStyles.numericInline)}>
         {row.original.revenueAmountMinor === null
           ? 'Not added'
           : formatReportCurrency(

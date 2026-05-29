@@ -70,7 +70,7 @@ export function EmailStep({ auth }: { auth: EmailCodeAuth }) {
                 autoCapitalize="none"
                 autoComplete="email"
                 autoCorrect="off"
-                className="h-12 text-base"
+                className="h-12"
                 disabled={auth.isFetching}
                 id={field.name}
                 inputMode="email"

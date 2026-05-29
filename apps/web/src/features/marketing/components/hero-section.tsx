@@ -8,6 +8,8 @@ import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 
 const heroMetrics = [
   {
@@ -39,7 +41,7 @@ export function HeroSection() {
             <div className="max-w-[58rem]">
               <motion.h1
                 animate={{ opacity: 1, y: 0 }}
-                className="max-w-[22rem] text-[2.15rem] leading-[1.06] tracking-normal text-foreground sm:max-w-[50rem] sm:text-5xl lg:text-[3.05rem]"
+                className={cn('max-w-[22rem] sm:max-w-[50rem]', textStyles.displayTitle)}
                 initial={{ opacity: 0, y: 16 }}
                 transition={{
                   delay: shouldReduceMotion ? 0 : 0.08,
@@ -61,14 +63,14 @@ export function HeroSection() {
                   duration: shouldReduceMotion ? 0 : 0.45
                 }}
               >
-                <Button asChild className="h-11 px-5 text-[0.95rem]" size="lg">
+                <Button asChild className="h-11 px-5" size="lg">
                   <Link href={routes.signIn} prefetch={false}>
                     Start reactivation
                   </Link>
                 </Button>
                 <Button
                   asChild
-                  className="h-11 bg-background px-5 text-[0.95rem]"
+                  className="h-11 bg-background px-5"
                   size="lg"
                   variant="outline"
                 >
@@ -100,10 +102,10 @@ export function HeroSection() {
               ].join(' ')}
               key={metric.label}
             >
-              <p className="text-3xl leading-none tracking-normal text-foreground sm:text-[2.9rem]">
+              <p className={textStyles.numeric}>
                 {metric.value}
               </p>
-              <p className="mt-2 max-w-40 text-xs leading-4 text-muted-foreground sm:mt-3 sm:max-w-48 sm:text-sm sm:leading-5">
+              <p className={cn('mt-2 max-w-40 sm:mt-3 sm:max-w-48', textStyles.meta)}>
                 {metric.label}
               </p>
             </div>

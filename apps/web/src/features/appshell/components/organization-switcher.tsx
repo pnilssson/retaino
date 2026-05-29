@@ -25,6 +25,8 @@ import {
 import { initialsFor } from '@/features/appshell/initials';
 import { useOrganizationSwitcher } from '@/features/appshell/hooks/use-organization-switcher';
 import { routes } from '@/lib/routes';
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 import { SidebarAvatar } from './sidebar-avatar';
 
 export function OrganizationSwitcher() {
@@ -62,11 +64,11 @@ export function OrganizationSwitcher() {
                 hasImage={activeOrganizationHasImage}
                 imageUrl={activeOrganizationImageUrl}
               />
-              <span className="grid flex-1 text-left text-sm leading-tight">
-                <span className="text-xs text-sidebar-foreground/60">
+              <span className="grid flex-1 text-left">
+                <span className={cn(textStyles.meta, 'text-sidebar-foreground/60')}>
                   Organization
                 </span>
-                <span className="truncate font-medium">
+                <span className={cn('truncate', textStyles.itemTitle)}>
                   {activeOrganizationName}
                 </span>
               </span>
@@ -83,7 +85,7 @@ export function OrganizationSwitcher() {
             side={isMobile ? 'bottom' : 'right'}
             sideOffset={4}
           >
-            <DropdownMenuLabel className="px-2 py-1.5 text-xs text-muted-foreground">
+            <DropdownMenuLabel className={cn('px-2 py-1.5', textStyles.meta)}>
               Organizations
             </DropdownMenuLabel>
             {memberships.map((membership) => {
@@ -100,17 +102,17 @@ export function OrganizationSwitcher() {
                 >
                   <SidebarAvatar
                     alt={organization.name}
-                    className="size-7 border bg-background text-xs font-medium"
+                    className={cn('size-7 border bg-background', textStyles.meta, 'text-foreground')}
                     fallback={initialsFor(organization.name, 'OR')}
                     hasImage={organization.hasImage}
                     imageUrl={organization.imageUrl}
                   />
                   <span className="grid min-w-0 flex-1">
-                    <span className="truncate font-medium">
+                    <span className={cn('truncate', textStyles.itemTitle)}>
                       {organization.name}
                     </span>
                     {isActive ? (
-                      <span className="text-xs text-muted-foreground">
+                      <span className={textStyles.meta}>
                         Active organization
                       </span>
                     ) : null}
@@ -131,7 +133,7 @@ export function OrganizationSwitcher() {
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background">
                   <Building2 aria-hidden="true" className="size-4" />
                 </span>
-                <span className="text-muted-foreground">
+                <span className={textStyles.mutedBody}>
                   No organizations found
                 </span>
               </DropdownMenuItem>
@@ -142,7 +144,7 @@ export function OrganizationSwitcher() {
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background">
                   <Plus aria-hidden="true" className="size-4" />
                 </span>
-                <span className="font-medium">Create workspace</span>
+                <span className={textStyles.itemTitle}>Create workspace</span>
               </Link>
             </DropdownMenuItem>
             {canFinishSetup ? (
@@ -151,7 +153,7 @@ export function OrganizationSwitcher() {
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background">
                     <Settings2 aria-hidden="true" className="size-4" />
                   </span>
-                  <span className="font-medium">Finish setup</span>
+                  <span className={textStyles.itemTitle}>Finish setup</span>
                 </Link>
               </DropdownMenuItem>
             ) : null}

@@ -164,7 +164,7 @@ function SankeyNodeContent({
         y={y}
       />
       <text
-        className="fill-foreground text-[11px] font-medium"
+        className={cn('fill-foreground', textStyles.itemTitle)}
         dominantBaseline="middle"
         textAnchor={textAnchor}
         x={textX}
@@ -174,7 +174,7 @@ function SankeyNodeContent({
       </text>
       {value !== null ? (
         <text
-          className="fill-muted-foreground text-[11px]"
+          className={cn('fill-muted-foreground', textStyles.meta)}
           dominantBaseline="middle"
           textAnchor={textAnchor}
           x={textX}

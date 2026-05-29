@@ -28,7 +28,7 @@ export function AppPageHeader({
           {title}
         </h1>
         {description ? (
-          <p className={cn('mt-3 max-w-2xl', textStyles.pageDescription)}>
+          <p className={cn('mt-3 max-w-2xl', textStyles.mutedBody)}>
             {description}
           </p>
         ) : null}

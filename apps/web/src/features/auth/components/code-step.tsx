@@ -82,7 +82,7 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
                 pattern={REGEXP_ONLY_DIGITS}
                 value={field.state.value}
               >
-                <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:text-xl">
+                <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-11">
                   {Array.from({ length: clerkOtpLength }, (_, index) => (
                     <InputOTPSlot
                       aria-invalid={Boolean(codeError)}
@@ -139,7 +139,7 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
         )}
       </codeForm.Subscribe>
 
-      <div className="flex items-center justify-between gap-3 text-sm">
+      <div className="flex items-center justify-between gap-3">
         <Button
           className="h-auto gap-1.5 p-0 text-muted-foreground hover:text-foreground"
           disabled={auth.isFetching}

@@ -42,7 +42,7 @@ export function StatusBadge({
   return (
     <Badge
       className={cn(
-        'inline-flex items-center border-border bg-background px-2.5 font-medium text-muted-foreground shadow-none',
+        'inline-flex items-center border-border bg-background px-2.5 text-muted-foreground shadow-none',
         showIcon && 'gap-1.5',
         className,
       )}
