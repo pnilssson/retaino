@@ -91,9 +91,10 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
         <AppPageHeader
           actions={
             <Button asChild className="px-0" variant="link">
-              <Link href={routes.contacts}>
+              <Link aria-label="Back to contacts" href={routes.contacts}>
                 <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-                Back to contacts
+                <span className="sm:hidden">Back</span>
+                <span className="hidden sm:inline">Back to contacts</span>
               </Link>
             </Button>
           }

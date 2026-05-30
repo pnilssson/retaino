@@ -136,9 +136,10 @@ export function CampaignBuilderScreen({
           actions={
             <>
               <Button asChild className="px-0" variant="link">
-                <Link href={routes.campaigns}>
+                <Link aria-label="Back to campaigns" href={routes.campaigns}>
                   <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-                  Back to campaigns
+                  <span className="sm:hidden">Back</span>
+                  <span className="hidden sm:inline">Back to campaigns</span>
                 </Link>
               </Button>
               {latestCampaign?.status === 'draft' ? (

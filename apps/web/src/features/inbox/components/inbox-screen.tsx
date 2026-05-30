@@ -107,14 +107,15 @@ export function InboxScreen() {
       <section className="mx-auto grid min-h-0 w-full max-w-7xl flex-1 grid-rows-[auto_minmax(0,1fr)] gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           description={(
-            <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-1">
-              <span className="min-w-0">
-                Review SMS replies and continue client conversations from one shared inbox.
+            <>
+              Review SMS replies and continue client conversations from one{' '}
+              <span className="inline-flex whitespace-nowrap items-center gap-1.5">
+                shared inbox.
+                <InfoTooltip label="Reply credit details">
+                  Replies use SMS credits and are sent from your Retaino sender.
+                </InfoTooltip>
               </span>
-              <InfoTooltip label="Reply credit details">
-                Replies use SMS credits and are sent from your Retaino sender.
-              </InfoTooltip>
-            </span>
+            </>
           )}
           title="Inbox"
         />
