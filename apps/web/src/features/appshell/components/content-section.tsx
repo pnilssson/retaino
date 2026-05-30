@@ -18,23 +18,24 @@ export function ContentHeading({
 }) {
   return (
     <header
-      className={cn(
-        'flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between',
-        className,
-      )}
+      className={cn('grid gap-1.5', className)}
     >
-      <div className="grid min-w-0 gap-1.5">
-        <h2 className={textStyles.itemTitle} id={titleId}>
-          {title}
-        </h2>
-        {description ? (
-          <p className={cn('max-w-2xl', textStyles.mutedBody)}>
-            {description}
-          </p>
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className={textStyles.itemTitle} id={titleId}>
+            {title}
+          </h2>
+        </div>
+        {actions ? (
+          <div className="flex shrink-0 flex-wrap justify-end gap-2">
+            {actions}
+          </div>
         ) : null}
       </div>
-      {actions ? (
-        <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>
+      {description ? (
+        <p className={cn('max-w-2xl', textStyles.mutedBody)}>
+          {description}
+        </p>
       ) : null}
     </header>
   );

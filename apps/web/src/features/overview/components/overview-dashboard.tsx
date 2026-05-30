@@ -38,10 +38,13 @@ export function OverviewDashboard({
     <div className="grid gap-5">
       {overview.attentionItems.length > 0 ? (
         <ContentSection title="Needs attention">
-          <div className="grid gap-3">
+          <div className="divide-y">
             {overview.attentionItems.map((item) => (
-              <div className="grid gap-2 border-t pt-3" key={item.id}>
-                <div className="flex items-start gap-2">
+              <div
+                className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                key={item.id}
+              >
+                <div className="flex min-w-0 items-start gap-2">
                   <AlertTriangle
                     aria-hidden="true"
                     className={cn(
@@ -60,7 +63,12 @@ export function OverviewDashboard({
                     </p>
                   </div>
                 </div>
-                <Button asChild size="sm" variant="outline">
+                <Button
+                  asChild
+                  className="shrink-0"
+                  size="sm"
+                  variant="outline"
+                >
                   <Link href={attentionActionHref(item.action)}>
                     Open
                     <ArrowRight aria-hidden="true" data-icon="inline-end" />

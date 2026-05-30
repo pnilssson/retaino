@@ -231,7 +231,24 @@ function ImportForm({
               {activeStep === 'upload' ? (
                 <GuidedFlowSection
                   description="Use a CSV export from your booking or client system."
-                  title="Upload the CSV"
+                  title={
+                    <span className="inline-flex items-center gap-1.5">
+                      Upload the CSV
+                      <InfoTooltip label="Minimum CSV fields">
+                        <span className="grid gap-1">
+                          <span className="font-medium">
+                            Minimum CSV fields
+                          </span>
+                          <span>
+                            Include at least one contact method column (Phone or
+                            Email). Name and Last booking date are optional but
+                            recommended for better matching and campaign
+                            targeting.
+                          </span>
+                        </span>
+                      </InfoTooltip>
+                    </span>
+                  }
                 >
                   <ContentSection asChild>
                     <section>
@@ -248,22 +265,6 @@ function ImportForm({
 
                           return (
                             <div className="grid gap-2">
-                              <div className="flex items-center gap-1.5">
-                                <Label htmlFor={field.name}>CSV file</Label>
-                                <InfoTooltip label="Minimum CSV fields">
-                                  <span className="grid gap-1">
-                                    <span className="font-medium">
-                                      Minimum CSV fields
-                                    </span>
-                                    <span>
-                                      Include at least one contact method column
-                                      (Phone or Email). Name and Last booking
-                                      date are optional but recommended for
-                                      better matching and campaign targeting.
-                                    </span>
-                                  </span>
-                                </InfoTooltip>
-                              </div>
                               <label
                                 className="flex min-h-28 cursor-pointer flex-col justify-center gap-3 rounded-lg border border-dashed border-input px-4 py-5 transition-colors hover:bg-muted/50 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
                                 htmlFor={field.name}
@@ -504,7 +505,10 @@ function ImportForm({
                             fields={contactImportMappedFieldEntries(mapping)}
                             sampleRows={preview.sampleRows}
                           />
-
+                        </section>
+                      </ContentSection>
+                      <ContentSection asChild>
+                        <section>
                           <form.Field
                             name="permissionAttestation"
                             validators={{
@@ -547,16 +551,15 @@ function ImportForm({
                               </div>
                             )}
                           </form.Field>
-
-                          {upload.error ? (
-                            <ItemNotice
-                              description={upload.error}
-                              title="Import could not start"
-                              variant="error"
-                            />
-                          ) : null}
                         </section>
                       </ContentSection>
+                      {upload.error ? (
+                        <ItemNotice
+                          description={upload.error}
+                          title="Import could not start"
+                          variant="error"
+                        />
+                      ) : null}
                       <GuidedFlowActions onBack={() => setActiveStep('match')}>
                         <Button
                           disabled={

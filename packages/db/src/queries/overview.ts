@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  hasCurrentBillingSubscription,
   OVERVIEW_WINDOW_DAYS,
   type BillingSubscriptionStatus,
   type CampaignStatus,
@@ -437,12 +438,28 @@ function attentionItems(input: {
     });
   }
 
-  if (input.metrics.smsCreditBalance <= 0) {
+  if (!hasCurrentBillingSubscription(input.subscriptionStatus)) {
+    const hasNoPlan =
+      !input.subscriptionStatus ||
+      input.subscriptionStatus === 'none' ||
+      input.subscriptionStatus === 'incomplete' ||
+      input.subscriptionStatus === 'incomplete_expired';
+
+    items.push({
+      id: 'billing-inactive',
+      tone: 'critical',
+      title: hasNoPlan ? 'Plan setup is required' : 'Billing needs attention',
+      description: hasNoPlan
+        ? 'Set up a plan before sending SMS campaigns.'
+        : 'Restore subscription access before sending SMS.',
+      action: 'open_billing',
+    });
+  } else if (input.metrics.smsCreditBalance <= 0) {
     items.push({
       id: 'credits-empty',
       tone: 'critical',
       title: 'SMS credits are empty',
-      description: 'Choose a plan with enough monthly credits before sending.',
+      description: 'Campaign sending is paused until SMS credits are available.',
       action: 'open_billing',
     });
   } else if (input.metrics.smsCreditBalance < 50) {
@@ -451,20 +468,6 @@ function attentionItems(input: {
       tone: 'warning',
       title: 'SMS credits are running low',
       description: 'Review the balance before the next campaign.',
-      action: 'open_billing',
-    });
-  }
-
-  if (
-    input.subscriptionStatus &&
-    input.subscriptionStatus !== 'active' &&
-    input.subscriptionStatus !== 'trialing'
-  ) {
-    items.push({
-      id: 'billing-inactive',
-      tone: 'critical',
-      title: 'Billing needs attention',
-      description: 'Restore subscription access before sending SMS.',
       action: 'open_billing',
     });
   }

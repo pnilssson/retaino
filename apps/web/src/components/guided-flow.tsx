@@ -100,7 +100,7 @@ export function GuidedFlowSection({
 }: {
   children: ReactNode;
   description?: string;
-  title: string;
+  title: ReactNode;
 }) {
   return (
     <section className="grid gap-3">

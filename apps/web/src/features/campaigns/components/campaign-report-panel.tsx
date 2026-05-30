@@ -151,6 +151,13 @@ function ReportUpdateActions({
 
 function DeliveryHealthSection({ report }: { report: CampaignReport }) {
   const funnel = createCampaignReportFunnel(report);
+  const hasDeliveryHealthValues = funnel.summary.some(
+    (item) => item.value > 0,
+  );
+
+  if (!hasDeliveryHealthValues) {
+    return null;
+  }
 
   return (
     <ContentSection

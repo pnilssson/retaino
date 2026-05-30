@@ -129,9 +129,14 @@ export function OverviewTrendChart({
   return (
     <div className="grid gap-0 py-4 sm:py-0">
       <div className="flex flex-col items-stretch border-b p-0 md:flex-row">
-        <div className="flex flex-1 flex-col justify-center gap-1 px-6 pb-3 md:pb-0">
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-6 pb-3 md:pb-0">
           <h2 className={textStyles.sectionTitle}>Campaign results</h2>
-          <p className={textStyles.mutedBody}>
+          <p
+            className={cn(
+              'max-w-prose whitespace-normal',
+              textStyles.mutedBody,
+            )}
+          >
             Delivered SMS, reported bookings, and reported revenue.
           </p>
         </div>
@@ -152,16 +157,16 @@ export function OverviewTrendChart({
         </div>
       </div>
 
-      <div className="px-2 py-5 sm:px-6 sm:py-7">
+      <div className="overflow-hidden px-1 py-5 sm:px-6 sm:py-7">
         <ChartContainer
-          className="h-[290px] w-full"
+          className="h-[260px] w-full sm:h-[290px]"
           config={chartConfig}
-          initialDimension={{ width: 760, height: 290 }}
+          initialDimension={{ width: 360, height: 260 }}
         >
           <AreaChart
             accessibilityLayer
             data={chartData}
-            margin={{ left: 12, right: 12 }}
+            margin={{ bottom: 4, left: 6, right: 18, top: 4 }}
           >
             <defs>
               <linearGradient
@@ -223,7 +228,8 @@ export function OverviewTrendChart({
             <XAxis
               axisLine={false}
               dataKey="date"
-              minTickGap={32}
+              minTickGap={48}
+              padding={{ left: 10, right: 18 }}
               tickFormatter={formatOverviewDate}
               tickLine={false}
               tickMargin={8}
@@ -299,7 +305,11 @@ export function OverviewTrendChart({
                 type="monotone"
               />
             ) : null}
-            <ChartLegend content={<ChartLegendContent />} />
+            <ChartLegend
+              content={
+                <ChartLegendContent className="flex-wrap justify-start gap-x-4 gap-y-2 px-3 sm:justify-center sm:px-0" />
+              }
+            />
           </AreaChart>
         </ChartContainer>
       </div>
