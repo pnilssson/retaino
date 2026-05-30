@@ -193,7 +193,7 @@ function InboxMessageBubble({
     <div className={cn('flex', isOutbound ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'grid max-w-[84%] gap-2 rounded-lg px-3 py-2 shadow-xs sm:max-w-[68%]',
+          'grid min-w-0 max-w-[84%] gap-2 overflow-hidden rounded-lg px-3 py-2 shadow-xs sm:max-w-[68%]',
           isOutbound
             ? 'bg-primary text-primary-foreground'
             : 'bg-muted text-foreground',
@@ -201,7 +201,7 @@ function InboxMessageBubble({
       >
         <p
           className={cn(
-            'whitespace-pre-wrap break-words',
+            'min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]',
             textStyles.body,
             isOutbound ? 'text-primary-foreground' : 'text-foreground',
           )}

@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { textStyles } from '@/lib/text-styles';
 import { useSendInboxReply } from '../hooks/use-send-inbox-reply';
 
 export function InboxReplyForm({
@@ -70,10 +69,10 @@ export function InboxReplyForm({
 
       <form.Field name="body">
         {(field) => (
-          <div>
+          <div className="relative">
             <Textarea
               aria-label="Reply"
-              className="min-h-20 resize-none rounded-lg bg-background"
+              className="min-h-24 resize-none rounded-lg bg-background pb-14 pr-24"
               disabled={disabled || sendReply.isPending}
               name={field.name}
               onBlur={field.handleBlur}
@@ -85,10 +84,32 @@ export function InboxReplyForm({
                   setDraftAttempt(null);
                 }
               }}
-              placeholder="Write a reply…"
+              placeholder="Write a reply..."
               rows={2}
               value={field.state.value}
             />
+            <form.Subscribe
+              selector={(state) => ({
+                body: state.values.body,
+                isSubmitting: state.isSubmitting,
+              })}
+            >
+              {({ body, isSubmitting }) => (
+                <Button
+                  className="absolute bottom-3 right-3"
+                  disabled={
+                    disabled ||
+                    sendReply.isPending ||
+                    isSubmitting ||
+                    body.trim().length === 0
+                  }
+                  type="submit"
+                >
+                  <Send aria-hidden="true" data-icon="inline-start" />
+                  {sendReply.isPending || isSubmitting ? 'Sending...' : 'Send'}
+                </Button>
+              )}
+            </form.Subscribe>
           </div>
         )}
       </form.Field>
@@ -104,34 +125,6 @@ export function InboxReplyForm({
           variant="error"
         />
       ) : null}
-
-      <form.Subscribe
-        selector={(state) => ({
-          body: state.values.body,
-          isSubmitting: state.isSubmitting,
-        })}
-      >
-        {({ body, isSubmitting }) => (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className={textStyles.meta}>
-              Replies use SMS credits and are sent from your Retaino sender.
-            </span>
-            <Button
-              className="self-end sm:self-auto"
-              disabled={
-                disabled ||
-                sendReply.isPending ||
-                isSubmitting ||
-                body.trim().length === 0
-              }
-              type="submit"
-            >
-              <Send aria-hidden="true" data-icon="inline-start" />
-              {sendReply.isPending || isSubmitting ? 'Sending…' : 'Send'}
-            </Button>
-          </div>
-        )}
-      </form.Subscribe>
     </form>
   );
 }

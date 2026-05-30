@@ -50,7 +50,7 @@ export function InboxConversationList({
         className,
       )}
     >
-      <header className="flex flex-col gap-2 border-b border-border px-3 py-3 sm:flex-row sm:items-center">
+      <header className="flex items-center gap-2 border-b border-border px-3 py-3">
         <div className="relative min-w-0 flex-1">
           <Search
             aria-hidden="true"
@@ -76,7 +76,7 @@ export function InboxConversationList({
           {activityFilters.map((item) => (
             <Button
               aria-pressed={activity === item}
-              className="rounded-[calc(var(--radius)-3px)]"
+              className="whitespace-nowrap rounded-[calc(var(--radius)-3px)] px-3"
               key={item}
               onClick={() => onActivityChange(item)}
               size="sm"
