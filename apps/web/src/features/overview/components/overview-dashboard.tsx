@@ -139,21 +139,25 @@ export function OverviewDashboard({
           summary={[
             {
               icon: Megaphone,
+              iconClassName: "bg-slate-100 text-slate-700",
               label: "Selected",
               value: overview.funnel.selectedCount,
             },
             {
               icon: Send,
+              iconClassName: "bg-sky-50 text-sky-700",
               label: "Sent",
               value: overview.funnel.sentCount,
             },
             {
               icon: Send,
+              iconClassName: "bg-emerald-50 text-emerald-700",
               label: "Delivered",
               value: overview.funnel.deliveredCount,
             },
             {
               icon: CalendarCheck,
+              iconClassName: "bg-emerald-50 text-emerald-700",
               label: "Booked",
               value: overview.funnel.reportedBookingCount,
             },
