@@ -272,6 +272,43 @@ describe('inbox service', () => {
     );
   });
 
+  it('records estimated segments when a manual reply provider result is zero', async () => {
+    vi.mocked(createSmsProvider).mockReturnValue({
+      name: 'fake',
+      listSenderCountries: vi.fn(),
+      ensureSender: vi.fn(),
+      sendSms: vi.fn().mockResolvedValue({
+        provider: 'fake',
+        providerMessageId: 'fake-message-1',
+        normalizedStatus: 'queued',
+        providerStatus: 'queued',
+        providerSenderReference: sender.providerMessagingServiceId,
+        actualSegments: 0,
+        cost: '0',
+        currency: 'SEK',
+        rawProviderReference: 'fake-message-1',
+      }),
+      parseStatusWebhook: vi.fn(),
+      parseInboundWebhook: vi.fn(),
+      verifyWebhook: vi.fn(),
+      releaseSender: vi.fn(),
+    });
+
+    await expect(sendReply()).resolves.toMatchObject({
+      status: 'sent',
+    });
+
+    expect(recordSmsMessageProviderResult).toHaveBeenCalledWith(
+      db,
+      expect.objectContaining({
+        organizationId,
+        messageId,
+        actualSegmentCount: 1,
+      }),
+    );
+    expect(releaseSmsCreditUsage).not.toHaveBeenCalled();
+  });
+
   it('does not send when the conversation is missing, suppressed, or sender is not ready', async () => {
     vi.mocked(getInboxConversationById).mockResolvedValueOnce(null);
     await expect(sendReply()).resolves.toEqual({ status: 'not_found' });

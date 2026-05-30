@@ -38,6 +38,7 @@ import { captureBackgroundError } from '../../lib/sentry';
 import { isSmsSenderReadyForSending } from '../../lib/sms-sender-readiness';
 import { createSmsProvider } from '../../lib/sms-provider';
 import { providerCostMinor } from '../../lib/sms-cost';
+import { resolvedOutboundSmsSegments } from '../../lib/sms-segments';
 import type { AppEnv } from '../../types';
 
 type CampaignSendResult = {
@@ -504,8 +505,10 @@ export async function processCampaignSend(input: {
         ),
         reference: `campaign:${input.campaignId}:recipient:${prepared.recipient.id}`,
       });
-      const actualSegments =
-        providerResult.actualSegments ?? prepared.estimatedSegments;
+      const actualSegments = resolvedOutboundSmsSegments({
+        estimatedSegments: prepared.estimatedSegments,
+        providerSegments: providerResult.actualSegments,
+      });
 
       await recordSmsMessageProviderResult(input.db, {
         organizationId: input.organizationId,

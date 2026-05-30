@@ -104,6 +104,91 @@ describe('SMS provider factory', () => {
     });
   });
 
+  it('treats fake provider zero callback segment counts as unknown', async () => {
+    const provider = createSmsProvider({ SMS_SENDING_MODE: 'test' } as never);
+
+    await expect(
+      provider.parseStatusWebhook({
+        MessageSid: 'fake-message-1',
+        MessageStatus: 'delivered',
+        NumSegments: '0',
+      }),
+    ).resolves.toMatchObject({
+      actualSegments: null,
+    });
+  });
+
+  it('treats Twilio zero segment counts as unknown', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse({
+        sid: 'SM123',
+        status: 'accepted',
+        messaging_service_sid: 'MG123',
+        num_segments: '0',
+        price: null,
+        price_unit: null,
+      }),
+    );
+    const provider = createSmsProvider(
+      {
+        SMS_SENDING_MODE: 'live',
+        TWILIO_ACCOUNT_SID: 'AC123',
+        TWILIO_API_KEY_SID: 'SK123',
+        TWILIO_API_KEY_SECRET: 'secret',
+      } as never,
+      fetchImpl as never,
+    );
+
+    await expect(
+      provider.sendSms({
+        retainoMessageId: 'message-1',
+        organizationSender: {
+          id: '11111111-1111-4111-8111-111111111111',
+          organizationId: '22222222-2222-4222-8222-222222222222',
+          provider: 'twilio',
+          status: 'ready',
+          phoneNumber: '+46700000000',
+          countryCode: 'SE',
+          numberType: 'mobile',
+          providerMessagingServiceId: 'MG123',
+          providerPhoneNumberId: 'PN123',
+          regulatoryStatus: 'not_required',
+          failureReason: null,
+          provisionedAt: '2026-05-18T00:00:00.000Z',
+          lastVerifiedAt: '2026-05-18T00:00:00.000Z',
+          createdAt: '2026-05-18T00:00:00.000Z',
+          updatedAt: '2026-05-18T00:00:00.000Z',
+        },
+        to: '+46701111111',
+        renderedBody: 'Test message',
+        estimatedSegments: 1,
+        statusCallbackUrl: null,
+        reference: 'test-reference',
+      }),
+    ).resolves.toMatchObject({
+      actualSegments: null,
+    });
+
+    await expect(
+      provider.parseStatusWebhook({
+        MessageSid: 'SM123',
+        MessageStatus: 'delivered',
+        NumSegments: '0',
+      }),
+    ).resolves.toMatchObject({
+      actualSegments: null,
+    });
+    await expect(
+      provider.parseStatusWebhook({
+        MessageSid: 'SM123',
+        MessageStatus: 'delivered',
+        NumSegments: '2',
+      }),
+    ).resolves.toMatchObject({
+      actualSegments: 2,
+    });
+  });
+
   it('blocks provider work when sending is disabled', async () => {
     const provider = createSmsProvider({ SMS_SENDING_MODE: 'disabled' } as never);
 

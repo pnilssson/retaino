@@ -18,6 +18,7 @@ import {
   getTwilioConfig,
   type TwilioConfig,
 } from './twilio-rest-client';
+import { positiveSmsSegmentCount } from './sms-segments';
 import { verifyTwilioWebhook } from './twilio-webhook-verification';
 
 type AppBindings = AppEnv['Bindings'];
@@ -578,7 +579,7 @@ async function sendTwilioSms(
     providerStatus: message.status ?? null,
     providerSenderReference:
       input.organizationSender.providerMessagingServiceId,
-    actualSegments: message.num_segments ? Number(message.num_segments) : null,
+    actualSegments: positiveSmsSegmentCount(message.num_segments),
     cost: message.price ?? null,
     currency: message.price_unit ?? null,
     rawProviderReference: message.sid,
@@ -602,7 +603,7 @@ function parseTwilioStatusWebhook(input: unknown): SmsStatusEvent {
     normalizedStatus: normalizeTwilioStatus(payload.MessageStatus ?? payload.SmsStatus),
     providerStatus: payload.MessageStatus ?? payload.SmsStatus ?? null,
     occurredAt: new Date(),
-    actualSegments: payload.NumSegments ? Number(payload.NumSegments) : null,
+    actualSegments: positiveSmsSegmentCount(payload.NumSegments),
     cost: payload.Price ?? null,
     currency: payload.PriceUnit ?? null,
     providerErrorCode: payload.ErrorCode ?? null,

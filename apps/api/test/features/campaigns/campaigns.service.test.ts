@@ -918,7 +918,7 @@ describe('campaign send service', () => {
     });
   });
 
-  it('releases unused reserved credits after provider results are lower', async () => {
+  it('uses estimated segments when the provider reports zero segments', async () => {
     const provider = {
       name: 'fake' as const,
       listSenderCountries: vi.fn(),
@@ -953,20 +953,20 @@ describe('campaign send service', () => {
       userId,
     });
 
-    expect(releaseSmsCreditUsage).toHaveBeenCalledWith({
+    expect(recordSmsMessageProviderResult).toHaveBeenCalledWith(
       db,
-      organizationId,
-      credits: 1,
-      reservedTransactions: expect.any(Array),
-      source: 'campaign_send',
-      sourceId: `campaign-send:${campaignId}:release`,
-      description: 'Campaign SMS reservation release',
-    });
-    expect(
-      vi.mocked(releaseSmsCreditUsage).mock.invocationCallOrder[0],
-    ).toBeLessThan(
-      vi.mocked(markCampaignSendCompleted).mock.invocationCallOrder[0] ?? 0,
+      expect.objectContaining({
+        messageId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        actualSegmentCount: 1,
+      }),
     );
+    expect(markCampaignSendCompleted).toHaveBeenCalledWith(
+      db,
+      expect.objectContaining({
+        actualCreditCount: 1,
+      }),
+    );
+    expect(releaseSmsCreditUsage).not.toHaveBeenCalled();
   });
 
   it('stores estimated segments when the provider omits actual segments', async () => {

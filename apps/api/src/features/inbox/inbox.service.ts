@@ -28,6 +28,7 @@ import { callbackUrl } from '../../lib/callback-url';
 import { isSmsSenderReadyForSending } from '../../lib/sms-sender-readiness';
 import { createSmsProvider, SmsProviderError } from '../../lib/sms-provider';
 import { providerCostMinor } from '../../lib/sms-cost';
+import { resolvedOutboundSmsSegments } from '../../lib/sms-segments';
 import type { AppEnv } from '../../types';
 
 export type SendInboxReplyResult =
@@ -207,8 +208,10 @@ export async function sendInboxReply(input: {
       providerMessagingServiceId: sender.providerMessagingServiceId,
       providerPhoneNumberId: sender.providerPhoneNumberId,
       status: providerResult.normalizedStatus,
-      actualSegmentCount:
-        providerResult.actualSegments ?? estimate.segments,
+      actualSegmentCount: resolvedOutboundSmsSegments({
+        estimatedSegments: estimate.segments,
+        providerSegments: providerResult.actualSegments,
+      }),
       actualCostMinor: providerCostMinor(providerResult.cost),
       currency: providerResult.currency,
     });

@@ -6,6 +6,7 @@ import type {
   SmsSenderStatus,
 } from '@retaino/shared/contracts';
 import type { AppEnv } from '../types';
+import { positiveSmsSegmentCount } from './sms-segments';
 import { createTwilioSmsProvider } from './twilio-provider';
 
 export type SmsProviderName = SmsSenderProvider;
@@ -324,7 +325,7 @@ function parseFakeStatusWebhook(input: unknown): Promise<SmsStatusEvent> {
     ),
     providerStatus: payload.MessageStatus ?? payload.SmsStatus ?? null,
     occurredAt: new Date(),
-    actualSegments: payload.NumSegments ? Number(payload.NumSegments) : null,
+    actualSegments: positiveSmsSegmentCount(payload.NumSegments),
     cost: payload.Price ?? null,
     currency: payload.PriceUnit ?? null,
     providerErrorCode: payload.ErrorCode ?? null,
