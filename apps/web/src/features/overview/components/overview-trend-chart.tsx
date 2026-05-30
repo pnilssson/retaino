@@ -157,16 +157,16 @@ export function OverviewTrendChart({
         </div>
       </div>
 
-      <div className="overflow-hidden px-1 py-5 sm:px-6 sm:py-7">
+      <div className="overflow-hidden px-1 pt-5 pb-3 sm:px-6 sm:py-7">
         <ChartContainer
-          className="h-[260px] w-full sm:h-[290px]"
+          className="h-[270px] w-full sm:h-[290px]"
           config={chartConfig}
-          initialDimension={{ width: 360, height: 260 }}
+          initialDimension={{ width: 360, height: 270 }}
         >
           <AreaChart
             accessibilityLayer
             data={chartData}
-            margin={{ bottom: 4, left: 6, right: 18, top: 4 }}
+            margin={{ bottom: 24, left: 6, right: 18, top: 4 }}
           >
             <defs>
               <linearGradient
@@ -307,7 +307,7 @@ export function OverviewTrendChart({
             ) : null}
             <ChartLegend
               content={
-                <ChartLegendContent className="flex-wrap justify-start gap-x-4 gap-y-2 px-3 sm:justify-center sm:px-0" />
+                <ChartLegendContent className="flex-wrap justify-start gap-x-4 gap-y-2 px-3 pt-4 sm:justify-center sm:px-0 sm:pt-3" />
               }
             />
           </AreaChart>
