@@ -21,14 +21,14 @@ All paid tiers include the same product workflow. Do not enforce product feature
 
 | Tier | Monthly price | Included credits | Intended customer |
 | --- | ---: | ---: | --- |
-| Starter | 849 SEK | 300 | first reactivation test |
-| Core | 1,749 SEK | 750 | small clinics with regular campaigns |
-| Growth | 3,249 SEK | 1,500 | regular monthly campaigns |
-| Pro | 5,249 SEK | 2,500 | larger lists or several campaigns |
-| Scale | 8,249 SEK | 4,000 | heavier monthly sending |
-| Advanced | 15,249 SEK | 7,500 | high-volume clinic groups |
+| Starter | 999 SEK | 500 | first reactivation test |
+| Core | 1,999 SEK | 1,000 | small clinics with regular campaigns |
+| Growth | 2,999 SEK | 1,500 | regular monthly campaigns |
+| Pro | 4,999 SEK | 2,500 | larger lists or several campaigns |
+| Scale | 7,999 SEK | 4,000 | heavier monthly sending |
+| Advanced | 14,999 SEK | 7,500 | high-volume clinic groups |
 
-The pricing formula is 249 SEK platform access plus 2 SEK per included SMS credit. Mark Growth as recommended. Starter should feel low-risk without making smaller companies pay a worse credit rate.
+Do not mark a plan as recommended. Starter should feel low-risk, while each step should read as a meaningful capacity upgrade.
 
 ## Billing UI
 

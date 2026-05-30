@@ -20,7 +20,6 @@ export type StripeBillingCatalog = {
       label: string;
       monthlyPriceSek: number;
       includedSmsCredits: number;
-      recommended: boolean;
     }
   >;
 };

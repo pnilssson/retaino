@@ -2,18 +2,15 @@
 
 import { OrganizationCreateForm } from './organization-create-form';
 import { OnboardingFrame } from './onboarding-frame';
-import { OnboardingItem } from './onboarding-item';
 
 export function OrganizationNewScreen() {
   return (
     <OnboardingFrame completedSteps={[]} currentStep="organization">
-      <OnboardingItem
+      <OrganizationCreateForm
         description="Set up a place for your team to manage contacts, campaigns, permissions, and results together."
-        eyebrow="Workspace"
-        title="Create another workspace."
-      >
-        <OrganizationCreateForm submitLabel="Create workspace" />
-      </OnboardingItem>
+        submitLabel="Create workspace"
+        title="Create another workspace"
+      />
     </OnboardingFrame>
   );
 }

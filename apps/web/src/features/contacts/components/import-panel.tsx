@@ -18,6 +18,7 @@ import {
   contactImportMappingReady,
   type CsvMapping,
 } from '@retaino/shared/contracts';
+import { InfoTooltip } from '@/components/info-tooltip';
 import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -227,324 +228,376 @@ function ImportForm({
             steps={importSteps}
           >
             <div className="grid gap-5">
-              <ContentSection asChild>
-                <section>
-                  {activeStep === 'upload' ? (
-                    <GuidedFlowSection
-                      description="Use a CSV export from your booking or client system."
-                      title="Upload the CSV"
-                    >
-                      <div className="grid gap-5">
-                        <ItemNotice
-                          description="Include at least one contact method column (Phone or Email). Name and Last booking date are optional but recommended for better matching and campaign targeting."
-                          title="Minimum CSV fields"
-                        />
-                  <form.Field
-                    name="file"
-                    validators={{
-                      onSubmit: ({ value }) =>
-                        value ? undefined : 'Choose a CSV file.',
-                    }}
-                  >
-                    {(field) => {
-                      const error = field.state.meta.errors[0];
-                      const selectedFile = field.state.value;
-
-                      return (
-                        <div className="grid gap-2">
-                          <Label htmlFor={field.name}>CSV file</Label>
-                          <label
-                            className="flex min-h-28 cursor-pointer flex-col justify-center gap-3 rounded-lg border border-dashed border-input px-4 py-5 transition-colors hover:bg-muted/50 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
-                            htmlFor={field.name}
-                          >
-                            <input
-                              accept=".csv,text/csv"
-                              className="sr-only"
-                              id={field.name}
-                              name={field.name}
-                              onChange={(event) => {
-                                const nextFile = event.target.files?.[0] ?? null;
-                                field.handleChange(nextFile);
-                                void updatePreview(
-                                  nextFile,
-                                  setPreview,
-                                  setParseError,
-                                ).then((csvPreview) => {
-                                  form.setFieldValue(
-                                    'mapping',
-                                    csvPreview
-                                      ? autoMapContactImportHeaders(
-                                          csvPreview.headers,
-                                        )
-                                      : {},
-                                  );
-                                });
-                              }}
-                              type="file"
-                            />
-                            <span className="flex items-center gap-3">
-                              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                                {selectedFile ? (
-                                  <CheckCircle2
-                                    aria-hidden="true"
-                                    className="size-5"
-                                  />
-                                ) : (
-                                  <FileUp aria-hidden="true" className="size-5" />
-                                )}
-                              </span>
-                              <span className="grid min-w-0 gap-1">
-                              <span className={cn('break-all', textStyles.itemTitle)}>
-                                  {selectedFile
-                                    ? selectedFile.name
-                                    : 'Choose a CSV file'}
-                                </span>
-                                {selectedFile ? (
-                                  <span className={textStyles.mutedBody}>
-                                    Selected. Choose another CSV to replace it.
-                                  </span>
-                                ) : (
-                                  <span className={textStyles.mutedBody}>
-                                    CSV only, up to 25 MB.
-                                  </span>
-                                )}
-                              </span>
-                            </span>
-                          </label>
-                          {error ? (
-                            <p className={textStyles.error}>{String(error)}</p>
-                          ) : null}
-                          {parseError ? (
-                            <p className={textStyles.error}>{parseError}</p>
-                          ) : null}
-                        </div>
-                      );
-                    }}
-                  </form.Field>
-
-                        <GuidedFlowActions
-                          canContinue={Boolean(file && preview && !parseError)}
-                          continueLabel="Continue to matching"
-                          onContinue={() => setActiveStep('match')}
-                        />
-                      </div>
-                    </GuidedFlowSection>
-                  ) : null}
-
-                  {activeStep === 'match' ? (
-                    <GuidedFlowSection
-                      description="Choose which CSV columns should fill each contact field."
-                      title="Match the columns"
-                    >
-                      {preview ? (
-                        <div className="grid gap-5">
-                    <div className="grid max-w-3xl gap-3">
-                      <div
-                        className={cn(
-                          'hidden grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)] items-center gap-3 px-1 uppercase sm:grid',
-                          textStyles.meta,
-                        )}
+              {activeStep === 'upload' ? (
+                <GuidedFlowSection
+                  description="Use a CSV export from your booking or client system."
+                  title="Upload the CSV"
+                >
+                  <ContentSection asChild>
+                    <section>
+                      <form.Field
+                        name="file"
+                        validators={{
+                          onSubmit: ({ value }) =>
+                            value ? undefined : 'Choose a CSV file.',
+                        }}
                       >
-                        <span>CSV column</span>
-                        <span aria-hidden="true" />
-                        <span>Retaino field</span>
-                      </div>
-                      {CONTACT_IMPORT_TARGET_FIELDS.map((target) => (
-                        <form.Field key={target} name={`mapping.${target}`}>
-                          {(field) => (
-                            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)] sm:items-center">
-                              <div className="grid gap-1">
-                                <span
-                                  className={cn(
-                                    'uppercase sm:hidden',
-                                    textStyles.meta,
-                                  )}
-                                >
-                                  CSV column
-                                </span>
-                                <Select
-                                  onValueChange={(value) =>
-                                    field.handleChange(
-                                      value === 'none' ? undefined : value,
-                                    )
-                                  }
-                                  value={field.state.value ?? 'none'}
-                                >
-                                  <SelectTrigger className="w-full">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">
-                                      Not mapped
-                                    </SelectItem>
-                                    {preview.headers.map((header) => (
-                                      <SelectItem key={header} value={header}>
-                                        {header}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <ArrowRight
-                                aria-hidden="true"
-                                className="hidden size-4 justify-self-center text-muted-foreground sm:block"
-                              />
-                              <Label>
-                                <span
-                                  className={cn(
-                                    'uppercase sm:hidden',
-                                    textStyles.meta,
-                                  )}
-                                >
-                                  Retaino field
-                                </span>
-                                <span>{formatTargetField(target)}</span>
-                              </Label>
-                            </div>
-                          )}
-                        </form.Field>
-                      ))}
-                    </div>
+                        {(field) => {
+                          const error = field.state.meta.errors[0];
+                          const selectedFile = field.state.value;
 
-                          <GuidedFlowActions
-                            canContinue={contactImportMappingReady(mapping)}
-                            continueLabel="Continue to review"
-                            onBack={() => setActiveStep('upload')}
-                            onContinue={() => setActiveStep('review')}
-                          />
-                        </div>
-                      ) : (
+                          return (
+                            <div className="grid gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <Label htmlFor={field.name}>CSV file</Label>
+                                <InfoTooltip label="Minimum CSV fields">
+                                  <span className="grid gap-1">
+                                    <span className="font-medium">
+                                      Minimum CSV fields
+                                    </span>
+                                    <span>
+                                      Include at least one contact method column
+                                      (Phone or Email). Name and Last booking
+                                      date are optional but recommended for
+                                      better matching and campaign targeting.
+                                    </span>
+                                  </span>
+                                </InfoTooltip>
+                              </div>
+                              <label
+                                className="flex min-h-28 cursor-pointer flex-col justify-center gap-3 rounded-lg border border-dashed border-input px-4 py-5 transition-colors hover:bg-muted/50 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
+                                htmlFor={field.name}
+                              >
+                                <input
+                                  accept=".csv,text/csv"
+                                  className="sr-only"
+                                  id={field.name}
+                                  name={field.name}
+                                  onChange={(event) => {
+                                    const nextFile =
+                                      event.target.files?.[0] ?? null;
+                                    field.handleChange(nextFile);
+                                    void updatePreview(
+                                      nextFile,
+                                      setPreview,
+                                      setParseError,
+                                    ).then((csvPreview) => {
+                                      form.setFieldValue(
+                                        'mapping',
+                                        csvPreview
+                                          ? autoMapContactImportHeaders(
+                                              csvPreview.headers,
+                                            )
+                                          : {},
+                                      );
+                                    });
+                                  }}
+                                  type="file"
+                                />
+                                <span className="flex items-center gap-3">
+                                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                    {selectedFile ? (
+                                      <CheckCircle2
+                                        aria-hidden="true"
+                                        className="size-5"
+                                      />
+                                    ) : (
+                                      <FileUp
+                                        aria-hidden="true"
+                                        className="size-5"
+                                      />
+                                    )}
+                                  </span>
+                                  <span className="grid min-w-0 gap-1">
+                                    <span
+                                      className={cn(
+                                        'break-all',
+                                        textStyles.itemTitle,
+                                      )}
+                                    >
+                                      {selectedFile
+                                        ? selectedFile.name
+                                        : 'Choose a CSV file'}
+                                    </span>
+                                    {selectedFile ? (
+                                      <span className={textStyles.mutedBody}>
+                                        Selected. Choose another CSV to replace
+                                        it.
+                                      </span>
+                                    ) : (
+                                      <span className={textStyles.mutedBody}>
+                                        CSV only, up to 25 MB.
+                                      </span>
+                                    )}
+                                  </span>
+                                </span>
+                              </label>
+                              {error ? (
+                                <p className={textStyles.error}>
+                                  {String(error)}
+                                </p>
+                              ) : null}
+                              {parseError ? (
+                                <p className={textStyles.error}>
+                                  {parseError}
+                                </p>
+                              ) : null}
+                            </div>
+                          );
+                        }}
+                      </form.Field>
+                    </section>
+                  </ContentSection>
+                  <GuidedFlowActions
+                    canContinue={Boolean(file && preview && !parseError)}
+                    continueLabel="Continue to matching"
+                    onContinue={() => setActiveStep('match')}
+                  />
+                </GuidedFlowSection>
+              ) : null}
+
+              {activeStep === 'match' ? (
+                <GuidedFlowSection
+                  description="Choose which CSV columns should fill each contact field."
+                  title="Match the columns"
+                >
+                  {preview ? (
+                    <>
+                      <ContentSection asChild>
+                        <section>
+                          <div className="grid max-w-3xl gap-3">
+                            <div
+                              className={cn(
+                                'hidden grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)] items-center gap-3 px-1 uppercase sm:grid',
+                                textStyles.meta,
+                              )}
+                            >
+                              <span>CSV column</span>
+                              <span aria-hidden="true" />
+                              <span>Retaino field</span>
+                            </div>
+                            {CONTACT_IMPORT_TARGET_FIELDS.map((target) => (
+                              <form.Field
+                                key={target}
+                                name={`mapping.${target}`}
+                              >
+                                {(field) => (
+                                  <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)] sm:items-center">
+                                    <div className="grid gap-1">
+                                      <span
+                                        className={cn(
+                                          'uppercase sm:hidden',
+                                          textStyles.meta,
+                                        )}
+                                      >
+                                        CSV column
+                                      </span>
+                                      <Select
+                                        onValueChange={(value) =>
+                                          field.handleChange(
+                                            value === 'none'
+                                              ? undefined
+                                              : value,
+                                          )
+                                        }
+                                        value={field.state.value ?? 'none'}
+                                      >
+                                        <SelectTrigger className="w-full">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="none">
+                                            Not mapped
+                                          </SelectItem>
+                                          {preview.headers.map((header) => (
+                                            <SelectItem
+                                              key={header}
+                                              value={header}
+                                            >
+                                              {header}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <ArrowRight
+                                      aria-hidden="true"
+                                      className="hidden size-4 justify-self-center text-muted-foreground sm:block"
+                                    />
+                                    <Label>
+                                      <span
+                                        className={cn(
+                                          'uppercase sm:hidden',
+                                          textStyles.meta,
+                                        )}
+                                      >
+                                        Retaino field
+                                      </span>
+                                      <span>{formatTargetField(target)}</span>
+                                    </Label>
+                                  </div>
+                                )}
+                              </form.Field>
+                            ))}
+                          </div>
+                        </section>
+                      </ContentSection>
+                      <GuidedFlowActions
+                        canContinue={contactImportMappingReady(mapping)}
+                        continueLabel="Continue to review"
+                        onBack={() => setActiveStep('upload')}
+                        onContinue={() => setActiveStep('review')}
+                      />
+                    </>
+                  ) : (
+                    <ContentSection asChild>
+                      <section>
                         <ItemNotice
                           description="Choose a CSV file before matching columns."
                           title="CSV file required"
                         />
-                      )}
-                    </GuidedFlowSection>
-                  ) : null}
+                      </section>
+                    </ContentSection>
+                  )}
+                </GuidedFlowSection>
+              ) : null}
 
-                  {activeStep === 'review' ? (
-                    <GuidedFlowSection
-                      description="Check the mapped sample and confirm permission before importing."
-                      title="Review the import"
-                    >
-                      {preview ? (
-                        <div className="grid gap-5">
-                    <form.Field name="phoneCountryCode">
-                      {(field) => (
-                        <div className="grid max-w-2xl gap-2 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-center">
-                          <Label htmlFor={field.name}>Phone country</Label>
-                          <CountryCombobox
-                            id={field.name}
-                            name={field.name}
-                            onBlur={field.handleBlur}
-                            onChange={(value) =>
-                              field.handleChange(
-                                value as typeof field.state.value,
-                              )
-                            }
-                            value={field.state.value}
-                          />
-                          <p className={cn('sm:col-start-2', textStyles.mutedBody)}>
-                            Used for phone numbers without a country code.
-                          </p>
-                        </div>
-                      )}
-                    </form.Field>
-
-                    <MappedPreviewTable
-                      fields={contactImportMappedFieldEntries(mapping)}
-                      sampleRows={preview.sampleRows}
-                    />
-
-                    <form.Field
-                      name="permissionAttestation"
-                      validators={{
-                        onSubmit: ({ value }) =>
-                          value
-                            ? undefined
-                            : 'Confirm these contacts can lawfully receive marketing SMS.',
-                      }}
-                    >
-                      {(field) => (
-                        <div className="flex items-start gap-3">
-                          <Checkbox
-                            aria-describedby={
-                              field.state.meta.errors.length > 0
-                                ? 'permission-attestation-error'
-                                : undefined
-                            }
-                            checked={field.state.value}
-                            id={field.name}
-                            onBlur={field.handleBlur}
-                            onCheckedChange={(checked) =>
-                              field.handleChange(checked === true)
-                            }
-                          />
-                          <div className="grid gap-1">
-                            <Label htmlFor={field.name}>
-                              I confirm these contacts can lawfully receive
-                              marketing SMS from this organization.
-                            </Label>
-                            {field.state.meta.errors.length > 0 ? (
-                              <p
-                                className={textStyles.error}
-                                id="permission-attestation-error"
-                              >
-                                {String(field.state.meta.errors[0])}
-                              </p>
-                            ) : null}
-                          </div>
-                        </div>
-                      )}
-                    </form.Field>
-
-                    {upload.error ? (
-                      <ItemNotice
-                        description={upload.error}
-                        title="Import could not start"
-                        variant="error"
-                      />
-                    ) : null}
-
-                          <GuidedFlowActions onBack={() => setActiveStep('match')}>
-                            <Button
-                              disabled={
-                                !file ||
-                                !canSubmit ||
-                                isSubmitting ||
-                                upload.mutation.isPending ||
-                                Boolean(parseError) ||
-                                !contactImportMappingReady(mapping) ||
-                                !permissionAttestation
-                              }
-                              type="submit"
-                            >
-                              {upload.mutation.isPending || isSubmitting ? (
-                                <Loader2
-                                  aria-hidden="true"
-                                  className="animate-spin"
-                                  data-icon="inline-start"
+              {activeStep === 'review' ? (
+                <GuidedFlowSection
+                  description="Check the mapped sample and confirm permission before importing."
+                  title="Review the import"
+                >
+                  {preview ? (
+                    <>
+                      <ContentSection asChild>
+                        <section className="grid gap-5">
+                          <form.Field name="phoneCountryCode">
+                            {(field) => (
+                              <div className="grid max-w-2xl gap-2 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-center">
+                                <Label htmlFor={field.name}>
+                                  Phone country
+                                </Label>
+                                <CountryCombobox
+                                  id={field.name}
+                                  name={field.name}
+                                  onBlur={field.handleBlur}
+                                  onChange={(value) =>
+                                    field.handleChange(
+                                      value as typeof field.state.value,
+                                    )
+                                  }
+                                  value={field.state.value}
                                 />
-                              ) : (
-                                <CheckCircle2
-                                  aria-hidden="true"
-                                  data-icon="inline-start"
+                                <p
+                                  className={cn(
+                                    'sm:col-start-2',
+                                    textStyles.mutedBody,
+                                  )}
+                                >
+                                  Used for phone numbers without a country code.
+                                </p>
+                              </div>
+                            )}
+                          </form.Field>
+
+                          <MappedPreviewTable
+                            fields={contactImportMappedFieldEntries(mapping)}
+                            sampleRows={preview.sampleRows}
+                          />
+
+                          <form.Field
+                            name="permissionAttestation"
+                            validators={{
+                              onSubmit: ({ value }) =>
+                                value
+                                  ? undefined
+                                  : 'Confirm these contacts can lawfully receive marketing SMS.',
+                            }}
+                          >
+                            {(field) => (
+                              <div className="flex items-start gap-3">
+                                <Checkbox
+                                  aria-describedby={
+                                    field.state.meta.errors.length > 0
+                                      ? 'permission-attestation-error'
+                                      : undefined
+                                  }
+                                  checked={field.state.value}
+                                  id={field.name}
+                                  onBlur={field.handleBlur}
+                                  onCheckedChange={(checked) =>
+                                    field.handleChange(checked === true)
+                                  }
                                 />
-                              )}
-                              Start import
-                            </Button>
-                          </GuidedFlowActions>
-                        </div>
-                      ) : (
+                                <div className="grid gap-1">
+                                  <Label htmlFor={field.name}>
+                                    I confirm these contacts can lawfully
+                                    receive marketing SMS from this
+                                    organization.
+                                  </Label>
+                                  {field.state.meta.errors.length > 0 ? (
+                                    <p
+                                      className={textStyles.error}
+                                      id="permission-attestation-error"
+                                    >
+                                      {String(field.state.meta.errors[0])}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </div>
+                            )}
+                          </form.Field>
+
+                          {upload.error ? (
+                            <ItemNotice
+                              description={upload.error}
+                              title="Import could not start"
+                              variant="error"
+                            />
+                          ) : null}
+                        </section>
+                      </ContentSection>
+                      <GuidedFlowActions onBack={() => setActiveStep('match')}>
+                        <Button
+                          disabled={
+                            !file ||
+                            !canSubmit ||
+                            isSubmitting ||
+                            upload.mutation.isPending ||
+                            Boolean(parseError) ||
+                            !contactImportMappingReady(mapping) ||
+                            !permissionAttestation
+                          }
+                          type="submit"
+                        >
+                          {upload.mutation.isPending || isSubmitting ? (
+                            <Loader2
+                              aria-hidden="true"
+                              className="animate-spin"
+                              data-icon="inline-start"
+                            />
+                          ) : (
+                            <CheckCircle2
+                              aria-hidden="true"
+                              data-icon="inline-start"
+                            />
+                          )}
+                          Start import
+                        </Button>
+                      </GuidedFlowActions>
+                    </>
+                  ) : (
+                    <ContentSection asChild>
+                      <section>
                         <ItemNotice
                           description="Choose a CSV file before reviewing the import."
                           title="CSV file required"
                         />
-                      )}
-                    </GuidedFlowSection>
-                  ) : null}
-                </section>
-              </ContentSection>
+                      </section>
+                    </ContentSection>
+                  )}
+                </GuidedFlowSection>
+              ) : null}
             </div>
           </GuidedFlowFrame>
         )}

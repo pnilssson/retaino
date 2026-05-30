@@ -11,7 +11,7 @@ export function SetupPending({ organizationName }: { organizationName: string })
     <OnboardingItem
       description="An organization admin needs to finish setup before members can use this workspace. You can switch to another organization if one is available."
       eyebrow="Setup pending"
-      title={`${organizationName} is still being set up.`}
+      title={`${organizationName} is still being set up`}
     />
   );
 }

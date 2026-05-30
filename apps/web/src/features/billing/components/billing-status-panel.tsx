@@ -5,10 +5,8 @@ import type {
   BillingStatusResponse,
   PublicOrganizationSmsSender,
 } from '@retaino/shared/contracts';
-import { hasCurrentBillingSubscription } from '@retaino/shared/contracts';
 import { ExternalLink } from 'lucide-react';
 import { InfoTooltip } from '@/components/info-tooltip';
-import { ItemNotice } from '@/components/item-notice';
 import {
   StatusBadge,
   type StatusBadgeTone,
@@ -37,11 +35,7 @@ export function BillingStatusPanel({
 }) {
   const subscription = billingStatus.subscription;
   const status = subscriptionStatusView(subscription.status);
-  const senderPolicy = senderPolicyNotice(subscription, sender);
-  const senderTooltip =
-    senderPolicy?.variant === 'info' ? senderPolicy : null;
-  const senderNotice =
-    senderPolicy?.variant === 'warning' ? senderPolicy : null;
+  const senderTooltip = senderPolicyNotice(subscription, sender);
 
   return (
     <ContentSection
@@ -87,19 +81,12 @@ export function BillingStatusPanel({
             label="Sender number"
             tooltip={
               senderTooltip ? (
-                <span>{senderTooltip.description}</span>
+                <span>{senderTooltip}</span>
               ) : null
             }
             value={sender?.phoneNumber ?? 'Not active'}
           />
         </dl>
-        {senderNotice ? (
-          <ItemNotice
-            description={senderNotice.description}
-            title={senderNotice.title}
-            variant={senderNotice.variant}
-          />
-        ) : null}
     </ContentSection>
   );
 }
@@ -158,57 +145,14 @@ function planLabel(planKey: NonNullable<BillingStatusResponse['subscription']['p
 function senderPolicyNotice(
   subscription: BillingStatusResponse['subscription'],
   sender: PublicOrganizationSmsSender | null,
-): SenderPolicyNotice {
-  if (sender?.status === 'released') {
-    return {
-      title: 'No active sender number',
-      description: 'Set up a new sender before sending SMS.',
-      variant: 'warning',
-    };
+): string | null {
+  if (sender?.status !== 'ready') {
+    return null;
   }
 
   if (subscription.cancelAtPeriodEnd && subscription.currentPeriodEnd) {
-    return {
-      title: 'Sender active until plan end',
-      description: `Your sender remains active until ${formatBillingDate(subscription.currentPeriodEnd)}. After that, Retaino releases the number.`,
-      variant: 'warning',
-    };
+    return `Your sender remains active until ${formatBillingDate(subscription.currentPeriodEnd)}. After that, Retaino releases the number.`;
   }
 
-  if (subscription.status === 'past_due' || subscription.status === 'unpaid') {
-    return {
-      title: 'Payment needed to keep sender',
-      description: sender?.releaseScheduledAt
-        ? `Update payment by ${formatBillingDate(sender.releaseScheduledAt)} to keep this sender number.`
-        : 'Update payment soon to keep this sender number.',
-      variant: 'warning',
-    };
-  }
-
-  if (!hasCurrentBillingSubscription(subscription.status)) {
-    return {
-      title: sender ? 'Sender inactive' : 'No active sender number',
-      description: sender
-        ? 'Reactivate billing to keep using Retaino. If access has ended, Retaino releases the sender number.'
-        : 'Choose a plan and set up a sender before sending SMS.',
-      variant: 'warning',
-    };
-  }
-
-  return {
-    description:
-      'Your sender number stays active while your subscription is active.',
-    variant: 'info',
-  };
+  return 'If the plan is canceled, Retaino releases this sender number after paid access ends.';
 }
-
-type SenderPolicyNotice =
-  | {
-      title: string;
-      description: string;
-      variant: 'warning';
-    }
-  | {
-      description: string;
-      variant: 'info';
-    };

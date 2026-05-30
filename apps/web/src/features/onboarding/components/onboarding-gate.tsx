@@ -73,7 +73,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
       <GateState
         description={organizationBootstrap.error.message}
         eyebrow="Organization error"
-        title="Retaino could not prepare the active organization."
+        title="Retaino could not prepare the active organization"
       />
     );
   }
@@ -83,7 +83,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
       <GateState
         description="An organization admin needs to finish setup before members can use Retaino. You can switch to another organization from the sidebar."
         eyebrow="Setup pending"
-        title="This workspace is still being set up."
+        title="This workspace is still being set up"
       />
     );
   }
@@ -93,7 +93,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
       <GateState
         description="Refresh the page and try again."
         eyebrow="Workspace unavailable"
-        title="Retaino could not load this workspace."
+        title="Retaino could not load this workspace"
       />
     );
   }

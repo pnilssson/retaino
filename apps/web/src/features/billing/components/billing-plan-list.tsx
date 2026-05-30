@@ -3,7 +3,6 @@
 import {
   BILLING_PLAN_CATALOG,
   BILLING_PLAN_KEYS,
-  getRecommendedBillingPlanKey,
   hasCurrentBillingSubscription,
   type BillingPlanKey,
   type BillingStatusResponse,
@@ -11,7 +10,6 @@ import {
 import {
   ArrowRight,
   CheckCircle2,
-  Sparkles,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { StatusBadge } from "@/components/status-badge";
@@ -33,10 +31,11 @@ const SHARED_PLAN_FEATURES = [
   "Unlimited campaign drafts",
   "Campaign sending",
   "Tracking links",
-  "Basic reporting",
-  "Unused credits roll over for one extra billing cycle",
-  "Same credit rate in every plan",
+  "Reporting",
+  "Unused credits roll over one month",
 ] as const;
+
+const DISPLAYED_BILLING_PLAN_KEYS = [...BILLING_PLAN_KEYS].reverse();
 
 export function BillingPlanList({
   billingStatus,
@@ -63,15 +62,14 @@ export function BillingPlanList({
   return (
     <section className="grid gap-3" aria-labelledby="billing-plans-title">
       <ContentHeading
-        description="All plans include campaign creation, contact imports, tracking links, and reporting. Higher plans include more monthly SMS credits. Prices are ex VAT, tax is calculated in checkout."
+        description="Prices are ex VAT, tax is calculated in checkout."
         title="Compare monthly plans"
         titleId="billing-plans-title"
       />
 
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {BILLING_PLAN_KEYS.map((planKey) => {
+        {DISPLAYED_BILLING_PLAN_KEYS.map((planKey) => {
           const plan = BILLING_PLAN_CATALOG[planKey];
-          const isRecommendedPlan = planKey === getRecommendedBillingPlanKey();
           const isCurrentPlan =
             hasCurrentSubscription &&
             billingStatus.subscription.planKey === planKey;
@@ -79,8 +77,7 @@ export function BillingPlanList({
             billingStatus.subscription.planKey,
             planKey,
           );
-          const isSelectedPlan =
-            isCurrentPlan || (!hasCurrentSubscription && isRecommendedPlan);
+          const isSelectedPlan = isCurrentPlan;
           const isPending = pendingPlanKey === planKey;
           const actionLabel = planActionLabel({
             isCurrentPlan,
@@ -111,28 +108,6 @@ export function BillingPlanList({
                 <div className="grid gap-5">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className={textStyles.itemTitle}>{plan.label}</h3>
-                    {isRecommendedPlan ? (
-                      <StatusBadge
-                        className={cn(
-                          "text-foreground",
-                          isSelectedPlan &&
-                            "border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground",
-                        )}
-                        label="Recommended"
-                        icon={
-                          <Sparkles
-                            aria-hidden="true"
-                            className={cn(
-                              "size-3",
-                              isSelectedPlan
-                                ? "text-primary-foreground"
-                                : "text-amber-500",
-                            )}
-                          />
-                        }
-                        tone="gray"
-                      />
-                    ) : null}
                     {isCurrentPlan ? (
                       <StatusBadge
                         className={cn(
@@ -161,16 +136,6 @@ export function BillingPlanList({
                     <p
                       className={cn(
                         "mt-2",
-                        textStyles.mutedBody,
-                        isSelectedPlan && "text-primary-foreground/80",
-                      )}
-                    >
-                      For up to {formatCreditCount(plan.includedSmsCredits)} SMS
-                      credits each month.
-                    </p>
-                    <p
-                      className={cn(
-                        "mt-3",
                         textStyles.itemTitle,
                         isSelectedPlan && "text-primary-foreground",
                       )}

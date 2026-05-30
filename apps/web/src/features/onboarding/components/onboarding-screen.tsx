@@ -13,7 +13,10 @@ import {
   OnboardingFlow,
   onboardingFlowKey,
 } from './flow';
-import { OnboardingFrame } from './onboarding-frame';
+import {
+  OnboardingFrame,
+  OnboardingLoading,
+} from './onboarding-frame';
 import { OnboardingItem } from './onboarding-item';
 import { OrganizationRequired } from './organization-required';
 import {
@@ -43,12 +46,10 @@ export function OnboardingScreen() {
     session.isLoading
   ) {
     return (
-      <OnboardingFrame completedSteps={[]} currentStep="organization">
-        <OnboardingItem
-          eyebrow="Organization"
-          title="Preparing organization setup."
-        />
-      </OnboardingFrame>
+      <OnboardingLoading
+        currentStep="organization"
+        label="Loading organization setup"
+      />
     );
   }
 
@@ -110,7 +111,7 @@ export function OnboardingScreen() {
         completedSteps={['organization', 'company', 'contact', 'agreements']}
         currentStep="agreements"
       >
-        <OnboardingItem eyebrow="Organization setup" title="Opening overview." />
+        <OnboardingItem eyebrow="Organization setup" title="Opening overview" />
       </OnboardingFrame>
     );
   }

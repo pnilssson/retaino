@@ -128,7 +128,7 @@ export function InboxConversationThread({
             variant="error"
           />
         ) : isLoading ? (
-          <LoadingState className="min-h-[320px] justify-center" label="Loading conversation" />
+          <LoadingState className="min-h-[320px]" label="Loading conversation" />
         ) : messages.length > 0 ? (
           <ol className="grid gap-3">
             {messages.map((message, index) => {

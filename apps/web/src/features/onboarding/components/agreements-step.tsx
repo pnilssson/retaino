@@ -31,85 +31,86 @@ export function AgreementsStep({
   onComplete: () => Promise<void>;
 }) {
   return (
-    <OnboardingItem
-      eyebrow="Legal"
-      title="Finish setup."
-    >
-      <div className="grid gap-6">
-        <p className={textStyles.mutedBody}>
-          Documents:{' '}
-          {legalBundle.documents.map((document, index) => {
-            const label =
-              legalBundleDocumentLabels[
-                document.documentType as keyof typeof legalBundleDocumentLabels
-              ] ?? document.title;
-            const separator =
-              index === legalBundle.documents.length - 1
-                ? ''
-                : index === legalBundle.documents.length - 2
-                  ? ', and '
-                  : ', ';
+    <div className="grid gap-5">
+      <OnboardingItem
+        eyebrow="Legal"
+        title="Finish setup"
+      >
+        <div className="grid gap-6">
+          <p className={textStyles.mutedBody}>
+            Documents:{' '}
+            {legalBundle.documents.map((document, index) => {
+              const label =
+                legalBundleDocumentLabels[
+                  document.documentType as keyof typeof legalBundleDocumentLabels
+                ] ?? document.title;
+              const separator =
+                index === legalBundle.documents.length - 1
+                  ? ''
+                  : index === legalBundle.documents.length - 2
+                    ? ', and '
+                    : ', ';
 
-            return (
-              <span key={document.id}>
-                <Link
-                  className="text-foreground underline-offset-4 hover:underline"
-                  href={legalDocumentUrl({
-                    documentType: document.documentType,
-                    documentVersion: document.documentVersion,
-                  })}
-                  target="_blank"
-                >
-                  {label}
-                </Link>
-                {separator}
-              </span>
-            );
-          })}
-          .
-        </p>
+              return (
+                <span key={document.id}>
+                  <Link
+                    className="text-foreground underline-offset-4 hover:underline"
+                    href={legalDocumentUrl({
+                      documentType: document.documentType,
+                      documentVersion: document.documentVersion,
+                    })}
+                    target="_blank"
+                  >
+                    {label}
+                  </Link>
+                  {separator}
+                </span>
+              );
+            })}
+            .
+          </p>
 
-        <p className={textStyles.mutedBody}>
-          By finishing setup, you agree to the documents above.
-        </p>
+          <p className={textStyles.mutedBody}>
+            By finishing setup, you agree to the documents above.
+          </p>
 
-        {mutationError ? (
-          <ItemNotice
-            description={mutationError}
-            title="Legal terms could not be accepted"
-            variant="error"
-          />
-        ) : null}
-
-        <GuidedFlowActions
-          backLabel={
-            <>
-              <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-              Back
-            </>
-          }
-          onBack={onBack}
+          {mutationError ? (
+            <ItemNotice
+              description={mutationError}
+              title="Legal terms could not be accepted"
+              variant="error"
+            />
+          ) : null}
+        </div>
+      </OnboardingItem>
+      <GuidedFlowActions
+        backLabel={
+          <>
+            <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+            Back
+          </>
+        }
+        onBack={onBack}
+      >
+        <Button
+          disabled={isPending}
+          onClick={() => {
+            void onComplete().catch(() => undefined);
+          }}
+          type="button"
         >
-          <Button
-            disabled={isPending}
-            onClick={() => {
-              void onComplete().catch(() => undefined);
-            }}
-            type="button"
-          >
-            {isPending ? (
-              <Loader2
-                aria-hidden="true"
-                className="animate-spin"
-                data-icon="inline-start"
-              />
-            ) : (
-              <CheckCircle2 aria-hidden="true" data-icon="inline-start" />
-            )}
-            {isPending ? 'Finishing setup' : 'Finish setup'}
-          </Button>
-        </GuidedFlowActions>
-      </div>
-    </OnboardingItem>
+          {isPending ? (
+            <Loader2
+              aria-hidden="true"
+              className="animate-spin"
+              data-icon="inline-start"
+            />
+          ) : (
+            <CheckCircle2 aria-hidden="true" data-icon="inline-start" />
+          )}
+          {isPending ? 'Finishing setup' : 'Finish setup'}
+        </Button>
+      </GuidedFlowActions>
+    </div>
   );
 }

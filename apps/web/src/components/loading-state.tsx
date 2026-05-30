@@ -14,7 +14,7 @@ export function LoadingState({
       aria-busy="true"
       aria-label={label}
       className={cn(
-        'flex items-center gap-2',
+        'flex w-full items-center justify-center gap-2 text-center',
         textStyles.mutedBody,
         className,
       )}

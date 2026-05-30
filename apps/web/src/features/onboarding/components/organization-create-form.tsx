@@ -11,11 +11,13 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
+  type ReactNode,
   useMemo,
   useState,
 } from 'react';
 import { GuidedFlowActions } from '@/components/guided-flow';
 import { ItemNotice } from '@/components/item-notice';
+import { LoadingState } from '@/components/loading-state';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,17 +26,24 @@ import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
 import { defaultOrganizationName } from '../default-organization-name';
 import { waitForClerkSessionPropagation } from '../session-propagation';
+import { OnboardingItem } from './onboarding-item';
 
 type OrganizationCreateFormProps = {
+  description?: ReactNode;
   inviteCopy?: string;
   loadingLabel?: string;
+  notice?: ReactNode;
   submitLabel?: string;
+  title?: ReactNode;
 };
 
 export function OrganizationCreateForm({
+  description,
   inviteCopy = 'Already invited? Open the invite link from your email to enter that workspace.',
   loadingLabel = 'Preparing workspace creation.',
+  notice,
   submitLabel = 'Create workspace',
+  title,
 }: OrganizationCreateFormProps) {
   const { isLoaded: isUserLoaded, user } = useUser();
   const { createOrganization, isLoaded, setActive } = useOrganizationList();
@@ -48,16 +57,27 @@ export function OrganizationCreateForm({
   );
 
   if (!isLoaded || !isUserLoaded) {
-    return <p className={textStyles.mutedBody}>{loadingLabel}</p>;
+    if (title || description) {
+      return (
+        <OnboardingItem description={description} title={title}>
+          <LoadingState label={loadingLabel} />
+        </OnboardingItem>
+      );
+    }
+
+    return <LoadingState label={loadingLabel} />;
   }
 
   return (
     <OrganizationCreateFormFields
       createOrganization={createOrganization}
       defaultName={defaultName}
+      description={description}
       inviteCopy={inviteCopy}
+      notice={notice}
       setActive={setActive}
       submitLabel={submitLabel}
+      title={title}
     />
   );
 }
@@ -65,15 +85,21 @@ export function OrganizationCreateForm({
 function OrganizationCreateFormFields({
   createOrganization,
   defaultName,
+  description,
   inviteCopy,
+  notice,
   setActive,
   submitLabel,
+  title,
 }: {
   createOrganization: ReturnType<typeof useOrganizationList>['createOrganization'];
   defaultName: string;
+  description?: ReactNode;
   inviteCopy: string;
+  notice?: ReactNode;
   setActive: ReturnType<typeof useOrganizationList>['setActive'];
   submitLabel: string;
+  title?: ReactNode;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -109,7 +135,7 @@ function OrganizationCreateFormFields({
 
   return (
     <form
-      className="grid gap-4"
+      className="grid gap-5"
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
@@ -117,55 +143,60 @@ function OrganizationCreateFormFields({
         void form.handleSubmit();
       }}
     >
-      {error ? (
-        <ItemNotice
-          description={error}
-          title="Workspace could not be created"
-          variant="error"
-        />
-      ) : null}
+      <OnboardingItem description={description} title={title}>
+        <div className="grid gap-4">
+          {notice}
+          {error ? (
+            <ItemNotice
+              description={error}
+              title="Workspace could not be created"
+              variant="error"
+            />
+          ) : null}
 
-      <form.Field
-        name="organizationName"
-        validators={{
-          onBlur: ({ value }) =>
-            value.trim() ? undefined : 'Enter a workspace name.',
-          onSubmit: ({ value }) =>
-            value.trim() ? undefined : 'Enter a workspace name.',
-        }}
-      >
-        {(field) => {
-          const fieldError = getFieldError(field.state.meta.errors);
+          <form.Field
+            name="organizationName"
+            validators={{
+              onBlur: ({ value }) =>
+                value.trim() ? undefined : 'Enter a workspace name.',
+              onSubmit: ({ value }) =>
+                value.trim() ? undefined : 'Enter a workspace name.',
+            }}
+          >
+            {(field) => {
+              const fieldError = getFieldError(field.state.meta.errors);
 
-          return (
-            <div className="grid gap-2">
-              <Label htmlFor={field.name}>Workspace name</Label>
-              <Input
-                aria-describedby={
-                  fieldError ? `${field.name}-error` : undefined
-                }
-                aria-invalid={Boolean(fieldError)}
-                autoComplete="organization"
-                disabled={form.state.isSubmitting}
-                id={field.name}
-                name={field.name}
-                onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.target.value)}
-                placeholder={defaultName}
-                value={field.state.value}
-              />
-              {fieldError ? (
-                <p className={textStyles.error} id={`${field.name}-error`}>
-                  {fieldError}
-                </p>
-              ) : null}
-            </div>
-          );
-        }}
-      </form.Field>
-      <p className={textStyles.mutedBody}>
-        {inviteCopy}
-      </p>
+              return (
+                <div className="grid gap-2">
+                  <Label htmlFor={field.name}>Workspace name</Label>
+                  <Input
+                    aria-describedby={
+                      fieldError ? `${field.name}-error` : undefined
+                    }
+                    aria-invalid={Boolean(fieldError)}
+                    autoComplete="organization"
+                    disabled={form.state.isSubmitting}
+                    id={field.name}
+                    name={field.name}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                    placeholder={defaultName}
+                    value={field.state.value}
+                  />
+                  {fieldError ? (
+                    <p className={textStyles.error} id={`${field.name}-error`}>
+                      {fieldError}
+                    </p>
+                  ) : null}
+                </div>
+              );
+            }}
+          </form.Field>
+          <p className={textStyles.mutedBody}>
+            {inviteCopy}
+          </p>
+        </div>
+      </OnboardingItem>
       <GuidedFlowActions>
         <form.Subscribe
           selector={(state) => [state.canSubmit, state.isSubmitting]}

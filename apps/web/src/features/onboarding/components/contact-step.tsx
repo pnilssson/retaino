@@ -48,19 +48,19 @@ export function ContactStep({
   });
 
   return (
-    <OnboardingItem
-      description="This contact is used for compliance, billing, and operational follow-up if a campaign needs review."
-      eyebrow="Responsible contact"
-      title="Add the person accountable for campaigns."
+    <form
+      className="grid gap-5"
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void form.handleSubmit();
+      }}
     >
-      <form
-        className="grid gap-5"
-        noValidate
-        onSubmit={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          void form.handleSubmit();
-        }}
+      <OnboardingItem
+        description="This contact is used for compliance, billing, and operational follow-up if a campaign needs review."
+        eyebrow="Responsible contact"
+        title="Add the person accountable for campaigns"
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <form.Field
@@ -197,41 +197,40 @@ export function ContactStep({
             variant="error"
           />
         ) : null}
-
-        <GuidedFlowActions
-          backLabel={
-            <>
-              <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-              Back
-            </>
-          }
-          onBack={onBack}
+      </OnboardingItem>
+      <GuidedFlowActions
+        backLabel={
+          <>
+            <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+            Back
+          </>
+        }
+        onBack={onBack}
+      >
+        <form.Subscribe
+          selector={(state) => [state.canSubmit, state.isSubmitting]}
         >
-          <form.Subscribe
-            selector={(state) => [state.canSubmit, state.isSubmitting]}
-          >
-            {([canSubmit, isSubmitting]) => (
-              <Button
-                disabled={!canSubmit || isPending || isSubmitting}
-                type="submit"
-              >
-                {isPending || isSubmitting ? (
-                  <Loader2
-                    aria-hidden="true"
-                    className="animate-spin"
-                    data-icon="inline-start"
-                  />
-                ) : null}
-                {isPending || isSubmitting ? 'Saving profile' : 'Save and continue'}
-                {!isPending && !isSubmitting ? (
-                  <ArrowRight aria-hidden="true" data-icon="inline-end" />
-                ) : null}
-              </Button>
-            )}
-          </form.Subscribe>
-        </GuidedFlowActions>
-      </form>
-    </OnboardingItem>
+          {([canSubmit, isSubmitting]) => (
+            <Button
+              disabled={!canSubmit || isPending || isSubmitting}
+              type="submit"
+            >
+              {isPending || isSubmitting ? (
+                <Loader2
+                  aria-hidden="true"
+                  className="animate-spin"
+                  data-icon="inline-start"
+                />
+              ) : null}
+              {isPending || isSubmitting ? 'Saving profile' : 'Save and continue'}
+              {!isPending && !isSubmitting ? (
+                <ArrowRight aria-hidden="true" data-icon="inline-end" />
+              ) : null}
+            </Button>
+          )}
+        </form.Subscribe>
+      </GuidedFlowActions>
+    </form>
   );
 }
 

@@ -35,38 +35,37 @@ describe('Stripe billing catalog', () => {
     expect(catalog.plans.starter).toMatchObject({
       key: 'starter',
       stripePriceId: 'price_starter',
-      monthlyPriceSek: 849,
-      includedSmsCredits: 300,
+      monthlyPriceSek: 999,
+      includedSmsCredits: 500,
     });
     expect(catalog.plans.core).toMatchObject({
       key: 'core',
       stripePriceId: 'price_core',
-      monthlyPriceSek: 1749,
-      includedSmsCredits: 750,
+      monthlyPriceSek: 1999,
+      includedSmsCredits: 1000,
     });
     expect(catalog.plans.growth).toMatchObject({
       key: 'growth',
       stripePriceId: 'price_growth',
-      monthlyPriceSek: 3249,
+      monthlyPriceSek: 2999,
       includedSmsCredits: 1500,
-      recommended: true,
     });
     expect(catalog.plans.pro).toMatchObject({
       key: 'pro',
       stripePriceId: 'price_pro',
-      monthlyPriceSek: 5249,
+      monthlyPriceSek: 4999,
       includedSmsCredits: 2500,
     });
     expect(catalog.plans.scale).toMatchObject({
       key: 'scale',
       stripePriceId: 'price_scale',
-      monthlyPriceSek: 8249,
+      monthlyPriceSek: 7999,
       includedSmsCredits: 4000,
     });
     expect(catalog.plans.advanced).toMatchObject({
       key: 'advanced',
       stripePriceId: 'price_advanced',
-      monthlyPriceSek: 15249,
+      monthlyPriceSek: 14999,
       includedSmsCredits: 7500,
     });
   });

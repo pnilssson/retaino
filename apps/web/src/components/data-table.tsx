@@ -73,10 +73,7 @@ export function DataTable<TData>({
           {isLoading && rows.length === 0 ? (
             <TableRow className="border-border hover:bg-transparent">
               <TableCell className="h-24" colSpan={visibleColumnCount}>
-                <LoadingState
-                  className="justify-center"
-                  label={loadingLabel}
-                />
+                <LoadingState label={loadingLabel} />
               </TableCell>
             </TableRow>
           ) : (
@@ -84,10 +81,7 @@ export function DataTable<TData>({
               {isLoading ? (
                 <TableRow className="border-border bg-background hover:bg-background">
                   <TableCell className="h-12" colSpan={visibleColumnCount}>
-                    <LoadingState
-                      className="justify-center"
-                      label={loadingLabel}
-                    />
+                    <LoadingState label={loadingLabel} />
                   </TableCell>
                 </TableRow>
               ) : null}

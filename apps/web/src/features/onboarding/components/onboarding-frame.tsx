@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { LoadingState } from '@/components/loading-state';
 import { GuidedFlowFrame } from '@/components/guided-flow';
 
 export type OnboardingStepId =
@@ -38,5 +39,23 @@ export function OnboardingFrame({
         </GuidedFlowFrame>
       </section>
     </main>
+  );
+}
+
+export function OnboardingLoading({
+  completedSteps = [],
+  currentStep,
+  label,
+}: {
+  completedSteps?: OnboardingStepId[];
+  currentStep: OnboardingStepId;
+  label: string;
+}) {
+  return (
+    <OnboardingFrame completedSteps={completedSteps} currentStep={currentStep}>
+      <div className="flex min-h-[240px] items-center justify-center">
+        <LoadingState label={label} />
+      </div>
+    </OnboardingFrame>
   );
 }

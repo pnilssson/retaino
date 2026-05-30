@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  type ReactNode,
   useRef,
   useState,
 } from 'react';
@@ -555,29 +554,31 @@ export function CampaignForm({
                     ) : null}
 
                     {activeStep === 'sender' ? (
-                      <CampaignSetupStep
+                      <GuidedFlowSection
                         description="Choose the sender country before this campaign can send."
                         title={senderReady ? 'Sender ready' : 'Set up the sender'}
                       >
-                        <div className="grid gap-5">
-                          <SenderSetup
-                            defaultCountryCode={defaultSenderCountryCode}
-                            organizationId={organizationId}
-                            sender={sender.data?.sender ?? null}
-                          />
+                        <ContentSection asChild>
+                          <section>
+                            <SenderSetup
+                              defaultCountryCode={defaultSenderCountryCode}
+                              organizationId={organizationId}
+                              sender={sender.data?.sender ?? null}
+                            />
+                          </section>
+                        </ContentSection>
 
-                          <GuidedFlowActions
-                            canContinue={senderReady}
-                            continueIcon={
-                              <ArrowRight aria-hidden="true" className="size-4" />
-                            }
-                            continueLabel="Continue to review"
-                            isPending={sender.isLoading}
-                            onBack={() => setActiveStep('message')}
-                            onContinue={() => setActiveStep('review')}
-                          />
-                        </div>
-                      </CampaignSetupStep>
+                        <GuidedFlowActions
+                          canContinue={senderReady}
+                          continueIcon={
+                            <ArrowRight aria-hidden="true" className="size-4" />
+                          }
+                          continueLabel="Continue to review"
+                          isPending={sender.isLoading}
+                          onBack={() => setActiveStep('message')}
+                          onContinue={() => setActiveStep('review')}
+                        />
+                      </GuidedFlowSection>
                     ) : null}
 
                     {activeStep === 'review' ? (
@@ -696,23 +697,5 @@ export function CampaignForm({
         }}
       </form.Subscribe>
     </form>
-  );
-}
-
-function CampaignSetupStep({
-  children,
-  description,
-  title,
-}: {
-  children: ReactNode;
-  description?: string;
-  title: string;
-}) {
-  return (
-    <GuidedFlowSection description={description} title={title}>
-      <ContentSection asChild>
-        <section>{children}</section>
-      </ContentSection>
-    </GuidedFlowSection>
   );
 }

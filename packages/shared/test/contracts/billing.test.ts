@@ -7,7 +7,6 @@ import {
   billingStatusResponseSchema,
   createSubscriptionCheckoutSchema,
   getBillingPlanCredits,
-  getRecommendedBillingPlanKey,
   hasCurrentBillingSubscription,
   smsCreditTransactionSchema,
 } from '../../src/contracts';
@@ -25,43 +24,36 @@ describe('billing contracts', () => {
     expect(BILLING_PLAN_CATALOG).toMatchObject({
       starter: {
         label: 'Starter',
-        monthlyPriceSek: 849,
-        includedSmsCredits: 300,
-        recommended: false,
+        monthlyPriceSek: 999,
+        includedSmsCredits: 500,
       },
       core: {
         label: 'Core',
-        monthlyPriceSek: 1749,
-        includedSmsCredits: 750,
-        recommended: false,
+        monthlyPriceSek: 1999,
+        includedSmsCredits: 1000,
       },
       growth: {
         label: 'Growth',
-        monthlyPriceSek: 3249,
+        monthlyPriceSek: 2999,
         includedSmsCredits: 1500,
-        recommended: true,
       },
       pro: {
         label: 'Pro',
-        monthlyPriceSek: 5249,
+        monthlyPriceSek: 4999,
         includedSmsCredits: 2500,
-        recommended: false,
       },
       scale: {
         label: 'Scale',
-        monthlyPriceSek: 8249,
+        monthlyPriceSek: 7999,
         includedSmsCredits: 4000,
-        recommended: false,
       },
       advanced: {
         label: 'Advanced',
-        monthlyPriceSek: 15249,
+        monthlyPriceSek: 14999,
         includedSmsCredits: 7500,
-        recommended: false,
       },
     });
     expect(getBillingPlanCredits('growth')).toBe(1500);
-    expect(getRecommendedBillingPlanKey()).toBe('growth');
   });
 
   it('validates checkout request payloads strictly', () => {

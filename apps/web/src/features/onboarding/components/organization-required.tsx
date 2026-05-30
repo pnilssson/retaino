@@ -17,7 +17,10 @@ import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
 import { waitForClerkSessionPropagation } from '../session-propagation';
 import { OrganizationCreateForm } from './organization-create-form';
-import { OnboardingFrame } from './onboarding-frame';
+import {
+  OnboardingFrame,
+  OnboardingLoading,
+} from './onboarding-frame';
 import { OnboardingItem } from './onboarding-item';
 
 export function OrganizationRequired() {
@@ -62,10 +65,28 @@ export function OrganizationRequired() {
 
   if (!isLoaded) {
     return (
+      <OnboardingLoading
+        currentStep="organization"
+        label="Loading workspace setup"
+      />
+    );
+  }
+
+  if (!hasExistingOrganizations) {
+    return (
       <OnboardingFrame completedSteps={[]} currentStep="organization">
-        <OnboardingItem
-          eyebrow="Workspace"
-          title="Preparing workspace setup."
+        <OrganizationCreateForm
+          description="Retaino keeps your team's contacts, campaigns, permissions, and results in one shared workspace."
+          notice={
+            error ? (
+              <ItemNotice
+                description={error}
+                title="Workspace could not be selected"
+                variant="error"
+              />
+            ) : null
+          }
+          title="Set up your workspace"
         />
       </OnboardingFrame>
     );
@@ -73,30 +94,20 @@ export function OrganizationRequired() {
 
   return (
     <OnboardingFrame completedSteps={[]} currentStep="organization">
-      <OnboardingItem
-        description={
-          hasExistingOrganizations
-            ? 'Select where you want to continue. Create a new workspace only if you are setting up a separate team.'
-            : "Retaino keeps your team's contacts, campaigns, permissions, and results in one shared workspace."
-        }
-        eyebrow="Workspace"
-        title={
-          hasExistingOrganizations
-            ? 'Choose your workspace.'
-            : 'Set up your workspace.'
-        }
-      >
-        {error ? (
-          <ItemNotice
-            description={error}
-            title="Workspace could not be selected"
-            variant="error"
-          />
-        ) : null}
+      <div className="grid gap-5">
+        <OnboardingItem
+          description="Select where you want to continue. Create a new workspace only if you are setting up a separate team."
+          eyebrow="Workspace"
+          title="Choose your workspace"
+        >
+          {error ? (
+            <ItemNotice
+              description={error}
+              title="Workspace could not be selected"
+              variant="error"
+            />
+          ) : null}
 
-        {!hasExistingOrganizations ? <OrganizationCreateForm /> : null}
-
-        {hasExistingOrganizations ? (
           <div className="border-y py-5">
             <ItemTitle>Your workspaces</ItemTitle>
             <div className="mt-4 grid gap-2">
@@ -127,25 +138,21 @@ export function OrganizationRequired() {
               ))}
             </div>
           </div>
-        ) : null}
 
-        {hasExistingOrganizations ? (
-          <>
-            <p className={textStyles.mutedBody}>
-              Already invited? Open the invite link from your email to enter
-              that workspace.
-            </p>
-            <GuidedFlowActions>
-              <Button asChild variant="outline">
-                <Link href={routes.organizationNew}>
-                  <Plus aria-hidden="true" data-icon="inline-start" />
-                  Create another workspace
-                </Link>
-              </Button>
-            </GuidedFlowActions>
-          </>
-        ) : null}
-      </OnboardingItem>
+          <p className={textStyles.mutedBody}>
+            Already invited? Open the invite link from your email to enter
+            that workspace.
+          </p>
+        </OnboardingItem>
+        <GuidedFlowActions>
+          <Button asChild variant="outline">
+            <Link href={routes.organizationNew}>
+              <Plus aria-hidden="true" data-icon="inline-start" />
+              Create another workspace
+            </Link>
+          </Button>
+        </GuidedFlowActions>
+      </div>
     </OnboardingFrame>
   );
 }

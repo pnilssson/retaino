@@ -27,19 +27,19 @@ export function CompanyStep({
   });
 
   return (
-    <OnboardingItem
-      description="Retaino uses this identity for agreements, billing records, and organization-level audit evidence."
-      eyebrow="Company identity"
-      title={<>Tell us who runs {organizationName}.</>}
+    <form
+      className="grid gap-5"
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void form.handleSubmit();
+      }}
     >
-      <form
-        className="grid gap-5"
-        noValidate
-        onSubmit={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          void form.handleSubmit();
-        }}
+      <OnboardingItem
+        description="Retaino uses this identity for agreements, billing records, and organization-level audit evidence."
+        eyebrow="Company identity"
+        title={<>Tell us who runs {organizationName}</>}
       >
         <form.Field
           name="legalName"
@@ -83,17 +83,17 @@ export function CompanyStep({
             />
           )}
         </form.Field>
-        <GuidedFlowActions>
-          <form.Subscribe selector={(state) => [state.canSubmit]}>
-            {([canSubmit]) => (
-              <Button disabled={!canSubmit} type="submit">
-                Continue
-                <ArrowRight aria-hidden="true" data-icon="inline-end" />
-              </Button>
-            )}
-          </form.Subscribe>
-        </GuidedFlowActions>
-      </form>
-    </OnboardingItem>
+      </OnboardingItem>
+      <GuidedFlowActions>
+        <form.Subscribe selector={(state) => [state.canSubmit]}>
+          {([canSubmit]) => (
+            <Button disabled={!canSubmit} type="submit">
+              Continue
+              <ArrowRight aria-hidden="true" data-icon="inline-end" />
+            </Button>
+          )}
+        </form.Subscribe>
+      </GuidedFlowActions>
+    </form>
   );
 }

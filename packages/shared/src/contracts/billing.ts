@@ -39,39 +39,33 @@ export const SMS_CREDIT_TRANSACTION_TYPES = [
 export const BILLING_PLAN_CATALOG = {
   starter: {
     label: 'Starter',
-    monthlyPriceSek: 849,
-    includedSmsCredits: 300,
-    recommended: false,
+    monthlyPriceSek: 999,
+    includedSmsCredits: 500,
   },
   core: {
     label: 'Core',
-    monthlyPriceSek: 1749,
-    includedSmsCredits: 750,
-    recommended: false,
+    monthlyPriceSek: 1999,
+    includedSmsCredits: 1000,
   },
   growth: {
     label: 'Growth',
-    monthlyPriceSek: 3249,
+    monthlyPriceSek: 2999,
     includedSmsCredits: 1500,
-    recommended: true,
   },
   pro: {
     label: 'Pro',
-    monthlyPriceSek: 5249,
+    monthlyPriceSek: 4999,
     includedSmsCredits: 2500,
-    recommended: false,
   },
   scale: {
     label: 'Scale',
-    monthlyPriceSek: 8249,
+    monthlyPriceSek: 7999,
     includedSmsCredits: 4000,
-    recommended: false,
   },
   advanced: {
     label: 'Advanced',
-    monthlyPriceSek: 15249,
+    monthlyPriceSek: 14999,
     includedSmsCredits: 7500,
-    recommended: false,
   },
 } as const satisfies Record<
   BillingPlanKey,
@@ -79,7 +73,6 @@ export const BILLING_PLAN_CATALOG = {
     label: string;
     monthlyPriceSek: number;
     includedSmsCredits: number;
-    recommended: boolean;
   }
 >;
 
@@ -162,12 +155,6 @@ export type SmsCreditTransaction = z.infer<typeof smsCreditTransactionSchema>;
 
 export function getBillingPlanCredits(planKey: BillingPlanKey) {
   return BILLING_PLAN_CATALOG[planKey].includedSmsCredits;
-}
-
-export function getRecommendedBillingPlanKey() {
-  return BILLING_PLAN_KEYS.find(
-    (planKey) => BILLING_PLAN_CATALOG[planKey].recommended,
-  ) as BillingPlanKey;
 }
 
 export function hasCurrentBillingSubscription(
