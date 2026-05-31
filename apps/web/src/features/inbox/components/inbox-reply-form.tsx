@@ -53,7 +53,7 @@ export function InboxReplyForm({
 
   return (
     <form
-      className="grid gap-3 border-t border-border bg-card p-3"
+      className="grid gap-3 bg-card p-3"
       onSubmit={(event) => {
         event.preventDefault();
         void form.handleSubmit();

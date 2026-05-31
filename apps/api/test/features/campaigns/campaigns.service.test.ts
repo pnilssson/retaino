@@ -914,7 +914,8 @@ describe('campaign send service', () => {
       organizationId,
       campaignId,
       actualCreditCount: 0,
-      failureReason: 'Campaign recipient send attempt is unresolved.',
+      failureReason:
+        'The campaign could not finish. Review this campaign before sending another one.',
     });
   });
 
@@ -1119,7 +1120,8 @@ describe('campaign send service', () => {
       organizationId,
       campaignId,
       actualCreditCount: 0,
-      failureReason: 'Provider timeout.',
+      failureReason:
+        'The campaign could not finish. Review this campaign before sending another one.',
     });
     expect(releaseSmsCreditUsage).toHaveBeenCalledWith({
       db,
@@ -1144,7 +1146,8 @@ describe('campaign send service', () => {
         metadata: expect.objectContaining({
           reservedCreditCount: 1,
           actualCreditCount: 0,
-          failureReason: 'Provider timeout.',
+          failureReason:
+            'The campaign could not finish. Review this campaign before sending another one.',
         }),
       }),
     );

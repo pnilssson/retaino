@@ -5,6 +5,7 @@ import {
   type BillingSubscriptionStatus,
   type CampaignStatus,
   type OverviewResponse,
+  type SmsSenderStatus,
 } from '@retaino/shared/contracts';
 import type { DbClient } from '../client';
 import {
@@ -350,6 +351,9 @@ export async function getOverviewDashboard(
     ),
     sender as (
       select
+        ${organizationSmsSenders.phoneNumber} as phone_number,
+        ${organizationSmsSenders.status} as status,
+        ${organizationSmsSenders.countryCode} as country_code,
         ${organizationSmsSenders.releaseScheduledAt} as release_scheduled_at
       from ${organizationSmsSenders}, input
       where ${organizationSmsSenders.organizationId} = input.organization_id
@@ -370,6 +374,9 @@ export async function getOverviewDashboard(
       trend_json.trend,
       recent_campaigns_json.recent_campaigns,
       billing.subscription_status,
+      sender.phone_number as sender_phone_number,
+      sender.status as sender_status,
+      sender.country_code as sender_country_code,
       sender.release_scheduled_at
     from reported_outcome, needs_reply, credit_balance, funnel_recipients,
       funnel_messages,
@@ -400,6 +407,12 @@ export async function getOverviewDashboard(
       days: OVERVIEW_WINDOW_DAYS,
     },
     metrics,
+    sender: {
+      phoneNumber: stringValue(row.sender_phone_number),
+      status: smsSenderStatusValue(row.sender_status),
+      countryCode: stringValue(row.sender_country_code),
+      releaseScheduledAt: nullableIsoValue(row.release_scheduled_at),
+    },
     trend: trendValue(row.trend),
     funnel: {
       selectedCount: intValue(row.selected_count),
@@ -579,6 +592,22 @@ function campaignStatusValue(value: unknown): CampaignStatus {
   }
 
   return 'draft';
+}
+
+function smsSenderStatusValue(value: unknown): SmsSenderStatus | null {
+  if (
+    value === 'pending' ||
+    value === 'ready' ||
+    value === 'failed' ||
+    value === 'manual_action_required' ||
+    value === 'release_pending' ||
+    value === 'released' ||
+    value === 'release_failed'
+  ) {
+    return value;
+  }
+
+  return null;
 }
 
 function trendValue(value: unknown): OverviewResponse['trend'] {

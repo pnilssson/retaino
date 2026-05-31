@@ -1,4 +1,5 @@
 import {
+  CAMPAIGN_SEND_FAILURE_MESSAGE,
   normalizeCampaignAudienceRule,
   type Campaign,
   type CampaignAudienceRule,
@@ -195,9 +196,7 @@ export function campaignSendStatusText(campaign: Campaign) {
       ? `Send failed ${formatDateTime(campaign.failedAt)}.`
       : 'Send failed.';
 
-    return campaign.failureReason
-      ? `${failedAt} ${campaign.failureReason}`
-      : failedAt;
+    return `${failedAt} ${CAMPAIGN_SEND_FAILURE_MESSAGE}`;
   }
 
   return campaign.readyToSendAt

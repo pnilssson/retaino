@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import { currencyCodeSchema } from '../money';
 import { idSchema, nonEmptyStringSchema, timestampSchema } from '../schemas';
-import { campaignStatusSchema } from './campaigns';
+import {
+  campaignStatusSchema,
+  smsSenderStatusSchema,
+} from './campaigns';
 
 export const OVERVIEW_WINDOW_DAYS = 30;
 
@@ -40,6 +43,12 @@ export const overviewResponseSchema = z.object({
     reportedBookingCount: z.number().int().nonnegative(),
     needsReplyCount: z.number().int().nonnegative(),
     smsCreditBalance: z.number().int(),
+  }),
+  sender: z.object({
+    phoneNumber: nonEmptyStringSchema.nullable(),
+    status: smsSenderStatusSchema.nullable(),
+    countryCode: nonEmptyStringSchema.nullable(),
+    releaseScheduledAt: timestampSchema.nullable(),
   }),
   trend: z.array(
     z.object({

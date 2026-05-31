@@ -21,6 +21,7 @@ import { textStyles } from "@/lib/text-styles";
 import { cn } from "@/lib/utils";
 import { OverviewRecentCampaignsTable } from "./overview-recent-campaigns-table";
 import { OverviewTrendChart } from "./overview-trend-chart";
+import { OverviewWorkspaceStatus } from "./overview-workspace-status";
 
 export function OverviewDashboard({
   overview,
@@ -79,6 +80,11 @@ export function OverviewDashboard({
           </div>
         </ContentSection>
       ) : null}
+
+      <OverviewWorkspaceStatus
+        credits={overview.metrics.smsCreditBalance}
+        sender={overview.sender}
+      />
 
       <ContentSection contentClassName="gap-0 overflow-hidden p-0">
         {overview.metrics.reportedRevenueHasMixedCurrencies ? (

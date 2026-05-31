@@ -21,6 +21,10 @@ describe('overview query helpers', () => {
               reported_revenue_has_mixed_currencies: false,
               needs_reply_count: 2,
               sms_credit_balance: 180,
+              sender_phone_number: '+46701234567',
+              sender_status: 'ready',
+              sender_country_code: 'SE',
+              release_scheduled_at: null,
               selected_count: 120,
               sent_count: 100,
               delivered_count: 92,
@@ -71,6 +75,12 @@ describe('overview query helpers', () => {
         reportedBookingCount: 4,
         needsReplyCount: 2,
         smsCreditBalance: 180,
+      },
+      sender: {
+        phoneNumber: '+46701234567',
+        status: 'ready',
+        countryCode: 'SE',
+        releaseScheduledAt: null,
       },
       funnel: {
         selectedCount: 120,

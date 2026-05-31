@@ -24,6 +24,12 @@ const overview: OverviewResponse = {
     needsReplyCount: 2,
     smsCreditBalance: 180,
   },
+  sender: {
+    phoneNumber: '+46701234567',
+    status: 'ready',
+    countryCode: 'SE',
+    releaseScheduledAt: null,
+  },
   trend: [
     {
       date: '2026-05-29',

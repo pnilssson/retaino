@@ -25,6 +25,7 @@ import {
 } from '@retaino/db';
 import { renderCampaignSms, TRACKING_CODE_LENGTH } from '@retaino/shared';
 import {
+  CAMPAIGN_SEND_FAILURE_MESSAGE,
   normalizePhoneNumber,
   requiresRecentCampaignExclusionAcknowledgement,
 } from '@retaino/shared/contracts';
@@ -530,7 +531,7 @@ export async function processCampaignSend(input: {
       actualCreditCount += actualSegments;
     }
   } catch (error) {
-    const failureReason = errorMessage(error);
+    const failureReason = CAMPAIGN_SEND_FAILURE_MESSAGE;
 
     captureBackgroundError(error, {
       feature: 'campaigns',
@@ -725,14 +726,6 @@ async function releaseUnusedCampaignCredits(input: {
     sourceId: `${input.reservationSourceId}:release`,
     description: 'Campaign SMS reservation release',
   });
-}
-
-function errorMessage(error: unknown) {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-
-  return 'Campaign send failed.';
 }
 
 async function prepareRecipients(input: {

@@ -36,6 +36,8 @@ export const CAMPAIGN_RECIPIENT_STATUSES = [
 export const SMS_MESSAGE_DIRECTIONS = ['inbound', 'outbound'] as const;
 export const REPORTED_BOOKING_SOURCES = ['manual'] as const;
 export const MAX_REPORTED_BOOKING_ROWS = 50;
+export const CAMPAIGN_SEND_FAILURE_MESSAGE =
+  'The campaign could not finish. Review this campaign before sending another one.';
 
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
 export type CampaignRecipientStatus =
