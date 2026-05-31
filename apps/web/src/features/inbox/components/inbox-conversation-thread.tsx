@@ -190,7 +190,12 @@ function InboxMessageBubble({
   const time = inboxMessageTime(message);
 
   return (
-    <div className={cn('flex', isOutbound ? 'justify-end' : 'justify-start')}>
+    <div
+      className={cn(
+        'flex min-w-0',
+        isOutbound ? 'justify-end' : 'justify-start',
+      )}
+    >
       <div
         className={cn(
           'grid min-w-0 max-w-[84%] gap-2 overflow-hidden rounded-lg px-3 py-2 shadow-xs sm:max-w-[68%]',
