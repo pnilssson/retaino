@@ -5,6 +5,10 @@ import type {
   InboxMessage,
 } from '@retaino/shared/contracts';
 import { Inbox } from 'lucide-react';
+import {
+  useEffect,
+  useRef,
+} from 'react';
 import { BlockedStatusBadge } from '@/components/blocked-status-badge';
 import { EmptyState } from '@/components/empty-state';
 import { ItemNotice } from '@/components/item-notice';
@@ -33,9 +37,27 @@ export function InboxConversationThread({
   messages: InboxMessage[];
   organizationId: string | null;
 }) {
+  const messageListRef = useRef<HTMLDivElement>(null);
   const campaignMessageId = messages.find(
     (message) => message.direction === 'outbound' && message.campaignName,
   )?.id;
+  const latestMessageId = messages.at(-1)?.id ?? null;
+
+  useEffect(() => {
+    if (!conversation?.id || isLoading) {
+      return undefined;
+    }
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      const messageList = messageListRef.current;
+
+      if (messageList) {
+        messageList.scrollTop = messageList.scrollHeight;
+      }
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [conversation?.id, isLoading, latestMessageId]);
 
   if (!conversation) {
     return (
@@ -63,22 +85,25 @@ export function InboxConversationThread({
       )}
     >
       <header className="border-b border-border px-4 py-3">
-        <div className="grid min-w-0 gap-1">
-          <h2 className={cn('truncate', textStyles.itemTitle)}>
+        <div className="flex min-w-0 items-center gap-2">
+          <h2 className={cn('min-w-0 flex-1 truncate', textStyles.itemTitle)}>
             {conversation.contactName ?? conversation.phone}
           </h2>
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className={cn('break-all', textStyles.meta)}>
+          {conversation.contactName ? (
+            <span className={cn('shrink-0 truncate', textStyles.meta)}>
               {conversation.phone}
             </span>
-            {conversation.replyBlocked ? (
-              <BlockedStatusBadge label="Replies blocked" />
-            ) : null}
-          </div>
+          ) : null}
+          {conversation.replyBlocked ? (
+            <BlockedStatusBadge label="Replies blocked" />
+          ) : null}
         </div>
       </header>
 
-      <div className="min-h-0 overflow-auto bg-card px-4 py-4">
+      <div
+        className="min-h-0 overflow-auto bg-card px-4 py-4"
+        ref={messageListRef}
+      >
         {error ? (
           <ItemNotice
             description={error.message}

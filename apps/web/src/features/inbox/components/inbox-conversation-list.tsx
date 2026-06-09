@@ -94,7 +94,8 @@ export function InboxConversationList({
                 <button
                   className={cn(
                     'grid w-full gap-1.5 px-4 py-3 text-left transition-[background-color,color] hover:bg-muted/50 focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
-                    selectedConversationId === conversation.id && 'bg-muted',
+                    selectedConversationId === conversation.id &&
+                      'bg-sidebar-accent hover:bg-sidebar-accent focus-visible:bg-sidebar-accent',
                   )}
                   onClick={() => onSelect(conversation.id)}
                   type="button"

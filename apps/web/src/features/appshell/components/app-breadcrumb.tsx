@@ -15,9 +15,10 @@ const labels: Record<string, string> = {
   [routes.overview]: 'Overview',
   [routes.contacts]: 'Contacts',
   [routes.contactsImport]: 'Import contacts',
+  [routes.inbox]: 'Inbox',
   [routes.campaigns]: 'Campaigns',
   [routes.legal]: 'Legal',
-  [routes.settings]: 'Organization settings',
+  [routes.settings]: 'Organization',
   [routes.billing]: 'Billing'
 };
 

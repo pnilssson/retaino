@@ -76,7 +76,8 @@ export function LegalOverviewScreen() {
             <Button asChild className="px-0" variant="link">
               <Link href={routes.settings}>
                 <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-                Back to organization
+                <span className="sm:hidden">Back</span>
+                <span className="hidden sm:inline">Back to organization</span>
               </Link>
             </Button>
           }
@@ -144,7 +145,7 @@ function LegalDocumentsSection({ session }: { session: OrganizationSession }) {
         return (
           <Item
             aria-labelledby={titleId}
-            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-border bg-card px-4 py-4"
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 border-border bg-card px-4 py-4"
             key={document.id}
             variant="outline"
           >

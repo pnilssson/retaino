@@ -5,6 +5,7 @@ import { useForm } from '@tanstack/react-form';
 import { Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { ItemNotice } from '@/components/item-notice';
+import { SmsMessageEstimate } from '@/components/sms-message-estimate';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useSendInboxReply } from '../hooks/use-send-inbox-reply';
@@ -87,6 +88,10 @@ export function InboxReplyForm({
               placeholder="Write a reply..."
               rows={2}
               value={field.state.value}
+            />
+            <SmsMessageEstimate
+              body={field.state.value}
+              className="absolute bottom-4 left-3 max-w-[calc(100%-7rem)] truncate"
             />
             <form.Subscribe
               selector={(state) => ({

@@ -1,23 +1,19 @@
 "use client";
 
 import { createCampaignSmsPreview } from '@retaino/shared';
+import {
+  SmsMessageEstimate,
+  smsMessageEstimateText,
+} from '@/components/sms-message-estimate';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 
 export function MessageEstimate({ smsBody }: { smsBody: string }) {
-  return <p className={textStyles.meta}>{messageEstimateText(smsBody)}</p>;
+  return <SmsMessageEstimate body={smsBody} mode="campaign" />;
 }
 
 export function messageEstimateText(smsBody: string) {
-  const preview = createCampaignSmsPreview({ smsBody });
-  const hasBody = Boolean(smsBody.trim());
-  const estimatedCreditLabel = hasBody
-    ? `${preview.estimatedSmsPerRecipient} ${
-        preview.estimatedSmsPerRecipient === 1 ? 'credit' : 'credits'
-      } per recipient`
-    : 'Not ready';
-
-  return `${hasBody ? preview.smsLength : 0} characters, ${estimatedCreditLabel}`;
+  return smsMessageEstimateText({ body: smsBody, mode: 'campaign' });
 }
 
 export function MessagePreview({

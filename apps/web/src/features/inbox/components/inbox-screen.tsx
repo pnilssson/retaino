@@ -7,7 +7,6 @@ import {
   useMemo,
   useRef,
 } from 'react';
-import { InfoTooltip } from '@/components/info-tooltip';
 import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import { Item } from '@/components/ui/item';
@@ -105,8 +104,8 @@ export function InboxScreen() {
   }
 
   return (
-    <main className="flex min-h-0 flex-1 overflow-hidden bg-background">
-      <section className="mx-auto grid min-h-0 w-full max-w-7xl flex-1 grid-rows-[auto_minmax(0,1fr)] gap-6 px-5 py-6 sm:px-8 lg:px-10">
+    <main className="flex h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] min-h-0 flex-1 overflow-hidden bg-background">
+      <section className="mx-auto grid h-full max-h-full min-h-0 w-full max-w-7xl flex-1 grid-rows-[auto_minmax(0,1fr)] gap-3 overflow-hidden px-3 py-3 sm:gap-6 sm:px-8 sm:py-6 lg:px-10">
         <AppPageHeader
           actions={
             selectedConversationId ? (
@@ -124,17 +123,6 @@ export function InboxScreen() {
               </Button>
             ) : null
           }
-          description={(
-            <>
-              Review SMS replies and continue client conversations from one{' '}
-              <span className="inline-flex whitespace-nowrap items-center gap-1.5">
-                shared inbox.
-                <InfoTooltip label="Reply credit details">
-                  Replies use SMS credits and are sent from your Retaino sender.
-                </InfoTooltip>
-              </span>
-            </>
-          )}
           title="Inbox"
         />
 
@@ -163,7 +151,7 @@ export function InboxScreen() {
             </section>
           </ContentSection>
         ) : (
-          <div className="grid min-h-0 w-full flex-1 gap-3 overflow-hidden lg:grid-cols-[360px_minmax(0,1fr)]">
+          <div className="grid h-full max-h-full min-h-0 w-full flex-1 gap-3 overflow-hidden lg:grid-cols-[360px_minmax(0,1fr)]">
             <Item
               asChild
               className={cn(
