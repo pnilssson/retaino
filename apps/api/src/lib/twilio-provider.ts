@@ -4,6 +4,7 @@ import type {
 import type { AppEnv } from '../types';
 import {
   SmsProviderError,
+  providerOptOutType,
   type InboundSmsMessage,
   type OutboundSmsInput,
   type OutboundSmsResult,
@@ -628,6 +629,7 @@ function parseTwilioInboundWebhook(input: unknown): InboundSmsMessage {
     from: payload.From ?? '',
     to: payload.To ?? '',
     body: payload.Body ?? '',
+    optOutType: providerOptOutType(payload.OptOutType),
     receivedAt: new Date(),
     providerSenderReference: payload.MessagingServiceSid ?? null,
     rawProviderReference: payload.MessageSid ?? payload.SmsSid ?? null,

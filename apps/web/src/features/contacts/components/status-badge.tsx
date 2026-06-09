@@ -3,6 +3,7 @@ import type {
   ContactStatus,
 } from '@retaino/shared/contracts';
 import { Loader2 } from 'lucide-react';
+import { BlockedStatusBadge } from '@/components/blocked-status-badge';
 import {
   StatusBadge,
   type StatusBadgeTone,
@@ -26,6 +27,10 @@ const importStatusTone: Record<ContactImportStatus, StatusBadgeTone> = {
 
 export function ContactStatusBadge({ status }: { status: ContactStatus }) {
   const meta = contactStatusMeta[status];
+
+  if (status === 'blocked') {
+    return <BlockedStatusBadge label={meta.label} />;
+  }
 
   return <StatusBadge label={meta.label} tone={meta.tone} />;
 }

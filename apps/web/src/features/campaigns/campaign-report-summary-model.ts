@@ -91,7 +91,7 @@ export function createResponseMetrics(
 ): ReportSummaryMetric[] {
   return [
     {
-      detail: `${formatReportPercent(report.uniqueClickerCount, report.deliveredCount)} of delivered recipients.`,
+      detail: `${formatReportPercent(report.uniqueClickerCount, report.deliveredCount)} of delivered.`,
       icon: 'pointer',
       iconClassName: 'bg-violet-50 text-violet-700',
       label: 'Unique clickers',
@@ -105,14 +105,14 @@ export function createResponseMetrics(
       value: formatReportNumber(report.clickCount),
     },
     {
-      detail: `${formatReportPercent(report.inboundReplyCount, report.sentCount)} of sent recipients.`,
+      detail: `${formatReportPercent(report.inboundReplyCount, report.sentCount)} of sent.`,
       icon: 'message',
       iconClassName: 'bg-blue-50 text-blue-700',
       label: 'Replies',
       value: formatReportNumber(report.inboundReplyCount),
     },
     {
-      detail: `${formatReportPercent(report.optOutCount, report.sentCount)} of sent recipients.`,
+      detail: `${formatReportPercent(report.optOutCount, report.sentCount)} of sent.`,
       icon: 'shield',
       iconClassName: 'bg-rose-50 text-rose-700',
       label: 'Opt-outs',

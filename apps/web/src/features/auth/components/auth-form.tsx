@@ -1,5 +1,6 @@
 "use client";
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { ItemNotice } from '@/components/item-notice';
 import { useEmailCodeAuth } from '@/features/auth/hooks/use-email-code-auth';
@@ -20,17 +21,20 @@ export function AuthForm() {
   return (
     <section className="mx-auto flex min-h-svh w-full max-w-[420px] flex-col px-5 py-8 sm:px-8">
       <div className="flex items-center lg:hidden">
-        <span className={textStyles.brand}>retaino.</span>
+        <Image
+          alt="Retaino"
+          className="size-9"
+          height={36}
+          priority
+          src="/brand/icons/retaino-icon-transparent.svg"
+          width={36}
+        />
       </div>
 
       <div className="flex flex-1 flex-col justify-center">
-        <p className={textStyles.meta}>Secure workspace access</p>
         <h1 className={cn('mt-3 max-w-sm', textStyles.pageTitle)}>
           Sign in with your work email.
         </h1>
-        <p className={cn('mt-3', textStyles.mutedBody)}>
-          We will send a one-time code.
-        </p>
 
         <div className="mt-9">
           {auth.step === 'requirements' ? (

@@ -4,18 +4,11 @@ import type {
   InboxConversationSummary,
   InboxMessage,
 } from '@retaino/shared/contracts';
-import {
-  ArrowLeft,
-  Inbox,
-  Loader2,
-  RefreshCw,
-  ShieldAlert,
-} from 'lucide-react';
+import { Inbox } from 'lucide-react';
+import { BlockedStatusBadge } from '@/components/blocked-status-badge';
 import { EmptyState } from '@/components/empty-state';
 import { ItemNotice } from '@/components/item-notice';
 import { LoadingState } from '@/components/loading-state';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 import {
@@ -29,21 +22,15 @@ export function InboxConversationThread({
   className,
   conversation,
   error,
-  isFetching,
   isLoading,
   messages,
-  onBack,
-  onCheckForNewReplies,
   organizationId,
 }: {
   className?: string;
   conversation: InboxConversationSummary | null;
   error: Error | null;
-  isFetching: boolean;
   isLoading: boolean;
   messages: InboxMessage[];
-  onBack: () => void;
-  onCheckForNewReplies: () => void;
   organizationId: string | null;
 }) {
   const campaignMessageId = messages.find(
@@ -75,49 +62,20 @@ export function InboxConversationThread({
         className,
       )}
     >
-      <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <Button
-            aria-label="Back to conversations"
-            className="mt-0.5 lg:hidden"
-            onClick={onBack}
-            size="icon"
-            type="button"
-            variant="ghost"
-          >
-            <ArrowLeft aria-hidden="true" />
-          </Button>
-          <div className="grid min-w-0 gap-1">
-            <h2 className={cn('truncate', textStyles.itemTitle)}>
-              {conversation.contactName ?? conversation.phone}
-            </h2>
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <span className={cn('break-all', textStyles.meta)}>
-                {conversation.phone}
-              </span>
-              {conversation.replyBlocked ? (
-                <Badge variant="outline">
-                  <ShieldAlert aria-hidden="true" data-icon="inline-start" />
-                  Replies blocked
-                </Badge>
-              ) : null}
-            </div>
+      <header className="border-b border-border px-4 py-3">
+        <div className="grid min-w-0 gap-1">
+          <h2 className={cn('truncate', textStyles.itemTitle)}>
+            {conversation.contactName ?? conversation.phone}
+          </h2>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className={cn('break-all', textStyles.meta)}>
+              {conversation.phone}
+            </span>
+            {conversation.replyBlocked ? (
+              <BlockedStatusBadge label="Replies blocked" />
+            ) : null}
           </div>
         </div>
-        <Button
-          aria-label="Check for new replies"
-          disabled={isFetching}
-          onClick={onCheckForNewReplies}
-          size="icon"
-          type="button"
-          variant="outline"
-        >
-          {isFetching ? (
-            <Loader2 aria-hidden="true" className="animate-spin" />
-          ) : (
-            <RefreshCw aria-hidden="true" />
-          )}
-        </Button>
       </header>
 
       <div className="min-h-0 overflow-auto bg-card px-4 py-4">

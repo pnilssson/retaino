@@ -1,6 +1,7 @@
 "use client";
 
 import type { InboxConversationSummary } from '@retaino/shared/contracts';
+import { ArrowLeft } from 'lucide-react';
 import {
   useEffect,
   useMemo,
@@ -8,6 +9,7 @@ import {
 } from 'react';
 import { InfoTooltip } from '@/components/info-tooltip';
 import { ItemNotice } from '@/components/item-notice';
+import { Button } from '@/components/ui/button';
 import { Item } from '@/components/ui/item';
 import { AppPageLoading } from '@/features/appshell/components/app-page-loading';
 import { AppPageHeader } from '@/features/appshell/components/app-page-header';
@@ -106,6 +108,22 @@ export function InboxScreen() {
     <main className="flex min-h-0 flex-1 overflow-hidden bg-background">
       <section className="mx-auto grid min-h-0 w-full max-w-7xl flex-1 grid-rows-[auto_minmax(0,1fr)] gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
+          actions={
+            selectedConversationId ? (
+              <Button
+                aria-label="Back to inbox"
+                className="px-0 lg:hidden"
+                onClick={() => {
+                  void setQuery({ conversation: '' });
+                }}
+                type="button"
+                variant="link"
+              >
+                <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+                Back to inbox
+              </Button>
+            ) : null
+          }
           description={(
             <>
               Review SMS replies and continue client conversations from one{' '}
@@ -188,15 +206,8 @@ export function InboxScreen() {
                     ? conversation.error
                     : null
                 }
-                isFetching={conversation.isFetching}
                 isLoading={conversation.isLoading}
                 messages={conversation.data?.messages ?? []}
-                onBack={() => {
-                  void setQuery({ conversation: '' });
-                }}
-                onCheckForNewReplies={() => {
-                  void conversation.refetch();
-                }}
                 organizationId={organizationId}
               />
             </Item>

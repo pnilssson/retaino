@@ -619,15 +619,11 @@ export async function suppressContacts(
   );
 
   if (insertedHashes.length > 0) {
-    await db
-      .update(contacts)
-      .set({ updatedAt: new Date() })
-      .where(
-        and(
-          eq(contacts.organizationId, input.organizationId),
-          inArray(contacts.phoneHash, insertedHashes),
-        ),
-      );
+    await touchContactsForSuppressionHashes(db, {
+      organizationId: input.organizationId,
+      type: 'phone',
+      valueHashes: insertedHashes,
+    });
   }
 
   return {
@@ -783,15 +779,13 @@ export async function deleteContactSuppression(
       return { status: 'not_found' };
     }
 
-    const [deleted] = await tx
-      .delete(suppressions)
-      .where(
-        and(
-          eq(suppressions.organizationId, input.organizationId),
-          eq(suppressions.id, input.suppressionId),
-        ),
-      )
-      .returning({ id: suppressions.id });
+    const deleted = await deleteSuppressionRow(
+      tx,
+      and(
+        eq(suppressions.organizationId, input.organizationId),
+        eq(suppressions.id, input.suppressionId),
+      ),
+    );
 
     if (!deleted) {
       return { status: 'not_found' };
@@ -830,6 +824,39 @@ export async function deleteContactSuppression(
       ),
     };
   });
+}
+
+export async function deleteProviderOptOutSuppressionByHash(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    type: SuppressionType;
+    valueHash: string;
+    source: string;
+  },
+) {
+  assertOrganizationId(input.organizationId);
+
+  const deleted = await deleteSuppressionRow(
+    db,
+    and(
+      eq(suppressions.organizationId, input.organizationId),
+      eq(suppressions.type, input.type),
+      eq(suppressions.valueHash, input.valueHash),
+      eq(suppressions.reason, 'provider_opt_out'),
+      eq(suppressions.source, input.source),
+    ),
+  );
+
+  if (deleted) {
+    await touchContactsForSuppressionHashes(db, {
+      organizationId: input.organizationId,
+      type: input.type,
+      valueHashes: [deleted.valueHash],
+    });
+  }
+
+  return deleted ? suppressionToContract(deleted) : null;
 }
 
 export function contactSuppressionMethodFilter(
@@ -876,6 +903,19 @@ async function touchContactUpdatedAt(
       ),
     )
     .returning();
+
+  return row ?? null;
+}
+
+async function deleteSuppressionRow(
+  db: Pick<AuditLogDb, 'delete'>,
+  filter: SQL | undefined,
+) {
+  if (!filter) {
+    throw new Error('Suppression delete filter is required.');
+  }
+
+  const [row] = await db.delete(suppressions).where(filter).returning();
 
   return row ?? null;
 }
@@ -985,6 +1025,12 @@ export async function upsertSuppressionByHash(
     .returning();
 
   if (created) {
+    await touchContactsForSuppressionHashes(db, {
+      organizationId: input.organizationId,
+      type: input.type,
+      valueHashes: [input.valueHash],
+    });
+
     return suppressionToContract(created);
   }
 
@@ -995,6 +1041,34 @@ export async function upsertSuppressionByHash(
   });
 
   return existing ? suppressionToContract(existing) : null;
+}
+
+async function touchContactsForSuppressionHashes(
+  db: Pick<AuditLogDb, 'update'>,
+  input: {
+    organizationId: string;
+    type: SuppressionType;
+    valueHashes: string[];
+  },
+) {
+  const valueHashes = Array.from(new Set(input.valueHashes));
+
+  if (valueHashes.length === 0) {
+    return;
+  }
+
+  const methodColumn =
+    input.type === 'phone' ? contacts.phoneHash : contacts.emailHash;
+
+  await db
+    .update(contacts)
+    .set({ updatedAt: new Date() })
+    .where(
+      and(
+        eq(contacts.organizationId, input.organizationId),
+        inArray(methodColumn, valueHashes),
+      ),
+    );
 }
 
 export async function upsertImportedContact(

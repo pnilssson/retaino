@@ -53,18 +53,13 @@ export function EmailStep({ auth }: { auth: EmailCodeAuth }) {
           const emailError =
             emailServerError ??
             (field.state.meta.isBlurred ? clientError : null);
-          const emailHint = emailPattern.test(
-            field.state.value.trim().toLowerCase(),
-          )
-            ? 'We will send a secure code.'
-            : null;
 
           return (
             <div className="grid gap-2">
               <Label htmlFor={field.name}>Email</Label>
               <Input
                 aria-describedby={
-                  emailError ? 'email-error' : emailHint ? 'email-hint' : undefined
+                  emailError ? 'email-error' : undefined
                 }
                 aria-invalid={Boolean(emailError)}
                 autoCapitalize="none"
@@ -88,10 +83,6 @@ export function EmailStep({ auth }: { auth: EmailCodeAuth }) {
                   role="alert"
                 >
                   {emailError}
-                </p>
-              ) : emailHint ? (
-                <p className={textStyles.meta} id="email-hint">
-                  {emailHint}
                 </p>
               ) : null}
             </div>

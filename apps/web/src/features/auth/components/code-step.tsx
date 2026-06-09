@@ -102,8 +102,8 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
                 </p>
               ) : (
                 <p className={textStyles.meta} id="code-hint">
-                  We sent a 6-digit code to {auth.normalizedEmail}. It expires
-                  in 10 minutes.
+                  Code sent to {auth.normalizedEmail}. Code expires in 10
+                  minutes.
                 </p>
               )}
             </div>

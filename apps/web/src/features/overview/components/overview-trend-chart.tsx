@@ -159,9 +159,9 @@ export function OverviewTrendChart({
 
       <div className="overflow-hidden px-1 pt-5 pb-3 sm:px-6 sm:py-7">
         <ChartContainer
-          className="h-[270px] w-full sm:h-[290px]"
+          className="h-[300px] w-full sm:h-[290px]"
           config={chartConfig}
-          initialDimension={{ width: 360, height: 270 }}
+          initialDimension={{ width: 360, height: 300 }}
         >
           <AreaChart
             accessibilityLayer
@@ -306,6 +306,7 @@ export function OverviewTrendChart({
               />
             ) : null}
             <ChartLegend
+              height={56}
               content={
                 <ChartLegendContent className="flex-wrap justify-start gap-x-4 gap-y-2 px-3 pt-4 sm:justify-center sm:px-0 sm:pt-3" />
               }

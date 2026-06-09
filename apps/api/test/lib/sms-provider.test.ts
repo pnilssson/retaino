@@ -94,12 +94,14 @@ describe('SMS provider factory', () => {
         To: '+46700000000',
         Body: 'STOP',
         MessagingServiceSid: 'fake-ms-1',
+        OptOutType: 'START',
       }),
     ).resolves.toMatchObject({
       providerMessageId: 'fake-inbound-1',
       from: '+46701111111',
       to: '+46700000000',
       body: 'STOP',
+      optOutType: 'START',
       providerSenderReference: 'fake-ms-1',
     });
   });
@@ -186,6 +188,31 @@ describe('SMS provider factory', () => {
       }),
     ).resolves.toMatchObject({
       actualSegments: 2,
+    });
+  });
+
+  it('parses Twilio inbound advanced opt-out webhook metadata', async () => {
+    const provider = createSmsProvider({
+      SMS_SENDING_MODE: 'live',
+      TWILIO_ACCOUNT_SID: 'AC123',
+      TWILIO_API_KEY_SID: 'SK123',
+      TWILIO_API_KEY_SECRET: 'secret',
+    } as never);
+
+    await expect(
+      provider.parseInboundWebhook({
+        MessageSid: 'IM123',
+        From: '+46701111111',
+        To: '+46700000000',
+        Body: 'START',
+        MessagingServiceSid: 'MG123',
+        OptOutType: 'START',
+      }),
+    ).resolves.toMatchObject({
+      providerMessageId: 'IM123',
+      body: 'START',
+      optOutType: 'START',
+      providerSenderReference: 'MG123',
     });
   });
 

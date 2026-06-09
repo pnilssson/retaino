@@ -18,34 +18,42 @@ export function MetricSummaryEntry({
   label: ReactNode;
   value: ReactNode;
 }) {
+  const hasValue = value !== null && value !== undefined && value !== false;
+
   return (
     <div
       className={cn(
-        'grid min-h-20 content-between gap-2 border-t border-border py-3',
+        'grid min-h-20 content-start gap-2 border-t border-border py-3',
         className,
       )}
     >
-      <dt className={cn('flex items-center gap-2', textStyles.itemTitle)}>
+      <dt className="flex min-w-0 items-start gap-2">
         {Icon ? (
           <span
             className={cn(
-              'flex size-8 items-center justify-center rounded-md',
+              'flex size-9 shrink-0 items-center justify-center rounded-md',
               iconClassName ?? 'bg-muted text-muted-foreground',
             )}
           >
             <Icon aria-hidden="true" className="size-4" />
           </span>
         ) : null}
-        {label}
+        <span className="grid min-w-0 content-center">
+          <span className={cn('truncate', textStyles.itemTitle)}>
+            {label}
+          </span>
+          {detail ? (
+            <span className={textStyles.meta}>
+              {detail}
+            </span>
+          ) : null}
+        </span>
       </dt>
-      <dd>
-        <div className={textStyles.numeric}>{value}</div>
-        {detail ? (
-          <div className={cn('mt-1', textStyles.meta)}>
-            {detail}
-          </div>
-        ) : null}
-      </dd>
+      {hasValue ? (
+        <dd className={textStyles.numericInline}>
+          {value}
+        </dd>
+      ) : null}
     </div>
   );
 }

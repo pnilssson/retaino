@@ -8,6 +8,7 @@ import {
   contactSuppressionMethodFilter,
   contactStatusFilter,
   contactToContract,
+  deleteProviderOptOutSuppressionByHash,
   deleteContacts,
   failContactImport,
   resolveImportedContactMatch,
@@ -348,6 +349,7 @@ describe('contact query helpers', () => {
 
   it('upserts suppressions from provider opt-out replies', async () => {
     let insertedValue: unknown;
+    let updateWhereCondition: SQL | undefined;
     const db = {
       insert: () => ({
         values: (value: unknown) => {
@@ -371,6 +373,13 @@ describe('contact query helpers', () => {
           };
         },
       }),
+      update: () => ({
+        set: () => ({
+          where: (condition: SQL | undefined) => {
+            updateWhereCondition = condition;
+          },
+        }),
+      }),
     };
 
     await expect(
@@ -391,5 +400,177 @@ describe('contact query helpers', () => {
       reason: 'provider_opt_out',
       source: 'twilio',
     });
+
+    if (!updateWhereCondition) {
+      throw new Error('Expected contact timestamp update condition.');
+    }
+
+    const updateQuery = new PgDialect().sqlToQuery(
+      sql`update contacts set updated_at = now() where ${updateWhereCondition}`,
+    );
+
+    expect(updateQuery.params).toEqual([
+      '22222222-2222-4222-8222-222222222222',
+      'phone-hash',
+    ]);
+  });
+
+  it('does not touch contacts when provider opt-out suppression already exists', async () => {
+    let updateCalls = 0;
+    const db = {
+      insert: () => ({
+        values: () => ({
+          onConflictDoNothing: () => ({
+            returning: () => [],
+          }),
+        }),
+      }),
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            limit: () => [
+              {
+                id: '11111111-1111-4111-8111-111111111111',
+                organizationId: '22222222-2222-4222-8222-222222222222',
+                type: 'phone',
+                value: '+46701111111',
+                normalizedValue: '+46701111111',
+                valueHash: 'phone-hash',
+                reason: 'provider_opt_out',
+                source: 'twilio',
+                createdAt: new Date('2026-05-16T10:03:00.000Z'),
+              },
+            ],
+          }),
+        }),
+      }),
+      update: () => {
+        updateCalls += 1;
+
+        return {
+          set: () => ({
+            where: () => undefined,
+          }),
+        };
+      },
+    };
+
+    await expect(
+      upsertSuppressionByHash(db as never, {
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        type: 'phone',
+        value: '+46701111111',
+        normalizedValue: '+46701111111',
+        valueHash: 'phone-hash',
+        reason: 'provider_opt_out',
+        source: 'twilio',
+      }),
+    ).resolves.toEqual(expect.objectContaining({ reason: 'provider_opt_out' }));
+
+    expect(updateCalls).toBe(0);
+  });
+
+  it('deletes provider opt-out suppressions by source and hash', async () => {
+    let deleteWhereCondition: SQL | undefined;
+    let updateWhereCondition: SQL | undefined;
+    const db = {
+      delete: () => ({
+        where: (condition: SQL | undefined) => {
+          deleteWhereCondition = condition;
+
+          return {
+            returning: () => [
+              {
+                id: '11111111-1111-4111-8111-111111111111',
+                organizationId: '22222222-2222-4222-8222-222222222222',
+                type: 'phone',
+                value: '+46701111111',
+                normalizedValue: '+46701111111',
+                valueHash: 'phone-hash',
+                reason: 'provider_opt_out',
+                source: 'twilio',
+                createdAt: new Date('2026-05-16T10:03:00.000Z'),
+              },
+            ],
+          };
+        },
+      }),
+      update: () => ({
+        set: () => ({
+          where: (condition: SQL | undefined) => {
+            updateWhereCondition = condition;
+          },
+        }),
+      }),
+    };
+
+    await expect(
+      deleteProviderOptOutSuppressionByHash(db as never, {
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        type: 'phone',
+        valueHash: 'phone-hash',
+        source: 'twilio',
+      }),
+    ).resolves.toEqual(expect.objectContaining({ source: 'twilio' }));
+
+    if (!deleteWhereCondition) {
+      throw new Error('Expected delete condition.');
+    }
+
+    const deleteQuery = new PgDialect().sqlToQuery(
+      sql`delete from suppressions where ${deleteWhereCondition}`,
+    );
+
+    expect(deleteQuery.params).toEqual([
+      '22222222-2222-4222-8222-222222222222',
+      'phone',
+      'phone-hash',
+      'provider_opt_out',
+      'twilio',
+    ]);
+
+    if (!updateWhereCondition) {
+      throw new Error('Expected contact timestamp update condition.');
+    }
+
+    const updateQuery = new PgDialect().sqlToQuery(
+      sql`update contacts set updated_at = now() where ${updateWhereCondition}`,
+    );
+
+    expect(updateQuery.params).toEqual([
+      '22222222-2222-4222-8222-222222222222',
+      'phone-hash',
+    ]);
+  });
+
+  it('does not touch contacts when provider opt-in finds no suppression', async () => {
+    let updateCalls = 0;
+    const db = {
+      delete: () => ({
+        where: () => ({
+          returning: () => [],
+        }),
+      }),
+      update: () => {
+        updateCalls += 1;
+
+        return {
+          set: () => ({
+            where: () => undefined,
+          }),
+        };
+      },
+    };
+
+    await expect(
+      deleteProviderOptOutSuppressionByHash(db as never, {
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        type: 'phone',
+        valueHash: 'phone-hash',
+        source: 'twilio',
+      }),
+    ).resolves.toBeNull();
+
+    expect(updateCalls).toBe(0);
   });
 });

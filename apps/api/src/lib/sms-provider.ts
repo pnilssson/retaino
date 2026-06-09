@@ -100,10 +100,13 @@ export type InboundSmsMessage = {
   from: string;
   to: string;
   body: string;
+  optOutType: SmsProviderOptOutType;
   receivedAt: Date;
   providerSenderReference: string | null;
   rawProviderReference: string | null;
 };
+
+export type SmsProviderOptOutType = 'STOP' | 'START' | 'HELP' | null;
 
 export type SmsProviderErrorCode =
   | 'configuration_missing'
@@ -351,6 +354,7 @@ function parseFakeInboundWebhook(input: unknown): Promise<InboundSmsMessage> {
     from: payload.From ?? '',
     to: payload.To ?? '',
     body: payload.Body ?? '',
+    optOutType: providerOptOutType(payload.OptOutType),
     receivedAt: new Date(),
     providerSenderReference: payload.MessagingServiceSid ?? null,
     rawProviderReference: providerMessageId,
@@ -363,6 +367,14 @@ function fakeWebhookPayload(input: unknown) {
   }
 
   return input as Record<string, string | undefined>;
+}
+
+export function providerOptOutType(value: unknown): SmsProviderOptOutType {
+  const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
+
+  return normalized === 'STOP' || normalized === 'START' || normalized === 'HELP'
+    ? normalized
+    : null;
 }
 
 function normalizeFakeStatus(

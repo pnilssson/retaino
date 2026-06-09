@@ -5,6 +5,7 @@ import {
   motion,
   useReducedMotion,
 } from 'motion/react';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   useEffect,
@@ -83,10 +84,18 @@ export function AuthProofPanel() {
 
         <Link
           aria-label="Retaino home"
-          className={cn('absolute left-8 top-8 text-white', textStyles.brand)}
+          className="absolute left-8 top-8 flex items-center text-white"
           href={routes.home}
         >
-          retaino.
+          <Image
+            alt=""
+            aria-hidden="true"
+            className="size-9 brightness-0 invert"
+            height={36}
+            priority
+            src="/brand/icons/retaino-icon-transparent.svg"
+            width={36}
+          />
         </Link>
 
         <div className="relative mx-auto flex min-h-48 max-w-[430px] items-center px-6 text-center">

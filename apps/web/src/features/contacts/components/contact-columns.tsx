@@ -77,16 +77,22 @@ export function createContactColumns({
       },
     },
     {
-      id: 'contact',
-      header: 'Phone and email',
+      id: 'phone',
+      header: 'Phone',
       cell: ({ row }) => (
         <LinkedCell contact={row.original}>
-          <div className="grid min-w-44 gap-1">
+          <div className="min-w-36">
             <span>{row.original.phone ?? 'No phone'}</span>
-            <span className={textStyles.meta}>
-              {row.original.email ?? 'No email'}
-            </span>
           </div>
+        </LinkedCell>
+      ),
+    },
+    {
+      id: 'email',
+      header: 'Email',
+      cell: ({ row }) => (
+        <LinkedCell contact={row.original}>
+          {row.original.email ?? 'No email'}
         </LinkedCell>
       ),
     },

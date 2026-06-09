@@ -95,7 +95,7 @@ function senderStatusView(status: SmsSenderStatus | null): {
 } {
   if (status === "ready") {
     return {
-      detail: "Messages can be sent from this workspace.",
+      detail: "Ready to send messages.",
       iconClassName: "bg-emerald-50 text-emerald-700",
       value: "Ready",
     };

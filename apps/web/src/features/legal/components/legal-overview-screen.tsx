@@ -8,6 +8,7 @@ import {
 import { useForm } from '@tanstack/react-form';
 import {
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   Loader2,
 } from 'lucide-react';
@@ -17,6 +18,9 @@ import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
+  Item,
+  ItemActions,
+  ItemContent,
   ItemDescription,
   ItemTitle,
 } from '@/components/ui/item';
@@ -72,7 +76,7 @@ export function LegalOverviewScreen() {
             <Button asChild className="px-0" variant="link">
               <Link href={routes.settings}>
                 <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-                Back to settings
+                Back to organization
               </Link>
             </Button>
           }
@@ -101,7 +105,7 @@ export function LegalOverviewScreen() {
 
 function CurrentBundleSection({ session }: { session: OrganizationSession }) {
   return (
-    <ContentSection title="Current bundle">
+    <ContentSection title="Current legal bundle">
       <dl className="grid gap-4 py-2 sm:grid-cols-3">
         <LegalMetadata
           label="Bundle version"
@@ -126,44 +130,61 @@ function CurrentBundleSection({ session }: { session: OrganizationSession }) {
 
 function LegalDocumentsSection({ session }: { session: OrganizationSession }) {
   return (
-    <ContentSection title="Documents">
-      <ul className="grid gap-2">
-        {session.legalBundle.documents.map((document) => {
-          const documentType =
-            document.documentType as keyof typeof legalBundleDocumentLabels;
-          const label =
-            legalBundleDocumentLabels[documentType] ?? document.title;
-          const description =
-            legalBundleDocumentDescriptions[documentType] ??
-            'Legal document included in this bundle.';
+    <ContentSection framed={false} title="Documents">
+      {session.legalBundle.documents.map((document) => {
+        const documentType =
+          document.documentType as keyof typeof legalBundleDocumentLabels;
+        const label =
+          legalBundleDocumentLabels[documentType] ?? document.title;
+        const description =
+          legalBundleDocumentDescriptions[documentType] ??
+          'Legal document included in this bundle.';
+        const titleId = `legal-document-${document.id}-title`;
 
-          return (
-            <li
-              className="grid gap-1 border-t py-3 first:border-t-0"
-              key={document.id}
-            >
+        return (
+          <Item
+            aria-labelledby={titleId}
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-border bg-card px-4 py-4"
+            key={document.id}
+            variant="outline"
+          >
+            <ItemContent className="min-w-0 gap-3">
               <div className="grid min-w-0 gap-1">
-                <ItemTitle>
-                  <Link
-                    className="hover:underline"
-                    href={appLegalDocumentUrl({
-                      documentType: document.documentType,
-                      documentVersion: document.documentVersion,
-                    })}
-                  >
-                    {label}
-                  </Link>
-                </ItemTitle>
+                <ItemTitle id={titleId}>{label}</ItemTitle>
                 <ItemDescription>{description}</ItemDescription>
-                <p className={textStyles.meta}>
-                  Version {document.documentVersion}, effective{' '}
-                  {document.effectiveDate}
-                </p>
               </div>
-            </li>
-          );
-        })}
-      </ul>
+              <dl className="grid grid-cols-2 gap-3">
+                <LegalMetadata
+                  label="Version"
+                  value={document.documentVersion}
+                />
+                <LegalMetadata
+                  label="Effective date"
+                  value={document.effectiveDate}
+                />
+              </dl>
+            </ItemContent>
+            <ItemActions className="justify-self-end">
+              <Button
+                asChild
+                className="shrink-0"
+                size="sm"
+                variant="outline"
+              >
+                <Link
+                  href={appLegalDocumentUrl({
+                    documentType: document.documentType,
+                    documentVersion: document.documentVersion,
+                  })}
+                >
+                  Open
+                  <ArrowRight aria-hidden="true" data-icon="inline-end" />
+                </Link>
+              </Button>
+            </ItemActions>
+          </Item>
+        );
+      })}
     </ContentSection>
   );
 }

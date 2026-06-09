@@ -16,6 +16,7 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart';
 import { MetricSummaryEntry } from '@/components/metric-summary-entry';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 
@@ -65,6 +66,7 @@ export function SankeyBreakdown({
     },
   } satisfies ChartConfig;
   const data = toRenderableSankeyData(nodes, links);
+  const shouldRenderDesktopChart = useMediaQuery('(min-width: 640px)');
 
   return (
     <div className={cn('grid gap-4', className)}>
@@ -91,19 +93,30 @@ export function SankeyBreakdown({
 
       <div className="grid gap-3">
         <dl className="grid grid-cols-2 gap-x-4 sm:hidden">
-          {summary.map((item, index) => (
-            <MetricSummaryEntry
-              className={cn(index < 2 && 'border-t-0 pt-0')}
-              icon={item.icon}
-              iconClassName={item.iconClassName}
-              key={item.label}
-              label={item.label}
-              value={formatCount(item.value)}
-            />
-          ))}
+          {summary.map((item, index) => {
+            const isFirstRow = index < 2;
+            const lastRowStart = summary.length - (summary.length % 2 || 2);
+            const isLastRow = index >= lastRowStart;
+
+            return (
+              <MetricSummaryEntry
+                className={cn(
+                  'min-h-0',
+                  isFirstRow ? 'border-t-0 pt-0' : 'pt-3',
+                  isLastRow ? 'pb-0' : 'pb-3',
+                )}
+                detail={formatCount(item.value)}
+                icon={item.icon}
+                iconClassName={item.iconClassName}
+                key={item.label}
+                label={item.label}
+                value={null}
+              />
+            );
+          })}
         </dl>
 
-        {data ? (
+        {data && shouldRenderDesktopChart ? (
           <div className="hidden justify-center sm:flex">
             <ChartContainer
               className="h-40 w-full max-w-4xl"

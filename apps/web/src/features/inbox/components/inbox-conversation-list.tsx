@@ -4,10 +4,8 @@ import type {
   InboxConversationActivityFilter,
   InboxConversationSummary,
 } from '@retaino/shared/contracts';
-import {
-  Search,
-  ShieldAlert,
-} from 'lucide-react';
+import { Search } from 'lucide-react';
+import { BlockedStatusBadge } from '@/components/blocked-status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -157,13 +155,7 @@ export function InboxConversationList({
                         </Badge>
                       ) : null}
                       {conversation.replyBlocked ? (
-                        <Badge variant="outline">
-                          <ShieldAlert
-                            aria-hidden="true"
-                            data-icon="inline-start"
-                          />
-                          Blocked
-                        </Badge>
+                        <BlockedStatusBadge />
                       ) : null}
                     </span>
                   ) : null}

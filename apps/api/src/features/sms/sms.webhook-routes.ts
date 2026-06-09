@@ -1,5 +1,6 @@
 import {
   createInboundSmsMessage,
+  deleteProviderOptOutSuppressionByHash,
   getLatestCampaignRecipientByPhoneHash,
   getOrganizationSmsSenderByProviderReference,
   getSmsMessageByProviderMessageId,
@@ -135,11 +136,14 @@ export const twilioMessagingWebhookRoutes = new Hono<AppEnv>()
       body: inbound.body,
       receivedAt: inbound.receivedAt,
     });
-    const optOutType = providerOptOutType(payload);
-    const eventType =
-      optOutType === 'STOP' || isStopReply(inbound.body) ? 'opt_out' : 'reply';
+    const optOutType = inbound.optOutType;
+    const isOptOut =
+      optOutType === 'STOP' || (!optOutType && isStopReply(inbound.body));
+    const isOptIn =
+      optOutType === 'START' || (!optOutType && isStartReply(inbound.body));
+    const eventType = isOptOut ? 'opt_out' : isOptIn ? 'opt_in' : 'reply';
 
-    if (eventType === 'opt_out') {
+    if (isOptOut) {
       await upsertSuppressionByHash(c.get('db'), {
         organizationId: sender.organizationId,
         type: 'phone',
@@ -148,6 +152,15 @@ export const twilioMessagingWebhookRoutes = new Hono<AppEnv>()
         valueHash: phoneIdentity.valueHash,
         reason: 'provider_opt_out',
         source: 'twilio',
+      });
+    }
+
+    if (isOptIn) {
+      await deleteProviderOptOutSuppressionByHash(c.get('db'), {
+        organizationId: sender.organizationId,
+        type: 'phone',
+        valueHash: phoneIdentity.valueHash,
+        source: provider.name,
       });
     }
 
@@ -188,13 +201,8 @@ function isStopReply(body: string) {
   );
 }
 
-function providerOptOutType(payload: Record<string, unknown>) {
-  const value = payload.OptOutType;
-  const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
-
-  return normalized === 'STOP' || normalized === 'START' || normalized === 'HELP'
-    ? normalized
-    : null;
+function isStartReply(body: string) {
+  return /^start$/i.test(body.trim());
 }
 
 function emptyTwimlResponse(c: Context<AppEnv>) {
