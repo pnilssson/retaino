@@ -58,7 +58,7 @@ export function ContactRowActions({ contact }: { contact: Contact }) {
           </Link>
         </DropdownMenuItem>
         <ConfirmDialog
-          confirmLabel="Delete contact"
+          confirmLabel="Delete"
           description={`This permanently deletes ${contactName} from this organization.`}
           isPending={deleteContact.mutation.isPending}
           onConfirm={handleDeleteContact}
@@ -69,7 +69,7 @@ export function ContactRowActions({ contact }: { contact: Contact }) {
               variant="destructive"
             >
               <Trash2 aria-hidden="true" />
-              Delete contact
+              Delete
             </DropdownMenuItem>
           }
           variant="destructive"

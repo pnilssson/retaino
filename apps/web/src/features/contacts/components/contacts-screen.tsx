@@ -114,7 +114,6 @@ export function ContactsScreen() {
               </Button>
             ) : null
           }
-          description="Review imported clients, find contacts ready for SMS, and catch data issues before campaigns."
           title="Contacts"
         />
 

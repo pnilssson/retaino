@@ -110,7 +110,7 @@ export function ContactImportUploadScreen() {
       <section className="mx-auto grid w-full max-w-5xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={
-            <Button asChild variant="outline">
+            <Button asChild className="px-0" variant="link">
               <Link aria-label="Back to contacts" href={routes.contacts}>
                 <ArrowLeft aria-hidden="true" data-icon="inline-start" />
                 <span className="sm:hidden">Back</span>
@@ -352,6 +352,9 @@ function ImportForm({
                   </ContentSection>
                   <GuidedFlowActions
                     canContinue={Boolean(file && preview && !parseError)}
+                    continueIcon={
+                      <ArrowRight aria-hidden="true" className="size-4" />
+                    }
                     continueLabel="Continue to matching"
                     onContinue={() => setActiveStep('match')}
                   />
@@ -446,6 +449,9 @@ function ImportForm({
                       </ContentSection>
                       <GuidedFlowActions
                         canContinue={contactImportMappingReady(mapping)}
+                        continueIcon={
+                          <ArrowRight aria-hidden="true" className="size-4" />
+                        }
                         continueLabel="Continue to review"
                         onBack={() => setActiveStep('upload')}
                         onContinue={() => setActiveStep('review')}

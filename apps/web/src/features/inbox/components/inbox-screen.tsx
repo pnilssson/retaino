@@ -119,7 +119,8 @@ export function InboxScreen() {
                 variant="link"
               >
                 <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-                Back to inbox
+                <span className="sm:hidden">Back</span>
+                <span className="hidden sm:inline">Back to inbox</span>
               </Button>
             ) : null
           }

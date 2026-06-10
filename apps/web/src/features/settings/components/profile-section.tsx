@@ -58,7 +58,7 @@ export function ProfileSection({
         canManageSetup && !isEditing ? (
           <Button onClick={openEditMode} type="button">
             <Pencil aria-hidden="true" data-icon="inline-start" />
-            {profile ? 'Edit profile' : 'Complete profile'}
+            {profile ? 'Edit' : 'Complete profile'}
           </Button>
         ) : null
       }

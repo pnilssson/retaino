@@ -24,7 +24,7 @@ export function TeamInvitationSection({ session }: TeamInvitationSectionProps) {
               type="button"
             >
               <UsersRound aria-hidden="true" data-icon="inline-start" />
-              Manage access
+              Manage
             </Button>
       }
       description={

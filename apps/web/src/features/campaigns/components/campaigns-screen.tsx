@@ -124,12 +124,11 @@ export function CampaignsScreen() {
               <Button asChild>
                 <Link href={routes.campaignNew}>
                   <Plus aria-hidden="true" data-icon="inline-start" />
-                  New campaign
+                  New
                 </Link>
               </Button>
             ) : null
           }
-          description="Review campaigns and previous sends for this organization."
           title="Campaigns"
         />
 
@@ -213,7 +212,7 @@ export function CampaignsScreen() {
                 <Button asChild>
                   <Link href={routes.campaignNew}>
                     <Plus aria-hidden="true" data-icon="inline-start" />
-                    New campaign
+                    New
                   </Link>
                 </Button>
               }
