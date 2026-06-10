@@ -68,6 +68,9 @@ describe('campaign report query helpers', () => {
     expect(query.sql).toContain(
       'coalesce(actual_segment_count, estimated_segment_count, 0)',
     );
+    expect(query.sql).toContain(
+      'count(distinct "sms_messages"."recipient_id") filter',
+    );
     expect(query.sql).toContain('count(distinct');
     expect(query.params.slice(0, 2)).toEqual([
       campaignRow.id,
