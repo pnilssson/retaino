@@ -116,7 +116,7 @@ export function OverviewScreen() {
               <Button asChild>
                 <Link href={routes.campaignNew}>
                   <Plus aria-hidden="true" data-icon="inline-start" />
-                  New campaign
+                  New
                 </Link>
               </Button>
             }
