@@ -5,6 +5,7 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
+import { useLocale } from 'next-intl';
 import type {
   CreateCurrentOrganizationLegalAcceptanceResponse,
   OrganizationSession,
@@ -17,6 +18,7 @@ import {
 
 export function useCreateCurrentOrganizationLegalAcceptance() {
   const api = useApi();
+  const locale = useLocale();
   const { orgId } = useAuth({ treatPendingAsSignedOut: false });
   const queryClient = useQueryClient();
 
@@ -29,7 +31,7 @@ export function useCreateCurrentOrganizationLegalAcceptance() {
     onSuccess: async (data) => {
       if (orgId) {
         queryClient.setQueryData<OrganizationSession>(
-          organizationSessionQueryKeys.active(orgId),
+          organizationSessionQueryKeys.active(orgId, locale),
           (current) =>
             current
               ? {

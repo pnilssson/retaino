@@ -1,4 +1,8 @@
 import Stripe from 'stripe';
+import {
+  isLocale,
+  normalizeLocale,
+} from '@retaino/shared';
 
 export const STRIPE_API_VERSION = '2026-04-22.dahlia';
 
@@ -20,16 +24,30 @@ export type StripeConfigBindings = {
   STRIPE_WEBHOOK_SECRET?: string;
 };
 
-export function getStripeConfig(bindings: StripeConfigBindings): StripeConfig {
+export function getStripeConfig(
+  bindings: StripeConfigBindings,
+  locale?: string | null,
+): StripeConfig {
+  const appLocale = normalizeLocale(locale);
+
   return {
     secretKey: getStripeSecretKey(bindings),
     webhookSecret: getStripeWebhookSecret(bindings),
-    successUrl: requiredStripeBinding(
+    successUrl: localizedStripeUrl(
       bindings.STRIPE_SUCCESS_URL,
       'STRIPE_SUCCESS_URL',
+      appLocale,
     ),
-    cancelUrl: requiredStripeBinding(bindings.STRIPE_CANCEL_URL, 'STRIPE_CANCEL_URL'),
-    returnUrl: requiredStripeBinding(bindings.STRIPE_RETURN_URL, 'STRIPE_RETURN_URL'),
+    cancelUrl: localizedStripeUrl(
+      bindings.STRIPE_CANCEL_URL,
+      'STRIPE_CANCEL_URL',
+      appLocale,
+    ),
+    returnUrl: localizedStripeUrl(
+      bindings.STRIPE_RETURN_URL,
+      'STRIPE_RETURN_URL',
+      appLocale,
+    ),
     checkoutDisplayName:
       bindings.STRIPE_CHECKOUT_DISPLAY_NAME?.trim() || 'Retaino',
   };
@@ -61,4 +79,22 @@ function requiredStripeBinding(value: string | undefined, name: string) {
   }
 
   return input;
+}
+
+function localizedStripeUrl(
+  value: string | undefined,
+  name: string,
+  locale: string,
+) {
+  const rawUrl = requiredStripeBinding(value, name);
+  const url = new URL(rawUrl);
+  const segments = url.pathname.split('/').filter(Boolean);
+  const [firstSegment, ...restSegments] = segments;
+  const nextSegments = isLocale(firstSegment)
+    ? [locale, ...restSegments]
+    : [locale, ...segments];
+
+  url.pathname = `/${nextSegments.join('/')}`;
+
+  return url.toString();
 }

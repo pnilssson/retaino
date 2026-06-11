@@ -7,7 +7,7 @@ import {
   UsersRound,
   type LucideIcon,
 } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import type { ReactNode } from 'react';
 import { EmptyState } from '@/components/data-table';
 import { ItemNotice } from '@/components/item-notice';

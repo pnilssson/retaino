@@ -1,8 +1,10 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 
+import { LocaleSwitcher } from '@/components/locale-switcher';
 import { useCookieConsent } from '@/features/cookies/hooks/use-cookie-consent';
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
@@ -10,6 +12,8 @@ import { cn } from '@/lib/utils';
 
 export function SiteFooter() {
   const { openPreferences } = useCookieConsent();
+  const tChrome = useTranslations('Chrome');
+  const tMarketing = useTranslations('Marketing');
   const year = new Date().getFullYear();
 
   const linkClasses =
@@ -21,7 +25,7 @@ export function SiteFooter() {
         <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-2">
             <Link
-              aria-label="Retaino home"
+              aria-label={tChrome('homeLabel')}
               className={cn('flex items-center gap-2 text-primary-foreground', textStyles.brand)}
               href={routes.home}
             >
@@ -35,32 +39,36 @@ export function SiteFooter() {
               />
             </Link>
             <p className="max-w-sm text-sm leading-6 text-primary-foreground/70">
-              Keep the clients you already paid to acquire and turn existing relationships into booked appointments.
+              {tMarketing('tagline')}
             </p>
           </div>
 
-          <nav aria-label="Legal" className="flex flex-col gap-2">
+          <nav aria-label={tChrome('legal')} className="flex flex-col gap-2">
             <Link className={linkClasses} href={routes.terms}>
-              Terms and Conditions
+              {tChrome('terms')}
             </Link>
             <Link className={linkClasses} href={routes.privacy}>
-              Privacy Policy
+              {tChrome('privacyPolicy')}
             </Link>
             <Link className={linkClasses} href={routes.cookies}>
-              Cookie Policy
+              {tChrome('cookiePolicy')}
             </Link>
             <button
               className={`${linkClasses} cursor-pointer text-left`}
               onClick={openPreferences}
               type="button"
             >
-              Cookie preferences
+              {tChrome('cookiePreferences')}
             </button>
+            <LocaleSwitcher
+              className="w-fit px-0 text-primary-foreground/70 hover:bg-transparent hover:text-primary-foreground"
+              variant="ghost"
+            />
           </nav>
         </div>
 
         <p className="text-xs leading-5 text-primary-foreground/55">
-          &copy; {year} Retaino. All rights reserved.
+          &copy; {year} Retaino. {tMarketing('footerCopyright')}
         </p>
       </div>
     </footer>

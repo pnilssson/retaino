@@ -445,8 +445,6 @@ function attentionItems(input: {
     items.push({
       id: 'needs-reply',
       tone: 'warning',
-      title: `${formatCount(input.metrics.needsReplyCount)} conversations need a reply`,
-      description: 'Answer recent replies before the customer moves on.',
       action: 'open_inbox',
     });
   }
@@ -459,28 +457,20 @@ function attentionItems(input: {
       input.subscriptionStatus === 'incomplete_expired';
 
     items.push({
-      id: 'billing-inactive',
+      id: hasNoPlan ? 'billing-plan-required' : 'billing-access-inactive',
       tone: 'critical',
-      title: hasNoPlan ? 'Plan setup is required' : 'Billing needs attention',
-      description: hasNoPlan
-        ? 'Set up a plan before sending SMS campaigns.'
-        : 'Restore subscription access before sending SMS.',
       action: 'open_billing',
     });
   } else if (input.metrics.smsCreditBalance <= 0) {
     items.push({
       id: 'credits-empty',
       tone: 'critical',
-      title: 'SMS credits are empty',
-      description: 'Campaign sending is paused until SMS credits are available.',
       action: 'open_billing',
     });
   } else if (input.metrics.smsCreditBalance < 50) {
     items.push({
       id: 'credits-low',
       tone: 'warning',
-      title: 'SMS credits are running low',
-      description: 'Review the balance before the next campaign.',
       action: 'open_billing',
     });
   }
@@ -489,8 +479,6 @@ function attentionItems(input: {
     items.push({
       id: 'sender-release-scheduled',
       tone: 'warning',
-      title: 'SMS sender release is scheduled',
-      description: 'Restore billing access to keep the sender number.',
       action: 'open_billing',
     });
   }
@@ -503,8 +491,6 @@ function attentionItems(input: {
     items.push({
       id: `campaign-failed:${failedCampaign.id}`,
       tone: 'critical',
-      title: 'A campaign failed',
-      description: 'Review the failed campaign before starting another send.',
       action: 'open_campaign',
     });
   }
@@ -518,8 +504,6 @@ function attentionItems(input: {
     items.push({
       id: `report-bookings:${unreportedCampaign.id}`,
       tone: 'neutral',
-      title: 'Report bookings for the latest campaign',
-      description: 'Add bookings and revenue so the report reflects outcomes.',
       action: 'report_bookings',
     });
   }
@@ -627,10 +611,6 @@ function trendValue(value: unknown): OverviewResponse['trend'] {
       ),
     };
   });
-}
-
-function formatCount(value: number) {
-  return new Intl.NumberFormat('en-US').format(value);
 }
 
 function intValue(value: unknown) {

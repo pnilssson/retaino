@@ -20,6 +20,12 @@ Clicking the final setup action records acceptance of the current bundle. Public
 
 Legal acceptances are append-only audit records. Store organization ID, user ID, bundle version, bundle hash, document snapshot, accepted time, IP address, and user agent when available.
 
+Legal document versions are localized for Swedish and English. The acceptance
+record stores the locale and document snapshot shown at acceptance time, while
+bundle currency is based on the semantic bundle version and required document
+versions. A user should not have to re-accept the same legal bundle only because
+they switch the app language.
+
 `POST /v1/organization/legal` accepts the current bundle. The server chooses the current manifest and ignores client supplied document versions.
 
 When a material legal document changes, manually bump the bundle version. Affected organizations see an in-app notice. Imports, campaign sends, test sends, and inbox replies are blocked until an admin accepts the current bundle.

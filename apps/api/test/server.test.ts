@@ -20,6 +20,25 @@ describe('api server', () => {
     expect(body).not.toContain('Authentication is required.');
   });
 
+  it('allows the locale header during browser preflight requests', async () => {
+    const response = await app.request('/v1/organization/session', {
+      headers: {
+        'Access-Control-Request-Headers':
+          'authorization,content-type,x-retaino-locale',
+        'Access-Control-Request-Method': 'GET',
+        Origin: 'https://retaino.io',
+      },
+      method: 'OPTIONS',
+    }, {
+      APP_ALLOWED_ORIGINS: 'https://retaino.io',
+    });
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get('Access-Control-Allow-Headers')).toContain(
+      'x-retaino-locale',
+    );
+  });
+
   it('returns a structured JSON error for unknown routes', async () => {
     const response = await app.request('/missing');
 

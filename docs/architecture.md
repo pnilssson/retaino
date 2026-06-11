@@ -77,9 +77,14 @@ Job payloads include `organizationId`, actor `userId` when present, and source r
 
 Use App Router route groups by intent:
 
-- `src/app/(marketing)/...`
-- `src/app/(auth)/...`
-- `src/app/(app)/...`
+- `src/app/[locale]/(marketing)/...`
+- `src/app/[locale]/(auth)/...`
+- `src/app/[locale]/(app)/...`
+
+Supported web locales are Swedish (`sv`) and English (`en`). Swedish is the
+default locale. Public and authenticated web routes must stay locale-prefixed,
+and links, redirects, and router navigation should use the i18n navigation
+helpers in `src/i18n`.
 
 Feature modules live under `src/features/<feature>/`:
 

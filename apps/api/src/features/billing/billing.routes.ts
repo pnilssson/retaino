@@ -18,6 +18,7 @@ import {
   createStripeClient,
   getStripeConfig,
 } from '../../lib/stripe';
+import { requestLocale } from '../../lib/locale';
 import type { AppEnv } from '../../types';
 
 export const billingRoutes = new Hono<AppEnv>()
@@ -51,7 +52,7 @@ export const billingRoutes = new Hono<AppEnv>()
         await createSubscriptionCheckout({
           db: c.get('db'),
           stripe: createStripeClient(c.env),
-          config: getStripeConfig(c.env),
+          config: getStripeConfig(c.env, requestLocale(c)),
           catalog: getStripeBillingCatalog(c.env),
           organization: c.get('organization'),
           user: c.get('user'),
@@ -84,7 +85,7 @@ export const billingRoutes = new Hono<AppEnv>()
         await createCustomerPortalSession({
           db: c.get('db'),
           stripe: createStripeClient(c.env),
-          config: getStripeConfig(c.env),
+          config: getStripeConfig(c.env, requestLocale(c)),
           organizationId: c.get('organization').id,
         }),
       );

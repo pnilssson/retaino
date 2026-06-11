@@ -4,13 +4,17 @@ import {
 } from '@retaino/db';
 import { Hono } from 'hono';
 import { apiError } from '../../lib/errors';
+import { requestLocale } from '../../lib/locale';
 import type { AppEnv } from '../../types';
 
 export const legalRoutes = new Hono<AppEnv>()
   .get('/:type', async (c) => {
     const legalDocument = await getLatestPublishedLegalDocumentVersion(
       c.get('db'),
-      c.req.param('type'),
+      {
+        documentType: c.req.param('type'),
+        locale: requestLocale(c),
+      },
     );
 
     if (!legalDocument) {
@@ -26,6 +30,7 @@ export const legalRoutes = new Hono<AppEnv>()
     const legalDocument = await getPublishedLegalDocumentVersion(c.get('db'), {
       documentType: c.req.param('type'),
       documentVersion: c.req.param('version'),
+      locale: requestLocale(c),
     });
 
     if (!legalDocument) {

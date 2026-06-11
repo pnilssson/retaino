@@ -11,7 +11,8 @@ import {
   Megaphone,
   Send,
 } from "lucide-react";
-import Link from "next/link";
+import { useLocale } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { ItemNotice } from "@/components/item-notice";
 import { SankeyBreakdown } from "@/components/sankey-breakdown";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { ContentSection } from "@/features/appshell/components/content-section";
 import { routes } from "@/lib/routes";
 import { textStyles } from "@/lib/text-styles";
 import { cn } from "@/lib/utils";
+import { attentionItemView } from "../overview-attention";
 import { OverviewRecentCampaignsTable } from "./overview-recent-campaigns-table";
 import { OverviewTrendChart } from "./overview-trend-chart";
 import { OverviewWorkspaceStatus } from "./overview-workspace-status";
@@ -28,6 +30,7 @@ export function OverviewDashboard({
 }: {
   overview: OverviewResponse;
 }) {
+  const locale = useLocale();
   const campaignFlowWidth = Math.max(
     overview.funnel.selectedCount,
     overview.funnel.sentCount,
@@ -41,41 +44,12 @@ export function OverviewDashboard({
         <ContentSection title="Needs attention">
           <div className="divide-y">
             {overview.attentionItems.map((item) => (
-              <div
-                className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
+              <AttentionItem
+                item={item}
                 key={item.id}
-              >
-                <div className="flex min-w-0 items-start gap-2">
-                  <AlertTriangle
-                    aria-hidden="true"
-                    className={cn(
-                      "mt-0.5 size-4 shrink-0",
-                      item.tone === "critical"
-                        ? "text-rose-500"
-                        : item.tone === "warning"
-                          ? "text-amber-500"
-                          : "text-muted-foreground",
-                    )}
-                  />
-                  <div className="min-w-0">
-                    <p className={textStyles.itemTitle}>{item.title}</p>
-                    <p className={cn("mt-1", textStyles.mutedBody)}>
-                      {item.description}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  asChild
-                  className="shrink-0"
-                  size="sm"
-                  variant="outline"
-                >
-                  <Link href={attentionActionHref(item.action)}>
-                    Open
-                    <ArrowRight aria-hidden="true" data-icon="inline-end" />
-                  </Link>
-                </Button>
-              </div>
+                locale={locale}
+                overview={overview}
+              />
             ))}
           </div>
         </ContentSection>
@@ -184,6 +158,48 @@ export function OverviewDashboard({
           </p>
         )}
       </ContentSection>
+    </div>
+  );
+}
+
+function AttentionItem({
+  item,
+  locale,
+  overview,
+}: {
+  item: OverviewResponse["attentionItems"][number];
+  locale: string;
+  overview: OverviewResponse;
+}) {
+  const view = attentionItemView(item, overview, locale);
+
+  return (
+    <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+      <div className="flex min-w-0 items-start gap-2">
+        <AlertTriangle
+          aria-hidden="true"
+          className={cn(
+            "mt-0.5 size-4 shrink-0",
+            item.tone === "critical"
+              ? "text-rose-500"
+              : item.tone === "warning"
+                ? "text-amber-500"
+                : "text-muted-foreground",
+          )}
+        />
+        <div className="min-w-0">
+          <p className={textStyles.itemTitle}>{view.title}</p>
+          <p className={cn("mt-1", textStyles.mutedBody)}>
+            {view.description}
+          </p>
+        </div>
+      </div>
+      <Button asChild className="shrink-0" size="sm" variant="outline">
+        <Link href={attentionActionHref(item.action)}>
+          {locale === "en" ? "Open" : "Öppna"}
+          <ArrowRight aria-hidden="true" data-icon="inline-end" />
+        </Link>
+      </Button>
     </div>
   );
 }

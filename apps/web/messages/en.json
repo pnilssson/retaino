@@ -1,0 +1,46 @@
+{
+  "Locale": {
+    "en": "English",
+    "sv": "Svenska",
+    "switcherLabel": "Change language"
+  },
+  "Chrome": {
+    "account": "Account",
+    "billing": "Billing",
+    "campaigns": "Campaigns",
+    "contact": "Contact",
+    "contacts": "Contacts",
+    "cookiePolicy": "Cookie Policy",
+    "cookiePreferences": "Cookie preferences",
+    "goToApp": "Go to app",
+    "homeLabel": "Retaino home",
+    "app": "App",
+    "importContacts": "Import contacts",
+    "inbox": "Inbox",
+    "legal": "Legal",
+    "legalAndPrivacy": "Legal and privacy",
+    "manage": "Manage",
+    "operate": "Operate",
+    "organization": "Organization",
+    "overview": "Overview",
+    "privacyPolicy": "Privacy Policy",
+    "profile": "Profile",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "startReactivation": "Start reactivation",
+    "terms": "Terms and Conditions",
+    "workspace": "Workspace"
+  },
+  "Marketing": {
+    "footerCopyright": "All rights reserved.",
+    "heroCta": "Start reactivation",
+    "heroSecondaryCta": "Sign in",
+    "heroMuted": "by turning existing relationships into booked appointments.",
+    "heroTitle": "Keep the clients you already paid to acquire",
+    "tagline": "Keep the clients you already paid to acquire and turn existing relationships into booked appointments."
+  },
+  "Metadata": {
+    "title": "Retaino",
+    "description": "Keep the clients you already paid to acquire and turn existing relationships into booked appointments."
+  }
+}

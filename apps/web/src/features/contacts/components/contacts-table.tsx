@@ -5,6 +5,7 @@ import {
   type OnChangeFn,
   type RowSelectionState,
 } from '@tanstack/react-table';
+import { useLocale } from 'next-intl';
 import type { ReactNode } from 'react';
 import type { Contact } from '@retaino/shared/contracts';
 import { DataTable } from '@/components/data-table';
@@ -71,8 +72,10 @@ export function ContactsTable({
   sort: ContactSortKey;
   tableActions?: ReactNode;
 }) {
+  const locale = useLocale();
   const contactColumns = createContactColumns({
     direction,
+    locale,
     onSort,
     sort,
     tableActions,

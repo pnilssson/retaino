@@ -28,12 +28,13 @@ export type OrganizationSessionState = {
 export async function getOrganizationSessionState(
   db: DbClient,
   organization: OrganizationContext,
+  locale: string,
 ): Promise<OrganizationSessionState> {
   const profile = await getOrganizationProfileByOrganizationId(
     db,
     organization.id,
   );
-  const legalBundle = await getCurrentLegalBundle(db);
+  const legalBundle = await getCurrentLegalBundle(db, locale);
   const legalAcceptance = await getCurrentOrganizationLegalAcceptance(db, {
     organizationId: organization.id,
     bundleVersion: legalBundle.version,

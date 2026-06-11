@@ -1,6 +1,6 @@
 import type { OrganizationSession } from '@retaino/shared/contracts';
 import { FileText } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { ContentSection } from '@/features/appshell/components/content-section';
 import { routes } from '@/lib/routes';

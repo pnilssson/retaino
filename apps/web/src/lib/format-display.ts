@@ -1,16 +1,22 @@
 import { formatMinorCurrencyAmount } from '@retaino/shared';
+import { getIntlLocale } from './locale-format';
 
-const numberFormatter = new Intl.NumberFormat(undefined);
-
-export function formatDisplayNumber(value: number) {
-  return numberFormatter.format(finiteDisplayNumber(value));
+export function formatDisplayNumber(value: number, locale: string) {
+  return new Intl.NumberFormat(getIntlLocale(locale)).format(
+    finiteDisplayNumber(value),
+  );
 }
 
 export function formatDisplayMinorCurrency(
   value: number | null,
   currency: string,
+  locale: string,
 ) {
-  return formatMinorCurrencyAmount(finiteDisplayNumber(value ?? 0), currency);
+  return formatMinorCurrencyAmount(
+    finiteDisplayNumber(value ?? 0),
+    currency,
+    getIntlLocale(locale),
+  );
 }
 
 function finiteDisplayNumber(value: number) {

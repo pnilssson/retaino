@@ -4,6 +4,11 @@ import {
   CalendarIcon,
   X,
 } from 'lucide-react';
+import {
+  enUS,
+  sv,
+} from 'date-fns/locale';
+import { useLocale } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -12,6 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { getIntlLocale } from '@/lib/locale-format';
 
 export function DatePickerInput({
   'aria-invalid': ariaInvalid,
@@ -30,6 +36,7 @@ export function DatePickerInput({
   placeholder?: string;
   value: string;
 }) {
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const selectedDate = dateInputToLocalDate(value);
 
@@ -55,12 +62,13 @@ export function DatePickerInput({
           variant="outline"
         >
           <CalendarIcon aria-hidden="true" data-icon="inline-start" />
-          {selectedDate ? formatDateInputLabel(value) : placeholder}
+          {selectedDate ? formatDateInputLabel(value, locale) : placeholder}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">
         <Calendar
           captionLayout="dropdown"
+          locale={getDatePickerLocale(locale)}
           mode="single"
           onSelect={(date) => {
             onChange(date ? localDateToDateInput(date) : '');
@@ -107,12 +115,18 @@ function localDateToDateInput(value: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function formatDateInputLabel(value: string) {
+function formatDateInputLabel(value: string, locale: string) {
   const date = dateInputToLocalDate(value);
 
   if (!date) {
     return 'Select date';
   }
 
-  return new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(date);
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
+    dateStyle: 'medium',
+  }).format(date);
+}
+
+function getDatePickerLocale(locale: string) {
+  return locale === 'en' ? enUS : sv;
 }

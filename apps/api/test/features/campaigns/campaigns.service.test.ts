@@ -26,7 +26,11 @@ import {
   debitSmsCreditUsage,
   releaseSmsCreditUsage,
 } from '../../../src/features/billing/billing.service';
-import type { Campaign } from '@retaino/shared/contracts';
+import type {
+  Campaign,
+  LegalBundle,
+  OrganizationLegalAcceptance,
+} from '@retaino/shared/contracts';
 import {
   processCampaignSend,
   queueCampaignSend,
@@ -170,16 +174,18 @@ const sender = {
   updatedAt: '2026-05-18T00:00:00.000Z',
 } as const;
 
-const legalBundle = {
+const legalBundle: LegalBundle = {
   version: '2026-05-09',
+  locale: 'sv',
   hash: 'f'.repeat(64),
   documents: [],
 };
 
-const legalAcceptance = {
+const legalAcceptance: OrganizationLegalAcceptance = {
   id: '88888888-8888-4888-8888-888888888888',
   organizationId,
   userId,
+  locale: 'sv',
   bundleVersion: legalBundle.version,
   bundleHash: legalBundle.hash,
   documentsSnapshot: [],

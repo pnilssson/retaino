@@ -1,5 +1,5 @@
 import { compileMDX } from 'next-mdx-remote/rsc';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import remarkGfm from 'remark-gfm';
 import type {
   AnchorHTMLAttributes,

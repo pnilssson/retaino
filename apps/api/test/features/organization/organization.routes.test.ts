@@ -55,12 +55,14 @@ const profile = {
 
 const legalBundle: LegalBundle = {
   version: '2026-05-09',
+  locale: 'sv',
   hash: 'f'.repeat(64),
   documents: [
     {
       id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       legalDocumentId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
       documentType: 'terms',
+      locale: 'sv',
       slug: 'terms',
       title: 'Retaino Terms and Conditions',
       documentVersion: '2026-05-09',
@@ -78,6 +80,7 @@ const legalAcceptance: OrganizationLegalAcceptance = {
   id: '44444444-4444-4444-8444-444444444444',
   organizationId: organization.id,
   userId: user.id,
+  locale: 'sv',
   bundleVersion: legalBundle.version,
   bundleHash: legalBundle.hash,
   documentsSnapshot: legalBundle.documents,

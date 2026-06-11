@@ -58,8 +58,6 @@ describe('overview contracts', () => {
         {
           id: 'needs-reply',
           tone: 'warning',
-          title: '2 conversations need a reply',
-          description: 'Answer recent replies before the customer moves on.',
           action: 'open_inbox',
         },
       ],

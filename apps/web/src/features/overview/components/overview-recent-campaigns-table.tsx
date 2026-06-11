@@ -14,7 +14,8 @@ import {
   ArrowRight,
   Pencil,
 } from "lucide-react";
-import Link from "next/link";
+import { useLocale } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import type { ReactNode } from "react";
 import { DataTable } from "@/components/data-table";
 import { StatusBadge, type StatusBadgeTone } from "@/components/status-badge";
@@ -34,9 +35,11 @@ export function OverviewRecentCampaignsTable({
 }: {
   campaigns: OverviewRecentCampaign[];
 }) {
+  const locale = useLocale();
+
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    columns: recentCampaignColumns,
+    columns: createRecentCampaignColumns(locale),
     data: campaigns,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
@@ -51,7 +54,10 @@ export function OverviewRecentCampaignsTable({
   );
 }
 
-const recentCampaignColumns: ColumnDef<OverviewRecentCampaign>[] = [
+function createRecentCampaignColumns(
+  locale: string,
+): ColumnDef<OverviewRecentCampaign>[] {
+  return [
   {
     accessorKey: "name",
     header: "Campaign",
@@ -68,7 +74,7 @@ const recentCampaignColumns: ColumnDef<OverviewRecentCampaign>[] = [
     header: "Delivered",
     cell: ({ row }) => (
       <LinkedCell campaign={row.original}>
-        {formatOverviewNumber(row.original.deliveredCount)}
+        {formatOverviewNumber(row.original.deliveredCount, locale)}
       </LinkedCell>
     ),
   },
@@ -77,7 +83,7 @@ const recentCampaignColumns: ColumnDef<OverviewRecentCampaign>[] = [
     header: "Replies",
     cell: ({ row }) => (
       <LinkedCell campaign={row.original}>
-        {formatOverviewNumber(row.original.inboundReplyCount)}
+        {formatOverviewNumber(row.original.inboundReplyCount, locale)}
       </LinkedCell>
     ),
   },
@@ -86,7 +92,7 @@ const recentCampaignColumns: ColumnDef<OverviewRecentCampaign>[] = [
     header: "Opt-outs",
     cell: ({ row }) => (
       <LinkedCell campaign={row.original}>
-        {formatOverviewNumber(row.original.optOutCount)}
+        {formatOverviewNumber(row.original.optOutCount, locale)}
       </LinkedCell>
     ),
   },
@@ -95,7 +101,7 @@ const recentCampaignColumns: ColumnDef<OverviewRecentCampaign>[] = [
     header: "Bookings",
     cell: ({ row }) => (
       <LinkedCell campaign={row.original}>
-        {formatOverviewNumber(row.original.reportedBookingCount)}
+        {formatOverviewNumber(row.original.reportedBookingCount, locale)}
       </LinkedCell>
     ),
   },
@@ -106,10 +112,11 @@ const recentCampaignColumns: ColumnDef<OverviewRecentCampaign>[] = [
       <LinkedCell campaign={row.original}>
         {row.original.reportedRevenueHasMixedCurrencies
           ? "Mixed"
-          : formatOverviewCurrency(
-              row.original.reportedRevenueAmountMinor,
-              row.original.reportedRevenueCurrency,
-            )}
+            : formatOverviewCurrency(
+                row.original.reportedRevenueAmountMinor,
+                row.original.reportedRevenueCurrency,
+                locale,
+              )}
       </LinkedCell>
     ),
   },
@@ -146,7 +153,8 @@ const recentCampaignColumns: ColumnDef<OverviewRecentCampaign>[] = [
       </div>
     ),
   },
-];
+  ];
+}
 
 function LinkedCell({
   campaign,

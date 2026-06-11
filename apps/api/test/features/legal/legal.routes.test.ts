@@ -17,6 +17,7 @@ const publishedDocument: LegalDocumentVersion = {
   id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   legalDocumentId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
   documentType: 'terms',
+  locale: 'sv',
   slug: 'terms',
   title: 'Retaino Terms and Conditions',
   documentVersion: '2026-05-07',
@@ -59,7 +60,10 @@ describe('legalRoutes', () => {
     expect(response.status).toBe(200);
     expect(getLatestPublishedLegalDocumentVersion).toHaveBeenCalledWith(
       expect.anything(),
-      'terms',
+      {
+        documentType: 'terms',
+        locale: 'sv',
+      },
     );
     await expect(response.json()).resolves.toEqual({
       legalDocument: publishedDocument,
@@ -79,6 +83,29 @@ describe('legalRoutes', () => {
       {
         documentType: 'terms',
         documentVersion: '2026-05-07',
+        locale: 'sv',
+      },
+    );
+  });
+
+  it('uses the requested locale when fetching legal documents', async () => {
+    vi.mocked(getLatestPublishedLegalDocumentVersion).mockResolvedValue({
+      ...publishedDocument,
+      locale: 'en',
+    });
+
+    const response = await testApp().request('/v1/legal/terms', {
+      headers: {
+        'x-retaino-locale': 'en',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(getLatestPublishedLegalDocumentVersion).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        documentType: 'terms',
+        locale: 'en',
       },
     );
   });

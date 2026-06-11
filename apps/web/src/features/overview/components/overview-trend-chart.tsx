@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useLocale } from 'next-intl';
 import {
   ChartContainer,
   ChartLegend,
@@ -51,6 +52,7 @@ export function OverviewTrendChart({
   hasMixedCurrencies: boolean;
   trend: OverviewResponse['trend'];
 }) {
+  const locale = useLocale();
   const totals = React.useMemo(
     () => ({
       reportedBookingCount: trend.reduce(
@@ -112,17 +114,21 @@ export function OverviewTrendChart({
   }> = [
     {
       label: 'Delivered SMS',
-      value: formatOverviewNumber(totals.deliveredSmsCount),
+      value: formatOverviewNumber(totals.deliveredSmsCount, locale),
     },
     {
       label: 'Bookings',
-      value: formatOverviewNumber(totals.reportedBookingCount),
+      value: formatOverviewNumber(totals.reportedBookingCount, locale),
     },
     {
       label: 'Revenue',
       value: hasMixedCurrencies
         ? 'Mixed'
-        : formatOverviewCurrency(totals.reportedRevenueAmountMinor, currency),
+        : formatOverviewCurrency(
+            totals.reportedRevenueAmountMinor,
+            currency,
+            locale,
+          ),
     },
   ];
 
@@ -230,7 +236,7 @@ export function OverviewTrendChart({
               dataKey="date"
               minTickGap={48}
               padding={{ left: 10, right: 18 }}
-              tickFormatter={formatOverviewDate}
+              tickFormatter={(value) => formatOverviewDate(value, locale)}
               tickLine={false}
               tickMargin={8}
             />
@@ -257,13 +263,16 @@ export function OverviewTrendChart({
                         ? formatOverviewCurrency(
                             row.reportedRevenueAmountMinor ?? null,
                             currency,
+                            locale,
                           )
                         : name === 'bookingTrendValue'
                           ? formatOverviewNumber(
                               Number(row.reportedBookingCount ?? 0),
+                              locale,
                             )
                           : formatOverviewNumber(
                               Number(row.deliveredSmsCount ?? 0),
+                              locale,
                             );
 
                     return (
@@ -278,7 +287,9 @@ export function OverviewTrendChart({
                     );
                   }}
                   indicator="dot"
-                  labelFormatter={(value) => formatOverviewDate(String(value))}
+                  labelFormatter={(value) =>
+                    formatOverviewDate(String(value), locale)
+                  }
                 />
               }
             />

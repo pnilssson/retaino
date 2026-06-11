@@ -1,7 +1,9 @@
+import { LOCALES, type Locale } from '@retaino/shared';
 import type { LegalDocumentType } from '@retaino/shared/contracts';
 
 export type LegalDocumentManifestEntry = {
   documentType: LegalDocumentType;
+  locale: Locale;
   slug: string;
   title: string;
   version: string;
@@ -12,13 +14,22 @@ export type LegalDocumentManifestEntry = {
   sortOrder: number;
 };
 
-export const legalDocuments = [
+type LegalDocumentDefinition = Omit<
+  LegalDocumentManifestEntry,
+  'locale' | 'path' | 'title'
+> & {
+  titles: Record<Locale, string>;
+};
+
+const definitions = [
   {
     documentType: 'terms',
     slug: 'terms',
-    title: 'Retaino Terms and Conditions',
+    titles: {
+      en: 'Retaino Terms and Conditions',
+      sv: 'Retaino allmanna villkor',
+    },
     version: '2026-05-30',
-    path: 'terms/2026-05-30.mdx',
     effectiveDate: '2026-05-30',
     publicVisible: true,
     acceptanceRequired: true,
@@ -27,9 +38,11 @@ export const legalDocuments = [
   {
     documentType: 'privacy',
     slug: 'privacy',
-    title: 'Retaino Privacy Policy',
+    titles: {
+      en: 'Retaino Privacy Policy',
+      sv: 'Retaino integritetspolicy',
+    },
     version: '2026-05-30',
-    path: 'privacy/2026-05-30.mdx',
     effectiveDate: '2026-05-30',
     publicVisible: true,
     acceptanceRequired: false,
@@ -38,9 +51,11 @@ export const legalDocuments = [
   {
     documentType: 'cookies',
     slug: 'cookies',
-    title: 'Retaino Cookie Policy',
+    titles: {
+      en: 'Retaino Cookie Policy',
+      sv: 'Retaino cookiepolicy',
+    },
     version: '2026-05-29',
-    path: 'cookies/2026-05-29.mdx',
     effectiveDate: '2026-05-29',
     publicVisible: true,
     acceptanceRequired: false,
@@ -49,9 +64,11 @@ export const legalDocuments = [
   {
     documentType: 'dpa',
     slug: 'dpa',
-    title: 'Retaino Data Processing Agreement',
+    titles: {
+      en: 'Retaino Data Processing Agreement',
+      sv: 'Retaino personuppgiftsbitradesavtal',
+    },
     version: '2026-05-29',
-    path: 'dpa/2026-05-29.mdx',
     effectiveDate: '2026-05-29',
     publicVisible: true,
     acceptanceRequired: true,
@@ -60,9 +77,11 @@ export const legalDocuments = [
   {
     documentType: 'subprocessors',
     slug: 'subprocessors',
-    title: 'Retaino Subprocessor Notice',
+    titles: {
+      en: 'Retaino Subprocessor Notice',
+      sv: 'Retaino underbitradesinformation',
+    },
     version: '2026-05-30',
-    path: 'subprocessors/2026-05-30.mdx',
     effectiveDate: '2026-05-30',
     publicVisible: true,
     acceptanceRequired: true,
@@ -71,9 +90,11 @@ export const legalDocuments = [
   {
     documentType: 'transfer_terms',
     slug: 'transfer_terms',
-    title: 'Retaino Transfer Terms',
+    titles: {
+      en: 'Retaino Transfer Terms',
+      sv: 'Retaino overforingsvillkor',
+    },
     version: '2026-05-29',
-    path: 'transfer_terms/2026-05-29.mdx',
     effectiveDate: '2026-05-29',
     publicVisible: true,
     acceptanceRequired: true,
@@ -82,9 +103,11 @@ export const legalDocuments = [
   {
     documentType: 'sending_policy',
     slug: 'sending_policy',
-    title: 'Retaino Sending Policy',
+    titles: {
+      en: 'Retaino Sending Policy',
+      sv: 'Retaino utskickspolicy',
+    },
     version: '2026-05-29',
-    path: 'sending_policy/2026-05-29.mdx',
     effectiveDate: '2026-05-29',
     publicVisible: true,
     acceptanceRequired: true,
@@ -93,9 +116,11 @@ export const legalDocuments = [
   {
     documentType: 'campaign_attestation',
     slug: 'campaign_attestation',
-    title: 'Retaino SMS Marketing Attestation',
+    titles: {
+      en: 'Retaino SMS Marketing Attestation',
+      sv: 'Retaino intyg for SMS-marknadsforing',
+    },
     version: '2026-05-29',
-    path: 'campaign_attestation/2026-05-29.mdx',
     effectiveDate: '2026-05-29',
     publicVisible: true,
     acceptanceRequired: false,
@@ -104,12 +129,23 @@ export const legalDocuments = [
   {
     documentType: 'customer_privacy_notice_guide',
     slug: 'customer_privacy_notice_guide',
-    title: 'Retaino Customer Privacy Notice Guide',
+    titles: {
+      en: 'Retaino Customer Privacy Notice Guide',
+      sv: 'Retaino guide for kunders integritetsinformation',
+    },
     version: '2026-05-29',
-    path: 'customer_privacy_notice_guide/2026-05-29.mdx',
     effectiveDate: '2026-05-29',
     publicVisible: true,
     acceptanceRequired: false,
     sortOrder: 90,
   },
-] as const satisfies LegalDocumentManifestEntry[];
+] as const satisfies LegalDocumentDefinition[];
+
+export const legalDocuments = definitions.flatMap((document) =>
+  LOCALES.map((locale) => ({
+    ...document,
+    locale,
+    title: document.titles[locale],
+    path: `${document.documentType}/${locale}/${document.version}.mdx`,
+  })),
+) satisfies LegalDocumentManifestEntry[];

@@ -4,7 +4,7 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { useApi } from '@/hooks/use-api';
 import { ApiClientError } from '@/lib/api-client';
 import { routes } from '@/lib/routes';

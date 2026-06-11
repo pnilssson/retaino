@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale } from 'next-intl/server';
 import {
   Geist,
   JetBrains_Mono,
@@ -47,21 +49,25 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const locale = await getLocale();
+
   return (
-    <html lang="en">
-      <body className={`${fontSans.variable} ${fontMono.variable} antialiased`}>
+    <html className={`${fontSans.variable} ${fontMono.variable}`} lang={locale}>
+      <body className="antialiased">
         <ClerkProvider
           taskUrls={{ "choose-organization": routes.organizationSetup }}
         >
           <NuqsAdapter>
-            <Providers>
-              <CookieConsentProvider>
-                <TooltipProvider>{children}</TooltipProvider>
-                <Toaster />
-                <CookieBanner />
-              </CookieConsentProvider>
-            </Providers>
+            <NextIntlClientProvider>
+              <Providers>
+                <CookieConsentProvider>
+                  <TooltipProvider>{children}</TooltipProvider>
+                  <Toaster />
+                  <CookieBanner />
+                </CookieConsentProvider>
+              </Providers>
+            </NextIntlClientProvider>
           </NuqsAdapter>
         </ClerkProvider>
       </body>

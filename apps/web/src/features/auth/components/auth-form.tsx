@@ -1,7 +1,7 @@
 "use client";
 
 import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { ItemNotice } from '@/components/item-notice';
 import { useEmailCodeAuth } from '@/features/auth/hooks/use-email-code-auth';
 import { routes } from '@/lib/routes';

@@ -11,6 +11,7 @@ import {
   ArrowRight,
   CheckCircle2,
 } from "lucide-react";
+import { useLocale } from "next-intl";
 import type { ReactNode } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ export function BillingPlanList({
   onOpenPortal: () => void;
   pendingPlanKey: BillingPlanKey | null;
 }) {
+  const locale = useLocale();
   const subscriptionLocked = subscriptionNeedsPortal(
     billingStatus.subscription.status,
   );
@@ -122,7 +124,7 @@ export function BillingPlanList({
 
                   <div>
                     <p className={textStyles.numeric}>
-                      {formatSek(plan.monthlyPriceSek)}
+                      {formatSek(plan.monthlyPriceSek, locale)}
                       <span
                         className={cn(
                           textStyles.meta,
@@ -140,7 +142,7 @@ export function BillingPlanList({
                         isSelectedPlan && "text-primary-foreground",
                       )}
                     >
-                      Includes {formatCreditCount(plan.includedSmsCredits)} SMS
+                      Includes {formatCreditCount(plan.includedSmsCredits, locale)} SMS
                       credits
                       <span
                         className={cn(

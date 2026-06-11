@@ -6,7 +6,7 @@ import {
   useOrganizationList,
 } from '@clerk/nextjs';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { useState } from 'react';
 import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import { useSidebar } from '@/components/ui/sidebar';

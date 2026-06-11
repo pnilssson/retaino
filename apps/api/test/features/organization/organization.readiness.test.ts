@@ -6,6 +6,7 @@ import {
 
 const legalBundle = {
   version: '2026-05-09',
+  locale: 'sv',
   hash: 'f'.repeat(64),
 };
 

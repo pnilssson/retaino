@@ -12,6 +12,7 @@ export const organizationLegalAcceptances = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
+    locale: text('locale').notNull().default('sv'),
     bundleVersion: text('bundle_version').notNull(),
     bundleHash: text('bundle_hash').notNull(),
     documentsSnapshot: jsonb('documents_snapshot').notNull(),

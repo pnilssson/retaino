@@ -9,7 +9,7 @@ import {
   CheckCircle2,
   Settings2,
 } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import { AppPageLoading } from '@/features/appshell/components/app-page-loading';

@@ -10,6 +10,7 @@ export const legalDocumentVersions = pgTable(
       .notNull()
       .references(() => legalDocuments.id, { onDelete: 'cascade' }),
     documentType: text('document_type').notNull(),
+    locale: text('locale').notNull().default('sv'),
     documentVersion: text('document_version').notNull(),
     title: text('title').notNull(),
     bodyMdx: text('body_mdx').notNull(),
@@ -25,12 +26,14 @@ export const legalDocumentVersions = pgTable(
       table.legalDocumentId,
       table.documentVersion,
     ),
-    uniqueIndex('legal_document_versions_type_version_idx').on(
+    uniqueIndex('legal_document_versions_type_locale_version_idx').on(
       table.documentType,
+      table.locale,
       table.documentVersion,
     ),
-    index('legal_document_versions_type_status_idx').on(
+    index('legal_document_versions_type_locale_status_idx').on(
       table.documentType,
+      table.locale,
       table.status,
     ),
   ],

@@ -13,6 +13,7 @@ import {
 } from '@retaino/shared/contracts';
 import { Hono } from 'hono';
 import { apiError } from '../../lib/errors';
+import { requestLocale } from '../../lib/locale';
 import { parseJsonBody } from '../../lib/route-helpers';
 import type { AppEnv } from '../../types';
 import {
@@ -26,6 +27,7 @@ export const organizationRoutes = new Hono<AppEnv>()
     const state = await getOrganizationSessionState(
       c.get('db'),
       c.get('organization'),
+      requestLocale(c),
     );
 
     return c.json({
@@ -97,7 +99,7 @@ export const organizationRoutes = new Hono<AppEnv>()
 
     const db = c.get('db');
     const user = c.get('user');
-    const legalBundle = await getCurrentLegalBundle(db);
+    const legalBundle = await getCurrentLegalBundle(db, requestLocale(c));
     const profile = await getOrganizationProfileByOrganizationId(
       db,
       organization.id,

@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { usePathname } from '@/i18n/navigation';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,21 +13,22 @@ import { useOrganizationSession } from '@/features/onboarding/hooks/use-organiza
 import { routes } from '@/lib/routes';
 
 const labels: Record<string, string> = {
-  [routes.overview]: 'Overview',
-  [routes.contacts]: 'Contacts',
-  [routes.contactsImport]: 'Import contacts',
-  [routes.inbox]: 'Inbox',
-  [routes.campaigns]: 'Campaigns',
-  [routes.legal]: 'Legal',
-  [routes.settings]: 'Organization',
-  [routes.billing]: 'Billing'
+  [routes.overview]: 'overview',
+  [routes.contacts]: 'contacts',
+  [routes.contactsImport]: 'importContacts',
+  [routes.inbox]: 'inbox',
+  [routes.campaigns]: 'campaigns',
+  [routes.legal]: 'legal',
+  [routes.settings]: 'organization',
+  [routes.billing]: 'billing',
 };
 
 export function AppBreadcrumb() {
+  const t = useTranslations('Chrome');
   const pathname = usePathname();
   const session = useOrganizationSession();
-  const label = breadcrumbLabelFor(pathname);
-  const organizationName = session.data?.organization.name ?? 'Workspace';
+  const labelKey = breadcrumbLabelFor(pathname);
+  const organizationName = session.data?.organization.name ?? t('workspace');
 
   return (
     <Breadcrumb className="min-w-0">
@@ -38,7 +40,7 @@ export function AppBreadcrumb() {
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem className="min-w-0">
-          <BreadcrumbPage className="truncate">{label}</BreadcrumbPage>
+          <BreadcrumbPage className="truncate">{t(labelKey)}</BreadcrumbPage>
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>
@@ -47,24 +49,24 @@ export function AppBreadcrumb() {
 
 function breadcrumbLabelFor(pathname: string) {
   if (pathname.startsWith(`${routes.legal}/`)) {
-    return 'Legal';
+    return 'legal';
   }
 
   if (pathname.startsWith(`${routes.billing}/`)) {
-    return 'Billing';
+    return 'billing';
   }
 
   if (pathname === routes.contactsImport) {
-    return 'Import contacts';
+    return 'importContacts';
   }
 
   if (pathname.startsWith(`${routes.contacts}/`)) {
-    return 'Contact';
+    return 'contact';
   }
 
   if (pathname.startsWith(`${routes.campaigns}/`)) {
-    return 'Campaigns';
+    return 'campaigns';
   }
 
-  return labels[pathname] ?? 'App';
+  return labels[pathname] ?? 'app';
 }

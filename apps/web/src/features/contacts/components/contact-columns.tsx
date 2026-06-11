@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import type { ReactNode } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import type { Contact } from '@retaino/shared/contracts';
 import {
   SortableTableHeader,
@@ -21,11 +21,13 @@ export type ContactSortKey =
 
 export function createContactColumns({
   direction,
+  locale,
   onSort,
   sort,
   tableActions,
 }: {
   direction: TableSortDirection;
+  locale: string;
   onSort: (sort: ContactSortKey) => void;
   sort: ContactSortKey;
   tableActions?: ReactNode;
@@ -105,7 +107,7 @@ export function createContactColumns({
       }),
       cell: ({ row }) => (
         <LinkedCell contact={row.original}>
-          {formatDate(row.original.createdAt)}
+          {formatDate(row.original.createdAt, locale)}
         </LinkedCell>
       ),
     },
@@ -118,7 +120,7 @@ export function createContactColumns({
       }),
       cell: ({ row }) => (
         <LinkedCell contact={row.original}>
-          {formatDate(row.original.lastBookingAt)}
+          {formatDate(row.original.lastBookingAt, locale)}
         </LinkedCell>
       ),
     },
@@ -131,7 +133,7 @@ export function createContactColumns({
       }),
       cell: ({ row }) => (
         <LinkedCell contact={row.original}>
-          {formatDate(row.original.lastContactedAt)}
+          {formatDate(row.original.lastContactedAt, locale)}
         </LinkedCell>
       ),
     },

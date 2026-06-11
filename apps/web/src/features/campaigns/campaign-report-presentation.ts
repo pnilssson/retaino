@@ -4,27 +4,6 @@ import type {
   SankeyBreakdownNode,
   SankeyBreakdownSummaryItem,
 } from '@/components/sankey-breakdown';
-import {
-  formatReportCurrency,
-  formatReportNumber,
-} from './campaign-report-format';
-
-export type CampaignReportMetric = {
-  id:
-    | 'bookings'
-    | 'clicks'
-    | 'credits'
-    | 'delivered'
-    | 'failed'
-    | 'inProgress'
-    | 'optOuts'
-    | 'recipients'
-    | 'replies'
-    | 'revenue'
-    | 'skipped';
-  label: string;
-  value: string;
-};
 
 export function createCampaignReportFunnel(report: CampaignReport): {
   links: SankeyBreakdownLink[];
@@ -80,77 +59,4 @@ export function createCampaignReportFunnel(report: CampaignReport): {
       },
     ],
   };
-}
-
-export function createCampaignReportMetrics(
-  report: CampaignReport,
-): CampaignReportMetric[] {
-  return [
-    {
-      id: 'recipients',
-      label: 'Recipients',
-      value: formatReportNumber(report.selectedCount),
-    },
-    {
-      id: 'delivered',
-      label: 'Delivered',
-      value: formatReportNumber(report.deliveredCount),
-    },
-    {
-      id: 'inProgress',
-      label: 'In progress',
-      value: formatReportNumber(report.queuedCount),
-    },
-    {
-      id: 'failed',
-      label: 'Failed',
-      value: formatReportNumber(report.failedCount),
-    },
-    {
-      id: 'skipped',
-      label: 'Skipped',
-      value: formatReportNumber(report.skippedCount),
-    },
-    {
-      id: 'clicks',
-      label: 'Tracked clicks',
-      value: formatReportNumber(report.clickCount),
-    },
-    {
-      id: 'replies',
-      label: 'Replies',
-      value: formatReportNumber(report.inboundReplyCount),
-    },
-    {
-      id: 'optOuts',
-      label: 'Opt-outs',
-      value: formatReportNumber(report.optOutCount),
-    },
-    {
-      id: 'credits',
-      label: 'Credits used',
-      value: formatReportNumber(report.actualSmsSegments),
-    },
-    {
-      id: 'bookings',
-      label: 'Reported bookings',
-      value: formatReportNumber(report.reportedOutcome.bookingCount),
-    },
-    {
-      id: 'revenue',
-      label: 'Reported revenue',
-      value: reportedRevenueValue(report),
-    },
-  ];
-}
-
-function reportedRevenueValue(report: CampaignReport) {
-  if (report.reportedOutcome.hasMixedCurrencies) {
-    return 'Mixed';
-  }
-
-  return formatReportCurrency(
-    report.reportedOutcome.revenueAmountMinor ?? 0,
-    report.reportedOutcome.currency,
-  );
 }

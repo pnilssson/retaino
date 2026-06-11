@@ -12,7 +12,8 @@ import {
   CheckCircle2,
   Loader2,
 } from 'lucide-react';
-import Link from 'next/link';
+import { useLocale } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ import {
   legalBundleDocumentLabels,
 } from '@/features/onboarding/onboarding.constants';
 import { getFieldError } from '@/lib/form-errors';
+import { getIntlLocale } from '@/lib/locale-format';
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
 
@@ -105,6 +107,8 @@ export function LegalOverviewScreen() {
 }
 
 function CurrentBundleSection({ session }: { session: OrganizationSession }) {
+  const locale = useLocale();
+
   return (
     <ContentSection title="Current legal bundle">
       <dl className="grid gap-4 py-2 sm:grid-cols-3">
@@ -120,7 +124,7 @@ function CurrentBundleSection({ session }: { session: OrganizationSession }) {
           label="Accepted at"
           value={
             session.legalAcceptance
-              ? formatDateTime(session.legalAcceptance.acceptedAt)
+              ? formatDateTime(session.legalAcceptance.acceptedAt, locale)
               : 'Not accepted'
           }
         />
@@ -359,8 +363,8 @@ function legalAgreementStatus(session: OrganizationSession) {
   } as const;
 }
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+function formatDateTime(value: string, locale: string) {
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));

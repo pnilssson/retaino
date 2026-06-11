@@ -22,6 +22,7 @@ function toLegalDocumentVersion(row: LegalDocumentVersionRow): LegalDocumentVers
     id: row.version.id,
     legalDocumentId: row.document.id,
     documentType: row.version.documentType as LegalDocumentType,
+    locale: row.version.locale as LegalDocumentVersion['locale'],
     slug: row.document.slug,
     title: row.version.title,
     documentVersion: row.version.documentVersion,
@@ -39,7 +40,10 @@ function toLegalDocumentVersion(row: LegalDocumentVersionRow): LegalDocumentVers
 
 export async function getLatestPublishedLegalDocumentVersion(
   db: DbClient,
-  documentType: string,
+  input: {
+    documentType: string;
+    locale: string;
+  },
   now = new Date(),
 ) {
   const [row] = await db
@@ -54,7 +58,8 @@ export async function getLatestPublishedLegalDocumentVersion(
     )
     .where(
       and(
-        eq(legalDocumentVersions.documentType, documentType),
+        eq(legalDocumentVersions.documentType, input.documentType),
+        eq(legalDocumentVersions.locale, input.locale),
         eq(legalDocumentVersions.status, 'published'),
         eq(legalDocuments.publicVisible, true),
         lte(legalDocumentVersions.effectiveDate, now.toISOString().slice(0, 10)),
@@ -75,6 +80,7 @@ export async function getPublishedLegalDocumentVersion(
   input: {
     documentType: string;
     documentVersion: string;
+    locale: string;
   },
 ) {
   const [row] = await db
@@ -90,6 +96,7 @@ export async function getPublishedLegalDocumentVersion(
     .where(
       and(
         eq(legalDocumentVersions.documentType, input.documentType),
+        eq(legalDocumentVersions.locale, input.locale),
         eq(legalDocumentVersions.documentVersion, input.documentVersion),
         eq(legalDocumentVersions.status, 'published'),
         eq(legalDocuments.publicVisible, true),
@@ -102,6 +109,7 @@ export async function getPublishedLegalDocumentVersion(
 
 export async function getCurrentRequiredLegalDocumentVersions(
   db: DbClient,
+  locale: string,
   now = new Date(),
 ) {
   const rows = await db
@@ -117,6 +125,7 @@ export async function getCurrentRequiredLegalDocumentVersions(
     .where(
       and(
         eq(legalDocuments.acceptanceRequired, true),
+        eq(legalDocuments.locale, locale),
         eq(legalDocuments.publicVisible, true),
         eq(legalDocumentVersions.status, 'published'),
         lte(legalDocumentVersions.effectiveDate, now.toISOString().slice(0, 10)),
@@ -148,21 +157,22 @@ export async function getCurrentRequiredLegalDocumentVersions(
 
 export async function getCurrentLegalBundle(
   db: DbClient,
+  locale: string,
   now = new Date(),
 ): Promise<LegalBundle> {
-  const documents = await getCurrentRequiredLegalDocumentVersions(db, now);
+  const documents = await getCurrentRequiredLegalDocumentVersions(db, locale, now);
   const snapshots = documents.map(toLegalBundleDocumentSnapshot);
   const hashInput = JSON.stringify({
     version: LEGAL_BUNDLE_VERSION,
     documents: snapshots.map((document) => ({
       documentType: document.documentType,
       documentVersion: document.documentVersion,
-      contentHash: document.contentHash,
     })),
   });
 
   return {
     version: LEGAL_BUNDLE_VERSION,
+    locale: locale as LegalBundle['locale'],
     hash: await sha256Text(hashInput),
     documents: snapshots,
   };
@@ -175,6 +185,7 @@ function toLegalBundleDocumentSnapshot(
     id: document.id,
     legalDocumentId: document.legalDocumentId,
     documentType: document.documentType,
+    locale: document.locale,
     slug: document.slug,
     title: document.title,
     documentVersion: document.documentVersion,

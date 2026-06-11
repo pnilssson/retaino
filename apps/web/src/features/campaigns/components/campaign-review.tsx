@@ -7,6 +7,7 @@ import {
   DollarSign,
   UserCheck,
 } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { InfoTooltip } from '@/components/info-tooltip';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
@@ -35,6 +36,7 @@ export function CampaignReview({
   senderReady: boolean;
   values: CampaignFormValues;
 }) {
+  const locale = useLocale();
   const campaignId = campaign?.id ?? null;
   const audiencePreview = useCampaignAudiencePreview({
     audienceRule: values.audienceRule,
@@ -179,7 +181,7 @@ export function CampaignReview({
           {campaign && campaign.status !== 'draft' ? (
             <ReviewItem
               label="Send status"
-              value={campaignSendStatusText(campaign)}
+              value={campaignSendStatusText(campaign, locale)}
             />
           ) : null}
         </section>

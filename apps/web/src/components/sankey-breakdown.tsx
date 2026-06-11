@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import {
   Layer,
   Rectangle,
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/chart';
 import { MetricSummaryEntry } from '@/components/metric-summary-entry';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { getIntlLocale } from '@/lib/locale-format';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 
@@ -67,6 +69,7 @@ export function SankeyBreakdown({
   } satisfies ChartConfig;
   const data = toRenderableSankeyData(nodes, links);
   const shouldRenderDesktopChart = useMediaQuery('(min-width: 640px)');
+  const locale = useLocale();
 
   return (
     <div className={cn('grid gap-4', className)}>
@@ -85,7 +88,7 @@ export function SankeyBreakdown({
           {summary.map((item) => (
             <div key={item.label}>
               <dt>{item.label}</dt>
-              <dd>{formatCount(item.value)}</dd>
+              <dd>{formatCount(item.value, locale)}</dd>
             </div>
           ))}
         </dl>
@@ -105,7 +108,7 @@ export function SankeyBreakdown({
                   isFirstRow ? 'border-t-0 pt-0' : 'pt-3',
                   isLastRow ? 'pb-0' : 'pb-3',
                 )}
-                detail={formatCount(item.value)}
+                detail={formatCount(item.value, locale)}
                 icon={item.icon}
                 iconClassName={item.iconClassName}
                 key={item.label}
@@ -150,16 +153,19 @@ export function SankeyBreakdown({
 }
 
 function SankeyNode(props: SankeyNodeProps) {
-  return <SankeyNodeContent {...props} />;
+  const locale = useLocale();
+
+  return <SankeyNodeContent {...props} locale={locale} />;
 }
 
 function SankeyNodeContent({
   height,
+  locale,
   payload,
   width,
   x,
   y,
-}: SankeyNodeProps) {
+}: SankeyNodeProps & { locale: string }) {
   const node = payload as unknown as SankeyBreakdownNode & {
     sourceNodes?: number[];
     targetNodes?: number[];
@@ -203,7 +209,7 @@ function SankeyNodeContent({
           x={textX}
           y={y + height / 2 + 8}
         >
-          {formatCount(value)}
+          {formatCount(value, locale)}
         </text>
       ) : null}
     </Layer>
@@ -248,8 +254,6 @@ function toRenderableSankeyData(
   };
 }
 
-const countFormatter = new Intl.NumberFormat();
-
-function formatCount(value: number) {
-  return countFormatter.format(value);
+function formatCount(value: number, locale: string) {
+  return new Intl.NumberFormat(getIntlLocale(locale)).format(value);
 }

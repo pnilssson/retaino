@@ -36,6 +36,33 @@ describe('Stripe config', () => {
     expect(getStripeConfig(stripeBindings).checkoutDisplayName).toBe('Retaino');
   });
 
+  it('prefixes Stripe app redirect URLs with the request locale', () => {
+    expect(getStripeConfig(stripeBindings, 'en')).toMatchObject({
+      cancelUrl: 'https://retaino.test/en/app/settings/billing',
+      returnUrl: 'https://retaino.test/en/app/settings/billing',
+      successUrl: 'https://retaino.test/en/app/settings/billing/success',
+    });
+  });
+
+  it('replaces an existing locale prefix in Stripe app redirect URLs', () => {
+    expect(
+      getStripeConfig(
+        {
+          ...stripeBindings,
+          STRIPE_CANCEL_URL: 'https://retaino.test/en/app/settings/billing',
+          STRIPE_RETURN_URL: 'https://retaino.test/en/app/settings/billing',
+          STRIPE_SUCCESS_URL:
+            'https://retaino.test/en/app/settings/billing/success',
+        },
+        'sv',
+      ),
+    ).toMatchObject({
+      cancelUrl: 'https://retaino.test/sv/app/settings/billing',
+      returnUrl: 'https://retaino.test/sv/app/settings/billing',
+      successUrl: 'https://retaino.test/sv/app/settings/billing/success',
+    });
+  });
+
   it('allows overriding the per-checkout display name without changing account branding', () => {
     expect(
       getStripeConfig({

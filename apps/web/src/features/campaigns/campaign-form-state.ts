@@ -6,6 +6,7 @@ import {
   type CreateCampaignDraftInput,
   type UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
+import { getIntlLocale } from '@/lib/locale-format';
 
 export type CampaignFormValues = {
   name: string;
@@ -178,29 +179,29 @@ export function campaignStatusNotice(campaign: Campaign) {
   return null;
 }
 
-export function campaignSendStatusText(campaign: Campaign) {
+export function campaignSendStatusText(campaign: Campaign, locale: string) {
   if (campaign.status === 'sending') {
     return campaign.sendStartedAt
-      ? `Sending started ${formatDateTime(campaign.sendStartedAt)}.`
+      ? `Sending started ${formatDateTime(campaign.sendStartedAt, locale)}.`
       : 'Sending is in progress.';
   }
 
   if (campaign.status === 'sent') {
     return campaign.sentAt
-      ? `Sent ${formatDateTime(campaign.sentAt)}.`
+      ? `Sent ${formatDateTime(campaign.sentAt, locale)}.`
       : 'Campaign sent.';
   }
 
   if (campaign.status === 'failed') {
     const failedAt = campaign.failedAt
-      ? `Send failed ${formatDateTime(campaign.failedAt)}.`
+      ? `Send failed ${formatDateTime(campaign.failedAt, locale)}.`
       : 'Send failed.';
 
     return `${failedAt} ${CAMPAIGN_SEND_FAILURE_MESSAGE}`;
   }
 
   return campaign.readyToSendAt
-    ? `Ready to send since ${formatDateTime(campaign.readyToSendAt)}.`
+    ? `Ready to send since ${formatDateTime(campaign.readyToSendAt, locale)}.`
     : 'Ready to send.';
 }
 
@@ -249,8 +250,8 @@ export function isPreviewableAudienceRule(rule: CampaignAudienceRule) {
   );
 }
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+function formatDateTime(value: string, locale: string) {
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));

@@ -8,7 +8,8 @@ import {
   type RowSelectionState,
 } from '@tanstack/react-table';
 import type { Campaign } from '@retaino/shared/contracts';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { useLocale } from 'next-intl';
 import type { ReactNode } from 'react';
 import { DataTable } from '@/components/data-table';
 import {
@@ -17,6 +18,7 @@ import {
   type TableSortDirection,
 } from '@/components/sortable-table-header';
 import { Checkbox } from '@/components/ui/checkbox';
+import { getIntlLocale } from '@/lib/locale-format';
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
@@ -82,10 +84,12 @@ export function CampaignsTable({
   sort: CampaignListSort;
   tableActions?: ReactNode;
 }) {
+  const locale = useLocale();
   const campaignColumns = createCampaignColumns({
     direction,
     onSort,
     organizationId: organizationId ?? null,
+    locale,
     sort,
     tableActions,
   });
@@ -116,12 +120,14 @@ export function CampaignsTable({
 
 function createCampaignColumns({
   direction,
+  locale,
   onSort,
   organizationId,
   sort,
   tableActions,
 }: {
   direction: TableSortDirection;
+  locale: string;
   onSort: (sort: CampaignListSort) => void;
   organizationId: string | null;
   sort: CampaignListSort;
@@ -203,7 +209,7 @@ function createCampaignColumns({
       }),
       cell: ({ row }) => (
         <LinkedCell campaign={row.original}>
-          {formatCampaignDate(row.original.createdAt)}
+          {formatCampaignDate(row.original.createdAt, locale)}
         </LinkedCell>
       ),
     },
@@ -216,7 +222,7 @@ function createCampaignColumns({
       }),
       cell: ({ row }) => (
         <LinkedCell campaign={row.original}>
-          {formatCampaignDate(row.original.updatedAt)}
+          {formatCampaignDate(row.original.updatedAt, locale)}
         </LinkedCell>
       ),
     },
@@ -271,8 +277,8 @@ function LinkedCell({
   );
 }
 
-function formatCampaignDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+function formatCampaignDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
     dateStyle: 'medium',
   }).format(new Date(value));
 }

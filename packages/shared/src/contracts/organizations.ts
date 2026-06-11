@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { idSchema, nonEmptyStringSchema, timestampSchema } from '../schemas';
 import { currencyCodeSchema } from '../money';
+import { localeSchema } from './legal';
 import {
   legalBundleDocumentSnapshotSchema,
   type LegalBundle,
@@ -37,6 +38,7 @@ export const organizationLegalAcceptanceSchema = z.object({
   id: idSchema,
   organizationId: idSchema,
   userId: idSchema,
+  locale: localeSchema,
   bundleVersion: nonEmptyStringSchema,
   bundleHash: z.string().regex(/^[a-f0-9]{64}$/),
   documentsSnapshot: z.array(legalBundleDocumentSnapshotSchema),

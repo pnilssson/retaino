@@ -10,7 +10,8 @@ import {
   Trash2,
   Undo2,
 } from 'lucide-react';
-import Link from 'next/link';
+import { useLocale } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { useState } from 'react';
 import {
   type ContactDetail,
@@ -132,6 +133,7 @@ function ContactDetailContent({
   contact: ContactDetail;
   phoneCountryCode: string;
 }) {
+  const locale = useLocale();
   const [isEditing, setIsEditing] = useState(false);
 
   return (
@@ -162,7 +164,7 @@ function ContactDetailContent({
               <DetailField label="Name" value={contact.name ?? 'Unnamed'} />
               <DetailField label="Phone" value={contact.phone ?? 'No phone'} />
               <DetailField label="Email" value={contact.email ?? 'No email'} />
-              <DetailField label="Last booking" value={formatDate(contact.lastBookingAt)} />
+              <DetailField label="Last booking" value={formatDate(contact.lastBookingAt, locale)} />
             </dl>
           )}
       </ContentSection>
@@ -200,14 +202,15 @@ function ContactDetailContent({
         title="Activity"
       >
           <dl className="grid gap-3 sm:grid-cols-2">
-            <DetailField label="Last contacted" value={formatDate(contact.lastContactedAt)} />
-            <DetailField label="Imported" value={formatDateTime(contact.createdAt)} />
-            <DetailField label="Updated" value={formatDateTime(contact.updatedAt)} />
+            <DetailField label="Last contacted" value={formatDate(contact.lastContactedAt, locale)} />
+            <DetailField label="Imported" value={formatDateTime(contact.createdAt, locale)} />
+            <DetailField label="Updated" value={formatDateTime(contact.updatedAt, locale)} />
           </dl>
       </ContentSection>
 
       <ContactSuppressionSection
         contact={contact}
+        locale={locale}
       />
       <DeleteContactSection contact={contact} />
     </div>
@@ -333,8 +336,10 @@ function ContactEditForm({
 
 function ContactSuppressionSection({
   contact,
+  locale,
 }: {
   contact: ContactDetail;
+  locale: string;
 }) {
   const suppress = useSuppressContact(contact.organizationId, contact.id);
   const unsuppress = useDeleteContactSuppression(
@@ -361,6 +366,7 @@ function ContactSuppressionSection({
                   unsuppress.mutation.variables === suppression.id
                 }
                 key={suppression.id}
+                locale={locale}
                 onAllowAgain={() => unsuppress.mutation.mutate(suppression.id)}
                 suppression={suppression}
               />
@@ -404,10 +410,12 @@ function ContactSuppressionSection({
 
 function SuppressionRow({
   isPending,
+  locale,
   onAllowAgain,
   suppression,
 }: {
   isPending: boolean;
+  locale: string;
   onAllowAgain: () => void;
   suppression: ContactSuppression;
 }) {
@@ -420,7 +428,7 @@ function SuppressionRow({
         <p className={cn('break-all', textStyles.body)}>{suppression.value}</p>
         <p className={textStyles.meta}>
           {formatSuppressionReason(suppression.reason)},{' '}
-          {formatDateTime(suppression.createdAt)}
+          {formatDateTime(suppression.createdAt, locale)}
         </p>
       </div>
       <Button

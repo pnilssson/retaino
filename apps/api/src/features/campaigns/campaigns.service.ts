@@ -23,7 +23,7 @@ import {
   type CampaignRecipientForSend,
   type DbClient,
 } from '@retaino/db';
-import { renderCampaignSms, TRACKING_CODE_LENGTH } from '@retaino/shared';
+import { DEFAULT_LOCALE, renderCampaignSms, TRACKING_CODE_LENGTH } from '@retaino/shared';
 import {
   CAMPAIGN_SEND_FAILURE_MESSAGE,
   normalizePhoneNumber,
@@ -351,7 +351,7 @@ export async function processCampaignSend(input: {
       campaignId: input.campaignId,
     }),
     getOrganizationProfileByOrganizationId(input.db, input.organizationId),
-    getCurrentLegalBundle(input.db),
+    getCurrentLegalBundle(input.db, DEFAULT_LOCALE),
   ]);
 
   if (!campaign) {

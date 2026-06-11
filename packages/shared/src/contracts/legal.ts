@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { LOCALES } from '../locale';
 import { idSchema, nonEmptyStringSchema, timestampSchema } from '../schemas';
 
 export const LEGAL_DOCUMENT_TYPES = [
@@ -33,6 +34,7 @@ export type RequiredLegalDocumentType =
 export type LegalBundleDocumentType =
   (typeof REQUIRED_LEGAL_BUNDLE_DOCUMENT_TYPES)[number];
 
+export const localeSchema = z.enum(LOCALES);
 export const legalDocumentTypeSchema = z.enum(LEGAL_DOCUMENT_TYPES);
 export const requiredLegalDocumentTypeSchema = z.enum(
   REQUIRED_LEGAL_DOCUMENT_TYPES,
@@ -45,6 +47,7 @@ export const legalDocumentVersionSchema = z.object({
   id: idSchema,
   legalDocumentId: idSchema,
   documentType: legalDocumentTypeSchema,
+  locale: localeSchema,
   slug: nonEmptyStringSchema,
   title: nonEmptyStringSchema,
   documentVersion: nonEmptyStringSchema,
@@ -69,6 +72,7 @@ export const legalBundleDocumentSnapshotSchema =
     id: true,
     legalDocumentId: true,
     documentType: true,
+    locale: true,
     slug: true,
     title: true,
     documentVersion: true,
@@ -82,6 +86,7 @@ export const legalBundleDocumentSnapshotSchema =
 
 export const legalBundleSchema = z.object({
   version: nonEmptyStringSchema,
+  locale: localeSchema,
   hash: z.string().regex(/^[a-f0-9]{64}$/),
   documents: z.array(legalBundleDocumentSnapshotSchema),
 });

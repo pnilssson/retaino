@@ -85,8 +85,6 @@ export const overviewResponseSchema = z.object({
     z.object({
       id: nonEmptyStringSchema,
       tone: overviewAttentionToneSchema,
-      title: nonEmptyStringSchema,
-      description: nonEmptyStringSchema,
       action: overviewAttentionActionSchema,
     }),
   ),

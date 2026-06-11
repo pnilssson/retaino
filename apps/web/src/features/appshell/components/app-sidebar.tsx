@@ -17,8 +17,10 @@ import {
   UserCircle,
   UsersRound,
 } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
+import { usePathname } from '@/i18n/navigation';
+import { LocaleSwitcher } from '@/components/locale-switcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,22 +59,22 @@ import { SidebarAvatar } from './sidebar-avatar';
 
 const navigationItems = [
   {
-    title: 'Overview',
+    titleKey: 'overview',
     href: routes.overview,
     icon: LayoutDashboard
   },
   {
-    title: 'Contacts',
+    titleKey: 'contacts',
     href: routes.contacts,
     icon: UsersRound
   },
   {
-    title: 'Campaigns',
+    titleKey: 'campaigns',
     href: routes.campaigns,
     icon: Megaphone
   },
   {
-    title: 'Inbox',
+    titleKey: 'inbox',
     href: routes.inbox,
     icon: Inbox,
     badge: 'inbox'
@@ -81,18 +83,20 @@ const navigationItems = [
 
 const managementItems = [
   {
-    title: 'Organization',
+    titleKey: 'organization',
     href: routes.settings,
     icon: Building2
   },
   {
-    title: 'Billing',
+    titleKey: 'billing',
     href: routes.billing,
     icon: CreditCard
   }
 ];
 
 export function AppSidebar() {
+  const t = useTranslations('Chrome');
+  const locale = useLocale();
   const pathname = usePathname();
   const { isMobile } = useSidebar();
   const { openUserProfile, signOut } = useClerk();
@@ -107,7 +111,7 @@ export function AppSidebar() {
   const unreadInboxCount =
     inboxSummary.data?.unreadConversationCount ?? 0;
   const userEmail = user?.primaryEmailAddress?.emailAddress ?? null;
-  const userName = user?.fullName ?? userEmail ?? 'Account';
+  const userName = user?.fullName ?? userEmail ?? t('account');
   const userInitials = initialsFor(user?.fullName ?? userEmail, 'AC');
 
   return (
@@ -118,7 +122,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Operate</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('operate')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => (
@@ -126,11 +130,11 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={isNavigationItemActive(pathname, item.href)}
-                    tooltip={item.title}
+                    tooltip={t(item.titleKey)}
                   >
                     <Link href={item.href}>
                       <item.icon aria-hidden="true" strokeWidth={1.5} />
-                      <span>{item.title}</span>
+                      <span>{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                   {item.badge === 'inbox' && unreadInboxCount > 0 ? (
@@ -144,7 +148,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Manage</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('manage')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {managementItems.map((item) => (
@@ -152,11 +156,11 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={pathname === item.href}
-                    tooltip={item.title}
+                    tooltip={t(item.titleKey)}
                   >
                     <Link href={item.href}>
                       <item.icon aria-hidden="true" strokeWidth={1.5} />
-                      <span>{item.title}</span>
+                      <span>{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -210,46 +214,49 @@ export function AppSidebar() {
                 </DropdownMenuLabel>
                 <DropdownMenuItem onSelect={() => openUserProfile()}>
                   <UserCircle aria-hidden="true" strokeWidth={1.5} />
-                  Profile
+                  {t('profile')}
                 </DropdownMenuItem>
+                <div className="px-1 py-1">
+                  <LocaleSwitcher className="w-full justify-start px-2" />
+                </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
                     <Shield aria-hidden="true" strokeWidth={1.5} />
-                    Legal and privacy
+                    {t('legalAndPrivacy')}
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
                     <DropdownMenuItem asChild>
                       <Link href={routes.terms}>
                         <Shield aria-hidden="true" strokeWidth={1.5} />
-                        Terms and Conditions
+                        {t('terms')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href={routes.privacy}>
                         <Shield aria-hidden="true" strokeWidth={1.5} />
-                        Privacy Policy
+                        {t('privacyPolicy')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href={routes.cookies}>
                         <Cookie aria-hidden="true" strokeWidth={1.5} />
-                        Cookie Policy
+                        {t('cookiePolicy')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={openPreferences}>
                       <Cookie aria-hidden="true" strokeWidth={1.5} />
-                      Cookie preferences
+                      {t('cookiePreferences')}
                     </DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onSelect={() => void signOut({ redirectUrl: routes.home })}
+                  onSelect={() => void signOut({ redirectUrl: `/${locale}` })}
                   variant="destructive"
                 >
                   <LogOut aria-hidden="true" strokeWidth={1.5} />
-                  Sign out
+                  {t('signOut')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

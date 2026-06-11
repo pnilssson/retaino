@@ -4,7 +4,8 @@ import {
   motion,
   useReducedMotion,
 } from 'motion/react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 
 import { Button } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
@@ -13,6 +14,7 @@ import { cn } from '@/lib/utils';
 
 export function HeroSection() {
   const shouldReduceMotion = useReducedMotion();
+  const t = useTranslations('Marketing');
 
   return (
     <section className="bg-background">
@@ -29,9 +31,9 @@ export function HeroSection() {
                   duration: shouldReduceMotion ? 0 : 0.55
                 }}
               >
-                Keep the clients you already paid to acquire{' '}
+                {t('heroTitle')}{' '}
                 <span className="text-muted-foreground">
-                  by turning existing relationships into booked appointments.
+                  {t('heroMuted')}
                 </span>
               </motion.h1>
 
@@ -46,7 +48,7 @@ export function HeroSection() {
               >
                 <Button asChild className="h-11 px-5" size="lg">
                   <Link href={routes.signIn} prefetch={false}>
-                    Start reactivation
+                    {t('heroCta')}
                   </Link>
                 </Button>
                 <Button
@@ -56,7 +58,7 @@ export function HeroSection() {
                   variant="outline"
                 >
                   <Link href={routes.signIn} prefetch={false}>
-                    Sign in
+                    {t('heroSecondaryCta')}
                   </Link>
                 </Button>
               </motion.div>

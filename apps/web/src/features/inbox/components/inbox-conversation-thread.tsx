@@ -5,6 +5,7 @@ import type {
   InboxMessage,
 } from '@retaino/shared/contracts';
 import { Inbox } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import {
   useEffect,
   useRef,
@@ -37,6 +38,7 @@ export function InboxConversationThread({
   messages: InboxMessage[];
   organizationId: string | null;
 }) {
+  const locale = useLocale();
   const messageListRef = useRef<HTMLDivElement>(null);
   const campaignMessageId = messages.find(
     (message) => message.direction === 'outbound' && message.campaignName,
@@ -132,11 +134,12 @@ export function InboxConversationThread({
                           textStyles.meta,
                         )}
                       >
-                        {formatInboxDateSeparator(time)}
+                        {formatInboxDateSeparator(time, locale)}
                       </span>
                     </div>
                   ) : null}
                   <InboxMessageBubble
+                    locale={locale}
                     message={message}
                     showCampaignBadge={message.id === campaignMessageId}
                   />
@@ -163,9 +166,11 @@ export function InboxConversationThread({
 }
 
 function InboxMessageBubble({
+  locale,
   message,
   showCampaignBadge,
 }: {
+  locale: string;
   message: InboxMessage;
   showCampaignBadge: boolean;
 }) {
@@ -223,7 +228,7 @@ function InboxMessageBubble({
               isOutbound ? 'text-primary-foreground/75' : '',
             )}
           >
-            {formatInboxMessageTime(time)}
+            {formatInboxMessageTime(time, locale)}
           </span>
           {isOutbound ? (
             <span

@@ -9,6 +9,7 @@ type ApiClientOptions = {
   baseUrl?: string;
   fetch?: typeof fetch;
   getToken: TokenProvider;
+  locale?: string;
 };
 
 export type RequestOptions = {
@@ -60,6 +61,10 @@ export function createApiClient(options: ApiClientOptions) {
       headers.set('authorization', `Bearer ${token}`);
     }
 
+    if (options.locale) {
+      headers.set('x-retaino-locale', options.locale);
+    }
+
     const init: RequestInit = {
       method: requestOptions.method ?? 'GET'
     };
@@ -87,6 +92,10 @@ export function createApiClient(options: ApiClientOptions) {
 
     if (token) {
       headers.set('authorization', `Bearer ${token}`);
+    }
+
+    if (options.locale) {
+      headers.set('x-retaino-locale', options.locale);
     }
 
     return send<TResponse>(fetcher, baseUrl, path, {

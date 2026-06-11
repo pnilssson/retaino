@@ -2,6 +2,7 @@ import {
   legalDocumentVersionSchema,
   type LegalDocumentVersion,
 } from '@retaino/shared/contracts';
+import { getLocale } from 'next-intl/server';
 import {
   ApiClientError,
   fetchPublicApi,
@@ -26,10 +27,14 @@ export async function fetchLegalDocumentVersion(input: {
 
 async function fetchLegalDocument(path: string) {
   let payload: LegalDocumentResponse;
+  const locale = await getLocale();
 
   try {
     payload = await fetchPublicApi<LegalDocumentResponse>(path, {
       cache: 'no-store',
+      headers: {
+        'x-retaino-locale': locale,
+      },
     });
   } catch (error) {
     if (error instanceof ApiClientError && error.status === 404) {

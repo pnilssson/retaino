@@ -7,8 +7,8 @@ import {
   AlertTriangle,
   FileText,
 } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { Link } from '@/i18n/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { LoadingState } from '@/components/loading-state';
 import { Button } from '@/components/ui/button';
 import { ApiClientError } from '@/lib/api-client';

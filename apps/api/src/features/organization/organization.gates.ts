@@ -1,5 +1,6 @@
 import type { Context } from 'hono';
 import { apiError } from '../../lib/errors';
+import { requestLocale } from '../../lib/locale';
 import type { AppEnv } from '../../types';
 import { getOrganizationSessionState } from './organization.service';
 
@@ -42,6 +43,7 @@ async function requireOrganizationReadiness(
   const state = await getOrganizationSessionState(
     c.get('db'),
     c.get('organization'),
+    requestLocale(c),
   );
 
   if (!state.readiness.ready) {

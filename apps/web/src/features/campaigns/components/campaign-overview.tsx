@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import type { Campaign } from '@retaino/shared/contracts';
+import { useLocale } from 'next-intl';
 import { InfoTooltip } from '@/components/info-tooltip';
 import { StatusBadge } from '@/components/status-badge';
 import { ContentSection } from '@/features/appshell/components/content-section';
@@ -27,6 +28,7 @@ export function CampaignOverview({
   organizationId: string | null;
   sendAccepted?: boolean;
 }) {
+  const locale = useLocale();
   const values = campaignToFormValues(campaign);
 
   return (
@@ -82,7 +84,7 @@ export function CampaignOverview({
                 value={
                   sendAccepted
                     ? 'Send accepted. Waiting for delivery activity.'
-                    : campaignSendStatusText(campaign)
+                    : campaignSendStatusText(campaign, locale)
                 }
               />
             </dl>

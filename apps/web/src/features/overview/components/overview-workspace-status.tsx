@@ -9,6 +9,7 @@ import {
   Phone,
   RadioTower,
 } from "lucide-react";
+import { useLocale } from "next-intl";
 import { MetricSummaryEntry } from "@/components/metric-summary-entry";
 import { ContentSection } from "@/features/appshell/components/content-section";
 import { formatOverviewNumber } from "../overview-format";
@@ -22,6 +23,7 @@ export function OverviewWorkspaceStatus({
   credits: number;
   sender: OverviewSender;
 }) {
+  const locale = useLocale();
   const senderStatus = senderStatusView(sender.status);
 
   return (
@@ -34,7 +36,7 @@ export function OverviewWorkspaceStatus({
             icon={Coins}
             iconClassName={creditIconClassName(credits)}
             label="SMS credits"
-            value={formatOverviewNumber(credits)}
+            value={formatOverviewNumber(credits, locale)}
           />
         </dl>
       </ContentSection>

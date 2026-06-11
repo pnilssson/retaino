@@ -13,6 +13,7 @@ export const legalDocuments = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     documentType: text('document_type').notNull(),
+    locale: text('locale').notNull().default('sv'),
     slug: text('slug').notNull(),
     title: text('title').notNull(),
     publicVisible: boolean('public_visible').notNull().default(true),
@@ -22,7 +23,10 @@ export const legalDocuments = pgTable(
     updatedAt,
   },
   (table) => [
-    uniqueIndex('legal_documents_document_type_idx').on(table.documentType),
-    uniqueIndex('legal_documents_slug_idx').on(table.slug),
+    uniqueIndex('legal_documents_document_type_locale_idx').on(
+      table.documentType,
+      table.locale,
+    ),
+    uniqueIndex('legal_documents_slug_locale_idx').on(table.slug, table.locale),
   ],
 );

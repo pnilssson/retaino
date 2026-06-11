@@ -87,6 +87,7 @@ const legalDocumentVersions: LegalDocumentVersion[] = [
     id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
     legalDocumentId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1',
     documentType: 'terms',
+      locale: 'sv',
     slug: 'terms',
     title: 'Retaino Terms and Conditions',
     documentVersion: '2026-05-08',
@@ -104,6 +105,7 @@ const legalDocumentVersions: LegalDocumentVersion[] = [
     id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
     legalDocumentId: 'cccccccc-cccc-4ccc-8ccc-ccccccccccc1',
     documentType: 'dpa',
+      locale: 'sv',
     slug: 'dpa',
     title: 'Retaino Data Processing Agreement',
     documentVersion: '2026-05-08',
@@ -121,11 +123,13 @@ const legalDocumentVersions: LegalDocumentVersion[] = [
 
 const legalBundle: LegalBundle = {
   version: '2026-05-09',
+  locale: 'sv',
   hash: 'f'.repeat(64),
   documents: legalDocumentVersions.map((document) => ({
     id: document.id,
     legalDocumentId: document.legalDocumentId,
     documentType: document.documentType,
+    locale: document.locale,
     slug: document.slug,
     title: document.title,
     documentVersion: document.documentVersion,
@@ -142,6 +146,7 @@ const legalAcceptance: OrganizationLegalAcceptance = {
   id: '99999999-9999-4999-8999-999999999999',
   organizationId: organization.id,
   userId: user.id,
+  locale: 'sv',
   bundleVersion: legalBundle.version,
   bundleHash: legalBundle.hash,
   documentsSnapshot: legalBundle.documents,

@@ -9,7 +9,7 @@ import {
   Loader2,
   Plus,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import {
   type ReactNode,
   useMemo,

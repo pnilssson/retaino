@@ -6,6 +6,7 @@ import type {
   PublicOrganizationSmsSender,
 } from '@retaino/shared/contracts';
 import { ExternalLink } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { InfoTooltip } from '@/components/info-tooltip';
 import {
   StatusBadge,
@@ -33,9 +34,10 @@ export function BillingStatusPanel({
   onOpenPortal: () => void;
   sender: PublicOrganizationSmsSender | null;
 }) {
+  const locale = useLocale();
   const subscription = billingStatus.subscription;
   const status = subscriptionStatusView(subscription.status);
-  const senderTooltip = senderPolicyNotice(subscription, sender);
+  const senderTooltip = senderPolicyNotice(subscription, sender, locale);
 
   return (
     <ContentSection
@@ -63,7 +65,7 @@ export function BillingStatusPanel({
         <dl className="grid gap-x-8 gap-y-4 pt-1 sm:grid-cols-4">
           <Metric
             label="SMS credits"
-            value={formatCreditCount(billingStatus.smsCredits.balance)}
+            value={formatCreditCount(billingStatus.smsCredits.balance, locale)}
           />
           <Metric
             label="Current plan"
@@ -73,7 +75,7 @@ export function BillingStatusPanel({
             label="Renews"
             value={
               subscription.currentPeriodEnd
-                ? formatBillingDate(subscription.currentPeriodEnd)
+                ? formatBillingDate(subscription.currentPeriodEnd, locale)
                 : 'Not scheduled'
             }
           />
@@ -145,13 +147,14 @@ function planLabel(planKey: NonNullable<BillingStatusResponse['subscription']['p
 function senderPolicyNotice(
   subscription: BillingStatusResponse['subscription'],
   sender: PublicOrganizationSmsSender | null,
+  locale: string,
 ): string | null {
   if (sender?.status !== 'ready') {
     return null;
   }
 
   if (subscription.cancelAtPeriodEnd && subscription.currentPeriodEnd) {
-    return `Your sender remains active until ${formatBillingDate(subscription.currentPeriodEnd)}. After that, Retaino releases the number.`;
+    return `Your sender remains active until ${formatBillingDate(subscription.currentPeriodEnd, locale)}. After that, Retaino releases the number.`;
   }
 
   return 'If the plan is canceled, Retaino releases this sender number after paid access ends.';

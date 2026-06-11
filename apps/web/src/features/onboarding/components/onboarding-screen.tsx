@@ -3,7 +3,7 @@
 import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import { RefreshCw } from 'lucide-react';
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { ApiClientError } from '@/lib/api-client';
 import { routes } from '@/lib/routes';

@@ -1,0 +1,46 @@
+{
+  "Locale": {
+    "en": "English",
+    "sv": "Svenska",
+    "switcherLabel": "Byt språk"
+  },
+  "Chrome": {
+    "account": "Konto",
+    "billing": "Fakturering",
+    "campaigns": "Kampanjer",
+    "contact": "Kontakt",
+    "contacts": "Kontakter",
+    "cookiePolicy": "Cookiepolicy",
+    "cookiePreferences": "Cookieinställningar",
+    "goToApp": "Gå till appen",
+    "homeLabel": "Retaino startsida",
+    "app": "App",
+    "importContacts": "Importera kontakter",
+    "inbox": "Inkorg",
+    "legal": "Juridiskt",
+    "legalAndPrivacy": "Juridik och integritet",
+    "manage": "Hantera",
+    "operate": "Arbeta",
+    "organization": "Organisation",
+    "overview": "Översikt",
+    "privacyPolicy": "Integritetspolicy",
+    "profile": "Profil",
+    "signIn": "Logga in",
+    "signOut": "Logga ut",
+    "startReactivation": "Starta reaktivering",
+    "terms": "Allmänna villkor",
+    "workspace": "Arbetsyta"
+  },
+  "Marketing": {
+    "footerCopyright": "Med ensamrätt.",
+    "heroCta": "Starta reaktivering",
+    "heroSecondaryCta": "Logga in",
+    "heroMuted": "genom att göra befintliga relationer till bokade besök.",
+    "heroTitle": "Behåll kunderna ni redan betalat för att nå",
+    "tagline": "Fyll kalendern med kunder ni redan har en relation till."
+  },
+  "Metadata": {
+    "title": "Retaino",
+    "description": "Fyll kalendern med kunder ni redan har en relation till."
+  }
+}

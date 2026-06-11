@@ -10,6 +10,7 @@ import {
   Check,
   ChevronsUpDown,
 } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { InfoTooltip } from '@/components/info-tooltip';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -27,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { getIntlLocale } from '@/lib/locale-format';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 
@@ -164,6 +166,7 @@ export function AudienceExclusionFields({
   ) => void;
   recentCampaignExclusionDays: CampaignAudienceRule['recentCampaignExclusionDays'];
 }) {
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const lastSentCampaign = campaigns
@@ -331,7 +334,7 @@ export function AudienceExclusionFields({
                           </span>
                           <span className={cn('block truncate', textStyles.meta)}>
                             {campaign.sentAt
-                              ? `Sent ${formatCampaignDate(campaign.sentAt)}`
+                              ? `Sent ${formatCampaignDate(campaign.sentAt, locale)}`
                               : 'Send history available'}
                           </span>
                         </span>
@@ -379,8 +382,8 @@ export function AudienceExclusionFields({
   );
 }
 
-function formatCampaignDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+function formatCampaignDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
     dateStyle: 'medium',
   }).format(new Date(value));
 }

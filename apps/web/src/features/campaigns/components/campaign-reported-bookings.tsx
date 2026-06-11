@@ -13,6 +13,7 @@ import {
   CalendarCheck,
   Info,
 } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { useState } from 'react';
 import {
   DataTable,
@@ -102,9 +103,11 @@ function ReportedBookingsTable({
   onPageChange: (page: number) => void;
   totalBookings: number;
 }) {
+  const locale = useLocale();
+
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    columns: reportedBookingColumns,
+    columns: createReportedBookingColumns(locale),
     data: bookings,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
@@ -131,7 +134,10 @@ function ReportedBookingsTable({
   );
 }
 
-const reportedBookingColumns: ColumnDef<ReportedBookingRow>[] = [
+function createReportedBookingColumns(
+  locale: string,
+): ColumnDef<ReportedBookingRow>[] {
+  return [
   {
     id: 'customer',
     header: 'Customer',
@@ -142,7 +148,7 @@ const reportedBookingColumns: ColumnDef<ReportedBookingRow>[] = [
   {
     accessorKey: 'bookingDate',
     header: 'Booking date',
-    cell: ({ row }) => formatReportDate(row.original.bookingDate),
+    cell: ({ row }) => formatReportDate(row.original.bookingDate, locale),
   },
   {
     accessorKey: 'service',
@@ -169,11 +175,13 @@ const reportedBookingColumns: ColumnDef<ReportedBookingRow>[] = [
           : formatReportCurrency(
               row.original.revenueAmountMinor,
               row.original.currency,
+              locale,
             )}
       </div>
     ),
   },
-];
+  ];
+}
 
 function bookingTitle(booking: ReportedBookingRow) {
   return (

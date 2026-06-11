@@ -5,6 +5,7 @@ import type {
   InboxConversationSummary,
 } from '@retaino/shared/contracts';
 import { Search } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { BlockedStatusBadge } from '@/components/blocked-status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,8 @@ export function InboxConversationList({
   search: string;
   selectedConversationId: string | null;
 }) {
+  const locale = useLocale();
+
   return (
     <section
       className={cn(
@@ -119,9 +122,10 @@ export function InboxConversationList({
                         )}
                         title={formatInboxDateTime(
                           conversation.latestMessageAt,
+                          locale,
                         )}
                       >
-                        {formatInboxListTime(conversation.latestMessageAt)}
+                        {formatInboxListTime(conversation.latestMessageAt, locale)}
                       </span>
                       {conversation.unreadCount > 0 ? (
                         <Badge className="h-5 min-w-5 rounded-full px-1.5">

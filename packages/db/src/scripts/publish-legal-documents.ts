@@ -30,16 +30,17 @@ async function main() {
       const contentHash = hashLegalBody(bodyMdx);
       const [legalDocument] = await connection.db
         .insert(legalDocuments)
-        .values({
-          documentType: document.documentType,
-          slug: document.slug,
-          title: document.title,
+          .values({
+            documentType: document.documentType,
+            locale: document.locale,
+            slug: document.slug,
+            title: document.title,
           publicVisible: document.publicVisible,
           acceptanceRequired: document.acceptanceRequired,
           sortOrder: document.sortOrder,
         })
         .onConflictDoUpdate({
-          target: legalDocuments.documentType,
+          target: [legalDocuments.documentType, legalDocuments.locale],
           set: {
             slug: document.slug,
             title: document.title,
@@ -61,6 +62,7 @@ async function main() {
         .where(
           and(
             eq(legalDocumentVersions.documentType, document.documentType),
+            eq(legalDocumentVersions.locale, document.locale),
             eq(legalDocumentVersions.documentVersion, document.version),
           ),
         )
@@ -86,6 +88,7 @@ async function main() {
       await connection.db.insert(legalDocumentVersions).values({
         legalDocumentId: legalDocument.id,
         documentType: document.documentType,
+        locale: document.locale,
         documentVersion: document.version,
         title: document.title,
         bodyMdx,

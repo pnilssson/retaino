@@ -70,6 +70,7 @@ function toOrganizationLegalAcceptance(
     id: row.id,
     organizationId: row.organizationId,
     userId: row.userId,
+    locale: row.locale as OrganizationLegalAcceptance['locale'],
     bundleVersion: row.bundleVersion,
     bundleHash: row.bundleHash,
     documentsSnapshot: toDocumentSnapshots(row.documentsSnapshot),
@@ -232,6 +233,7 @@ export async function createOrganizationLegalAcceptance(
     .values({
       organizationId: input.organizationId,
       userId: input.userId,
+      locale: input.legalBundle.locale,
       bundleVersion: input.legalBundle.version,
       bundleHash: input.legalBundle.hash,
       documentsSnapshot: input.legalBundle.documents,

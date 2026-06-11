@@ -3,6 +3,7 @@ import type {
   ContactImportStatus,
   ContactImportTargetField,
 } from '@retaino/shared/contracts';
+import { getIntlLocale } from '@/lib/locale-format';
 
 const importStatusLabels: Record<ContactImportStatus, string> = {
   completed: 'Completed',
@@ -40,22 +41,22 @@ const importIssueLabels: Record<string, string> = {
   suppressed_contact_method: 'Suppressed phone or email',
 };
 
-export function formatDate(value: string | null) {
+export function formatDate(value: string | null, locale: string) {
   if (!value) {
     return 'Not set';
   }
 
-  return new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(
-    new Date(value),
-  );
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
+    dateStyle: 'medium',
+  }).format(new Date(value));
 }
 
-export function formatDateTime(value: string | null) {
+export function formatDateTime(value: string | null, locale: string) {
   if (!value) {
     return 'Not set';
   }
 
-  return new Intl.DateTimeFormat('en', {
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));

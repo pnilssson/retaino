@@ -1,6 +1,7 @@
 "use client";
 
 import type { CampaignSmsTestContact } from '@retaino/shared/contracts';
+import { useLocale } from 'next-intl';
 import { useState } from 'react';
 import {
   SearchableCombobox,
@@ -8,6 +9,7 @@ import {
 } from '@/components/searchable-combobox';
 import { InfoTooltip } from '@/components/info-tooltip';
 import { Label } from '@/components/ui/label';
+import { getIntlLocale } from '@/lib/locale-format';
 import { useCampaignTestSmsContacts } from '../hooks/use-campaign-test-sms-contacts';
 
 export function CampaignTestSampleContactSelect({
@@ -23,6 +25,7 @@ export function CampaignTestSampleContactSelect({
   organizationId: string | null;
   value: CampaignSmsTestContact | null;
 }) {
+  const locale = useLocale();
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const contacts = useCampaignTestSmsContacts({
@@ -33,7 +36,7 @@ export function CampaignTestSampleContactSelect({
   });
   const options: Array<SearchableComboboxOption<CampaignSmsTestContact>> =
     (contacts.data?.contacts ?? []).map((candidate) => ({
-      description: testSampleDescription(candidate),
+      description: testSampleDescription(candidate, locale),
       key: candidate.id,
       label:
         candidate.name ??
@@ -97,18 +100,18 @@ function sampleContactSearchText(contact: CampaignSmsTestContact | null) {
     .join(' ');
 }
 
-function testSampleDescription(contact: CampaignSmsTestContact) {
+function testSampleDescription(contact: CampaignSmsTestContact, locale: string) {
   return [
     contact.phone,
     contact.email,
     contact.lastBookingAt
-      ? `Last booking ${formatTestSampleDate(contact.lastBookingAt)}`
+      ? `Last booking ${formatTestSampleDate(contact.lastBookingAt, locale)}`
       : null,
   ].filter(Boolean).join(', ');
 }
 
-function formatTestSampleDate(value: string) {
-  return new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(
-    new Date(value),
-  );
+function formatTestSampleDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
+    dateStyle: 'medium',
+  }).format(new Date(value));
 }
