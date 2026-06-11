@@ -89,7 +89,6 @@ function SettingsContent({
       <section className="mx-auto grid w-full max-w-6xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={headerActions}
-          description="Manage organization identity, legal agreement status, and team access from one place."
           eyebrow="Organization settings"
           title={session.organization.name}
         />

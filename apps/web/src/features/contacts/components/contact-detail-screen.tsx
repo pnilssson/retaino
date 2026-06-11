@@ -3,7 +3,7 @@
 import { useForm } from '@tanstack/react-form';
 import {
   ArrowLeft,
-  Ban,
+  PhoneOff,
   Loader2,
   MailX,
   Pencil,
@@ -98,7 +98,6 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
               </Link>
             </Button>
           }
-          description="Review contact data, SMS readiness, and suppression state."
           eyebrow="Contact"
           title={title}
         />
@@ -145,7 +144,7 @@ function ContactDetailContent({
                   type="button"
                 >
                   <Pencil aria-hidden="true" data-icon="inline-start" />
-                  Edit contact
+                  Edit
                 </Button>
           ) : null
         }
@@ -379,7 +378,7 @@ function ContactSuppressionSection({
             type="button"
             variant="outline"
           >
-            <Ban aria-hidden="true" data-icon="inline-start" />
+            <PhoneOff aria-hidden="true" data-icon="inline-start" />
             Suppress phone
           </Button>
           <Button
@@ -461,7 +460,7 @@ function DeleteContactSection({ contact }: { contact: ContactDetail }) {
               trigger={
                 <Button type="button" variant="destructive">
                   <Trash2 aria-hidden="true" data-icon="inline-start" />
-                  Delete contact
+                  Delete
                 </Button>
               }
               variant="destructive"

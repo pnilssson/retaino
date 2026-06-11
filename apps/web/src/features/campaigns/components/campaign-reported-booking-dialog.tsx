@@ -70,7 +70,7 @@ export function ReportedBookingDialog({
       <DialogTrigger asChild>
         <Button type="button">
           <Plus aria-hidden="true" data-icon="inline-start" />
-          Add bookings
+          Add
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-4xl">
@@ -126,7 +126,7 @@ export function ReportedBookingDialog({
                     variant="outline"
                   >
                     <Plus aria-hidden="true" data-icon="inline-start" />
-                    Add booking
+                    Add
                   </Button>
                 </div>
               </div>

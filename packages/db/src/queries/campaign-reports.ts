@@ -46,8 +46,9 @@ export async function getCampaignReport(
         count(*) filter (
           where direction = ${'outbound'} and status in (${'failed'}, ${'undelivered'})
         )::integer as failed_count,
-        count(*) filter (where direction = ${'inbound'})::integer
-          as inbound_reply_count,
+        count(distinct ${smsMessages.recipientId}) filter (
+          where direction = ${'inbound'}
+        )::integer as inbound_reply_count,
         coalesce(sum(estimated_segment_count) filter (
           where direction = ${'outbound'}
         ), 0)::integer as estimated_sms_segments,
