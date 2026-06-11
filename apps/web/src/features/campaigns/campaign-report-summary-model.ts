@@ -105,13 +105,13 @@ export function createResponseMetrics(
       value: formatReportNumber(report.clickCount),
     },
     {
-      detail: `One reply per recipient. ${formatReportPercent(
+      detail: `${formatReportPercent(
         report.inboundReplyCount,
         report.sentCount,
       )} of sent.`,
       icon: 'message',
       iconClassName: 'bg-blue-50 text-blue-700',
-      label: 'Replies',
+      label: 'Unique replies',
       value: formatReportNumber(report.inboundReplyCount),
     },
     {

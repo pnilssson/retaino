@@ -1,26 +1,19 @@
 "use client";
 
-import { useForm } from '@tanstack/react-form';
-import { REGEXP_ONLY_DIGITS } from 'input-otp';
-import {
-  ArrowRight,
-  Loader2,
-  RefreshCw,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useForm } from "@tanstack/react-form";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
+import { ArrowRight, Loader2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from '@/components/ui/input-otp';
-import { Label } from '@/components/ui/label';
-import type { useEmailCodeAuth } from '@/features/auth/hooks/use-email-code-auth';
-import { getFieldError } from '@/lib/form-errors';
-import { textStyles } from '@/lib/text-styles';
-import {
-  clerkOtpLength,
-  clerkOtpPattern,
-} from '../form-constants';
+} from "@/components/ui/input-otp";
+import { Label } from "@/components/ui/label";
+import type { useEmailCodeAuth } from "@/features/auth/hooks/use-email-code-auth";
+import { getFieldError } from "@/lib/form-errors";
+import { textStyles } from "@/lib/text-styles";
+import { clerkOtpLength, clerkOtpPattern } from "../form-constants";
 
 type EmailCodeAuth = ReturnType<typeof useEmailCodeAuth>;
 
@@ -31,14 +24,14 @@ type CodeFormValues = {
 export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
   const codeForm = useForm({
     defaultValues: {
-      code: '',
+      code: "",
     } satisfies CodeFormValues,
     onSubmit: async ({ value }) => {
       await auth.verifyCode(value.code);
     },
   });
   const codeServerError =
-    auth.error?.field === 'code' ? auth.error.message : null;
+    auth.error?.field === "code" ? auth.error.message : null;
 
   return (
     <form
@@ -65,7 +58,7 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
             <div className="grid gap-2">
               <Label htmlFor={field.name}>Verification code</Label>
               <InputOTP
-                aria-describedby={codeError ? 'code-error' : 'code-hint'}
+                aria-describedby={codeError ? "code-error" : "code-hint"}
                 aria-invalid={Boolean(codeError)}
                 autoComplete="one-time-code"
                 disabled={auth.isFetching}
@@ -76,7 +69,7 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
                 onBlur={field.handleBlur}
                 onChange={(value) =>
                   field.handleChange(
-                    value.replace(/\D/g, '').slice(0, clerkOtpLength),
+                    value.replace(/\D/g, "").slice(0, clerkOtpLength),
                   )
                 }
                 pattern={REGEXP_ONLY_DIGITS}
@@ -93,16 +86,12 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
                 </InputOTPGroup>
               </InputOTP>
               {codeError ? (
-                <p
-                  className={textStyles.error}
-                  id="code-error"
-                  role="alert"
-                >
+                <p className={textStyles.error} id="code-error" role="alert">
                   {codeError}
                 </p>
               ) : (
                 <p className={textStyles.meta} id="code-hint">
-                  Code sent to {auth.normalizedEmail}. Code expires in 10
+                  We sent a code to {auth.normalizedEmail}. It expires in 10
                   minutes.
                 </p>
               )}
@@ -168,11 +157,11 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
 
 function validateCode(value: string) {
   if (!value.trim()) {
-    return 'Enter the 6-digit code.';
+    return "Enter the 6-digit code.";
   }
 
   if (!clerkOtpPattern.test(value)) {
-    return 'Enter the 6-digit code from your email.';
+    return "Enter the 6-digit code from your email.";
   }
 
   return undefined;
