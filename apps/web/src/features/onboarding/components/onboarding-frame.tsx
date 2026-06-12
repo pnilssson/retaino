@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { LoadingState } from '@/components/loading-state';
 import { GuidedFlowFrame } from '@/components/guided-flow';
 
@@ -8,12 +9,6 @@ export type OnboardingStepId =
   | 'contact'
   | 'agreements';
 
-const steps: { id: OnboardingStepId; title: string }[] = [
-  { id: 'organization', title: 'Organization' },
-  { id: 'company', title: 'Company' },
-  { id: 'contact', title: 'Contact' },
-  { id: 'agreements', title: 'Legal' },
-];
 
 type OnboardingFrameProps = {
   children: ReactNode;
@@ -26,13 +21,21 @@ export function OnboardingFrame({
   completedSteps,
   currentStep,
 }: OnboardingFrameProps) {
+  const t = useTranslations('Onboarding');
+  const steps: { id: OnboardingStepId; title: string }[] = [
+    { id: 'organization', title: t('stepsOrganization') },
+    { id: 'company', title: t('stepsCompany') },
+    { id: 'contact', title: t('stepsContact') },
+    { id: 'agreements', title: t('stepsLegal') },
+  ];
+
   return (
     <main className="flex flex-1 bg-background px-5 py-8 sm:px-8 lg:px-10">
       <section className="mx-auto w-full max-w-5xl">
         <GuidedFlowFrame
           completedStepIds={completedSteps}
           currentStepId={currentStep}
-          progressLabel="Organization setup"
+          progressLabel={t('progressLabel')}
           steps={steps}
         >
           {children}

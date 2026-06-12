@@ -1,6 +1,7 @@
 "use client";
 
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { ItemNotice } from '@/components/item-notice';
 import { useEmailCodeAuth } from '@/features/auth/hooks/use-email-code-auth';
@@ -12,6 +13,7 @@ import { EmailStep } from './email-step';
 import { RequirementsStep } from './requirements-step';
 
 export function AuthForm() {
+  const t = useTranslations('Auth');
   const auth = useEmailCodeAuth();
   const formError =
     auth.error && auth.error.field !== 'email' && auth.error.field !== 'code'
@@ -33,7 +35,7 @@ export function AuthForm() {
 
       <div className="flex flex-1 flex-col justify-center">
         <h1 className={cn('mt-3 max-w-sm', textStyles.pageTitle)}>
-          Sign in with your work email.
+          {t('title')}
         </h1>
 
         <div className="mt-9">
@@ -49,7 +51,7 @@ export function AuthForm() {
             <div className="mt-5">
               <ItemNotice
                 description={formError}
-                title="Sign in could not continue"
+                title={t('formErrorTitle')}
                 variant="error"
               />
             </div>
@@ -60,19 +62,19 @@ export function AuthForm() {
       </div>
 
       <p className={cn('text-center', textStyles.meta)}>
-        By continuing, you agree to Retaino&apos;s{' '}
+        {t('agreementPrefix')}{' '}
         <Link
           className="text-foreground underline underline-offset-2"
           href={routes.terms}
         >
-          terms and conditions
+          {t('agreementTerms')}
         </Link>{' '}
-        and{' '}
+        {t('agreementAnd')}{' '}
         <Link
           className="text-foreground underline underline-offset-2"
           href={routes.privacy}
         >
-          privacy policy
+          {t('agreementPrivacy')}
         </Link>
         .
       </p>

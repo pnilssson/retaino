@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
+import { redirect } from '@/i18n/navigation';
 
 import { AuthForm } from '@/features/auth/components/auth-form';
 import { AuthProofPanel } from '@/features/auth/components/auth-proof-panel';
@@ -22,7 +22,7 @@ export default async function SignInPage({
   });
 
   if (isAuthenticated) {
-    redirect(`/${locale}${routes.app}`);
+    redirect({ href: routes.app, locale });
   }
 
   return (

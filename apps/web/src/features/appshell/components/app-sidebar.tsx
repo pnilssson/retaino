@@ -18,6 +18,7 @@ import {
   UsersRound,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { localizedPathname } from '@/i18n/paths';
 import { Link } from '@/i18n/navigation';
 import { usePathname } from '@/i18n/navigation';
 import { LocaleMenuItem } from '@/components/locale-switcher';
@@ -250,7 +251,7 @@ export function AppSidebar() {
                 </DropdownMenuSub>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onSelect={() => void signOut({ redirectUrl: `/${locale}` })}
+                  onSelect={() => void signOut({ redirectUrl: localizedPathname(routes.home, locale) })}
                   variant="destructive"
                 >
                   <LogOut aria-hidden="true" strokeWidth={1.5} />
