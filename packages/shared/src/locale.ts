@@ -24,3 +24,19 @@ export function normalizeLocale(value: unknown): Locale {
 export function localeToIntlLocale(locale: Locale) {
   return intlLocales[locale];
 }
+
+export function buildLocalizedPath(path: string, locale: Locale) {
+  const [pathname = '/', query = ''] = path.split('?', 2);
+  const segments = pathname.split('/').filter(Boolean);
+  const pathSegments = [...segments];
+
+  while (isLocale(pathSegments[0])) {
+    pathSegments.shift();
+  }
+
+  const localizedSegments =
+    pathSegments.length > 0 ? [locale, ...pathSegments] : [locale];
+  const localizedPath = `/${localizedSegments.join('/')}`;
+
+  return query ? `${localizedPath}?${query}` : localizedPath;
+}

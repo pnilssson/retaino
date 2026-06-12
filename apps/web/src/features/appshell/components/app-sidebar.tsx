@@ -20,7 +20,7 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { usePathname } from '@/i18n/navigation';
-import { LocaleSwitcher } from '@/components/locale-switcher';
+import { LocaleMenuItem } from '@/components/locale-switcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -216,9 +216,7 @@ export function AppSidebar() {
                   <UserCircle aria-hidden="true" strokeWidth={1.5} />
                   {t('profile')}
                 </DropdownMenuItem>
-                <div className="px-1 py-1">
-                  <LocaleSwitcher className="w-full justify-start px-2" />
-                </div>
+                <LocaleMenuItem />
                 <DropdownMenuSeparator />
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>

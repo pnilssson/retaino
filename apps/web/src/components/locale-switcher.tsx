@@ -1,20 +1,27 @@
 "use client";
 
-import { Check, Globe } from 'lucide-react';
+import { buildLocalizedPath, normalizeLocale, type Locale } from '@retaino/shared';
+import { Globe } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
+import {
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from 'next/navigation';
 import type { ComponentProps } from 'react';
-import { Link, usePathname } from '@/i18n/navigation';
+import { startTransition, useOptimistic } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const localeOptions = ['sv', 'en'] as const;
+const localeOptions: Locale[] = ['sv', 'en'];
 
 export function LocaleSwitcher({
   className,
@@ -23,42 +30,77 @@ export function LocaleSwitcher({
   className?: string;
   variant?: ComponentProps<typeof Button>['variant'];
 }) {
-  const locale = useLocale();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const t = useTranslations('Locale');
-  const query = searchParams.toString();
-  const href = query ? `${pathname}?${query}` : pathname;
+  const { selectedLocale, switchLocale } = useLocaleSwitch();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           aria-label={t('switcherLabel')}
-          className={cn('px-2', className)}
+          className={cn('min-w-14 justify-center gap-1.5 px-2.5', className)}
           size="sm"
           variant={variant}
         >
           <Globe aria-hidden="true" />
           <span className="sr-only">{t('switcherLabel')}</span>
           <span aria-hidden="true" className="uppercase">
-            {locale}
+            {selectedLocale}
           </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {localeOptions.map((option) => (
-          <DropdownMenuItem asChild key={option}>
-            <Link href={href} locale={option}>
-              <Check
-                aria-hidden="true"
-                className={cn(option === locale ? 'opacity-100' : 'opacity-0')}
-              />
+        <DropdownMenuRadioGroup value={selectedLocale}>
+          {localeOptions.map((option) => (
+            <DropdownMenuRadioItem
+              key={option}
+              onSelect={() => switchLocale(option)}
+              value={option}
+            >
               {t(option)}
-            </Link>
-          </DropdownMenuItem>
-        ))}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+export function LocaleMenuItem() {
+  const { selectedLocale, switchLocale } = useLocaleSwitch();
+  const nextLocale = selectedLocale === 'sv' ? 'en' : 'sv';
+
+  return (
+    <DropdownMenuItem onSelect={() => switchLocale(nextLocale)}>
+      <Globe aria-hidden="true" strokeWidth={1.5} />
+      <span className="uppercase">{selectedLocale}</span>
+    </DropdownMenuItem>
+  );
+}
+
+function useLocaleSwitch() {
+  const currentLocale = normalizeLocale(useLocale());
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [selectedLocale, setSelectedLocale] = useOptimistic(currentLocale);
+
+  function switchLocale(nextLocale: Locale) {
+    if (nextLocale === selectedLocale) {
+      return;
+    }
+
+    const query = searchParams.toString();
+    const currentPath = query ? `${pathname}?${query}` : pathname;
+
+    startTransition(() => {
+      setSelectedLocale(nextLocale);
+      router.push(buildLocalizedPath(currentPath, nextLocale));
+    });
+  }
+
+  return {
+    selectedLocale,
+    switchLocale,
+  };
 }

@@ -18,7 +18,7 @@ describe('legal document contracts', () => {
       'campaign_attestation',
       'customer_privacy_notice_guide',
     ]);
-    expect(LEGAL_BUNDLE_VERSION).toBe('2026-05-30');
+    expect(LEGAL_BUNDLE_VERSION).toBe('2026-06-12');
     expect(REQUIRED_LEGAL_BUNDLE_DOCUMENT_TYPES).toEqual([
       'terms',
       'dpa',
