@@ -2,9 +2,13 @@
 
 import { Check, Globe } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
+import {
+  usePathname,
+  useSearchParams,
+} from 'next/navigation';
 import type { ComponentProps } from 'react';
-import { Link, usePathname } from '@/i18n/navigation';
+import { LOCALES } from '@retaino/shared';
+import { Link } from '@/i18n/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,8 +17,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-const localeOptions = ['sv', 'en'] as const;
 
 export function LocaleSwitcher({
   className,
@@ -28,7 +30,8 @@ export function LocaleSwitcher({
   const searchParams = useSearchParams();
   const t = useTranslations('Locale');
   const query = searchParams.toString();
-  const href = query ? `${pathname}?${query}` : pathname;
+  const unlocalizedPathname = removeLocalePrefix(pathname);
+  const href = query ? `${unlocalizedPathname}?${query}` : unlocalizedPathname;
 
   return (
     <DropdownMenu>
@@ -47,18 +50,49 @@ export function LocaleSwitcher({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {localeOptions.map((option) => (
-          <DropdownMenuItem asChild key={option}>
-            <Link href={href} locale={option}>
-              <Check
-                aria-hidden="true"
-                className={cn(option === locale ? 'opacity-100' : 'opacity-0')}
-              />
-              {t(option)}
-            </Link>
-          </DropdownMenuItem>
-        ))}
+        {LOCALES.map((option) => {
+          const isCurrentLocale = option === locale;
+
+          return (
+            <DropdownMenuItem
+              aria-current={isCurrentLocale ? 'true' : undefined}
+              asChild={!isCurrentLocale}
+              key={option}
+              onSelect={
+                isCurrentLocale
+                  ? (event) => event.preventDefault()
+                  : undefined
+              }
+            >
+              {isCurrentLocale ? (
+                <>
+                  <Check aria-hidden="true" className="opacity-100" />
+                  <span>{t(option)}</span>
+                </>
+              ) : (
+                <Link href={href} locale={option}>
+                  <Check aria-hidden="true" className="opacity-0" />
+                  <span>{t(option)}</span>
+                </Link>
+              )}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+function removeLocalePrefix(pathname: string) {
+  for (const locale of LOCALES) {
+    if (pathname === `/${locale}`) {
+      return '/';
+    }
+
+    if (pathname.startsWith(`/${locale}/`)) {
+      return pathname.slice(locale.length + 1);
+    }
+  }
+
+  return pathname;
 }

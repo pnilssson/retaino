@@ -4,6 +4,7 @@ import {
 import createIntlMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import { DEFAULT_LOCALE, isLocale } from '@retaino/shared';
+import { localizedPathname } from '@/i18n/paths';
 import { routing } from '@/i18n/routing';
 import { routes } from '@/lib/routes';
 
@@ -15,7 +16,7 @@ export default clerkMiddleware(
 
     if (localizedPath.pathname === routes.app) {
       return NextResponse.redirect(
-        new URL(withLocale(routes.overview, localizedPath.locale), req.url),
+        new URL(localizedPathname(routes.overview, localizedPath.locale), req.url),
       );
     }
 
@@ -37,8 +38,8 @@ export default clerkMiddleware(
     const { locale } = getLocalizedPath(req.nextUrl.pathname);
 
     return {
-      signInUrl: withLocale(routes.signIn, locale),
-      signUpUrl: withLocale(routes.signIn, locale),
+      signInUrl: localizedPathname(routes.signIn, locale),
+      signUpUrl: localizedPathname(routes.signIn, locale),
     };
   },
 );
@@ -67,8 +68,4 @@ function getLocalizedPath(pathname: string) {
     locale,
     pathname: pathWithoutLocale === '/' ? '/' : pathWithoutLocale.replace(/\/$/, ''),
   };
-}
-
-function withLocale(pathname: string, locale: string) {
-  return `/${locale}${pathname === '/' ? '' : pathname}`;
 }

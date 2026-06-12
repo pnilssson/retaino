@@ -2,6 +2,7 @@
 
 import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import { RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ import {
 } from './setup-states';
 
 export function OnboardingScreen() {
+  const t = useTranslations('Onboarding');
   const router = useRouter();
   const organizationBootstrap = useActiveOrganizationBootstrap();
   const session = useOrganizationSession({
@@ -48,7 +50,7 @@ export function OnboardingScreen() {
     return (
       <OnboardingLoading
         currentStep="organization"
-        label="Loading organization setup"
+        label={t('loadingOrganizationSetup')}
       />
     );
   }
@@ -63,9 +65,9 @@ export function OnboardingScreen() {
         <SetupError
           message={
             organizationBootstrap.error.message ||
-            'Refresh the page and try again.'
+            t('refreshAndTryAgain')
           }
-          title="Organization setup could not be prepared"
+          title={t('setupPrepareTitle')}
         />
       </OnboardingFrame>
     );
@@ -91,11 +93,11 @@ export function OnboardingScreen() {
               variant="outline"
             >
               <RefreshCw aria-hidden="true" data-icon="inline-start" />
-              Retry setup
+              {t('retrySetup')}
             </Button>
           }
-          message={session.error.message || 'Refresh the page and try again.'}
-          title="Organization setup could not be loaded"
+          message={session.error.message || t('refreshAndTryAgain')}
+          title={t('setupLoadTitle')}
         />
       </OnboardingFrame>
     );
@@ -111,7 +113,7 @@ export function OnboardingScreen() {
         completedSteps={['organization', 'company', 'contact', 'agreements']}
         currentStep="agreements"
       >
-        <OnboardingItem eyebrow="Organization setup" title="Opening overview" />
+        <OnboardingItem eyebrow={t('openingOverviewEyebrow')} title={t('openingOverviewTitle')} />
       </OnboardingFrame>
     );
   }

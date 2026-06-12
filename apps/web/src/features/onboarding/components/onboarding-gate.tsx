@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import {
   AlertTriangle,
@@ -20,6 +21,7 @@ import { useOrganizationSession } from '../hooks/use-organization-session';
 import { OnboardingItem } from './onboarding-item';
 
 export function OnboardingGate({ children }: { children: ReactNode }) {
+  const t = useTranslations('Onboarding');
   const router = useRouter();
   const organizationBootstrap = useActiveOrganizationBootstrap();
   const session = useOrganizationSession({
@@ -72,8 +74,8 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
     return (
       <GateState
         description={organizationBootstrap.error.message}
-        eyebrow="Organization error"
-        title="Retaino could not prepare the active organization"
+        eyebrow={t('gateOrganizationErrorEyebrow')}
+        title={t('gateOrganizationErrorTitle')}
       />
     );
   }
@@ -81,9 +83,9 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   if (shouldShowSetupPending) {
     return (
       <GateState
-        description="An organization admin needs to finish setup before members can use Retaino. You can switch to another organization from the sidebar."
-        eyebrow="Setup pending"
-        title="This workspace is still being set up"
+        description={t('gateSetupPendingDescription')}
+        eyebrow={t('setupPendingEyebrow')}
+        title={t('gateSetupPendingTitle')}
       />
     );
   }
@@ -91,9 +93,9 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   if (session.isError && !hasMissingActiveOrganization) {
     return (
       <GateState
-        description="Refresh the page and try again."
-        eyebrow="Workspace unavailable"
-        title="Retaino could not load this workspace"
+        description={t('refreshAndTryAgain')}
+        eyebrow={t('workspaceUnavailableEyebrow')}
+        title={t('workspaceUnavailableTitle')}
       />
     );
   }
@@ -109,9 +111,11 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
 }
 
 function GateLoader() {
+  const t = useTranslations('Onboarding');
+
   return (
     <div className="grid flex-1 place-items-center bg-background">
-      <LoadingState label="Loading workspace" />
+      <LoadingState label={t('loadingWorkspace')} />
     </div>
   );
 }
@@ -139,6 +143,8 @@ function GateState({
 }
 
 function LegalUpdatesBanner({ canManageSetup }: { canManageSetup: boolean }) {
+  const t = useTranslations('Onboarding');
+
   return (
     <section className="border-b bg-amber-50/70 px-5 py-3 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100 sm:px-8 lg:px-10">
       <div className="mx-auto grid max-w-6xl gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
@@ -148,18 +154,18 @@ function LegalUpdatesBanner({ canManageSetup }: { canManageSetup: boolean }) {
             className="mt-0.5 size-4 text-amber-600"
           />
           <p className={cn('min-w-0 text-amber-950 dark:text-amber-100', textStyles.itemTitle)}>
-            Legal agreement needs review
+            {t('legalUpdateTitle')}
           </p>
           <p className={cn('col-start-2 min-w-0', textStyles.body, 'text-amber-900 dark:text-amber-100')}>
             {canManageSetup
-              ? 'Updated terms must be accepted before imports or campaigns can continue.'
-              : 'Updated terms require acceptance by an organization admin before imports or campaigns can continue.'}
+              ? t('legalUpdateManageDescription')
+              : t('legalUpdateMemberDescription')}
           </p>
         </div>
         <Button asChild size="sm" variant="outline">
           <Link href={routes.legal}>
             <FileText aria-hidden="true" data-icon="inline-start" />
-            {canManageSetup ? 'Review updates' : 'View legal'}
+            {canManageSetup ? t('reviewUpdates') : t('viewLegal')}
           </Link>
         </Button>
       </div>

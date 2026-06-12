@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from '@tanstack/react-form';
+import { useTranslations } from 'next-intl';
 import { ArrowRight } from 'lucide-react';
 import { GuidedFlowActions } from '@/components/guided-flow';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ export function CompanyStep({
   onComplete: (value: ProfileDraft) => void;
   organizationName: string;
 }) {
+  const t = useTranslations('Onboarding');
   const form = useForm({
     defaultValues,
     onSubmit: ({ value }) => onComplete(value),
@@ -37,9 +39,9 @@ export function CompanyStep({
       }}
     >
       <OnboardingItem
-        description="Retaino uses this identity for agreements, billing records, and organization-level audit evidence."
-        eyebrow="Company identity"
-        title={<>Tell us who runs {organizationName}</>}
+        description={t('companyDescription')}
+        eyebrow={t('companyEyebrow')}
+        title={t('companyTitle', { organizationName })}
       >
         <form.Field
           name="legalName"
@@ -53,7 +55,7 @@ export function CompanyStep({
           {(field) => (
             <ProfileInput
               error={getFieldError(field.state.meta.errors)}
-              label="Legal company name"
+              label={t('legalCompanyName')}
               name={field.name}
               onBlur={field.handleBlur}
               onChange={field.handleChange}
@@ -74,7 +76,7 @@ export function CompanyStep({
           {(field) => (
             <ProfileInput
               error={getFieldError(field.state.meta.errors)}
-              label="Registration number"
+              label={t('registrationNumber')}
               name={field.name}
               onBlur={field.handleBlur}
               onChange={field.handleChange}
@@ -88,7 +90,7 @@ export function CompanyStep({
         <form.Subscribe selector={(state) => [state.canSubmit]}>
           {([canSubmit]) => (
             <Button disabled={!canSubmit} type="submit">
-              Continue
+              {t('continue')}
               <ArrowRight aria-hidden="true" data-icon="inline-end" />
             </Button>
           )}

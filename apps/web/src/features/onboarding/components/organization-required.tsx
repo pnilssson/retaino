@@ -6,6 +6,7 @@ import {
   Loader2,
   Plus,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { useState } from 'react';
@@ -24,6 +25,7 @@ import {
 import { OnboardingItem } from './onboarding-item';
 
 export function OrganizationRequired() {
+  const t = useTranslations('Onboarding');
   const router = useRouter();
   const { isLoaded, setActive, userMemberships } = useOrganizationList({
     userMemberships: {
@@ -40,7 +42,7 @@ export function OrganizationRequired() {
 
   async function activateOrganization(organizationId: string) {
     if (!setActive) {
-      setError('Workspace selection is still loading. Try again in a moment.');
+      setError(t('workspaceSelectionLoadingError'));
       return;
     }
 
@@ -56,7 +58,7 @@ export function OrganizationRequired() {
       setError(
         cause instanceof Error
           ? cause.message
-          : 'The workspace could not be selected.',
+          : t('workspaceSelectError'),
       );
     } finally {
       setPendingOrganizationId(null);
@@ -67,7 +69,7 @@ export function OrganizationRequired() {
     return (
       <OnboardingLoading
         currentStep="organization"
-        label="Loading workspace setup"
+        label={t('loadingWorkspaceSetup')}
       />
     );
   }
@@ -76,17 +78,17 @@ export function OrganizationRequired() {
     return (
       <OnboardingFrame completedSteps={[]} currentStep="organization">
         <OrganizationCreateForm
-          description="Retaino keeps your team's contacts, campaigns, permissions, and results in one shared workspace."
+          description={t('workspaceSharedDescription')}
           notice={
             error ? (
               <ItemNotice
                 description={error}
-                title="Workspace could not be selected"
+                title={t('workspaceSelectErrorTitle')}
                 variant="error"
               />
             ) : null
           }
-          title="Set up your workspace"
+          title={t('setupWorkspaceTitle')}
         />
       </OnboardingFrame>
     );
@@ -96,20 +98,20 @@ export function OrganizationRequired() {
     <OnboardingFrame completedSteps={[]} currentStep="organization">
       <div className="grid gap-5">
         <OnboardingItem
-          description="Select where you want to continue. Create a new workspace only if you are setting up a separate team."
-          eyebrow="Workspace"
-          title="Choose your workspace"
+          description={t('chooseWorkspaceDescription')}
+          eyebrow={t('workspaceEyebrow')}
+          title={t('chooseWorkspaceTitle')}
         >
           {error ? (
             <ItemNotice
               description={error}
-              title="Workspace could not be selected"
+              title={t('workspaceSelectErrorTitle')}
               variant="error"
             />
           ) : null}
 
           <div className="border-y py-5">
-            <ItemTitle>Your workspaces</ItemTitle>
+            <ItemTitle>{t('yourWorkspaces')}</ItemTitle>
             <div className="mt-4 grid gap-2">
               {memberships.map((membership) => (
                 <Button
@@ -140,15 +142,14 @@ export function OrganizationRequired() {
           </div>
 
           <p className={textStyles.mutedBody}>
-            Already invited? Open the invite link from your email to enter
-            that workspace.
+            {t('inviteCopy')}
           </p>
         </OnboardingItem>
         <GuidedFlowActions>
           <Button asChild variant="outline">
             <Link href={routes.organizationNew}>
               <Plus aria-hidden="true" data-icon="inline-start" />
-              Create another workspace
+              {t('createAnotherWorkspace')}
             </Link>
           </Button>
         </GuidedFlowActions>

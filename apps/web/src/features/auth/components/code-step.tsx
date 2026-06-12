@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
+import { useTranslations } from "next-intl";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { ArrowRight, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ type CodeFormValues = {
 };
 
 export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
+  const t = useTranslations('Auth');
   const codeForm = useForm({
     defaultValues: {
       code: "",
@@ -46,8 +48,8 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
       <codeForm.Field
         name="code"
         validators={{
-          onBlur: ({ value }) => validateCode(value),
-          onSubmit: ({ value }) => validateCode(value),
+          onBlur: ({ value }) => validateCode(value, t),
+          onSubmit: ({ value }) => validateCode(value, t),
         }}
       >
         {(field) => {
@@ -56,7 +58,7 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
 
           return (
             <div className="grid gap-2">
-              <Label htmlFor={field.name}>Verification code</Label>
+              <Label htmlFor={field.name}>{t('codeLabel')}</Label>
               <InputOTP
                 aria-describedby={codeError ? "code-error" : "code-hint"}
                 aria-invalid={Boolean(codeError)}
@@ -91,8 +93,7 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
                 </p>
               ) : (
                 <p className={textStyles.meta} id="code-hint">
-                  We sent a code to {auth.normalizedEmail}. It expires in 10
-                  minutes.
+                  {t('codeHint', { email: auth.normalizedEmail })}
                 </p>
               )}
             </div>
@@ -116,11 +117,11 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
                   className="size-4 animate-spin"
                   data-icon="inline-start"
                 />
-                Verifying
+                {t('verifying')}
               </>
             ) : (
               <>
-                Verify code
+                {t('verifyCode')}
                 <ArrowRight className="size-4" data-icon="inline-end" />
               </>
             )}
@@ -137,7 +138,7 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
           type="button"
           variant="link"
         >
-          Change email
+          {t('changeEmail')}
         </Button>
         <Button
           className="h-auto gap-1.5 p-0 text-foreground hover:text-muted-foreground"
@@ -148,20 +149,20 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
           variant="link"
         >
           <RefreshCw className="size-3.5" data-icon="inline-start" />
-          Resend code
+          {t('resendCode')}
         </Button>
       </div>
     </form>
   );
 }
 
-function validateCode(value: string) {
+function validateCode(value: string, t: ReturnType<typeof useTranslations<'Auth'>>) {
   if (!value.trim()) {
-    return "Enter the 6-digit code.";
+    return t('codeRequired');
   }
 
   if (!clerkOtpPattern.test(value)) {
-    return "Enter the 6-digit code from your email.";
+    return t('codeInvalid');
   }
 
   return undefined;

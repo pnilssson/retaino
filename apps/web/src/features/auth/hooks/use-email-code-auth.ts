@@ -5,6 +5,7 @@ import {
   useSignIn,
   useSignUp,
 } from '@clerk/nextjs';
+import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import {
   useCallback,
@@ -31,6 +32,7 @@ type NavigateParams = {
 const signUpTransferCode = 'sign_up_if_missing_transfer';
 
 export function useEmailCodeAuth() {
+  const t = useTranslations('Auth');
   const router = useRouter();
   const { isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const {
@@ -95,9 +97,9 @@ export function useEmailCodeAuth() {
     });
 
     if (finalizeError) {
-      setError(getAuthError(finalizeError, 'form'));
+      setError(getAuthError(finalizeError, 'form', t('fallbackError')));
     }
-  }, [navigateAfterAuth]);
+  }, [navigateAfterAuth, t]);
 
   const finalizeSignUp = useCallback(async () => {
     const currentSignUp = signUpRef.current;
@@ -111,9 +113,9 @@ export function useEmailCodeAuth() {
     });
 
     if (finalizeError) {
-      setError(getAuthError(finalizeError, 'form'));
+      setError(getAuthError(finalizeError, 'form', t('fallbackError')));
     }
-  }, [navigateAfterAuth]);
+  }, [navigateAfterAuth, t]);
 
   const completeTransfer = useCallback(async () => {
     const currentSignUp = signUpRef.current;
@@ -128,7 +130,7 @@ export function useEmailCodeAuth() {
     });
 
     if (transferError) {
-      setError(getAuthError(transferError, 'form'));
+      setError(getAuthError(transferError, 'form', t('fallbackError')));
       return;
     }
 
@@ -146,7 +148,7 @@ export function useEmailCodeAuth() {
       });
 
       if (updateError) {
-        setError(getAuthError(updateError, 'requirements'));
+        setError(getAuthError(updateError, 'requirements', t('fallbackError')));
         setStep('requirements');
         return;
       }
@@ -161,9 +163,9 @@ export function useEmailCodeAuth() {
     setError({
       field: 'requirements',
       message:
-        'This account needs more information before it can be created. Check the Clerk sign-up settings for required fields.'
+        t('clerkRequiredFieldsError')
     });
-  }, [finalizeSignUp]);
+  }, [finalizeSignUp, t]);
 
   const submitEmail = useCallback(
     async (email: string) => {
@@ -179,7 +181,7 @@ export function useEmailCodeAuth() {
       if (!currentSignIn) {
         setError({
           field: 'email',
-          message: 'Authentication is still loading. Try again in a moment.'
+          message: t('loadingError')
         });
         return;
       }
@@ -193,20 +195,20 @@ export function useEmailCodeAuth() {
       });
 
       if (createError) {
-        setError(getAuthError(createError, 'email'));
+        setError(getAuthError(createError, 'email', t('fallbackError')));
         return;
       }
 
       const { error: sendError } = await currentSignIn.emailCode.sendCode();
 
       if (sendError) {
-        setError(getAuthError(sendError, 'email'));
+        setError(getAuthError(sendError, 'email', t('fallbackError')));
         return;
       }
 
       setStep('code');
     },
-    [isSignedIn, router]
+    [isSignedIn, router, t]
   );
 
   const verifyCode = useCallback(
@@ -223,7 +225,7 @@ export function useEmailCodeAuth() {
       if (!currentSignIn) {
         setError({
           field: 'code',
-          message: 'Authentication is still loading. Try again in a moment.'
+          message: t('loadingError')
         });
         return;
       }
@@ -238,7 +240,7 @@ export function useEmailCodeAuth() {
           return;
         }
 
-        setError(getAuthError(verifyError, 'code'));
+        setError(getAuthError(verifyError, 'code', t('fallbackError')));
         return;
       }
 
@@ -250,10 +252,10 @@ export function useEmailCodeAuth() {
       setError({
         field: 'form',
         message:
-          'This sign-in needs another verification step before it can continue.'
+          t('extraVerificationError')
       });
     },
-    [completeTransfer, finalizeSignIn, isSignedIn, router]
+    [completeTransfer, finalizeSignIn, isSignedIn, router, t]
   );
 
   const resendCode = useCallback(async () => {
@@ -268,9 +270,9 @@ export function useEmailCodeAuth() {
     const { error: sendError } = await currentSignIn.emailCode.sendCode();
 
     if (sendError) {
-      setError(getAuthError(sendError, 'code'));
+      setError(getAuthError(sendError, 'code', t('fallbackError')));
     }
-  }, []);
+  }, [t]);
 
   const reset = useCallback(async () => {
     const currentSignIn = signInRef.current;
