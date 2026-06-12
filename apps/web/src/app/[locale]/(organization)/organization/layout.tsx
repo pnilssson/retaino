@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { auth } from '@clerk/nextjs/server';
+import { localizedPathname } from '@/i18n/paths';
 import { routes } from '@/lib/routes';
 
 export default async function OrganizationLayout({
@@ -16,7 +17,7 @@ export default async function OrganizationLayout({
 
   if (!isAuthenticated) {
     return redirectToSignIn({
-      returnBackUrl: `/${locale}${routes.organizationSetup}`
+      returnBackUrl: localizedPathname(routes.organizationSetup, locale)
     });
   }
 

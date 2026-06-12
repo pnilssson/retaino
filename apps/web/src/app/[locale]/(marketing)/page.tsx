@@ -1,5 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
+import { redirect } from '@/i18n/navigation';
 import { HeroSection } from '@/features/marketing/components/hero-section';
 import { routes } from '@/lib/routes';
 
@@ -14,7 +14,7 @@ export default async function HomePage({
   });
 
   if (isAuthenticated) {
-    redirect(`/${locale}${routes.app}`);
+    redirect({ href: routes.app, locale });
   }
 
   return (

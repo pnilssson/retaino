@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';
 import {
   Geist,
@@ -59,15 +58,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           taskUrls={{ "choose-organization": routes.organizationSetup }}
         >
           <NuqsAdapter>
-            <NextIntlClientProvider>
-              <Providers>
-                <CookieConsentProvider>
-                  <TooltipProvider>{children}</TooltipProvider>
-                  <Toaster />
-                  <CookieBanner />
-                </CookieConsentProvider>
-              </Providers>
-            </NextIntlClientProvider>
+            <Providers>
+              <CookieConsentProvider>
+                <TooltipProvider>{children}</TooltipProvider>
+                <Toaster />
+                <CookieBanner />
+              </CookieConsentProvider>
+            </Providers>
           </NuqsAdapter>
         </ClerkProvider>
       </body>
