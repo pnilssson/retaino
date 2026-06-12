@@ -7,7 +7,10 @@ import {
   DollarSign,
   UserCheck,
 } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import {
+  useLocale,
+  useTranslations,
+} from 'next-intl';
 import { InfoTooltip } from '@/components/info-tooltip';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
@@ -37,6 +40,7 @@ export function CampaignReview({
   values: CampaignFormValues;
 }) {
   const locale = useLocale();
+  const t = useTranslations('Campaigns');
   const campaignId = campaign?.id ?? null;
   const audiencePreview = useCampaignAudiencePreview({
     audienceRule: values.audienceRule,
@@ -64,19 +68,19 @@ export function CampaignReview({
     campaignReference &&
     campaignReference.toLowerCase() !== values.name.trim().toLowerCase()
       ? campaignReference
-      : 'Not added';
+      : t('notAdded');
   const audienceLabel =
     usageRecipientCount === null
-      ? 'Audience unavailable'
-      : `${usageRecipientCount} ${
-          usageRecipientCount === 1 ? 'recipient' : 'recipients'
-        }`;
+      ? t('audienceUnavailable')
+      : `${usageRecipientCount} ${t(
+          usageRecipientCount === 1 ? 'recipient' : 'recipients',
+        )}`;
   const usageLabel =
     estimatedCredits === null
-      ? 'Usage unavailable'
-      : `Up to ${estimatedCredits} ${
-          estimatedCredits === 1 ? 'credit' : 'credits'
-        }`;
+      ? t('usageUnavailable')
+      : t(estimatedCredits === 1 ? 'upToCredit' : 'upToCredits', {
+          count: estimatedCredits,
+        });
   const audienceSummary = audienceReviewSummary({
     audiencePreviewData: audiencePreview.data,
     campaign,
@@ -84,6 +88,7 @@ export function CampaignReview({
     frozenRecipientCount,
     isAudienceLoading: audiencePreview.isLoading,
     isRecipientSummaryLoading: recipientSummary.isLoading,
+    t,
     values,
   });
   const selectedCampaignsExcludedCount =
@@ -98,7 +103,7 @@ export function CampaignReview({
     <div className="grid gap-6">
       <section className="flex flex-wrap gap-2">
         <StatusBadge
-          label={senderReady ? 'Sender ready' : 'Sender not ready'}
+          label={senderReady ? t('senderReady') : t('senderNotReady')}
           tone={senderReady ? 'green' : 'amber'}
         />
         <StatusBadge
@@ -112,7 +117,9 @@ export function CampaignReview({
         />
         {selectedCampaignsExcludedCount > 0 ? (
           <StatusBadge
-            label={`${selectedCampaignsExcludedCount} already received selected campaigns`}
+            label={t('alreadyReceivedSelectedCampaigns', {
+              count: selectedCampaignsExcludedCount,
+            })}
             tone="amber"
           />
         ) : null}
@@ -129,18 +136,19 @@ export function CampaignReview({
 
       {!senderReady ? (
         <ItemNotice
-          description="Set up the sender before launching this campaign."
-          title="Campaign is not ready to send"
+          description={t('campaignNotReadyDescription')}
+          title={t('campaignNotReadyTitle')}
           variant="warning"
         />
       ) : null}
 
       {selectedCampaignsExcludedCount > 0 ? (
         <ItemNotice
-          description={`${selectedCampaignsExcludedCount} people already received ${
-            selectedCampaignNames || 'the selected campaigns'
-          } and will be excluded.`}
-          title="Previous campaign recipients will be skipped"
+          description={t('previousRecipientsSkippedDescription', {
+            count: selectedCampaignsExcludedCount,
+            campaigns: selectedCampaignNames || t('selectedCampaignsFallback'),
+          })}
+          title={t('previousRecipientsSkippedTitle')}
           variant="warning"
         />
       ) : null}
@@ -149,8 +157,9 @@ export function CampaignReview({
         <section className="grid content-start gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <ReviewItem
-              label="Booking link"
-              tooltip="Booking page recipients will reach."
+              label={t('bookingLink')}
+              tooltipLabel={t('bookingLinkDetails')}
+              tooltip={t('bookingPageTooltip')}
               value={
                 values.bookingUrl ? (
                   <a
@@ -165,29 +174,29 @@ export function CampaignReview({
                     {values.bookingUrl}
                   </a>
                 ) : (
-                  'Not added'
+                  t('notAdded')
                 )
               }
             />
-            <ReviewItem label="Reference" value={referenceValue} />
+            <ReviewItem label={t('reference')} value={referenceValue} />
           </div>
 
           <ReviewItem
             detail={audienceSummary.detail}
-            label="Audience rule"
+            label={t('audienceRule')}
             value={audienceSummary.value}
           />
 
           {campaign && campaign.status !== 'draft' ? (
             <ReviewItem
-              label="Send status"
-              value={campaignSendStatusText(campaign, locale)}
+              label={t('sendStatus')}
+              value={campaignSendStatusText(campaign, locale, t)}
             />
           ) : null}
         </section>
 
         <section className="grid content-start gap-3">
-          <h3 className={textStyles.itemTitle}>Message preview</h3>
+          <h3 className={textStyles.itemTitle}>{t('messagePreview')}</h3>
           <MessagePreview showLabel={false} smsBody={values.smsBody} />
           <MessageEstimate smsBody={values.smsBody} />
         </section>
@@ -200,11 +209,13 @@ function ReviewItem({
   detail,
   label,
   tooltip,
+  tooltipLabel,
   value,
 }: {
   detail?: ReactNode;
   label: string;
   tooltip?: ReactNode;
+  tooltipLabel?: string;
   value: ReactNode;
 }) {
   return (
@@ -212,7 +223,7 @@ function ReviewItem({
       <div className="flex items-center gap-1.5">
         <h3 className={textStyles.itemTitle}>{label}</h3>
         {tooltip ? (
-          <InfoTooltip label={`${label} details`}>{tooltip}</InfoTooltip>
+          <InfoTooltip label={tooltipLabel ?? ''}>{tooltip}</InfoTooltip>
         ) : null}
       </div>
       <div className={cn('min-w-0', textStyles.body)}>{value}</div>
@@ -232,6 +243,7 @@ function audienceReviewSummary({
   frozenRecipientCount,
   isAudienceLoading,
   isRecipientSummaryLoading,
+  t,
   values,
 }: {
   audiencePreviewData:
@@ -248,6 +260,7 @@ function audienceReviewSummary({
   frozenRecipientCount: number | null;
   isAudienceLoading: boolean;
   isRecipientSummaryLoading: boolean;
+  t: ReturnType<typeof useTranslations<'Campaigns'>>;
   values: CampaignFormValues;
 }) {
   if (campaign && campaign.status !== 'draft') {
@@ -255,28 +268,28 @@ function audienceReviewSummary({
       return {
         detail: undefined,
         value: isRecipientSummaryLoading
-          ? 'Loading selected recipients.'
-          : 'Selected recipients unavailable.',
+          ? t('loadingSelectedRecipients')
+          : t('selectedRecipientsUnavailable'),
       };
     }
 
     return {
       detail: undefined,
-      value: 'Selected when this campaign was prepared.',
+      value: t('selectedWhenPrepared'),
     };
   }
 
   if (isAudienceLoading) {
     return {
       detail: undefined,
-      value: 'Checking eligible contacts.',
+      value: t('checkingEligibleContacts'),
     };
   }
 
   if (eligibleCount === null) {
     return {
       detail: undefined,
-      value: 'Eligible contacts unavailable.',
+      value: t('eligibleContactsUnavailable'),
     };
   }
 
@@ -284,22 +297,25 @@ function audienceReviewSummary({
     ? (
         <AudienceRuleDetailBadges
           audiencePreviewData={audiencePreviewData}
+          t={t}
         />
       )
     : null;
 
   return {
     detail: issueText,
-    value: `Last booking at least ${
-      values.audienceRule.lapsedDays
-    } days ago. Contacts without a booking date are ${
-      values.audienceRule.includeNoBookingDate ? 'included' : 'excluded'
-    }.`,
+    value: t('audienceRuleReviewValue', {
+      days: values.audienceRule.lapsedDays,
+      state: values.audienceRule.includeNoBookingDate
+        ? t('included')
+        : t('excluded'),
+    }),
   };
 }
 
 function AudienceRuleDetailBadges({
   audiencePreviewData,
+  t,
 }: {
   audiencePreviewData: {
     incompleteCount: number;
@@ -308,27 +324,38 @@ function AudienceRuleDetailBadges({
     selectedCampaignsExcludedCount: number;
     suppressedCount: number;
   };
+  t: ReturnType<typeof useTranslations<'Campaigns'>>;
 }) {
   const badges = [
     {
       count: audiencePreviewData.suppressedCount,
-      label: `${audiencePreviewData.suppressedCount} suppressed`,
+      label: t('suppressedCount', {
+        count: audiencePreviewData.suppressedCount,
+      }),
     },
     {
       count: audiencePreviewData.incompleteCount,
-      label: `${audiencePreviewData.incompleteCount} missing phone`,
+      label: t('missingPhoneCount', {
+        count: audiencePreviewData.incompleteCount,
+      }),
     },
     {
       count: audiencePreviewData.missingConsentCount,
-      label: `${audiencePreviewData.missingConsentCount} missing consent`,
+      label: t('missingConsentCount', {
+        count: audiencePreviewData.missingConsentCount,
+      }),
     },
     {
       count: audiencePreviewData.recentCampaignExcludedCount,
-      label: `${audiencePreviewData.recentCampaignExcludedCount} recently contacted`,
+      label: t('recentlyContactedCount', {
+        count: audiencePreviewData.recentCampaignExcludedCount,
+      }),
     },
     {
       count: audiencePreviewData.selectedCampaignsExcludedCount,
-      label: `${audiencePreviewData.selectedCampaignsExcludedCount} already received selected campaigns`,
+      label: t('alreadyReceivedSelectedCampaigns', {
+        count: audiencePreviewData.selectedCampaignsExcludedCount,
+      }),
     },
   ] as const;
 

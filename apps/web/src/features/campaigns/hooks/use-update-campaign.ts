@@ -8,6 +8,7 @@ import type {
   CampaignResponse,
   UpdateCampaignDraftInput,
 } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import { useApi } from '@/hooks/use-api';
 import { campaignsQueryKeys } from '../query-keys';
 
@@ -19,12 +20,13 @@ export function useUpdateCampaign({
   organizationId: string | null;
 }) {
   const api = useApi();
+  const t = useTranslations('Campaigns');
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (input: UpdateCampaignDraftInput) => {
       if (!campaignId) {
-        throw new Error('Choose a campaign before saving changes.');
+        throw new Error(t('chooseCampaignBeforeSaving'));
       }
 
       return api.request<CampaignResponse>(`/v1/campaigns/${campaignId}`, {

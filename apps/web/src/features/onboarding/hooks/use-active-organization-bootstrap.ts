@@ -11,8 +11,10 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useTranslations } from 'next-intl';
 
 export function useActiveOrganizationBootstrap() {
+  const t = useTranslations('Onboarding');
   const {
     isLoaded: isAuthLoaded,
     isSignedIn,
@@ -79,7 +81,7 @@ export function useActiveOrganizationBootstrap() {
           setError(
             cause instanceof Error
               ? cause
-              : new Error('Active organization could not be prepared.'),
+              : new Error(t('activeOrganizationPrepareError')),
           );
         }
       } finally {
@@ -104,6 +106,7 @@ export function useActiveOrganizationBootstrap() {
     orgId,
     session?.currentTask?.key,
     setActive,
+    t,
     user,
     userMemberships.data,
     userMemberships.isLoading,

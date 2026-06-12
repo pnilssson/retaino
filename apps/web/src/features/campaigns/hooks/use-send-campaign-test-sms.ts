@@ -5,15 +5,17 @@ import type {
   CampaignSmsTestSendRequest,
   CampaignSmsTestSendResponse,
 } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import { useApi } from '@/hooks/use-api';
 
 export function useSendCampaignTestSms(campaignId: string | null) {
   const api = useApi();
+  const t = useTranslations('Campaigns');
 
   return useMutation({
     mutationFn: (input: CampaignSmsTestSendRequest) => {
       if (!campaignId) {
-        throw new Error('Save the campaign before sending a test SMS.');
+        throw new Error(t('saveCampaignBeforeTestSms'));
       }
 
       return api.post<CampaignSmsTestSendResponse>(

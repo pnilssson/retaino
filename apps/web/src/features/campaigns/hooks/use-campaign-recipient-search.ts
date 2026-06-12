@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import type { CampaignRecipientSearchResponse } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import { useApi } from '@/hooks/use-api';
 import { campaignsQueryKeys } from '../query-keys';
 
@@ -15,6 +16,7 @@ export function useCampaignRecipientSearch({
   search: string;
 }) {
   const api = useApi();
+  const t = useTranslations('Campaigns');
   const normalizedSearch = search.trim();
 
   return useQuery({
@@ -29,7 +31,7 @@ export function useCampaignRecipientSearch({
     ),
     queryFn: () => {
       if (!organizationId) {
-        throw new Error('Organization is required to search campaign recipients.');
+        throw new Error(t('organizationRequiredSearchRecipients'));
       }
 
       const params = new URLSearchParams({ search: normalizedSearch });

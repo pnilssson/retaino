@@ -7,6 +7,7 @@ import {
 } from '@retaino/shared/contracts';
 import { formatCurrencyLabel } from '@retaino/shared';
 import { Pencil } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { CountryCombobox } from '@/components/country-combobox';
 import { CurrencyCombobox } from '@/components/currency-combobox';
@@ -40,9 +41,10 @@ export function ProfileSection({
   canManageSetup: boolean;
   session: OrganizationSession;
 }) {
+  const t = useTranslations('Settings');
   const [isEditing, setIsEditing] = useState(false);
   const profile = session.profile;
-  const status = organizationProfileStatus(session);
+  const status = organizationProfileStatus(session, t);
 
   function openEditMode() {
     setIsEditing(true);
@@ -58,14 +60,14 @@ export function ProfileSection({
         canManageSetup && !isEditing ? (
           <Button onClick={openEditMode} type="button">
             <Pencil aria-hidden="true" data-icon="inline-start" />
-            {profile ? 'Edit' : 'Complete profile'}
+            {profile ? t('edit') : t('completeProfile')}
           </Button>
         ) : null
       }
       id="organization-profile"
       title={
         <span className="flex flex-wrap items-center gap-2">
-          Organization profile
+          {t('profileTitle')}
           <StatusBadge label={status.label} tone={status.tone} />
         </span>
       }
@@ -80,8 +82,8 @@ export function ProfileSection({
         <ProfileSummary profile={profile} />
       ) : (
         <ItemNotice
-          description="Organization admins need to add company and responsible contact details before the workspace is ready."
-          title="Profile is not complete"
+          description={t('profileIncompleteDescription')}
+          title={t('profileIncompleteTitle')}
           variant="warning"
         />
       )}
@@ -89,23 +91,26 @@ export function ProfileSection({
   );
 }
 
-function organizationProfileStatus(session: OrganizationSession) {
+function organizationProfileStatus(
+  session: OrganizationSession,
+  t: ReturnType<typeof useTranslations<'Settings'>>,
+) {
   if (session.readiness.legalUpdatesRequired) {
     return {
-      label: 'Legal updates required',
+      label: t('legalUpdatesRequired'),
       tone: 'amber',
     } as const;
   }
 
   if (session.readiness.ready) {
     return {
-      label: 'Ready',
+      label: t('ready'),
       tone: 'green',
     } as const;
   }
 
   return {
-    label: 'Setup incomplete',
+    label: t('setupIncomplete'),
     tone: 'amber',
   } as const;
 }
@@ -119,6 +124,8 @@ function ProfileEditor({
   onSaved: () => void;
   session: OrganizationSession;
 }) {
+  const t = useTranslations('Settings');
+  const common = useTranslations('Common');
   const updateProfile = useUpdateOrganizationProfile();
   const form = useForm({
     defaultValues: organizationProfileFormValuesFromSession(session),
@@ -145,15 +152,15 @@ function ProfileEditor({
           name="legalName"
           validators={{
             onBlur: ({ value }) =>
-              validateRequired(value, 'Enter the legal company name.'),
+              validateRequired(value, t('requiredLegalName')),
             onSubmit: ({ value }) =>
-              validateRequired(value, 'Enter the legal company name.'),
+              validateRequired(value, t('requiredLegalName')),
           }}
         >
           {(field) => (
             <ProfileInput
               error={getFieldError(field.state.meta.errors)}
-              label="Legal name"
+              label={t('legalName')}
               name={field.name}
               onBlur={field.handleBlur}
               onChange={field.handleChange}
@@ -165,15 +172,15 @@ function ProfileEditor({
           name="registrationNumber"
           validators={{
             onBlur: ({ value }) =>
-              validateRequired(value, 'Enter the registration number.'),
+              validateRequired(value, t('requiredRegistrationNumber')),
             onSubmit: ({ value }) =>
-              validateRequired(value, 'Enter the registration number.'),
+              validateRequired(value, t('requiredRegistrationNumber')),
           }}
         >
           {(field) => (
             <ProfileInput
               error={getFieldError(field.state.meta.errors)}
-              label="Registration number"
+              label={t('registrationNumber')}
               name={field.name}
               onBlur={field.handleBlur}
               onChange={field.handleChange}
@@ -184,14 +191,24 @@ function ProfileEditor({
         <form.Field
           name="billingEmail"
           validators={{
-            onBlur: ({ value }) => validateEmail(value, 'billing email'),
-            onSubmit: ({ value }) => validateEmail(value, 'billing email'),
+            onBlur: ({ value }) =>
+              validateEmail(
+                value,
+                common('enterField', { field: t('billingEmailField') }),
+                common('invalidEmailAddress'),
+              ),
+            onSubmit: ({ value }) =>
+              validateEmail(
+                value,
+                common('enterField', { field: t('billingEmailField') }),
+                common('invalidEmailAddress'),
+              ),
           }}
         >
           {(field) => (
             <ProfileInput
               error={getFieldError(field.state.meta.errors)}
-              label="Billing email"
+              label={t('billingEmail')}
               name={field.name}
               onBlur={field.handleBlur}
               onChange={field.handleChange}
@@ -204,15 +221,15 @@ function ProfileEditor({
           name="responsibleName"
           validators={{
             onBlur: ({ value }) =>
-              validateRequired(value, 'Enter the responsible contact.'),
+              validateRequired(value, t('requiredResponsibleContact')),
             onSubmit: ({ value }) =>
-              validateRequired(value, 'Enter the responsible contact.'),
+              validateRequired(value, t('requiredResponsibleContact')),
           }}
         >
           {(field) => (
             <ProfileInput
               error={getFieldError(field.state.meta.errors)}
-              label="Responsible contact"
+              label={t('responsibleContact')}
               name={field.name}
               onBlur={field.handleBlur}
               onChange={field.handleChange}
@@ -224,14 +241,23 @@ function ProfileEditor({
           name="responsibleEmail"
           validators={{
             onBlur: ({ value }) =>
-              validateEmail(value, 'responsible email'),
-            onSubmit: ({ value }) => validateEmail(value, 'responsible email'),
+              validateEmail(
+                value,
+                common('enterField', { field: t('responsibleEmailField') }),
+                common('invalidEmailAddress'),
+              ),
+            onSubmit: ({ value }) =>
+              validateEmail(
+                value,
+                common('enterField', { field: t('responsibleEmailField') }),
+                common('invalidEmailAddress'),
+              ),
           }}
         >
           {(field) => (
             <ProfileInput
               error={getFieldError(field.state.meta.errors)}
-              label="Responsible email"
+              label={t('responsibleEmail')}
               name={field.name}
               onBlur={field.handleBlur}
               onChange={field.handleChange}
@@ -243,14 +269,16 @@ function ProfileEditor({
         <form.Field
           name="countryCode"
           validators={{
-            onBlur: ({ value }) => validateCountryCode(value),
-            onSubmit: ({ value }) => validateCountryCode(value),
+            onBlur: ({ value }) =>
+              validateCountryCode(value, common('chooseSupportedCountry')),
+            onSubmit: ({ value }) =>
+              validateCountryCode(value, common('chooseSupportedCountry')),
           }}
         >
           {(field) => (
             <ProfileCountryInput
               error={getFieldError(field.state.meta.errors)}
-              label="Default phone country"
+              label={t('defaultPhoneCountry')}
               name={field.name}
               onBlur={field.handleBlur}
               onChange={(value) =>
@@ -263,14 +291,16 @@ function ProfileEditor({
         <form.Field
           name="currency"
           validators={{
-            onBlur: ({ value }) => validateCurrencyCode(value),
-            onSubmit: ({ value }) => validateCurrencyCode(value),
+            onBlur: ({ value }) =>
+              validateCurrencyCode(value, common('chooseSupportedCurrency')),
+            onSubmit: ({ value }) =>
+              validateCurrencyCode(value, common('chooseSupportedCurrency')),
           }}
         >
           {(field) => (
             <ProfileCurrencyInput
               error={getFieldError(field.state.meta.errors)}
-              label="Currency"
+              label={t('currency')}
               name={field.name}
               onBlur={field.handleBlur}
               onChange={(value) =>
@@ -284,16 +314,24 @@ function ProfileEditor({
           name="responsiblePhone"
           validators={{
             onBlur: ({ value }) =>
-              validatePhone(value, form.getFieldValue('countryCode')),
+              validatePhone(
+                value,
+                form.getFieldValue('countryCode'),
+                common('invalidPhoneNumber'),
+              ),
             onSubmit: ({ value }) =>
-              validatePhone(value, form.getFieldValue('countryCode')),
+              validatePhone(
+                value,
+                form.getFieldValue('countryCode'),
+                common('invalidPhoneNumber'),
+              ),
           }}
         >
           {(field) => (
             <ProfilePhoneInput
               countryCode={form.getFieldValue('countryCode')}
               error={getFieldError(field.state.meta.errors)}
-              label="Responsible phone"
+              label={t('responsiblePhone')}
               name={field.name}
               onBlur={field.handleBlur}
               onChange={field.handleChange}
@@ -309,7 +347,7 @@ function ProfileEditor({
       {updateProfile.error ? (
         <ItemNotice
           description={updateProfile.error.message}
-          title="Profile could not be saved"
+          title={t('profileSaveErrorTitle')}
           variant="error"
         />
       ) : null}
@@ -321,7 +359,7 @@ function ProfileEditor({
           type="button"
           variant="outline"
         >
-          Cancel
+          {t('cancel')}
         </Button>
         <form.Subscribe
           selector={(state) => [state.canSubmit, state.isSubmitting]}
@@ -332,8 +370,8 @@ function ProfileEditor({
               type="submit"
             >
               {updateProfile.isPending || isSubmitting
-                ? 'Saving profile'
-                : 'Save profile'}
+                ? t('savingProfile')
+                : t('saveProfile')}
             </Button>
           )}
         </form.Subscribe>
@@ -347,27 +385,28 @@ function ProfileSummary({
 }: {
   profile: NonNullable<OrganizationSession['profile']>;
 }) {
+  const t = useTranslations('Settings');
   return (
     <dl className="grid gap-4 sm:grid-cols-2">
-      <ProfileRow label="Legal name" value={profile.legalName} />
+      <ProfileRow label={t('legalName')} value={profile.legalName} />
       <ProfileRow
-        label="Registration number"
+        label={t('registrationNumber')}
         value={profile.registrationNumber}
       />
-      <ProfileRow label="Billing email" value={profile.billingEmail} />
-      <ProfileRow label="Responsible contact" value={profile.responsibleName} />
-      <ProfileRow label="Responsible email" value={profile.responsibleEmail} />
+      <ProfileRow label={t('billingEmail')} value={profile.billingEmail} />
+      <ProfileRow label={t('responsibleContact')} value={profile.responsibleName} />
+      <ProfileRow label={t('responsibleEmail')} value={profile.responsibleEmail} />
       <ProfileRow
-        label="Default phone country"
+        label={t('defaultPhoneCountry')}
         value={formatPhoneCountryLabel(profile.countryCode)}
       />
       <ProfileRow
-        label="Currency"
+        label={t('currency')}
         value={formatCurrencyLabel(profile.currency)}
       />
       <ProfileRow
-        label="Responsible phone"
-        value={profile.responsiblePhone ?? 'Not provided'}
+        label={t('responsiblePhone')}
+        value={profile.responsiblePhone ?? t('notProvided')}
       />
     </dl>
   );
@@ -388,12 +427,13 @@ function ProfileCountryInput({
   onChange: (value: string) => void;
   value: string;
 }) {
+  const t = useTranslations('Settings');
   return (
     <div className="grid gap-2">
       <div className="flex items-center gap-1.5">
         <Label htmlFor={name}>{label}</Label>
-        <InfoTooltip label="Default phone country details">
-          Used when imported phone numbers have no country prefix.
+        <InfoTooltip label={t('defaultPhoneCountryTooltip')}>
+          {t('defaultPhoneCountryTooltip')}
         </InfoTooltip>
       </div>
       <CountryCombobox

@@ -4,6 +4,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,9 +30,10 @@ export function CampaignFilters({
   search: string;
   status: CampaignListStatusFilter;
 }) {
+  const t = useTranslations('Campaigns');
   const activeFilters = [
     search.trim() ? `Search: ${search.trim()}` : null,
-    status !== 'all' ? formatCampaignStatus(status) : null,
+    status !== 'all' ? formatCampaignStatus(status, t) : null,
   ].filter((value): value is string => Boolean(value));
   return (
     <div className="grid gap-3">
@@ -42,12 +44,12 @@ export function CampaignFilters({
             className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
           />
           <Input
-            aria-label="Search campaigns"
+            aria-label={t('searchCampaigns')}
             autoComplete="off"
             className="h-9 pl-9"
             name="campaign-search"
             onChange={(event) => onChange({ search: event.target.value })}
-            placeholder="Search campaigns"
+            placeholder={t('searchCampaigns')}
             value={search}
           />
         </div>
@@ -60,18 +62,18 @@ export function CampaignFilters({
             value={status}
           >
             <SelectTrigger
-              aria-label="Filter by campaign status"
+              aria-label={t('filterByCampaignStatus')}
               className="h-9 min-h-9 flex-1 sm:w-40 sm:flex-none"
             >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="ready_to_send">Ready to send</SelectItem>
-              <SelectItem value="sending">Sending</SelectItem>
-              <SelectItem value="sent">Sent</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="all">{t('allStatuses')}</SelectItem>
+              <SelectItem value="draft">{t('statusDraft')}</SelectItem>
+              <SelectItem value="ready_to_send">{t('statusReadyToSend')}</SelectItem>
+              <SelectItem value="sending">{t('statusSending')}</SelectItem>
+              <SelectItem value="sent">{t('statusSent')}</SelectItem>
+              <SelectItem value="failed">{t('statusFailed')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -96,7 +98,7 @@ export function CampaignFilters({
             variant="ghost"
           >
             <X aria-hidden="true" data-icon="inline-start" />
-            Clear
+            {t('clear')}
           </Button>
         </div>
       ) : null}

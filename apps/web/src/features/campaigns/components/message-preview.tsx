@@ -1,19 +1,13 @@
 "use client";
 
 import { createCampaignSmsPreview } from '@retaino/shared';
-import {
-  SmsMessageEstimate,
-  smsMessageEstimateText,
-} from '@/components/sms-message-estimate';
+import { useTranslations } from 'next-intl';
+import { SmsMessageEstimate } from '@/components/sms-message-estimate';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 
 export function MessageEstimate({ smsBody }: { smsBody: string }) {
   return <SmsMessageEstimate body={smsBody} mode="campaign" />;
-}
-
-export function messageEstimateText(smsBody: string) {
-  return smsMessageEstimateText({ body: smsBody, mode: 'campaign' });
 }
 
 export function MessagePreview({
@@ -23,13 +17,14 @@ export function MessagePreview({
   showLabel?: boolean;
   smsBody: string;
 }) {
+  const t = useTranslations('Campaigns');
   const preview = createCampaignSmsPreview({ smsBody });
   const hasBody = Boolean(smsBody.trim());
 
   return (
     <div className="grid content-start gap-2">
       {showLabel ? (
-        <p className={textStyles.itemTitle}>Message preview</p>
+        <p className={textStyles.itemTitle}>{t('messagePreview')}</p>
       ) : null}
       <div
         className={cn(
@@ -38,7 +33,7 @@ export function MessagePreview({
         )}
       >
         <p className="whitespace-pre-wrap break-words">
-          {hasBody ? preview.renderedBody : 'Your SMS preview appears here.'}
+          {hasBody ? preview.renderedBody : t('smsPreviewPlaceholder')}
         </p>
       </div>
     </div>

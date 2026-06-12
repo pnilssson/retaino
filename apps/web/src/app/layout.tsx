@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { getLocale } from 'next-intl/server';
+import {
+  getLocale,
+  getTranslations,
+} from 'next-intl/server';
 import {
   Geist,
   JetBrains_Mono,
@@ -25,28 +28,31 @@ const fontMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
-const title = "Retaino";
-const description =
-  "Keep the clients you already paid to acquire and turn existing relationships into booked appointments.";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://retaino.io";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title,
-  description,
-  applicationName: "Retaino",
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("Metadata");
+  const title = t("title");
+  const description = t("description");
+
+  return {
+    metadataBase: new URL(siteUrl),
     title,
     description,
-    siteName: "Retaino",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title,
-    description,
-  },
-};
+    applicationName: "Retaino",
+    openGraph: {
+      title,
+      description,
+      siteName: "Retaino",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();

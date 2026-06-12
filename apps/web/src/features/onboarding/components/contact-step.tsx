@@ -42,6 +42,7 @@ export function ContactStep({
   onComplete: (value: ProfileDraft) => Promise<void>;
 }) {
   const t = useTranslations('Onboarding');
+  const common = useTranslations('Common');
   const form = useForm({
     defaultValues,
     onSubmit: async ({ value }) => {
@@ -68,8 +69,18 @@ export function ContactStep({
           <form.Field
             name="billingEmail"
             validators={{
-              onBlur: ({ value }) => validateEmail(value, 'billing email'),
-              onSubmit: ({ value }) => validateEmail(value, 'billing email'),
+              onBlur: ({ value }) =>
+                validateEmail(
+                  value,
+                  common('enterField', { field: t('billingEmailField') }),
+                  common('invalidEmailAddress'),
+                ),
+              onSubmit: ({ value }) =>
+                validateEmail(
+                  value,
+                  common('enterField', { field: t('billingEmailField') }),
+                  common('invalidEmailAddress'),
+                ),
             }}
           >
             {(field) => (
@@ -79,7 +90,7 @@ export function ContactStep({
                 name={field.name}
                 onBlur={field.handleBlur}
                 onChange={field.handleChange}
-                placeholder="billing@example.com"
+                placeholder={t('billingEmailPlaceholder')}
                 type="email"
                 value={field.state.value}
               />
@@ -89,9 +100,9 @@ export function ContactStep({
             name="responsibleName"
             validators={{
               onBlur: ({ value }) =>
-                validateRequired(value, 'Enter the responsible contact.'),
+                validateRequired(value, t('responsibleContactRequired')),
               onSubmit: ({ value }) =>
-                validateRequired(value, 'Enter the responsible contact.'),
+                validateRequired(value, t('responsibleContactRequired')),
             }}
           >
             {(field) => (
@@ -101,7 +112,7 @@ export function ContactStep({
                 name={field.name}
                 onBlur={field.handleBlur}
                 onChange={field.handleChange}
-                placeholder="Ada Lovelace"
+                placeholder={t('responsibleContactPlaceholder')}
                 value={field.state.value}
               />
             )}
@@ -109,8 +120,18 @@ export function ContactStep({
           <form.Field
             name="responsibleEmail"
             validators={{
-              onBlur: ({ value }) => validateEmail(value, 'responsible email'),
-              onSubmit: ({ value }) => validateEmail(value, 'responsible email'),
+              onBlur: ({ value }) =>
+                validateEmail(
+                  value,
+                  common('enterField', { field: t('responsibleEmailField') }),
+                  common('invalidEmailAddress'),
+                ),
+              onSubmit: ({ value }) =>
+                validateEmail(
+                  value,
+                  common('enterField', { field: t('responsibleEmailField') }),
+                  common('invalidEmailAddress'),
+                ),
             }}
           >
             {(field) => (
@@ -120,7 +141,7 @@ export function ContactStep({
                 name={field.name}
                 onBlur={field.handleBlur}
                 onChange={field.handleChange}
-                placeholder="ada@example.com"
+                placeholder={t('responsibleEmailPlaceholder')}
                 type="email"
                 value={field.state.value}
               />
@@ -129,8 +150,10 @@ export function ContactStep({
           <form.Field
             name="countryCode"
             validators={{
-              onBlur: ({ value }) => validateCountryCode(value),
-              onSubmit: ({ value }) => validateCountryCode(value),
+              onBlur: ({ value }) =>
+                validateCountryCode(value, common('chooseSupportedCountry')),
+              onSubmit: ({ value }) =>
+                validateCountryCode(value, common('chooseSupportedCountry')),
             }}
           >
             {(field) => (
@@ -149,8 +172,10 @@ export function ContactStep({
           <form.Field
             name="currency"
             validators={{
-              onBlur: ({ value }) => validateCurrencyCode(value),
-              onSubmit: ({ value }) => validateCurrencyCode(value),
+              onBlur: ({ value }) =>
+                validateCurrencyCode(value, common('chooseSupportedCurrency')),
+              onSubmit: ({ value }) =>
+                validateCurrencyCode(value, common('chooseSupportedCurrency')),
             }}
           >
             {(field) => (
@@ -170,9 +195,17 @@ export function ContactStep({
             name="responsiblePhone"
             validators={{
               onBlur: ({ value }) =>
-                validatePhone(value, form.getFieldValue('countryCode')),
+                validatePhone(
+                  value,
+                  form.getFieldValue('countryCode'),
+                  common('invalidPhoneNumber'),
+                ),
               onSubmit: ({ value }) =>
-                validatePhone(value, form.getFieldValue('countryCode')),
+                validatePhone(
+                  value,
+                  form.getFieldValue('countryCode'),
+                  common('invalidPhoneNumber'),
+                ),
             }}
           >
             {(field) => (
@@ -251,12 +284,14 @@ function CountryInput({
   onChange: (value: string) => void;
   value: string;
 }) {
+  const t = useTranslations('Onboarding');
+
   return (
     <div className="grid gap-2">
       <div className="flex items-center gap-1.5">
         <Label htmlFor={name}>{label}</Label>
-        <InfoTooltip label="Default phone country details">
-          {useTranslations('Onboarding')('defaultPhoneCountryTooltip')}
+        <InfoTooltip label={t('defaultPhoneCountryTooltip')}>
+          {t('defaultPhoneCountryTooltip')}
         </InfoTooltip>
       </div>
       <CountryCombobox

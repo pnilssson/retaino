@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { Send } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { ItemNotice } from '@/components/item-notice';
 import { SmsMessageEstimate } from '@/components/sms-message-estimate';
@@ -19,6 +20,8 @@ export function InboxReplyForm({
   disabled: boolean;
   organizationId: string | null;
 }) {
+  const t = useTranslations('Inbox');
+  const common = useTranslations('Common');
   const sendReply = useSendInboxReply({ conversationId, organizationId });
   const [draftAttempt, setDraftAttempt] = useState<{
     body: string;
@@ -48,7 +51,7 @@ export function InboxReplyForm({
       });
       setDraftAttempt(null);
       formApi.reset();
-      toast.success('Reply sent.');
+      toast.success(t('replySent'));
     },
   });
 
@@ -62,8 +65,8 @@ export function InboxReplyForm({
     >
       {disabled ? (
         <ItemNotice
-          description="This phone number cannot receive replies."
-          title="Replies blocked"
+          description={t('repliesBlockedDescription')}
+          title={t('repliesBlockedTitle')}
           variant="warning"
         />
       ) : null}
@@ -72,7 +75,7 @@ export function InboxReplyForm({
         {(field) => (
           <div className="relative">
             <Textarea
-              aria-label="Reply"
+              aria-label={t('replyLabel')}
               className="min-h-24 resize-none rounded-lg bg-background pb-14 pr-24"
               disabled={disabled || sendReply.isPending}
               name={field.name}
@@ -85,7 +88,7 @@ export function InboxReplyForm({
                   setDraftAttempt(null);
                 }
               }}
-              placeholder="Write a reply..."
+              placeholder={t('replyPlaceholder')}
               rows={2}
               value={field.state.value}
             />
@@ -111,7 +114,7 @@ export function InboxReplyForm({
                   type="submit"
                 >
                   <Send aria-hidden="true" data-icon="inline-start" />
-                  {sendReply.isPending || isSubmitting ? 'Sending...' : 'Send'}
+                  {sendReply.isPending || isSubmitting ? t('sending') : t('send')}
                 </Button>
               )}
             </form.Subscribe>
@@ -124,9 +127,9 @@ export function InboxReplyForm({
           description={
             sendReply.error instanceof Error
               ? sendReply.error.message
-              : 'Try again.'
+              : common('tryAgainSoon')
           }
-          title="Reply could not be sent"
+          title={t('replyErrorTitle')}
           variant="error"
         />
       ) : null}

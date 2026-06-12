@@ -4,6 +4,7 @@ import {
   formatReportNumber,
   formatReportPercent,
 } from './campaign-report-format';
+import type { CampaignText } from './campaign-form-state';
 
 export type ReportSummaryIcon =
   | 'alert'
@@ -26,19 +27,20 @@ export type ReportSummaryMetric = {
 export function createOutcomeSummary(
   report: CampaignReport,
   locale: string,
+  t: CampaignText,
 ): ReportSummaryMetric {
   const revenueAmount = report.reportedOutcome.revenueAmountMinor ?? 0;
 
   return {
-    detail: averageBookingRevenueDetail(report, locale),
+    detail: averageBookingRevenueDetail(report, locale, t),
     icon: 'money',
     iconClassName:
       revenueAmount > 0 || report.reportedOutcome.hasMixedCurrencies
         ? 'bg-teal-50 text-teal-700'
         : 'bg-muted text-muted-foreground',
-    label: 'Reported revenue',
+    label: t('reportedRevenue'),
     value: report.reportedOutcome.hasMixedCurrencies
-      ? 'Mixed revenue'
+      ? t('mixedRevenue')
       : formatReportCurrency(
           revenueAmount,
           report.reportedOutcome.currency,
@@ -47,40 +49,46 @@ export function createOutcomeSummary(
   };
 }
 
-function averageBookingRevenueDetail(report: CampaignReport, locale: string) {
+function averageBookingRevenueDetail(
+  report: CampaignReport,
+  locale: string,
+  t: CampaignText,
+) {
   const bookingCount = report.reportedOutcome.bookingCount;
 
   if (bookingCount === 0) {
-    return 'No average booking revenue yet.';
+    return t('noAverageBookingRevenue');
   }
 
   if (report.reportedOutcome.hasMixedCurrencies) {
-    return 'Average booking revenue unavailable.';
+    return t('averageBookingRevenueUnavailable');
   }
 
   const revenueAmount = report.reportedOutcome.revenueAmountMinor ?? 0;
   const averageRevenue = Math.round(revenueAmount / bookingCount);
 
-  return `${formatReportCurrency(
-    averageRevenue,
-    report.reportedOutcome.currency,
-    locale,
-  )} average booking revenue.`;
+  return t('averageBookingRevenue', {
+    amount: formatReportCurrency(
+      averageRevenue,
+      report.reportedOutcome.currency,
+      locale,
+    ),
+  });
 }
 
 export function createAtAGlanceMetrics(
   report: CampaignReport,
   locale: string,
+  t: CampaignText,
 ): ReportSummaryMetric[] {
   return [
     {
-      detail: `${formatReportNumber(
-        report.reportedOutcome.bookingCount,
-        locale,
-      )} reported bookings.`,
+      detail: t('reportedBookingsCount', {
+        count: formatReportNumber(report.reportedOutcome.bookingCount, locale),
+      }),
       icon: 'calendar',
       iconClassName: 'bg-emerald-50 text-emerald-700',
-      label: 'Booking rate',
+      label: t('bookingRate'),
       value: formatReportPercent(
         report.reportedOutcome.bookingCount,
         report.deliveredCount,
@@ -88,13 +96,12 @@ export function createAtAGlanceMetrics(
       ),
     },
     {
-      detail: `${formatReportNumber(
-        report.actualSmsSegments,
-        locale,
-      )} total SMS credits.`,
+      detail: t('totalSmsCredits', {
+        count: formatReportNumber(report.actualSmsSegments, locale),
+      }),
       icon: 'send',
       iconClassName: 'bg-sky-50 text-sky-700',
-      label: 'Credits used',
+      label: t('creditsUsed'),
       value: formatReportNumber(report.actualSmsSegments, locale),
     },
   ];
@@ -103,46 +110,49 @@ export function createAtAGlanceMetrics(
 export function createResponseMetrics(
   report: CampaignReport,
   locale: string,
+  t: CampaignText,
 ): ReportSummaryMetric[] {
   return [
     {
-      detail: `${formatReportPercent(
-        report.uniqueClickerCount,
-        report.deliveredCount,
-        locale,
-      )} of delivered.`,
+      detail: t('ofDelivered', {
+        value: formatReportPercent(
+          report.uniqueClickerCount,
+          report.deliveredCount,
+          locale,
+        ),
+      }),
       icon: 'pointer',
       iconClassName: 'bg-violet-50 text-violet-700',
-      label: 'Unique clickers',
+      label: t('uniqueClickers'),
       value: formatReportNumber(report.uniqueClickerCount, locale),
     },
     {
-      detail: 'Total tracked clicks.',
+      detail: t('totalTrackedClicks'),
       icon: 'pointer',
       iconClassName: 'bg-violet-50 text-violet-700',
-      label: 'Tracked clicks',
+      label: t('trackedClicks'),
       value: formatReportNumber(report.clickCount, locale),
     },
     {
-      detail: `${formatReportPercent(
-        report.inboundReplyCount,
-        report.sentCount,
-        locale,
-      )} of sent.`,
+      detail: t('ofSent', {
+        value: formatReportPercent(
+          report.inboundReplyCount,
+          report.sentCount,
+          locale,
+        ),
+      }),
       icon: 'message',
       iconClassName: 'bg-blue-50 text-blue-700',
-      label: 'Unique replies',
+      label: t('uniqueReplies'),
       value: formatReportNumber(report.inboundReplyCount, locale),
     },
     {
-      detail: `${formatReportPercent(
-        report.optOutCount,
-        report.sentCount,
-        locale,
-      )} of sent.`,
+      detail: t('ofSent', {
+        value: formatReportPercent(report.optOutCount, report.sentCount, locale),
+      }),
       icon: 'shield',
       iconClassName: 'bg-rose-50 text-rose-700',
-      label: 'Opt-outs',
+      label: t('optOuts'),
       value: formatReportNumber(report.optOutCount, locale),
     },
   ];

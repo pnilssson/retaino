@@ -10,6 +10,7 @@ import {
   SearchableCombobox,
   type SearchableComboboxOption,
 } from '@/components/searchable-combobox';
+import { useTranslations } from 'next-intl';
 
 export function CurrencyCombobox({
   'aria-invalid': ariaInvalid,
@@ -30,6 +31,7 @@ export function CurrencyCombobox({
   onChange: (value: string) => void;
   value: string;
 }) {
+  const t = useTranslations('Common');
   const currencies: Array<SearchableComboboxOption<string>> = useMemo(
     () =>
       getSupportedCurrencyCodes().map((code) => ({
@@ -42,14 +44,14 @@ export function CurrencyCombobox({
   );
   const selected = currencyCodeSchema.safeParse(value).success
     ? formatCurrencyLabel(value, locale)
-    : 'Choose currency';
+    : t('chooseCurrency');
 
   return (
     <SearchableCombobox
       aria-invalid={ariaInvalid}
       disabled={disabled}
       displayValue={selected}
-      emptyText="No currencies found."
+      emptyText={t('noCurrenciesFound')}
       id={id}
       name={name}
       onBlur={onBlur}
@@ -57,8 +59,8 @@ export function CurrencyCombobox({
         onChange(option.value);
       }}
       options={currencies}
-      placeholder="Choose currency"
-      searchPlaceholder="Search currency or SEK"
+      placeholder={t('chooseCurrency')}
+      searchPlaceholder={t('searchCurrency')}
       selectedKey={value}
     />
   );

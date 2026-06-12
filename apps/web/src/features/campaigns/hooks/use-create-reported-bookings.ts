@@ -8,6 +8,7 @@ import type {
   CreateReportedBookingsInput,
   CreateReportedBookingsResponse,
 } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import { useApi } from '@/hooks/use-api';
 import { campaignsQueryKeys } from '../query-keys';
 
@@ -19,12 +20,13 @@ export function useCreateReportedBookings({
   organizationId: string | null;
 }) {
   const api = useApi();
+  const t = useTranslations('Campaigns');
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (input: CreateReportedBookingsInput) => {
       if (!campaignId) {
-        throw new Error('Choose a campaign before adding bookings.');
+        throw new Error(t('chooseCampaignBeforeAddingBookings'));
       }
 
       return api.post<CreateReportedBookingsResponse>(

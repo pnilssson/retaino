@@ -1,16 +1,9 @@
 import type { CampaignStatus } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import {
   StatusBadge,
   type StatusBadgeTone,
 } from '@/components/status-badge';
-
-const statusLabels: Record<CampaignStatus, string> = {
-  draft: 'Draft',
-  failed: 'Failed',
-  ready_to_send: 'Ready to send',
-  sending: 'Sending',
-  sent: 'Sent',
-};
 
 const statusTones: Record<CampaignStatus, StatusBadgeTone> = {
   draft: 'gray',
@@ -21,9 +14,25 @@ const statusTones: Record<CampaignStatus, StatusBadgeTone> = {
 };
 
 export function CampaignStatusBadge({ status }: { status: CampaignStatus }) {
-  return <StatusBadge label={statusLabels[status]} tone={statusTones[status]} />;
+  const t = useTranslations('Campaigns');
+
+  return <StatusBadge label={formatCampaignStatus(status, t)} tone={statusTones[status]} />;
 }
 
-export function formatCampaignStatus(status: CampaignStatus) {
-  return statusLabels[status];
+export function formatCampaignStatus(
+  status: CampaignStatus,
+  t: ReturnType<typeof useTranslations<'Campaigns'>>,
+) {
+  switch (status) {
+    case 'draft':
+      return t('statusDraft');
+    case 'failed':
+      return t('statusFailed');
+    case 'ready_to_send':
+      return t('statusReadyToSend');
+    case 'sending':
+      return t('statusSending');
+    case 'sent':
+      return t('statusSent');
+  }
 }

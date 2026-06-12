@@ -1,13 +1,19 @@
 export function defaultOrganizationName(
   fullName?: string | null,
   emailAddress?: string,
+  labels?: {
+    fallback: string;
+    fromName: (name: string) => string;
+  },
 ) {
   const normalizedName = fullName?.trim();
 
   if (normalizedName) {
-    return `${normalizedName}'s organization`;
+    return labels?.fromName(normalizedName) ?? normalizedName;
   }
 
   const emailName = emailAddress?.split('@')[0]?.trim();
-  return emailName ? `${emailName}'s organization` : 'My organization';
+  return emailName
+    ? (labels?.fromName(emailName) ?? emailName)
+    : (labels?.fallback ?? '');
 }

@@ -9,6 +9,7 @@ import {
   PhoneOff,
   ShieldOff,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { ItemNotice } from '@/components/item-notice';
 import {
   SankeyBreakdown,
@@ -28,6 +29,7 @@ export function AudiencePreview({
   enabled: boolean;
   organizationId: string | null;
 }) {
+  const t = useTranslations('Campaigns');
   const preview = useCampaignAudiencePreview({
     audienceRule,
     enabled,
@@ -37,8 +39,8 @@ export function AudiencePreview({
   if (!enabled) {
     return (
       <ItemNotice
-        description="Complete a valid audience rule to preview matching contacts."
-        title="Audience preview is waiting"
+        description={t('audiencePreviewWaitingDescription')}
+        title={t('audiencePreviewWaitingTitle')}
       />
     );
   }
@@ -49,21 +51,21 @@ export function AudiencePreview({
         description={
           preview.error instanceof Error
             ? preview.error.message
-            : 'Try changing the audience rule or try again in a moment.'
+            : t('audiencePreviewLoadErrorDescription')
         }
-        title="Audience preview could not be loaded"
+        title={t('audiencePreviewLoadErrorTitle')}
         variant="error"
       />
     );
   }
 
   if (preview.isLoading || !preview.data) {
-    return <p className={textStyles.mutedBody}>Loading audience preview...</p>;
+    return <p className={textStyles.mutedBody}>{t('loadingAudiencePreview')}</p>;
   }
 
-  const audienceNodes = createAudienceNodes();
+  const audienceNodes = createAudienceNodes(t);
   const audienceLinks = createAudienceLinks(preview.data);
-  const audienceSummary = createAudienceSummary(preview.data);
+  const audienceSummary = createAudienceSummary(preview.data, t);
 
   return (
     <div className="grid gap-5">
@@ -72,13 +74,13 @@ export function AudiencePreview({
         nodes={audienceNodes}
         showHeader={false}
         summary={audienceSummary}
-        title="Audience breakdown"
+        title={t('audienceBreakdown')}
       />
 
       {preview.data.eligibleCount === 0 ? (
         <ItemNotice
-          description="No contacts currently match this audience. Change the lapsed days or include contacts without a booking date."
-          title="No eligible contacts yet"
+          description={t('noEligibleContactsDescription')}
+          title={t('noEligibleContactsTitle')}
         />
       ) : null}
     </div>
@@ -95,43 +97,45 @@ type AudiencePreviewData = {
   suppressedCount: number;
 };
 
-function createAudienceNodes(): SankeyBreakdownNode[] {
+type CampaignsT = ReturnType<typeof useTranslations<'Campaigns'>>;
+
+function createAudienceNodes(t: CampaignsT): SankeyBreakdownNode[] {
   return [
     {
       color: 'var(--chart-3)',
-      name: 'Matching contacts',
+      name: t('matchingContacts'),
     },
     {
       color: 'var(--chart-2)',
-      name: 'Can receive SMS',
+      name: t('canReceiveSms'),
     },
     {
       color: 'var(--chart-4)',
-      name: 'Needs attention',
+      name: t('needsAttention'),
     },
     {
       color: 'var(--chart-2)',
-      name: 'Final sendable',
+      name: t('finalSendable'),
     },
     {
       color: 'var(--chart-5)',
-      name: 'Recently contacted',
+      name: t('recentlyContacted'),
     },
     {
       color: 'var(--chart-3)',
-      name: 'Previous campaigns',
+      name: t('previousCampaigns'),
     },
     {
       color: 'var(--muted-foreground)',
-      name: 'Suppressed',
+      name: t('suppressed'),
     },
     {
       color: 'var(--chart-1)',
-      name: 'Missing phone',
+      name: t('missingPhone'),
     },
     {
       color: 'var(--destructive)',
-      name: 'Missing consent',
+      name: t('missingConsent'),
     },
   ];
 }
@@ -154,42 +158,43 @@ function createAudienceLinks(data: AudiencePreviewData): SankeyBreakdownLink[] {
 
 function createAudienceSummary(
   data: AudiencePreviewData,
+  t: CampaignsT,
 ): SankeyBreakdownSummaryItem[] {
   return [
     {
       icon: CheckCircle2,
       iconClassName: 'bg-emerald-50 text-emerald-700',
-      label: 'Final sendable',
+      label: t('finalSendable'),
       value: data.eligibleCount,
     },
     {
       icon: Clock3,
       iconClassName: 'bg-sky-50 text-sky-700',
-      label: 'Recently contacted',
+      label: t('recentlyContacted'),
       value: data.recentCampaignExcludedCount,
     },
     {
       icon: History,
       iconClassName: 'bg-violet-50 text-violet-700',
-      label: 'Previous campaigns',
+      label: t('previousCampaigns'),
       value: data.selectedCampaignsExcludedCount,
     },
     {
       icon: ShieldOff,
       iconClassName: 'bg-rose-50 text-rose-700',
-      label: 'Suppressed',
+      label: t('suppressed'),
       value: data.suppressedCount,
     },
     {
       icon: PhoneOff,
       iconClassName: 'bg-amber-50 text-amber-700',
-      label: 'Missing phone',
+      label: t('missingPhone'),
       value: data.incompleteCount,
     },
     {
       icon: AlertCircle,
       iconClassName: 'bg-rose-50 text-rose-700',
-      label: 'Missing consent',
+      label: t('missingConsent'),
       value: data.missingConsentCount,
     },
   ];

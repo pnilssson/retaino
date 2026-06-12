@@ -8,6 +8,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@/i18n/navigation';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import { useSidebar } from '@/components/ui/sidebar';
 import {
@@ -39,6 +40,7 @@ type OrganizationSwitcherState = {
 };
 
 export function useOrganizationSwitcher(): OrganizationSwitcherState {
+  const t = useTranslations('Chrome');
   const router = useRouter();
   const queryClient = useQueryClient();
   const { orgId } = useAuth({ treatPendingAsSignedOut: false });
@@ -70,7 +72,7 @@ export function useOrganizationSwitcher(): OrganizationSwitcherState {
     session.data?.organization.name ??
     activeOrganization?.name ??
     activeMembership?.organization.name ??
-    'Select organization';
+    t('selectOrganization');
   const activeOrganizationHasImage =
     activeOrganization?.hasImage ??
     activeMembership?.organization.hasImage ??

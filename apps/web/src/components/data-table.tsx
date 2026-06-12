@@ -1,7 +1,10 @@
+"use client";
+
 import {
   type Table as TanStackTable,
   flexRender,
 } from '@tanstack/react-table';
+import { useTranslations } from 'next-intl';
 import { LoadingState } from '@/components/loading-state';
 import type { SortableTableHeaderMeta } from '@/components/sortable-table-header';
 import {
@@ -28,7 +31,7 @@ export { EmptyState } from '@/components/empty-state';
 export function DataTable<TData>({
   cellClassName,
   isLoading = false,
-  loadingLabel = 'Loading',
+  loadingLabel,
   rowClassName,
   table,
 }: {
@@ -38,8 +41,10 @@ export function DataTable<TData>({
   rowClassName?: string;
   table: TanStackTable<TData>;
 }) {
+  const t = useTranslations('Common');
   const rows = table.getRowModel().rows;
   const visibleColumnCount = table.getVisibleLeafColumns().length;
+  const resolvedLoadingLabel = loadingLabel ?? t('loading');
 
   return (
     <div className="overflow-hidden rounded-lg border border-border">
@@ -73,7 +78,7 @@ export function DataTable<TData>({
           {isLoading && rows.length === 0 ? (
             <TableRow className="border-border hover:bg-transparent">
               <TableCell className="h-24" colSpan={visibleColumnCount}>
-                <LoadingState label={loadingLabel} />
+                <LoadingState label={resolvedLoadingLabel} />
               </TableCell>
             </TableRow>
           ) : (
@@ -81,7 +86,7 @@ export function DataTable<TData>({
               {isLoading ? (
                 <TableRow className="border-border bg-background hover:bg-background">
                   <TableCell className="h-12" colSpan={visibleColumnCount}>
-                    <LoadingState label={loadingLabel} />
+                    <LoadingState label={resolvedLoadingLabel} />
                   </TableCell>
                 </TableRow>
               ) : null}
@@ -105,7 +110,7 @@ export function DataTable<TData>({
   );
 }
 export function PaginationControls({
-  itemLabel = 'items',
+  itemLabel,
   onPageChange,
   page,
   pageSize,
@@ -117,14 +122,21 @@ export function PaginationControls({
   pageSize: number;
   total: number;
 }) {
+  const t = useTranslations('Common');
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const pages = paginationPages(page, totalPages);
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(total, page * pageSize);
+  const resolvedItemLabel = itemLabel ?? t('items');
   const summary =
     totalPages <= 1
-      ? `${total} ${itemLabel}`
-      : `Showing ${start}-${end} of ${total} ${itemLabel}`;
+      ? `${total} ${resolvedItemLabel}`
+      : t('showingItems', {
+          end,
+          itemLabel: resolvedItemLabel,
+          start,
+          total,
+        });
   const hasPreviousPage = page > 1;
   const hasNextPage = page < totalPages;
 
@@ -132,10 +144,11 @@ export function PaginationControls({
     <div className={cn('flex flex-wrap items-center justify-between gap-3', textStyles.mutedBody)}>
       <span>{summary}</span>
       {totalPages > 1 ? (
-        <Pagination className="mx-0 w-auto justify-end">
+        <Pagination aria-label={t('pagination')} className="mx-0 w-auto justify-end">
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious
+                ariaLabel={t('previousPage')}
                 aria-disabled={!hasPreviousPage}
                 className={
                   !hasPreviousPage ? 'pointer-events-none opacity-50' : undefined
@@ -148,12 +161,13 @@ export function PaginationControls({
                   }
                 }}
                 tabIndex={hasPreviousPage ? undefined : -1}
+                text={t('previous')}
               />
             </PaginationItem>
             {pages.map((item, index) =>
               item === 'ellipsis' ? (
                 <PaginationItem key={`ellipsis-${index}`}>
-                  <PaginationEllipsis />
+                  <PaginationEllipsis label={t('morePages')} />
                 </PaginationItem>
               ) : (
                 <PaginationItem key={item}>
@@ -168,6 +182,7 @@ export function PaginationControls({
             )}
             <PaginationItem>
               <PaginationNext
+                ariaLabel={t('nextPage')}
                 aria-disabled={!hasNextPage}
                 className={
                   !hasNextPage ? 'pointer-events-none opacity-50' : undefined
@@ -180,6 +195,7 @@ export function PaginationControls({
                   }
                 }}
                 tabIndex={hasNextPage ? undefined : -1}
+                text={t('next')}
               />
             </PaginationItem>
           </PaginationContent>

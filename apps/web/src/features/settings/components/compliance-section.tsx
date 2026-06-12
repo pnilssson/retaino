@@ -1,5 +1,6 @@
 import type { OrganizationSession } from '@retaino/shared/contracts';
 import { FileText } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { ContentSection } from '@/features/appshell/components/content-section';
@@ -10,7 +11,8 @@ export function ComplianceSection({
 }: {
   session: OrganizationSession;
 }) {
-  const status = legalAgreementStatus(session);
+  const t = useTranslations('Settings');
+  const status = legalAgreementStatus(session, t);
 
   return (
     <ContentSection
@@ -18,32 +20,34 @@ export function ComplianceSection({
             <Button asChild type="button">
               <Link href={routes.legal}>
                 <FileText aria-hidden="true" data-icon="inline-start" />
-                View
+                {t('view')}
               </Link>
             </Button>
       }
       description={status.description}
       id="legal-agreement"
-      title="Legal agreement"
+      title={t('legalAgreement')}
     />
   );
 }
 
-function legalAgreementStatus(session: OrganizationSession) {
+function legalAgreementStatus(
+  session: OrganizationSession,
+  t: ReturnType<typeof useTranslations<'Settings'>>,
+) {
   if (session.readiness.legalCurrent) {
     return {
-      description: 'Current legal bundle accepted for this organization.',
+      description: t('legalCurrentDescription'),
     } as const;
   }
 
   if (session.readiness.legalUpdatesRequired) {
     return {
-      description:
-        'Updated legal terms must be accepted before imports or campaigns can continue.',
+      description: t('legalUpdatesDescription'),
     } as const;
   }
 
   return {
-    description: 'Legal terms must be accepted to finish organization setup.',
+    description: t('legalSetupDescription'),
   } as const;
 }

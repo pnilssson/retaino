@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -69,6 +70,7 @@ function CookiePreferencesForm({
 }: {
   initialAnalytics: boolean;
 }) {
+  const t = useTranslations('Cookies');
   const { updateConsent, setIsPreferencesOpen } = useCookieConsent();
   const [analyticsEnabled, setAnalyticsEnabled] = useState(initialAnalytics);
 
@@ -80,21 +82,18 @@ function CookiePreferencesForm({
   return (
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Cookie preferences</DialogTitle>
+        <DialogTitle>{t('preferencesTitle')}</DialogTitle>
         <DialogDescription>
-          Choose whether Retaino may use optional analytics. Essential cookies
-          and browser storage keep sign-in, preferences, security, and this
-          choice working.
+          {t('preferencesDescription')}
         </DialogDescription>
       </DialogHeader>
 
       <div className="space-y-4 py-1">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <label className={textStyles.body}>Essential</label>
+            <label className={textStyles.body}>{t('essential')}</label>
             <p className={textStyles.meta}>
-              Required for authentication, app preferences, security, and your
-              cookie choice.
+              {t('essentialDescription')}
             </p>
           </div>
           <Toggle
@@ -113,11 +112,10 @@ function CookiePreferencesForm({
               className={textStyles.body}
               htmlFor="analytics-cookies"
             >
-              Analytics
+              {t('analytics')}
             </label>
             <p className={textStyles.meta}>
-              Retaino does not set optional analytics cookies right now. This
-              setting keeps analytics off unless you allow it.
+              {t('analyticsDescription')}
             </p>
           </div>
           <Toggle
@@ -129,12 +127,12 @@ function CookiePreferencesForm({
       </div>
 
       <p className={textStyles.meta}>
-        Read the{' '}
+        {t('readPolicyPrefix')}{' '}
         <Link
           className="text-foreground underline underline-offset-2"
           href={routes.cookies}
         >
-          Cookie Policy
+          {t('policy')}
         </Link>
         .
       </p>
@@ -145,10 +143,10 @@ function CookiePreferencesForm({
           type="button"
           variant="outline"
         >
-          Cancel
+          {t('cancel')}
         </Button>
         <Button onClick={handleSave} type="button">
-          Save preferences
+          {t('savePreferences')}
         </Button>
       </DialogFooter>
     </DialogContent>

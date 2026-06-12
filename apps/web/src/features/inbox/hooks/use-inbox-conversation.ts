@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import type { InboxConversationResponse } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import { useApi } from '@/hooks/use-api';
 import { INBOX_REFETCH_INTERVAL_MS } from '../inbox-polling';
 import { inboxQueryKeys } from '../inbox-query-keys';
@@ -16,6 +17,7 @@ export function useInboxConversation({
   organizationId: string | null;
 }) {
   const api = useApi();
+  const t = useTranslations('Inbox');
 
   return useQuery({
     enabled: enabled && Boolean(organizationId && conversationId),
@@ -25,7 +27,7 @@ export function useInboxConversation({
     ),
     queryFn: () => {
       if (!conversationId) {
-        throw new Error('Choose a conversation first.');
+        throw new Error(t('chooseConversationFirst'));
       }
 
       return api.get<InboxConversationResponse>(

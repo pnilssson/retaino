@@ -10,11 +10,15 @@ import {
   Trash2,
   Undo2,
 } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import {
+  useLocale,
+  useTranslations,
+} from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useState } from 'react';
 import {
   type ContactDetail,
+  type ContactIssueCode,
   type ContactSuppression,
   type UpdateContactInput,
   normalizePhoneNumber,
@@ -42,14 +46,14 @@ import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 import { BlockedContacts } from './blocked-contacts';
 import {
-  formatContactIssue,
   formatDate,
   formatDateTime,
-  formatSuppressionReason,
 } from '../contacts-format';
 import { ContactStatusBadge } from './status-badge';
 
 export function ContactDetailScreen({ contactId }: { contactId: string }) {
+  const t = useTranslations('Contacts');
+  const common = useTranslations('Common');
   const session = useOrganizationSession();
   const contact = useContact({
     contactId,
@@ -67,7 +71,7 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
         <div className="max-w-lg">
           <ItemNotice
             description={session.error.message}
-            title="Contact could not be loaded"
+            title={t('contactLoadErrorTitle')}
             variant="error"
           />
         </div>
@@ -84,7 +88,7 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
   }
 
   const latestContact = contact.data?.contact ?? null;
-  const title = latestContact?.name ?? 'Unnamed contact';
+  const title = latestContact?.name ?? t('unnamedContact');
 
   return (
     <main className="flex flex-1 items-start bg-background">
@@ -92,14 +96,14 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
         <AppPageHeader
           actions={
             <Button asChild className="px-0" variant="link">
-              <Link aria-label="Back to contacts" href={routes.contacts}>
+              <Link aria-label={t('backToContacts')} href={routes.contacts}>
                 <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-                <span className="sm:hidden">Back</span>
-                <span className="hidden sm:inline">Back to contacts</span>
+                <span className="sm:hidden">{common('back')}</span>
+                <span className="hidden sm:inline">{t('backToContacts')}</span>
               </Link>
             </Button>
           }
-          eyebrow="Contact"
+          eyebrow={t('contact')}
           title={title}
         />
 
@@ -108,13 +112,13 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
             description={
               contact.error instanceof Error
                 ? contact.error.message
-                : 'Try again in a moment.'
+                : common('tryAgainSoon')
             }
-            title="Contact could not be fetched"
+            title={t('contactFetchErrorTitle')}
             variant="error"
           />
         ) : contact.isLoading ? (
-          <LoadingState className="py-8" label="Loading contact" />
+          <LoadingState className="py-8" label={t('loadingContact')} />
         ) : latestContact ? (
           <ContactDetailContent
             contact={latestContact}
@@ -134,6 +138,7 @@ function ContactDetailContent({
   phoneCountryCode: string;
 }) {
   const locale = useLocale();
+  const t = useTranslations('Contacts');
   const [isEditing, setIsEditing] = useState(false);
 
   return (
@@ -146,11 +151,11 @@ function ContactDetailContent({
                   type="button"
                 >
                   <Pencil aria-hidden="true" data-icon="inline-start" />
-                  Edit
+                  {t('edit')}
                 </Button>
           ) : null
         }
-        title="Contact details"
+        title={t('contactDetails')}
       >
           {isEditing ? (
             <ContactEditForm
@@ -161,10 +166,10 @@ function ContactDetailContent({
             />
           ) : (
             <dl className="grid gap-3 sm:grid-cols-2">
-              <DetailField label="Name" value={contact.name ?? 'Unnamed'} />
-              <DetailField label="Phone" value={contact.phone ?? 'No phone'} />
-              <DetailField label="Email" value={contact.email ?? 'No email'} />
-              <DetailField label="Last booking" value={formatDate(contact.lastBookingAt, locale)} />
+              <DetailField label={t('name')} value={contact.name ?? t('unnamed')} />
+              <DetailField label={t('phone')} value={contact.phone ?? t('noPhone')} />
+              <DetailField label={t('email')} value={contact.email ?? t('noEmail')} />
+              <DetailField label={t('lastBooking')} value={formatDate(contact.lastBookingAt, locale, t('notSet'))} />
             </dl>
           )}
       </ContentSection>
@@ -172,7 +177,7 @@ function ContactDetailContent({
       <ContentSection
         title={
           <span className="flex flex-wrap items-center gap-2">
-            SMS readiness
+            {t('smsReadiness')}
             <ContactStatusBadge status={contact.contactStatus} />
           </span>
         }
@@ -187,24 +192,24 @@ function ContactDetailContent({
                   )}
                   key={issue}
                 >
-                  {formatContactIssue(issue)}
+                  {formatContactIssueLabel(issue, t)}
                 </span>
               ))}
             </div>
           ) : (
             <p className={textStyles.mutedBody}>
-              This contact has a valid phone number and no phone suppression.
+              {t('validPhoneDescription')}
             </p>
           )}
       </ContentSection>
 
       <ContentSection
-        title="Activity"
+        title={t('activity')}
       >
           <dl className="grid gap-3 sm:grid-cols-2">
-            <DetailField label="Last contacted" value={formatDate(contact.lastContactedAt, locale)} />
-            <DetailField label="Imported" value={formatDateTime(contact.createdAt, locale)} />
-            <DetailField label="Updated" value={formatDateTime(contact.updatedAt, locale)} />
+            <DetailField label={t('lastContacted')} value={formatDate(contact.lastContactedAt, locale, t('notSet'))} />
+            <DetailField label={t('imported')} value={formatDateTime(contact.createdAt, locale, t('notSet'))} />
+            <DetailField label={t('updated')} value={formatDateTime(contact.updatedAt, locale, t('notSet'))} />
           </dl>
       </ContentSection>
 
@@ -228,6 +233,7 @@ function ContactEditForm({
   onSaved: () => void;
   phoneCountryCode: string;
 }) {
+  const t = useTranslations('Contacts');
   const updateContact = useUpdateContact(
     contact.organizationId,
     contact.id,
@@ -255,7 +261,7 @@ function ContactEditForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <form.Field name="name">
           {(field) => (
-            <FormField label="Name">
+            <FormField label={t('name')}>
               <Input
                 name={field.name}
                 onChange={(event) => field.handleChange(event.target.value)}
@@ -266,7 +272,7 @@ function ContactEditForm({
         </form.Field>
         <form.Field name="phone">
           {(field) => (
-            <FormField label="Phone">
+            <FormField label={t('phone')}>
               <PhoneInput
                 countryCode={form.getFieldValue('phoneCountryCode')}
                 name={field.name}
@@ -281,7 +287,7 @@ function ContactEditForm({
         </form.Field>
         <form.Field name="email">
           {(field) => (
-            <FormField label="Email">
+            <FormField label={t('email')}>
               <Input
                 name={field.name}
                 onChange={(event) => field.handleChange(event.target.value)}
@@ -293,7 +299,7 @@ function ContactEditForm({
         </form.Field>
         <form.Field name="lastBookingAt">
           {(field) => (
-            <FormField label="Last booking">
+            <FormField label={t('lastBooking')}>
               <LastBookingDatePicker
                 name={field.name}
                 onChange={field.handleChange}
@@ -306,7 +312,7 @@ function ContactEditForm({
       {updateContact.error ? (
         <ItemNotice
           description={updateContact.error}
-          title="Contact could not be saved"
+          title={t('contactSaveErrorTitle')}
           variant="error"
         />
       ) : null}
@@ -317,7 +323,7 @@ function ContactEditForm({
           type="button"
           variant="outline"
         >
-          Cancel
+          {t('cancel')}
         </Button>
         <Button disabled={updateContact.mutation.isPending} type="submit">
           {updateContact.mutation.isPending ? (
@@ -327,7 +333,7 @@ function ContactEditForm({
               data-icon="inline-start"
             />
           ) : null}
-          Save contact
+          {t('saveContact')}
         </Button>
       </div>
     </form>
@@ -341,6 +347,7 @@ function ContactSuppressionSection({
   contact: ContactDetail;
   locale: string;
 }) {
+  const t = useTranslations('Contacts');
   const suppress = useSuppressContact(contact.organizationId, contact.id);
   const unsuppress = useDeleteContactSuppression(
     contact.organizationId,
@@ -355,7 +362,7 @@ function ContactSuppressionSection({
 
   return (
     <ContentSection
-      title="Suppressions"
+      title={t('suppressions')}
     >
         {contact.suppressions.length > 0 ? (
           <div className="divide-y">
@@ -374,7 +381,7 @@ function ContactSuppressionSection({
           </div>
         ) : (
           <p className={textStyles.mutedBody}>
-            No contact methods are suppressed.
+            {t('noSuppressions')}
           </p>
         )}
         <div className="flex flex-wrap gap-2">
@@ -385,7 +392,7 @@ function ContactSuppressionSection({
             variant="outline"
           >
             <PhoneOff aria-hidden="true" data-icon="inline-start" />
-            Suppress phone
+            {t('suppressPhone')}
           </Button>
           <Button
             disabled={!contact.email || emailSuppressed || suppress.mutation.isPending}
@@ -394,13 +401,13 @@ function ContactSuppressionSection({
             variant="outline"
           >
             <MailX aria-hidden="true" data-icon="inline-start" />
-            Suppress email
+            {t('suppressEmail')}
           </Button>
         </div>
         {suppress.error || unsuppress.error ? (
           <ItemNotice
             description={suppress.error ?? unsuppress.error}
-            title="Suppression could not be updated"
+            title={t('suppressionUpdateErrorTitle')}
             variant="error"
           />
         ) : null}
@@ -419,7 +426,8 @@ function SuppressionRow({
   onAllowAgain: () => void;
   suppression: ContactSuppression;
 }) {
-  const method = suppression.type === 'phone' ? 'Phone' : 'Email';
+  const t = useTranslations('Contacts');
+  const method = suppression.type === 'phone' ? t('methodPhone') : t('methodEmail');
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
@@ -427,8 +435,8 @@ function SuppressionRow({
         <ItemTitle>{method}</ItemTitle>
         <p className={cn('break-all', textStyles.body)}>{suppression.value}</p>
         <p className={textStyles.meta}>
-          {formatSuppressionReason(suppression.reason)},{' '}
-          {formatDateTime(suppression.createdAt, locale)}
+          {formatSuppressionReasonLabel(suppression.reason, t)},{' '}
+          {formatDateTime(suppression.createdAt, locale, t('notSet'))}
         </p>
       </div>
       <Button
@@ -447,40 +455,41 @@ function SuppressionRow({
         ) : (
           <Undo2 aria-hidden="true" data-icon="inline-start" />
         )}
-        Allow again
+        {t('allowAgain')}
       </Button>
     </div>
   );
 }
 
 function DeleteContactSection({ contact }: { contact: ContactDetail }) {
+  const t = useTranslations('Contacts');
   const deleteContact = useDeleteContact(contact.organizationId, contact.id);
 
   return (
     <ContentSection
       actions={
             <ConfirmDialog
-              confirmLabel="Delete permanently"
-              description="This permanently deletes the contact from this organization."
+              confirmLabel={t('deletePermanently')}
+              description={t('deleteContactDialogDescription')}
               isPending={deleteContact.mutation.isPending}
               onConfirm={() => deleteContact.mutation.mutateAsync()}
-              title="Delete contact?"
+              title={t('deleteContactDialogTitle')}
               trigger={
                 <Button type="button" variant="destructive">
                   <Trash2 aria-hidden="true" data-icon="inline-start" />
-                  Delete
+                  {t('delete')}
                 </Button>
               }
               variant="destructive"
             />
       }
-      description="Remove this contact from the organization."
-      title="Delete contact"
+      description={t('deleteContactDescription')}
+      title={t('deleteContact')}
     >
         {deleteContact.error ? (
           <ItemNotice
             description={deleteContact.error}
-            title="Contact could not be deleted"
+            title={t('contactDeleteErrorTitle')}
             variant="error"
           />
         ) : null}
@@ -502,7 +511,6 @@ function LastBookingDatePicker({
       id={name}
       name={name}
       onChange={onChange}
-      placeholder="Select date"
       value={value}
     />
   );
@@ -530,6 +538,37 @@ function FormField({
       {children}
     </div>
   );
+}
+
+function formatContactIssueLabel(
+  issue: ContactIssueCode,
+  t: ReturnType<typeof useTranslations<'Contacts'>>,
+) {
+  switch (issue) {
+    case 'invalid_phone':
+      return t('issueInvalidPhone');
+    case 'missing_consent':
+      return t('issueMissingConsent');
+    case 'missing_phone':
+      return t('issueMissingPhone');
+    case 'suppressed_phone':
+      return t('issueSuppressedPhone');
+  }
+}
+
+function formatSuppressionReasonLabel(
+  reason: string,
+  t: ReturnType<typeof useTranslations<'Contacts'>>,
+) {
+  if (reason === 'manual_contact_suppression') {
+    return t('suppressionReasonManual');
+  }
+
+  return reason
+    .split('_')
+    .map((word) => word.trim())
+    .filter(Boolean)
+    .join(' ');
 }
 
 function contactToFormValues(contact: ContactDetail, phoneCountryCode = 'SE') {

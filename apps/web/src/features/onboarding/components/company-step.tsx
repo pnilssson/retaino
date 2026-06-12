@@ -47,9 +47,9 @@ export function CompanyStep({
           name="legalName"
           validators={{
             onBlur: ({ value }) =>
-              validateRequired(value, 'Enter the legal company name.'),
+              validateRequired(value, t('legalCompanyNameRequired')),
             onSubmit: ({ value }) =>
-              validateRequired(value, 'Enter the legal company name.'),
+              validateRequired(value, t('legalCompanyNameRequired')),
           }}
         >
           {(field) => (
@@ -59,7 +59,7 @@ export function CompanyStep({
               name={field.name}
               onBlur={field.handleBlur}
               onChange={field.handleChange}
-              placeholder="Retaino AB"
+              placeholder={t('legalCompanyNamePlaceholder')}
               value={field.state.value}
             />
           )}
@@ -68,9 +68,9 @@ export function CompanyStep({
           name="registrationNumber"
           validators={{
             onBlur: ({ value }) =>
-              validateRequired(value, 'Enter the registration number.'),
+              validateRequired(value, t('registrationNumberRequired')),
             onSubmit: ({ value }) =>
-              validateRequired(value, 'Enter the registration number.'),
+              validateRequired(value, t('registrationNumberRequired')),
           }}
         >
           {(field) => (

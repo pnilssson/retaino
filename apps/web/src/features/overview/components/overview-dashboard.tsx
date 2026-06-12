@@ -11,7 +11,10 @@ import {
   Megaphone,
   Send,
 } from "lucide-react";
-import { useLocale } from "next-intl";
+import {
+  useLocale,
+  useTranslations,
+} from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { ItemNotice } from "@/components/item-notice";
 import { SankeyBreakdown } from "@/components/sankey-breakdown";
@@ -20,7 +23,10 @@ import { ContentSection } from "@/features/appshell/components/content-section";
 import { routes } from "@/lib/routes";
 import { textStyles } from "@/lib/text-styles";
 import { cn } from "@/lib/utils";
-import { attentionItemView } from "../overview-attention";
+import {
+  attentionItemView,
+  type OverviewAttentionLabels,
+} from "../overview-attention";
 import { OverviewRecentCampaignsTable } from "./overview-recent-campaigns-table";
 import { OverviewTrendChart } from "./overview-trend-chart";
 import { OverviewWorkspaceStatus } from "./overview-workspace-status";
@@ -31,6 +37,7 @@ export function OverviewDashboard({
   overview: OverviewResponse;
 }) {
   const locale = useLocale();
+  const t = useTranslations('Overview');
   const campaignFlowWidth = Math.max(
     overview.funnel.selectedCount,
     overview.funnel.sentCount,
@@ -41,13 +48,14 @@ export function OverviewDashboard({
   return (
     <div className="grid gap-5">
       {overview.attentionItems.length > 0 ? (
-        <ContentSection title="Needs attention">
+        <ContentSection title={t('needsAttention')}>
           <div className="divide-y">
             {overview.attentionItems.map((item) => (
               <AttentionItem
                 item={item}
                 key={item.id}
                 locale={locale}
+                labels={createAttentionLabels(t)}
                 overview={overview}
               />
             ))}
@@ -64,8 +72,8 @@ export function OverviewDashboard({
         {overview.metrics.reportedRevenueHasMixedCurrencies ? (
           <div className="px-6 pt-6">
             <ItemNotice
-              description="Revenue totals are hidden when one dashboard window contains more than one currency."
-              title="Mixed reported currencies"
+              description={t('mixedCurrenciesDescription')}
+              title={t('mixedCurrenciesTitle')}
               variant="warning"
             />
           </div>
@@ -80,7 +88,7 @@ export function OverviewDashboard({
       </ContentSection>
 
       <ContentSection
-        title="Campaign flow"
+        title={t('campaignFlow')}
       >
         <SankeyBreakdown
           links={[
@@ -96,22 +104,22 @@ export function OverviewDashboard({
             {
               color: "var(--chart-1)",
               displayValue: overview.funnel.selectedCount,
-              name: "Selected",
+              name: t('flowSelected'),
             },
             {
               color: "var(--chart-2)",
               displayValue: overview.funnel.sentCount,
-              name: "Sent",
+              name: t('flowSent'),
             },
             {
               color: "var(--chart-3)",
               displayValue: overview.funnel.deliveredCount,
-              name: "Delivered",
+              name: t('flowDelivered'),
             },
             {
               color: "var(--chart-5)",
               displayValue: overview.funnel.reportedBookingCount,
-              name: "Booked",
+              name: t('flowBooked'),
             },
           ]}
           showHeader={false}
@@ -120,41 +128,41 @@ export function OverviewDashboard({
             {
               icon: Megaphone,
               iconClassName: "bg-slate-100 text-slate-700",
-              label: "Selected",
+              label: t('flowSelected'),
               value: overview.funnel.selectedCount,
             },
             {
               icon: Send,
               iconClassName: "bg-sky-50 text-sky-700",
-              label: "Sent",
+              label: t('flowSent'),
               value: overview.funnel.sentCount,
             },
             {
               icon: Send,
               iconClassName: "bg-emerald-50 text-emerald-700",
-              label: "Delivered",
+              label: t('flowDelivered'),
               value: overview.funnel.deliveredCount,
             },
             {
               icon: CalendarCheck,
               iconClassName: "bg-emerald-50 text-emerald-700",
-              label: "Booked",
+              label: t('flowBooked'),
               value: overview.funnel.reportedBookingCount,
             },
           ]}
-          title="Campaign flow"
+          title={t('campaignFlow')}
         />
       </ContentSection>
 
       <ContentSection
         framed={false}
-        title="Recent campaigns"
+        title={t('recentCampaigns')}
       >
         {overview.recentCampaigns.length > 0 ? (
           <OverviewRecentCampaignsTable campaigns={overview.recentCampaigns} />
         ) : (
           <p className={textStyles.mutedBody}>
-            Recent campaigns will appear after the first campaign is created.
+            {t('recentCampaignsEmpty')}
           </p>
         )}
       </ContentSection>
@@ -165,13 +173,16 @@ export function OverviewDashboard({
 function AttentionItem({
   item,
   locale,
+  labels,
   overview,
 }: {
   item: OverviewResponse["attentionItems"][number];
   locale: string;
+  labels: OverviewAttentionLabels;
   overview: OverviewResponse;
 }) {
-  const view = attentionItemView(item, overview, locale);
+  const t = useTranslations('Overview');
+  const view = attentionItemView(item, overview, locale, labels);
 
   return (
     <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
@@ -196,12 +207,37 @@ function AttentionItem({
       </div>
       <Button asChild className="shrink-0" size="sm" variant="outline">
         <Link href={attentionActionHref(item.action)}>
-          {locale === "en" ? "Open" : "Öppna"}
+          {t('open')}
           <ArrowRight aria-hidden="true" data-icon="inline-end" />
         </Link>
       </Button>
     </div>
   );
+}
+
+function createAttentionLabels(
+  t: ReturnType<typeof useTranslations<'Overview'>>,
+): OverviewAttentionLabels {
+  return {
+    answerRepliesDescription: t('attention.answerRepliesDescription'),
+    billingAccessInactiveDescription: t('attention.billingAccessInactiveDescription'),
+    billingAccessInactiveTitle: t('attention.billingAccessInactiveTitle'),
+    billingPlanRequiredDescription: t('attention.billingPlanRequiredDescription'),
+    billingPlanRequiredTitle: t('attention.billingPlanRequiredTitle'),
+    campaignFailedDescription: t('attention.campaignFailedDescription'),
+    campaignFailedTitle: t('attention.campaignFailedTitle'),
+    creditsEmptyDescription: t('attention.creditsEmptyDescription'),
+    creditsEmptyTitle: t('attention.creditsEmptyTitle'),
+    creditsLowDescription: t('attention.creditsLowDescription'),
+    creditsLowTitle: t('attention.creditsLowTitle'),
+    needsReplyTitle: (count) => t('attention.needsReplyTitle', { count }),
+    reportBookingsDescription: t('attention.reportBookingsDescription'),
+    reportBookingsTitle: t('attention.reportBookingsTitle'),
+    reviewFallbackDescription: t('attention.reviewFallbackDescription'),
+    reviewFallbackTitle: t('attention.reviewFallbackTitle'),
+    senderReleaseDescription: t('attention.senderReleaseDescription'),
+    senderReleaseTitle: t('attention.senderReleaseTitle'),
+  };
 }
 
 function attentionActionHref(action: OverviewAttentionAction) {

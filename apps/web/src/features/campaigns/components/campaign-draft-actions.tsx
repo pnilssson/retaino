@@ -5,6 +5,7 @@ import {
   MoreVertical,
   Trash2,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -25,18 +26,20 @@ export function CampaignDraftActions({
   campaign: Campaign;
   organizationId: string | null;
 }) {
+  const t = useTranslations('Campaigns');
+  const common = useTranslations('Common');
   const router = useRouter();
   const deleteDraft = useDeleteCampaignDraft(organizationId);
 
   async function handleDeleteDraft() {
     try {
       await deleteDraft.mutateAsync(campaign.id);
-      toast.success('Draft campaign deleted');
+      toast.success(t('draftCampaignDeleted'));
       router.push(routes.campaigns);
     } catch (error) {
-      toast.error('Draft campaign could not be deleted', {
+      toast.error(t('draftCampaignDeleteErrorTitle'), {
         description:
-          error instanceof Error ? error.message : 'Try again in a moment.',
+          error instanceof Error ? error.message : common('tryAgainSoon'),
       });
     }
   }
@@ -45,7 +48,7 @@ export function CampaignDraftActions({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          aria-label="Open draft actions"
+          aria-label={t('openDraftActions')}
           disabled={deleteDraft.isPending}
           size="icon-sm"
           type="button"
@@ -56,18 +59,18 @@ export function CampaignDraftActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
         <ConfirmDialog
-          confirmLabel="Delete draft"
-          description={`This permanently deletes ${campaign.name}.`}
+          confirmLabel={t('deleteDraft')}
+          description={t('deleteDraftDescription', { name: campaign.name })}
           isPending={deleteDraft.isPending}
           onConfirm={handleDeleteDraft}
-          title="Delete draft campaign?"
+          title={t('deleteDraftTitle')}
           trigger={
             <DropdownMenuItem
               onSelect={(event) => event.preventDefault()}
               variant="destructive"
             >
               <Trash2 aria-hidden="true" />
-              Delete draft
+              {t('deleteDraft')}
             </DropdownMenuItem>
           }
           variant="destructive"

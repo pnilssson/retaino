@@ -8,6 +8,7 @@ import {
   Plus,
   Settings2,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import {
   DropdownMenu,
@@ -30,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { SidebarAvatar } from './sidebar-avatar';
 
 export function OrganizationSwitcher() {
+  const t = useTranslations('Chrome');
   const {
     activeOrganizationHasImage,
     activeOrganizationImageUrl,
@@ -49,7 +51,7 @@ export function OrganizationSwitcher() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               className="h-12 px-2"
-              tooltip="Switch organization"
+              tooltip={t('switchOrganization')}
             >
               <SidebarAvatar
                 alt={activeOrganizationName}
@@ -66,7 +68,7 @@ export function OrganizationSwitcher() {
               />
               <span className="grid flex-1 text-left">
                 <span className={cn(textStyles.meta, 'text-sidebar-foreground/60')}>
-                  Organization
+                  {t('organization')}
                 </span>
                 <span className={cn('truncate', textStyles.itemTitle)}>
                   {activeOrganizationName}
@@ -86,7 +88,7 @@ export function OrganizationSwitcher() {
             sideOffset={4}
           >
             <DropdownMenuLabel className={cn('px-2 py-1.5', textStyles.meta)}>
-              Organizations
+              {t('organizations')}
             </DropdownMenuLabel>
             {memberships.map((membership) => {
               const organization = membership.organization;
@@ -113,7 +115,7 @@ export function OrganizationSwitcher() {
                     </span>
                     {isActive ? (
                       <span className={textStyles.meta}>
-                        Active organization
+                        {t('activeOrganization')}
                       </span>
                     ) : null}
                   </span>
@@ -134,7 +136,7 @@ export function OrganizationSwitcher() {
                   <Building2 aria-hidden="true" className="size-4" />
                 </span>
                 <span className={textStyles.mutedBody}>
-                  No organizations found
+                  {t('noOrganizationsFound')}
                 </span>
               </DropdownMenuItem>
             ) : null}
@@ -144,7 +146,7 @@ export function OrganizationSwitcher() {
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background">
                   <Plus aria-hidden="true" className="size-4" />
                 </span>
-                <span className={textStyles.itemTitle}>Create workspace</span>
+                <span className={textStyles.itemTitle}>{t('createWorkspace')}</span>
               </Link>
             </DropdownMenuItem>
             {canFinishSetup ? (
@@ -153,7 +155,7 @@ export function OrganizationSwitcher() {
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background">
                     <Settings2 aria-hidden="true" className="size-4" />
                   </span>
-                  <span className={textStyles.itemTitle}>Finish setup</span>
+                  <span className={textStyles.itemTitle}>{t('finishSetup')}</span>
                 </Link>
               </DropdownMenuItem>
             ) : null}

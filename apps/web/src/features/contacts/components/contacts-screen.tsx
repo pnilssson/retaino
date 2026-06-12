@@ -4,6 +4,7 @@ import {
   FileUp,
   UsersRound,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import {
   useMemo,
@@ -31,6 +32,8 @@ import { ContactFilters } from './contact-filters';
 import { ContactsTable } from './contacts-table';
 
 export function ContactsScreen() {
+  const t = useTranslations('Contacts');
+  const common = useTranslations('Common');
   const session = useOrganizationSession();
   const [query, setQuery] = useContactListQueryState();
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
@@ -81,7 +84,7 @@ export function ContactsScreen() {
         <div className="max-w-lg">
           <ItemNotice
             description={session.error.message}
-            title="Contacts could not be loaded"
+            title={t('contactsLoadErrorTitle')}
             variant="error"
           />
         </div>
@@ -109,12 +112,12 @@ export function ContactsScreen() {
               <Button asChild>
                 <Link href={routes.contactsImport}>
                   <FileUp aria-hidden="true" data-icon="inline-start" />
-                  Import CSV
+                  {t('importCsv')}
                 </Link>
               </Button>
             ) : null
           }
-          title="Contacts"
+          title={t('contactsTitle')}
         />
 
         <div className="grid gap-5">
@@ -125,9 +128,9 @@ export function ContactsScreen() {
                   description={
                     contactPresence.error instanceof Error
                       ? contactPresence.error.message
-                      : 'Try again in a moment.'
+                      : common('tryAgainSoon')
                   }
-                  title="Contact status could not be checked"
+                  title={t('contactStatusCheckErrorTitle')}
                   variant="error"
                 />
               </section>
@@ -149,14 +152,14 @@ export function ContactsScreen() {
                 <Button asChild>
                   <Link href={routes.contactsImport}>
                     <FileUp aria-hidden="true" data-icon="inline-start" />
-                    Import CSV
+                    {t('importCsv')}
                   </Link>
                 </Button>
               }
-              description="Import a client CSV to validate phone numbers, consent, dedupe results, and suppression checks before your first campaign."
+              description={t('importFirstContactsDescription')}
               framed
               icon={UsersRound}
-              title="Import your first contacts"
+              title={t('importFirstContactsTitle')}
               variant="page"
             />
           ) : contacts.isError ? (
@@ -166,9 +169,9 @@ export function ContactsScreen() {
                   description={
                     contacts.error instanceof Error
                       ? contacts.error.message
-                      : 'Try changing the filters or try again in a moment.'
+                      : t('contactsFetchFallbackError')
                   }
-                  title="Contacts could not be fetched"
+                  title={t('contactsFetchErrorTitle')}
                   variant="error"
                 />
               </section>
@@ -206,7 +209,7 @@ export function ContactsScreen() {
                     }
                   />
                   <PaginationControls
-                    itemLabel="contacts"
+                    itemLabel={t('contactsPaginationLabel')}
                     onPageChange={(page) => {
                       setRowSelection({});
                       void setQuery({ page });
@@ -227,8 +230,8 @@ export function ContactsScreen() {
                     />
                   ) : (
                     <EmptyState
-                      description="Clear or change the filters to see more imported contacts."
-                      title="No contacts match these filters"
+                      description={t('emptyFilteredContactsDescription')}
+                      title={t('emptyFilteredContactsTitle')}
                     />
                   )}
                 </>

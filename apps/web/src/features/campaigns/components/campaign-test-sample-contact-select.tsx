@@ -1,7 +1,10 @@
 "use client";
 
 import type { CampaignSmsTestContact } from '@retaino/shared/contracts';
-import { useLocale } from 'next-intl';
+import {
+  useLocale,
+  useTranslations,
+} from 'next-intl';
 import { useState } from 'react';
 import {
   SearchableCombobox,
@@ -26,6 +29,7 @@ export function CampaignTestSampleContactSelect({
   value: CampaignSmsTestContact | null;
 }) {
   const locale = useLocale();
+  const t = useTranslations('Campaigns');
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const contacts = useCampaignTestSmsContacts({
@@ -36,13 +40,13 @@ export function CampaignTestSampleContactSelect({
   });
   const options: Array<SearchableComboboxOption<CampaignSmsTestContact>> =
     (contacts.data?.contacts ?? []).map((candidate) => ({
-      description: testSampleDescription(candidate, locale),
+      description: testSampleDescription(candidate, locale, t),
       key: candidate.id,
       label:
         candidate.name ??
         candidate.phone ??
         candidate.email ??
-        'Unnamed contact',
+        t('unnamedContact'),
       searchText: [
         candidate.name,
         candidate.phone,
@@ -55,20 +59,21 @@ export function CampaignTestSampleContactSelect({
   return (
     <div className="grid gap-2">
       <div className="flex items-center gap-1.5">
-        <Label htmlFor="campaign-test-sample-contact">Personalize as</Label>
-        <InfoTooltip label="Test personalization details">
-          Pick whose details should appear in the test SMS. The SMS still goes
-          to the test phone below, or the responsible phone if blank.
+        <Label htmlFor="campaign-test-sample-contact">
+          {t('personalizeAs')}
+        </Label>
+        <InfoTooltip label={t('testPersonalizationDetails')}>
+          {t('testPersonalizationDescription')}
         </InfoTooltip>
       </div>
       <SearchableCombobox
         clearQueryOnClose={false}
         disabled={disabled}
         displayValue={contactDisplayValue(value) || undefined}
-        emptyText="No campaign contacts found."
+        emptyText={t('noCampaignContactsFound')}
         id="campaign-test-sample-contact"
         isLoading={contacts.isFetching}
-        loadingText="Searching contacts..."
+        loadingText={t('searchingContacts')}
         onOpenChange={(isOpen) => {
           setOpen(isOpen);
           setSearch(isOpen ? sampleContactSearchText(value) : '');
@@ -81,9 +86,9 @@ export function CampaignTestSampleContactSelect({
         }}
         open={open}
         options={options}
-        placeholder="Search campaign contacts"
+        placeholder={t('searchCampaignContacts')}
         query={search}
-        searchPlaceholder="Search campaign contacts"
+        searchPlaceholder={t('searchCampaignContacts')}
         selectedKey={value?.id ?? null}
       />
     </div>
@@ -100,12 +105,18 @@ function sampleContactSearchText(contact: CampaignSmsTestContact | null) {
     .join(' ');
 }
 
-function testSampleDescription(contact: CampaignSmsTestContact, locale: string) {
+function testSampleDescription(
+  contact: CampaignSmsTestContact,
+  locale: string,
+  t: ReturnType<typeof useTranslations<'Campaigns'>>,
+) {
   return [
     contact.phone,
     contact.email,
     contact.lastBookingAt
-      ? `Last booking ${formatTestSampleDate(contact.lastBookingAt, locale)}`
+      ? t('lastBookingDate', {
+          date: formatTestSampleDate(contact.lastBookingAt, locale),
+        })
       : null,
   ].filter(Boolean).join(', ');
 }

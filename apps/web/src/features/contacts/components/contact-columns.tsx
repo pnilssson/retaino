@@ -21,12 +21,28 @@ export type ContactSortKey =
 
 export function createContactColumns({
   direction,
+  labels,
   locale,
   onSort,
   sort,
   tableActions,
 }: {
   direction: TableSortDirection;
+  labels: {
+    email: string;
+    imported: string;
+    lastBooking: string;
+    lastContacted: string;
+    name: string;
+    noEmail: string;
+    noPhone: string;
+    notSet: string;
+    openContact: string;
+    openContactDetails: string;
+    phone: string;
+    status: string;
+    unnamed: string;
+  };
   locale: string;
   onSort: (sort: ContactSortKey) => void;
   sort: ContactSortKey;
@@ -62,7 +78,7 @@ export function createContactColumns({
       accessorKey: 'name',
       ...sortableHeader({
         defaultDirection: 'asc',
-        label: 'Name',
+        label: labels.name,
         sortKey: 'name',
       }),
       cell: ({ row }) => {
@@ -71,30 +87,30 @@ export function createContactColumns({
         return (
           <Link className="block p-2" href={detailPath}>
             <span className={textStyles.itemTitle}>
-              {row.original.name ?? 'Unnamed'}
+              {row.original.name ?? labels.unnamed}
             </span>
-            <span className="sr-only">Open contact details</span>
+            <span className="sr-only">{labels.openContactDetails}</span>
           </Link>
         );
       },
     },
     {
       id: 'phone',
-      header: 'Phone',
+      header: labels.phone,
       cell: ({ row }) => (
         <LinkedCell contact={row.original}>
           <div className="min-w-36">
-            <span>{row.original.phone ?? 'No phone'}</span>
+            <span>{row.original.phone ?? labels.noPhone}</span>
           </div>
         </LinkedCell>
       ),
     },
     {
       id: 'email',
-      header: 'Email',
+      header: labels.email,
       cell: ({ row }) => (
         <LinkedCell contact={row.original}>
-          {row.original.email ?? 'No email'}
+          {row.original.email ?? labels.noEmail}
         </LinkedCell>
       ),
     },
@@ -102,12 +118,12 @@ export function createContactColumns({
       accessorKey: 'createdAt',
       ...sortableHeader({
         defaultDirection: 'desc',
-        label: 'Imported',
+        label: labels.imported,
         sortKey: 'createdAt',
       }),
       cell: ({ row }) => (
         <LinkedCell contact={row.original}>
-          {formatDate(row.original.createdAt, locale)}
+          {formatDate(row.original.createdAt, locale, labels.notSet)}
         </LinkedCell>
       ),
     },
@@ -115,12 +131,12 @@ export function createContactColumns({
       accessorKey: 'lastBookingAt',
       ...sortableHeader({
         defaultDirection: 'desc',
-        label: 'Last booking',
+        label: labels.lastBooking,
         sortKey: 'lastBookingAt',
       }),
       cell: ({ row }) => (
         <LinkedCell contact={row.original}>
-          {formatDate(row.original.lastBookingAt, locale)}
+          {formatDate(row.original.lastBookingAt, locale, labels.notSet)}
         </LinkedCell>
       ),
     },
@@ -128,18 +144,18 @@ export function createContactColumns({
       accessorKey: 'lastContactedAt',
       ...sortableHeader({
         defaultDirection: 'desc',
-        label: 'Last contacted',
+        label: labels.lastContacted,
         sortKey: 'lastContactedAt',
       }),
       cell: ({ row }) => (
         <LinkedCell contact={row.original}>
-          {formatDate(row.original.lastContactedAt, locale)}
+          {formatDate(row.original.lastContactedAt, locale, labels.notSet)}
         </LinkedCell>
       ),
     },
     {
       accessorKey: 'contactStatus',
-      header: 'Status',
+      header: labels.status,
       cell: ({ row }) => (
         <LinkedCell contact={row.original}>
           <ContactStatusBadge status={row.original.contactStatus} />
@@ -152,7 +168,7 @@ export function createContactColumns({
         tableActions ? (
           <div className="flex justify-end pr-2">{tableActions}</div>
         ) : (
-          <span className="sr-only">Open contact</span>
+          <span className="sr-only">{labels.openContact}</span>
         ),
       cell: ({ row }) => (
         <div className="flex justify-end p-2">

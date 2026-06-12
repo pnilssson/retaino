@@ -3,6 +3,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,20 +23,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const statusLabels: Record<string, string> = {
-  all: 'All statuses',
-  blocked: 'Blocked',
-  incomplete: 'Incomplete',
-  ready: 'Ready for SMS',
-};
-
-const issueLabels: Record<string, string> = {
-  all: 'All issues',
-  invalid_phone: 'No valid phone',
-  missing_phone: 'No valid phone',
-  suppressed_phone: 'Suppressed phone',
-};
-
 export function ContactFilters({
   issue,
   onChange,
@@ -47,6 +34,19 @@ export function ContactFilters({
   search: string;
   status: string;
 }) {
+  const t = useTranslations('Contacts');
+  const statusLabels: Record<string, string> = {
+    all: t('allStatuses'),
+    blocked: t('blocked'),
+    incomplete: t('incomplete'),
+    ready: t('readyForSms'),
+  };
+  const issueLabels: Record<string, string> = {
+    all: t('allIssues'),
+    invalid_phone: t('noValidPhone'),
+    missing_phone: t('noValidPhone'),
+    suppressed_phone: t('suppressedPhone'),
+  };
   const issueValue = issue === 'invalid_phone' ? 'missing_phone' : issue;
   const advancedFilterCount = [issue !== 'all'].filter(Boolean).length;
   const activeFilters = [
@@ -65,7 +65,7 @@ export function ContactFilters({
           <Input
             className="h-9 pl-9"
             onChange={(event) => onChange({ search: event.target.value })}
-            placeholder="Search contacts"
+            placeholder={t('searchContacts')}
             value={search}
           />
         </div>
@@ -79,10 +79,10 @@ export function ContactFilters({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="ready">Ready for SMS</SelectItem>
-              <SelectItem value="blocked">Blocked</SelectItem>
-              <SelectItem value="incomplete">Incomplete</SelectItem>
+              <SelectItem value="all">{t('allStatuses')}</SelectItem>
+              <SelectItem value="ready">{t('readyForSms')}</SelectItem>
+              <SelectItem value="blocked">{t('blocked')}</SelectItem>
+              <SelectItem value="incomplete">{t('incomplete')}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -94,7 +94,7 @@ export function ContactFilters({
                 variant="outline"
               >
                 <Filter aria-hidden="true" data-icon="inline-start" />
-                Filters
+                {t('filters')}
                 {advancedFilterCount > 0 ? (
                   <Badge className="ml-1 px-1.5" variant="secondary">
                     {advancedFilterCount}
@@ -103,7 +103,7 @@ export function ContactFilters({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Issue</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('issue')}</DropdownMenuLabel>
               <DropdownMenuRadioGroup
                 onValueChange={(value) => onChange({ issue: value })}
                 value={issueValue}
@@ -112,19 +112,19 @@ export function ContactFilters({
                   onSelect={(event) => event.preventDefault()}
                   value="all"
                 >
-                  All issues
+                  {t('allIssues')}
                 </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem
                   onSelect={(event) => event.preventDefault()}
                   value="missing_phone"
                 >
-                  No valid phone
+                  {t('noValidPhone')}
                 </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem
                   onSelect={(event) => event.preventDefault()}
                   value="suppressed_phone"
                 >
-                  Suppressed phone
+                  {t('suppressedPhone')}
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
@@ -158,7 +158,7 @@ export function ContactFilters({
             variant="ghost"
           >
             <X aria-hidden="true" data-icon="inline-start" />
-            Clear
+            {t('clear')}
           </Button>
         </div>
       ) : null}

@@ -5,6 +5,7 @@ import type {
   CampaignAudiencePreviewResponse,
   CampaignAudienceRule,
 } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import { useApi } from '@/hooks/use-api';
 import { campaignsQueryKeys } from '../query-keys';
 
@@ -18,6 +19,7 @@ export function useCampaignAudiencePreview({
   organizationId: string | null;
 }) {
   const api = useApi();
+  const t = useTranslations('Campaigns');
 
   return useQuery({
     enabled: enabled && Boolean(organizationId),
@@ -27,7 +29,7 @@ export function useCampaignAudiencePreview({
     ),
     queryFn: () => {
       if (!organizationId) {
-        throw new Error('Organization is required to preview an audience.');
+        throw new Error(t('organizationRequiredPreviewAudience'));
       }
 
       return api.post<CampaignAudiencePreviewResponse>(

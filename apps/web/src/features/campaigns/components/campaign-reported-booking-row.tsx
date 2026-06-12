@@ -5,6 +5,7 @@ import type {
   CampaignRecipientSearchItem,
 } from '@retaino/shared/contracts';
 import { Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { DatePickerInput } from '@/components/date-picker-input';
 import {
@@ -42,6 +43,7 @@ export function ReportedBookingRow({
   onRemove: () => void;
   removable: boolean;
 }) {
+  const t = useTranslations('Campaigns');
   const [recipientSearch, setRecipientSearch] = useState('');
   const [isContactSelectOpen, setIsContactSelectOpen] = useState(false);
   const recipients = useCampaignRecipientSearch({
@@ -52,15 +54,17 @@ export function ReportedBookingRow({
   const revenueError =
     booking.revenueAmount &&
     !isValidBookingRevenueAmount(booking.revenueAmount, currency)
-      ? 'Enter a valid amount.'
+      ? t('enterValidAmount')
       : null;
 
   return (
     <fieldset className="grid gap-3">
       <div className="flex items-center justify-between gap-3">
-        <legend className={textStyles.meta}>Booking {index + 1}</legend>
+        <legend className={textStyles.meta}>
+          {t('bookingNumber', { number: index + 1 })}
+        </legend>
         <Button
-          aria-label={`Remove booking ${index + 1}`}
+          aria-label={t('removeBookingNumber', { number: index + 1 })}
           disabled={!removable}
           onClick={onRemove}
           size="sm"
@@ -68,7 +72,7 @@ export function ReportedBookingRow({
           variant="ghost"
         >
           <Trash2 aria-hidden="true" data-icon="inline-start" />
-          Remove booking
+          {t('removeBooking')}
         </Button>
       </div>
 
@@ -94,7 +98,7 @@ export function ReportedBookingRow({
         />
         <BookingRowInput
           id={`booking-${index}-date`}
-          label="Booking date"
+          label={t('bookingDate')}
           onChange={(value) => onChange({ ...booking, bookingDate: value })}
           value={booking.bookingDate}
           variant="date"
@@ -102,16 +106,16 @@ export function ReportedBookingRow({
         <BookingRowInput
           error={revenueError}
           id={`booking-${index}-revenue`}
-          label="Revenue"
+          label={t('revenue')}
           onChange={(value) => onChange({ ...booking, revenueAmount: value })}
           placeholder={currency}
           value={booking.revenueAmount}
         />
         <BookingRowInput
           id={`booking-${index}-service`}
-          label="Service"
+          label={t('service')}
           onChange={(value) => onChange({ ...booking, service: value })}
-          placeholder="Service or treatment"
+          placeholder={t('servicePlaceholder')}
           value={booking.service}
         />
       </div>
@@ -119,15 +123,15 @@ export function ReportedBookingRow({
       {booking.contactId ? (
         <p className={textStyles.meta}>
           {[booking.phone, booking.email].filter(Boolean).join(', ') ||
-            'No phone or email saved for this contact.'}
+            t('noContactMethodsSaved')}
         </p>
       ) : null}
 
       <BookingRowTextarea
         id={`booking-${index}-note`}
-        label="Note"
+        label={t('note')}
         onChange={(value) => onChange({ ...booking, note: value })}
-        placeholder="Optional context"
+        placeholder={t('notePlaceholder')}
         value={booking.note}
       />
     </fieldset>
@@ -157,12 +161,13 @@ function CampaignContactSelect({
   selectedKey: string | null;
   value: string;
 }) {
+  const t = useTranslations('Campaigns');
   const options: Array<SearchableComboboxOption<CampaignRecipientSearchItem>> =
     recipients.map((recipient) => ({
       description: [recipient.phone, recipient.email].filter(Boolean).join(', '),
       key: recipient.id,
       label:
-        recipient.name ?? recipient.phone ?? recipient.email ?? 'Unnamed contact',
+        recipient.name ?? recipient.phone ?? recipient.email ?? t('unnamedContact'),
       searchText: [
         recipient.name,
         recipient.phone,
@@ -173,22 +178,22 @@ function CampaignContactSelect({
 
   return (
     <div className="grid min-w-0 gap-2">
-      <Label htmlFor={id}>Contact</Label>
+      <Label htmlFor={id}>{t('contact')}</Label>
       <SearchableCombobox
         clearQueryOnClose={false}
         displayValue={value || undefined}
-        emptyText="No campaign contacts found."
+        emptyText={t('noCampaignContactsFound')}
         id={id}
         isLoading={isLoading}
-        loadingText="Searching contacts..."
+        loadingText={t('searchingContacts')}
         onOpenChange={onOpenChange}
         onQueryChange={onChange}
         onSelect={(option) => onSelect(option.value)}
         open={open}
         options={options}
-        placeholder="Search campaign contacts"
+        placeholder={t('searchCampaignContacts')}
         query={search}
-        searchPlaceholder="Search campaign contacts"
+        searchPlaceholder={t('searchCampaignContacts')}
         selectedKey={selectedKey}
       />
     </div>
@@ -212,6 +217,8 @@ function BookingRowInput({
   value: string;
   variant?: 'date' | 'text';
 }) {
+  const t = useTranslations('Campaigns');
+
   return (
     <div className="grid min-w-0 gap-2">
       <Label htmlFor={id}>{label}</Label>
@@ -220,7 +227,7 @@ function BookingRowInput({
           aria-invalid={Boolean(error)}
           id={id}
           onChange={onChange}
-          placeholder="Select date"
+          placeholder={t('selectDate')}
           value={value}
         />
       ) : (

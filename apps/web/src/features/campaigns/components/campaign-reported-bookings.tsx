@@ -13,7 +13,10 @@ import {
   CalendarCheck,
   Info,
 } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import {
+  useLocale,
+  useTranslations,
+} from 'next-intl';
 import { useState } from 'react';
 import {
   DataTable,
@@ -43,6 +46,7 @@ export function ReportedBookingsSection({
   organizationId: string | null;
   report: CampaignReport;
 }) {
+  const t = useTranslations('Campaigns');
   const [page, setPage] = useState(1);
   const canCreateReportedBookings =
     campaign.status === 'sent' || campaign.status === 'failed';
@@ -71,7 +75,7 @@ export function ReportedBookingsSection({
       }
       framed={false}
       id="reported-bookings"
-      title="Reported bookings"
+      title={t('reportedBookings')}
     >
       {hasBookings ? (
         <ReportedBookingsTable
@@ -104,10 +108,11 @@ function ReportedBookingsTable({
   totalBookings: number;
 }) {
   const locale = useLocale();
+  const t = useTranslations('Campaigns');
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    columns: createReportedBookingColumns(locale),
+    columns: createReportedBookingColumns(locale, t),
     data: bookings,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
@@ -123,7 +128,7 @@ function ReportedBookingsTable({
       />
       {totalBookings > REPORTED_BOOKINGS_PAGE_SIZE ? (
         <PaginationControls
-          itemLabel="bookings"
+          itemLabel={t('bookings')}
           onPageChange={onPageChange}
           page={currentPage}
           pageSize={REPORTED_BOOKINGS_PAGE_SIZE}
@@ -136,42 +141,45 @@ function ReportedBookingsTable({
 
 function createReportedBookingColumns(
   locale: string,
+  t: ReturnType<typeof useTranslations<'Campaigns'>>,
 ): ColumnDef<ReportedBookingRow>[] {
   return [
   {
     id: 'customer',
-    header: 'Customer',
+    header: t('customer'),
     cell: ({ row }) => (
-      <span className={textStyles.itemTitle}>{bookingTitle(row.original)}</span>
+      <span className={textStyles.itemTitle}>
+        {bookingTitle(row.original, t)}
+      </span>
     ),
   },
   {
     accessorKey: 'bookingDate',
-    header: 'Booking date',
+    header: t('bookingDate'),
     cell: ({ row }) => formatReportDate(row.original.bookingDate, locale),
   },
   {
     accessorKey: 'service',
-    header: 'Service',
-    cell: ({ row }) => row.original.service ?? 'Not added',
+    header: t('service'),
+    cell: ({ row }) => row.original.service ?? t('notAdded'),
   },
   {
     id: 'phone',
-    header: 'Phone',
-    cell: ({ row }) => row.original.contact.phone ?? 'Not added',
+    header: t('phone'),
+    cell: ({ row }) => row.original.contact.phone ?? t('notAdded'),
   },
   {
     id: 'email',
-    header: 'Email',
-    cell: ({ row }) => row.original.contact.email ?? 'Not added',
+    header: t('email'),
+    cell: ({ row }) => row.original.contact.email ?? t('notAdded'),
   },
   {
     accessorKey: 'revenueAmountMinor',
-    header: () => <div className="text-right">Revenue</div>,
+    header: () => <div className="text-right">{t('revenue')}</div>,
     cell: ({ row }) => (
       <div className={cn('text-right', textStyles.numericInline)}>
         {row.original.revenueAmountMinor === null
-          ? 'Not added'
+          ? t('notAdded')
           : formatReportCurrency(
               row.original.revenueAmountMinor,
               row.original.currency,
@@ -183,10 +191,13 @@ function createReportedBookingColumns(
   ];
 }
 
-function bookingTitle(booking: ReportedBookingRow) {
+function bookingTitle(
+  booking: ReportedBookingRow,
+  t: ReturnType<typeof useTranslations<'Campaigns'>>,
+) {
   return (
     booking.contact.name ?? booking.contact.phone ?? booking.contact.email ??
-    'Booking'
+    t('bookingFallback')
   );
 }
 
@@ -201,6 +212,8 @@ function ReportedBookingsEmptyState({
   currency: string;
   organizationId: string | null;
 }) {
+  const t = useTranslations('Campaigns');
+
   return (
     <EmptyState
       action={
@@ -214,15 +227,15 @@ function ReportedBookingsEmptyState({
       }
       description={
         canCreateReportedBookings
-          ? 'Add bookings after checking your booking system, replies, calls, or campaign code.'
-          : 'Campaign activity is still updating while messages are being sent.'
+          ? t('noBookingsReportedDescription')
+          : t('bookingsAfterSendingDescription')
       }
       framed
       icon={canCreateReportedBookings ? CalendarCheck : Info}
       title={
         canCreateReportedBookings
-          ? 'No bookings reported yet'
-          : 'Bookings can be reported after sending'
+          ? t('noBookingsReportedTitle')
+          : t('bookingsAfterSendingTitle')
       }
     />
   );

@@ -52,15 +52,19 @@ export function organizationProfileFormValuesToUpdateInput(
   };
 }
 
-export function validateEmail(value: string, label: string) {
+export function validateEmail(
+  value: string,
+  requiredMessage: string,
+  invalidMessage: string,
+) {
   const normalizedValue = value.trim();
 
   if (!normalizedValue) {
-    return `Enter the ${label}.`;
+    return requiredMessage;
   }
 
   if (!EMAIL_PATTERN.test(normalizedValue)) {
-    return 'Enter a valid email address.';
+    return invalidMessage;
   }
 
   return undefined;
@@ -70,24 +74,28 @@ export function validateRequired(value: string, message: string) {
   return value.trim() ? undefined : message;
 }
 
-export function validateCountryCode(value: string) {
+export function validateCountryCode(value: string, message: string) {
   return isSupportedCountryCode(value.trim().toUpperCase())
     ? undefined
-    : 'Choose a supported country.';
+    : message;
 }
 
-export function validateCurrencyCode(value: string) {
+export function validateCurrencyCode(value: string, message: string) {
   return currencyCodeSchema.safeParse(value).success
     ? undefined
-    : 'Choose a supported currency.';
+    : message;
 }
 
-export function validatePhone(value: string, countryCode: string) {
+export function validatePhone(
+  value: string,
+  countryCode: string,
+  message: string,
+) {
   if (!value.trim()) {
     return undefined;
   }
 
   return normalizePhoneNumber(value, countryCode).ok
     ? undefined
-    : 'Enter a valid phone number.';
+    : message;
 }

@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import type { CampaignReportResponse } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import { useApi } from '@/hooks/use-api';
 import { campaignsQueryKeys } from '../query-keys';
 
@@ -17,6 +18,7 @@ export function useCampaignReport({
   refetchInterval?: false | number;
 }) {
   const api = useApi();
+  const t = useTranslations('Campaigns');
 
   return useQuery({
     enabled: enabled && Boolean(organizationId) && Boolean(campaignId),
@@ -26,7 +28,7 @@ export function useCampaignReport({
     ),
     queryFn: () => {
       if (!organizationId || !campaignId) {
-        throw new Error('Organization and campaign are required.');
+        throw new Error(t('organizationCampaignRequired'));
       }
 
       return api.get<CampaignReportResponse>(

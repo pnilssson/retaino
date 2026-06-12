@@ -1,11 +1,14 @@
+import { useTranslations } from 'next-intl';
 import { StatusBadge } from '@/components/status-badge';
 
 export function BlockedStatusBadge({
   className,
-  label = 'Blocked',
+  label,
 }: {
   className?: string;
   label?: string;
 }) {
-  return <StatusBadge className={className} label={label} tone="red" />;
+  const t = useTranslations('Common');
+
+  return <StatusBadge className={className} label={label ?? t('blocked')} tone="red" />;
 }

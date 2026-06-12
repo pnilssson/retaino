@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   useState,
   type MouseEvent,
@@ -30,7 +31,7 @@ type ConfirmDialogProps = {
 };
 
 export function ConfirmDialog({
-  cancelLabel = 'Cancel',
+  cancelLabel,
   confirmLabel,
   description,
   isPending = false,
@@ -39,6 +40,7 @@ export function ConfirmDialog({
   trigger,
   variant = 'default',
 }: ConfirmDialogProps) {
+  const t = useTranslations('Common');
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const pending = isPending || isSubmitting;
@@ -76,7 +78,9 @@ export function ConfirmDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>{cancelLabel}</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending}>
+            {cancelLabel ?? t('cancel')}
+          </AlertDialogCancel>
           <AlertDialogAction
             disabled={pending}
             onClick={(event) => void handleConfirm(event)}

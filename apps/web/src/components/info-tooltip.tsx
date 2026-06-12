@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Info } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   Tooltip,
   TooltipContent,
@@ -13,19 +14,21 @@ import { cn } from '@/lib/utils';
 export function InfoTooltip({
   children,
   className,
-  label = 'More information',
+  label,
 }: {
   children: ReactNode;
   className?: string;
   label?: string;
 }) {
+  const t = useTranslations('Common');
   const [open, setOpen] = useState(false);
+  const resolvedLabel = label ?? t('moreInformation');
 
   return (
     <Tooltip onOpenChange={setOpen} open={open}>
       <TooltipTrigger asChild>
         <button
-          aria-label={label}
+          aria-label={resolvedLabel}
           aria-expanded={open}
           className={cn(
             'inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',

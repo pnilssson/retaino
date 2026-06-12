@@ -57,8 +57,12 @@ export function OrganizationCreateForm({
       defaultOrganizationName(
         user?.fullName,
         user?.primaryEmailAddress?.emailAddress,
+        {
+          fallback: t('defaultOrganizationName'),
+          fromName: (name) => t('generatedOrganizationName', { name }),
+        },
       ),
-    [user?.fullName, user?.primaryEmailAddress?.emailAddress],
+    [t, user?.fullName, user?.primaryEmailAddress?.emailAddress],
   );
 
   if (!isLoaded || !isUserLoaded) {

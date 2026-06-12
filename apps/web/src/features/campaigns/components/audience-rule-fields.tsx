@@ -10,7 +10,10 @@ import {
   Check,
   ChevronsUpDown,
 } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import {
+  useLocale,
+  useTranslations,
+} from 'next-intl';
 import { InfoTooltip } from '@/components/info-tooltip';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -33,14 +36,11 @@ import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 
 const lapsedDayPresets = [30, 60, 90, 180] as const;
-const recentCampaignOptions = [
+const recentCampaignOptionValues = [
   ...[...RECENT_CAMPAIGN_EXCLUSION_DAYS]
     .sort((first, second) => second - first)
-    .map((days) => ({
-      label: `${days} days`,
-      value: String(days),
-    })),
-  { label: 'Off', value: 'off' },
+    .map(String),
+  'off',
 ] as const;
 
 function isPresetLapsedDays(value: number) {
@@ -60,6 +60,7 @@ export function AudienceRuleFields({
   onIncludeNoBookingDateChange: (value: boolean) => void;
   onLapsedDaysChange: (value: number) => void;
 }) {
+  const t = useTranslations('Campaigns');
   const lapsedDaysIsPreset = isPresetLapsedDays(lapsedDays);
   const [customSelected, setCustomSelected] = useState(false);
   const showCustomInput = customSelected || !lapsedDaysIsPreset;
@@ -68,10 +69,9 @@ export function AudienceRuleFields({
     <div className="grid gap-4">
       <div className="grid gap-2">
         <div className="flex items-center gap-1.5">
-          <Label>Days since last booking</Label>
-          <InfoTooltip label="Days since last booking details">
-            Retaino includes contacts whose last booking was at least this many
-            days ago.
+          <Label>{t('daysSinceLastBooking')}</Label>
+          <InfoTooltip label={t('daysSinceLastBookingDetails')}>
+            {t('daysSinceLastBookingDescription')}
           </InfoTooltip>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -90,7 +90,7 @@ export function AudienceRuleFields({
                 !showCustomInput && lapsedDays === days ? 'default' : 'outline'
               }
             >
-              {days} days
+              {t('daysOption', { days })}
             </Button>
           ))}
           <Button
@@ -101,7 +101,7 @@ export function AudienceRuleFields({
             type="button"
             variant={showCustomInput ? 'default' : 'outline'}
           >
-            Custom
+            {t('custom')}
           </Button>
         </div>
       </div>
@@ -109,7 +109,7 @@ export function AudienceRuleFields({
       {showCustomInput ? (
         <div className="grid max-w-48 gap-2">
           <Input
-            aria-label="Custom days since last booking"
+            aria-label={t('customDaysSinceLastBooking')}
             autoComplete="off"
             disabled={disabled}
             id="campaign-lapsed-days"
@@ -127,8 +127,7 @@ export function AudienceRuleFields({
             value={Number.isFinite(lapsedDays) ? lapsedDays : ''}
           />
           <p className={textStyles.meta}>
-            Retaino includes contacts whose last booking was at least this many
-            days ago. Allowed range is 30 to 365 days.
+            {t('lapsedDaysRangeDescription')}
           </p>
         </div>
       ) : null}
@@ -142,7 +141,7 @@ export function AudienceRuleFields({
           }
         />
         <span className={textStyles.itemTitle}>
-          Include contacts without booking date
+          {t('includeContactsWithoutBookingDate')}
         </span>
       </label>
     </div>
@@ -167,6 +166,7 @@ export function AudienceExclusionFields({
   recentCampaignExclusionDays: CampaignAudienceRule['recentCampaignExclusionDays'];
 }) {
   const locale = useLocale();
+  const t = useTranslations('Campaigns');
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const lastSentCampaign = campaigns
@@ -194,11 +194,10 @@ export function AudienceExclusionFields({
       <div className="grid gap-2">
         <div className="flex items-center gap-1.5">
           <Label htmlFor="campaign-contact-window">
-            Skip contacts messaged within
+            {t('skipContactsMessagedWithin')}
           </Label>
-          <InfoTooltip label="Campaign duplicate window details">
-            Retaino avoids sending another campaign to people contacted during
-            this period.
+          <InfoTooltip label={t('campaignDuplicateWindowDetails')}>
+            {t('campaignDuplicateWindowDescription')}
           </InfoTooltip>
         </div>
         <Select
@@ -220,9 +219,11 @@ export function AudienceExclusionFields({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {recentCampaignOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
+            {recentCampaignOptionValues.map((value) => (
+              <SelectItem key={value} value={value}>
+                {value === 'off'
+                  ? t('off')
+                  : t('daysOption', { days: Number(value) })}
               </SelectItem>
             ))}
           </SelectContent>
@@ -232,9 +233,11 @@ export function AudienceExclusionFields({
       <div className="grid gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
-            <Label htmlFor="excluded-campaigns">Exclude sent campaigns</Label>
-            <InfoTooltip label="Excluded sent campaigns details">
-              Contacts messaged in selected campaigns are skipped for this send.
+            <Label htmlFor="excluded-campaigns">
+              {t('excludeSentCampaigns')}
+            </Label>
+            <InfoTooltip label={t('excludedSentCampaignsDetails')}>
+              {t('excludedSentCampaignsDescription')}
             </InfoTooltip>
           </div>
           {lastSentCampaign ? (
@@ -245,15 +248,14 @@ export function AudienceExclusionFields({
               type="button"
               variant="outline"
             >
-              Select latest sent
+              {t('selectLatestSent')}
             </Button>
           ) : null}
         </div>
 
         {campaigns.length === 0 ? (
           <p className={textStyles.meta}>
-            Sent campaigns will appear here after the first campaign has
-            message history.
+            {t('sentCampaignsWillAppear')}
           </p>
         ) : (
           <Popover
@@ -283,7 +285,7 @@ export function AudienceExclusionFields({
                   )}
                 >
                   {selectedCampaigns.length === 0
-                    ? 'Choose campaigns to exclude'
+                    ? t('chooseCampaignsToExclude')
                     : selectedCampaignLabel}
                 </span>
                 <ChevronsUpDown aria-hidden="true" data-icon="inline-end" />
@@ -291,11 +293,11 @@ export function AudienceExclusionFields({
             </PopoverTrigger>
             <PopoverContent className="w-(--radix-popover-trigger-width) p-2">
               <Input
-                aria-label="Search sent campaigns"
+                aria-label={t('searchSentCampaigns')}
                 autoComplete="off"
                 className="mb-2"
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search campaigns"
+                placeholder={t('searchCampaigns')}
                 value={query}
               />
               <div
@@ -334,8 +336,10 @@ export function AudienceExclusionFields({
                           </span>
                           <span className={cn('block truncate', textStyles.meta)}>
                             {campaign.sentAt
-                              ? `Sent ${formatCampaignDate(campaign.sentAt, locale)}`
-                              : 'Send history available'}
+                              ? t('sentOn', {
+                                  date: formatCampaignDate(campaign.sentAt, locale),
+                                })
+                              : t('sendHistoryAvailable')}
                           </span>
                         </span>
                         <Check
@@ -351,17 +355,19 @@ export function AudienceExclusionFields({
                   })
                 ) : (
                   <p className={cn('px-2 py-3', textStyles.mutedBody)}>
-                    No campaigns found.
+                    {t('noCampaignsFound')}
                   </p>
                 )}
               </div>
               {selectedCampaigns.length > 0 ? (
                 <div className="mt-2 flex items-center justify-between gap-2 px-2 pt-2">
                   <p className={textStyles.meta}>
-                    {selectedCampaigns.length}{' '}
-                    {selectedCampaigns.length === 1
-                      ? 'campaign selected'
-                      : 'campaigns selected'}
+                    {t(
+                      selectedCampaigns.length === 1
+                        ? 'campaignSelected'
+                        : 'campaignsSelected',
+                      { count: selectedCampaigns.length },
+                    )}
                   </p>
                   <Button
                     disabled={disabled}
@@ -370,7 +376,7 @@ export function AudienceExclusionFields({
                     type="button"
                     variant="ghost"
                   >
-                    Clear
+                    {t('clear')}
                   </Button>
                 </div>
               ) : null}

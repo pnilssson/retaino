@@ -46,6 +46,13 @@ export function emptyReportedBookingRow(): ReportedBookingRowValues {
 export function prepareReportedBookingsInput(
   value: ReportedBookingFormValues,
   currency: string,
+  labels: {
+    addAtLeastOneBooking: string;
+    addBookingDateOnRow: (row: number) => string;
+    checkRevenueOnRow: (row: number) => string;
+    chooseContactOnRow: (row: number) => string;
+    saveUpToBookingsAtATime: (count: number) => string;
+  },
 ): { ok: true; input: CreateReportedBookingsInput } | {
   ok: false;
   error: string;
@@ -74,11 +81,11 @@ export function prepareReportedBookingsInput(
     }
 
     if (!normalized.campaignRecipientId || !normalized.contactId) {
-      return { ok: false, error: `Choose a contact on row ${index + 1}.` };
+      return { ok: false, error: labels.chooseContactOnRow(index + 1) };
     }
 
     if (!normalized.bookingDate) {
-      return { ok: false, error: `Add a booking date on row ${index + 1}.` };
+      return { ok: false, error: labels.addBookingDateOnRow(index + 1) };
     }
 
     if (
@@ -87,7 +94,7 @@ export function prepareReportedBookingsInput(
     ) {
       return {
         ok: false,
-        error: `Check the revenue amount on row ${index + 1}.`,
+        error: labels.checkRevenueOnRow(index + 1),
       };
     }
 
@@ -95,13 +102,13 @@ export function prepareReportedBookingsInput(
   }
 
   if (bookings.length === 0) {
-    return { ok: false, error: 'Add at least one booking.' };
+    return { ok: false, error: labels.addAtLeastOneBooking };
   }
 
   if (bookings.length > MAX_REPORTED_BOOKING_ROWS) {
     return {
       ok: false,
-      error: `Save up to ${MAX_REPORTED_BOOKING_ROWS} bookings at a time.`,
+      error: labels.saveUpToBookingsAtATime(MAX_REPORTED_BOOKING_ROWS),
     };
   }
 

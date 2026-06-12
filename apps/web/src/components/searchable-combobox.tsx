@@ -6,6 +6,7 @@ import {
   Check,
   ChevronsUpDown,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -32,7 +33,7 @@ export function SearchableCombobox<TValue = string>({
   emptyText,
   id,
   isLoading = false,
-  loadingText = 'Searching...',
+  loadingText,
   name,
   onBlur,
   onOpenChange,
@@ -65,6 +66,7 @@ export function SearchableCombobox<TValue = string>({
   searchPlaceholder: string;
   selectedKey?: string | null;
 }) {
+  const t = useTranslations('Common');
   const [internalOpen, setInternalOpen] = useState(false);
   const [internalQuery, setInternalQuery] = useState('');
   const currentOpen = open ?? internalOpen;
@@ -145,7 +147,7 @@ export function SearchableCombobox<TValue = string>({
         <div className="max-h-64 overflow-y-auto" role="listbox">
           {isLoading ? (
             <p className={cn('px-2 py-3', textStyles.mutedBody)}>
-              {loadingText}
+              {loadingText ?? t('searching')}
             </p>
           ) : filtered.length > 0 ? (
             filtered.map((option) => {
