@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+import { redirect } from '@/i18n/navigation';
 import { routes } from '@/lib/routes';
 
 export default async function LegacyOnboardingPage({
@@ -7,5 +7,5 @@ export default async function LegacyOnboardingPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  redirect(`/${locale}${routes.organizationSetup}`);
+  redirect({ href: routes.organizationSetup, locale });
 }

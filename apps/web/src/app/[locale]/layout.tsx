@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { hasLocale } from 'next-intl';
+import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
@@ -23,5 +23,9 @@ export default async function LocaleLayout({
 
   setRequestLocale(locale);
 
-  return children;
+  return (
+    <NextIntlClientProvider key={locale} locale={locale}>
+      {children}
+    </NextIntlClientProvider>
+  );
 }

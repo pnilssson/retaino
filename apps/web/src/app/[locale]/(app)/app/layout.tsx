@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { auth } from '@clerk/nextjs/server';
 import { AppAuthenticatedShell } from '@/features/appshell/components/app-authenticated-shell';
+import { localizedPathname } from '@/i18n/paths';
 import { routes } from '@/lib/routes';
 
 export default async function AppLayout({
@@ -16,7 +17,7 @@ export default async function AppLayout({
   });
 
   if (!isAuthenticated) {
-    return redirectToSignIn({ returnBackUrl: `/${locale}${routes.app}` });
+    return redirectToSignIn({ returnBackUrl: localizedPathname(routes.app, locale) });
   }
 
   return <AppAuthenticatedShell>{children}</AppAuthenticatedShell>;
