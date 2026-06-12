@@ -8,6 +8,7 @@ import type {
   CampaignSendRequest,
   CampaignSendResponse,
 } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import { useApi } from '@/hooks/use-api';
 import { campaignsQueryKeys } from '../query-keys';
 
@@ -19,12 +20,13 @@ export function useSendCampaign({
   organizationId: string | null;
 }) {
   const api = useApi();
+  const t = useTranslations('Campaigns');
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (input: CampaignSendRequest | undefined) => {
       if (!campaignId) {
-        throw new Error('Choose a campaign before sending it.');
+        throw new Error(t('chooseCampaignBeforeSending'));
       }
 
       return api.post<CampaignSendResponse>(

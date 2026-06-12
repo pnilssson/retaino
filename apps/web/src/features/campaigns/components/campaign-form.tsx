@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Send,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
   GuidedFlowActions,
@@ -76,12 +77,15 @@ export type { CampaignStepId } from '../campaign-form-state';
 
 function campaignSetupSteps(
   includeSenderStep: boolean,
+  t: ReturnType<typeof useTranslations<'Campaigns'>>,
 ): GuidedFlowStep<CampaignStepId>[] {
   return [
-    { id: 'audience', title: 'Audience' },
-    { id: 'message', title: 'Message & link' },
-    ...(includeSenderStep ? [{ id: 'sender' as const, title: 'Sender' }] : []),
-    { id: 'review', title: 'Review' },
+    { id: 'audience', title: t('stepAudience') },
+    { id: 'message', title: t('stepMessage') },
+    ...(includeSenderStep
+      ? [{ id: 'sender' as const, title: t('stepSender') }]
+      : []),
+    { id: 'review', title: t('stepReview') },
   ];
 }
 
@@ -100,6 +104,7 @@ export function CampaignForm({
   onSent?: (response: CampaignSendResponse) => void;
   organizationId: string | null;
 }) {
+  const t = useTranslations('Campaigns');
   const campaignIsDraft = !campaign || campaign.status === 'draft';
   const canEditCampaign = campaignIsDraft;
   const canSendCampaign =
@@ -126,7 +131,7 @@ export function CampaignForm({
     campaignId: campaign?.id ?? null,
     organizationId,
   });
-  const campaignNotice = campaign ? campaignStatusNotice(campaign) : null;
+  const campaignNotice = campaign ? campaignStatusNotice(campaign, t) : null;
   const updateCampaign = useUpdateCampaign({
     campaignId: campaign?.id ?? null,
     organizationId,
@@ -204,10 +209,12 @@ export function CampaignForm({
 
       {sendQueued ? (
         <ItemNotice
-          description={`${queuedRecipientCount} ${
-            queuedRecipientCount === 1 ? 'recipient is' : 'recipients are'
-          } queued for sending.`}
-          title="Campaign send queued"
+          description={t('queuedForSending', {
+            count: `${queuedRecipientCount} ${t(
+              queuedRecipientCount === 1 ? 'recipient' : 'recipients',
+            )}`,
+          })}
+          title={t('campaignSendQueuedTitle')}
           variant="success"
         />
       ) : null}
@@ -217,12 +224,12 @@ export function CampaignForm({
           description={
             actionError instanceof Error
               ? actionError.message
-              : 'Try checking the campaign fields and saving again.'
+              : t('campaignSaveErrorDescription')
           }
           title={
             sendCampaign.error
-              ? 'Campaign could not be sent'
-              : 'Campaign could not be saved'
+              ? t('campaignSendErrorTitle')
+              : t('campaignSaveErrorTitle')
           }
           variant="error"
         />
@@ -245,7 +252,7 @@ export function CampaignForm({
           const recentProtectionAckRequired =
             requiresRecentCampaignExclusionAcknowledgement(values.audienceRule);
           const includeSenderStep = !senderReady || activeStep === 'sender';
-          const visibleSteps = campaignSetupSteps(includeSenderStep);
+          const visibleSteps = campaignSetupSteps(includeSenderStep, t);
           const completedStepIds = completedCampaignSteps(
             values,
             senderReady,
@@ -255,35 +262,35 @@ export function CampaignForm({
             <GuidedFlowFrame
               completedStepIds={completedStepIds}
               currentStepId={activeStep}
-              progressLabel="Campaign setup"
+              progressLabel={t('campaignSetup')}
               steps={visibleSteps}
             >
               <div className="grid gap-5">
                 {activeStep === 'audience' ? (
                   <div className="grid gap-5">
                       <ContentSection
-                        description="Name this campaign and choose the lapsed booking window."
-                        title="Campaign and booking window"
+                        description={t('campaignAndBookingWindowDescription')}
+                        title={t('campaignAndBookingWindow')}
                       >
                         <div className="grid gap-5">
                           <form.Field
                             name="name"
                             validators={{
                               onBlur: ({ value }) =>
-                                validateRequired(value, 'Enter a campaign name.'),
+                                validateRequired(value, t('campaignNameRequired')),
                               onSubmit: ({ value }) =>
-                                validateRequired(value, 'Enter a campaign name.'),
+                                validateRequired(value, t('campaignNameRequired')),
                             }}
                           >
                             {(field) => (
                               <CampaignTextInput
                                 disabled={!canEditCampaign}
                                 error={getFieldError(field.state.meta.errors)}
-                                label="Campaign name"
+                                label={t('campaignName')}
                                 name={field.name}
                                 onBlur={field.handleBlur}
                                 onChange={field.handleChange}
-                                placeholder="90-day reactivation..."
+                                placeholder={t('campaignNamePlaceholder')}
                                 spellCheck={false}
                                 value={field.state.value}
                               />
@@ -293,8 +300,8 @@ export function CampaignForm({
                           <form.Field
                             name="audienceRule.lapsedDays"
                             validators={{
-                              onBlur: ({ value }) => validateLapsedDays(value),
-                              onSubmit: ({ value }) => validateLapsedDays(value),
+                              onBlur: ({ value }) => validateLapsedDays(value, t),
+                              onSubmit: ({ value }) => validateLapsedDays(value, t),
                             }}
                           >
                             {(lapsedDaysField) => (
@@ -335,8 +342,8 @@ export function CampaignForm({
                       </ContentSection>
 
                       <ContentSection
-                        description="Avoid overlapping campaign sends before this campaign is launched."
-                        title="Exclusions"
+                        description={t('exclusionsDescription')}
+                        title={t('exclusions')}
                       >
                         <form.Field name="audienceRule.recentCampaignExclusionDays">
                           {(recentCampaignExclusionDaysField) => (
@@ -365,8 +372,8 @@ export function CampaignForm({
                       </ContentSection>
 
                       <ContentSection
-                        description="See how the current audience rules affect the final sendable audience."
-                        title="Matching contacts"
+                        description={t('matchingContactsDescription')}
+                        title={t('matchingContacts')}
                       >
                         <AudiencePreview
                           audienceRule={values.audienceRule}
@@ -380,7 +387,7 @@ export function CampaignForm({
                         continueIcon={
                           <ArrowRight aria-hidden="true" className="size-4" />
                         }
-                        continueLabel="Continue to message"
+                        continueLabel={t('continueToMessage')}
                         isPending={isSaving}
                         onContinue={() => {
                           void saveStepAndContinue(
@@ -395,8 +402,8 @@ export function CampaignForm({
 
                     {activeStep === 'message' ? (
                       <GuidedFlowSection
-                        description="Write the SMS, add the booking link, and check what recipients will receive."
-                        title="Message & link"
+                        description={t('messageAndLinkDescription')}
+                        title={t('messageAndLink')}
                       >
                         <div className="grid gap-5">
                           <ContentSection asChild>
@@ -404,8 +411,8 @@ export function CampaignForm({
                               <form.Field
                                 name="smsBody"
                                 validators={{
-                                  onBlur: ({ value }) => validateSmsBody(value),
-                                  onSubmit: ({ value }) => validateSmsBody(value),
+                                  onBlur: ({ value }) => validateSmsBody(value, t),
+                                  onSubmit: ({ value }) => validateSmsBody(value, t),
                                 }}
                               >
                                 {(field) => (
@@ -416,24 +423,23 @@ export function CampaignForm({
                                         error={getFieldError(
                                           field.state.meta.errors,
                                         )}
-                                        label="Message body"
+                                        label={t('messageBody')}
                                         name={field.name}
                                         onBlur={field.handleBlur}
                                         onChange={field.handleChange}
-                                        placeholder="Hi {first_name}, we have openings this week..."
+                                        placeholder={t('messageBodyPlaceholder', {
+                                          first_name: '{first_name}',
+                                        })}
                                         textAreaRef={messageTextAreaRef}
                                         value={field.state.value}
                                       />
                                       <div className="grid gap-2">
                                         <div className="flex items-center gap-1.5">
                                           <p className={textStyles.itemTitle}>
-                                            Personalize
+                                            {t('personalize')}
                                           </p>
-                                          <InfoTooltip label="Personalization details">
-                                            Click a value to add it to the
-                                            message. Retaino replaces it with
-                                            each recipient&apos;s details before
-                                            sending.
+                                          <InfoTooltip label={t('personalizationDetails')}>
+                                            {t('personalizationDescription')}
                                           </InfoTooltip>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
@@ -480,17 +486,17 @@ export function CampaignForm({
                           </ContentSection>
 
                           <ContentSection
-                            description="Add where you want recipients to go and an optional reference for this campaign."
-                            title="Booking destination"
+                            description={t('bookingDestinationDescription')}
+                            title={t('bookingDestination')}
                           >
                             <div className="grid gap-4 sm:grid-cols-2">
                               <form.Field
                                 name="bookingUrl"
                                 validators={{
                                   onBlur: ({ value }) =>
-                                    validateBookingUrl(value),
+                                    validateBookingUrl(value, t),
                                   onSubmit: ({ value }) =>
-                                    validateBookingUrl(value),
+                                    validateBookingUrl(value, t),
                                 }}
                               >
                                 {(field) => (
@@ -499,7 +505,7 @@ export function CampaignForm({
                                     error={getFieldError(
                                       field.state.meta.errors,
                                     )}
-                                    label="Booking URL"
+                                    label={t('bookingUrl')}
                                     name={field.name}
                                     onBlur={field.handleBlur}
                                     onChange={field.handleChange}
@@ -516,11 +522,11 @@ export function CampaignForm({
                                     error={getFieldError(
                                       field.state.meta.errors,
                                     )}
-                                    label="Campaign code or reference"
+                                    label={t('campaignCodeOrReference')}
                                     name={field.name}
                                     onBlur={field.handleBlur}
                                     onChange={field.handleChange}
-                                    placeholder="SPRING REACTIVATION..."
+                                    placeholder={t('campaignCodePlaceholder')}
                                     spellCheck={false}
                                     value={field.state.value}
                                   />
@@ -536,8 +542,8 @@ export function CampaignForm({
                             }
                             continueLabel={
                               senderReady
-                                ? 'Continue to review'
-                                : 'Continue to sender'
+                                ? t('continueToReview')
+                                : t('continueToSender')
                             }
                             onBack={() => setActiveStep('audience')}
                             isPending={isSaving}
@@ -555,8 +561,8 @@ export function CampaignForm({
 
                     {activeStep === 'sender' ? (
                       <GuidedFlowSection
-                        description="Choose the sender country before this campaign can send."
-                        title={senderReady ? 'Sender ready' : 'Set up the sender'}
+                        description={t('senderStepDescription')}
+                        title={senderReady ? t('senderReady') : t('setUpTheSender')}
                       >
                         <ContentSection asChild>
                           <section>
@@ -573,7 +579,7 @@ export function CampaignForm({
                           continueIcon={
                             <ArrowRight aria-hidden="true" className="size-4" />
                           }
-                          continueLabel="Continue to review"
+                          continueLabel={t('continueToReview')}
                           isPending={sender.isLoading}
                           onBack={() => setActiveStep('message')}
                           onContinue={() => setActiveStep('review')}
@@ -583,8 +589,8 @@ export function CampaignForm({
 
                     {activeStep === 'review' ? (
                       <GuidedFlowSection
-                        description="Confirm the final setup before sending the campaign."
-                        title="Review campaign"
+                        description={t('reviewCampaignDescription')}
+                        title={t('reviewCampaign')}
                       >
                         <div className="grid gap-5">
                           <ContentSection asChild>
@@ -612,20 +618,20 @@ export function CampaignForm({
                                       }
                                     />
                                     <span className={textStyles.itemTitle}>
-                                      I understand
+                                      {t('iUnderstand')}
                                     </span>
                                   </label>
                                 }
-                                description="Some contacts may receive another campaign sooner than the standard 30 days."
-                                title="Confirm recent campaign protection"
+                                description={t('confirmRecentCampaignProtectionDescription')}
+                                title={t('confirmRecentCampaignProtection')}
                                 variant="warning"
                               />
                             </ContentSection>
                           ) : null}
 
                           <ContentSection
-                            description="Send yourself the message before launching. This is optional."
-                            title="Send a test SMS"
+                            description={t('sendTestSmsDescription')}
+                            title={t('sendTestSms')}
                           >
                             <CampaignTestSms
                               campaignId={campaign?.id ?? null}
@@ -668,14 +674,10 @@ export function CampaignForm({
                                       setQueuedRecipientCount(
                                         response.recipientCount,
                                       );
-                                      toast.success('Campaign send queued.', {
-                                        description: `${
-                                          response.recipientCount
-                                        } ${
-                                          response.recipientCount === 1
-                                            ? 'recipient'
-                                            : 'recipients'
-                                        } selected.`,
+                                      toast.success(t('campaignSendQueuedToast'), {
+                                        description: t('selectedRecipientsToast', {
+                                          count: response.recipientCount,
+                                        }),
                                       });
                                       onSent?.(response);
                                     },
@@ -685,7 +687,7 @@ export function CampaignForm({
                               type="button"
                             >
                               <Send aria-hidden="true" data-icon="inline-start" />
-                              {isSending ? 'Sending campaign...' : 'Send campaign'}
+                              {isSending ? t('sendingCampaign') : t('sendCampaign')}
                             </Button>
                           </GuidedFlowActions>
                         </div>

@@ -1,17 +1,21 @@
+import { useTranslations } from 'next-intl';
 import { LoadingState } from '@/components/loading-state';
 import { cn } from '@/lib/utils';
 
 export function AppPageLoading({
   className,
-  label = 'Loading',
+  label,
 }: {
   className?: string;
   label?: string;
 }) {
+  const t = useTranslations('Common');
+  const resolvedLabel = label ?? t('loading');
+
   return (
     <main
       aria-busy="true"
-      aria-label="Loading page"
+      aria-label={t('loadingPage')}
       className="flex flex-1 items-start bg-background"
     >
       <section
@@ -20,7 +24,7 @@ export function AppPageLoading({
           className,
         )}
       >
-        <LoadingState label={label} />
+        <LoadingState label={resolvedLabel} />
       </section>
     </main>
   );

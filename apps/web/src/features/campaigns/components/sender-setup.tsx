@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { PublicOrganizationSmsSender } from '@retaino/shared/contracts';
 import { Phone } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ export function SenderSetup({
   organizationId: string | null;
   sender: PublicOrganizationSmsSender | null;
 }) {
+  const t = useTranslations('Campaigns');
   const senderReady = sender?.status === 'ready';
   const setupOrganizationId = !senderReady ? organizationId : null;
   const countries = useSmsSenderCountries(setupOrganizationId);
@@ -45,15 +47,15 @@ export function SenderSetup({
       <section className="grid gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="grid gap-1">
-            <h3 className={textStyles.itemTitle}>Sender</h3>
+            <h3 className={textStyles.itemTitle}>{t('sender')}</h3>
             <p className={textStyles.mutedBody}>
               {sender?.phoneNumber
                 ? sender.phoneNumber
-                : 'Choose where the sender number should be based.'}
+                : t('chooseSenderNumberBase')}
             </p>
           </div>
           <StatusBadge
-            label={senderReady ? 'Ready' : senderStatusLabel(sender?.status)}
+            label={senderReady ? t('senderReady') : senderStatusLabel(sender?.status, t)}
             tone={senderReady ? 'green' : 'amber'}
           />
         </div>
@@ -61,14 +63,14 @@ export function SenderSetup({
         {sender?.failureReason ? (
           <ItemNotice
             description={sender.failureReason}
-            title="Sender setup needs attention"
+            title={t('senderSetupNeedsAttentionTitle')}
             variant="error"
           />
         ) : null}
         {sender?.status === 'released' ? (
           <ItemNotice
-            description="Previous sender numbers cannot be guaranteed after a subscription ends."
-            title="Set up a new sender number"
+            description={t('releasedSenderDescription')}
+            title={t('setUpNewSenderTitle')}
             variant="warning"
           />
         ) : null}
@@ -77,7 +79,7 @@ export function SenderSetup({
       {!senderReady ? (
         <section className="grid gap-5">
           <div className="grid gap-2 sm:max-w-sm">
-            <Label htmlFor="campaign-sender-country">Country</Label>
+            <Label htmlFor="campaign-sender-country">{t('country')}</Label>
             <SenderCountryCombobox
               countries={countryOptions}
               disabled={countries.isLoading}
@@ -86,7 +88,7 @@ export function SenderSetup({
               value={effectiveCountryCode}
             />
             <p className={textStyles.mutedBody}>
-              Retaino will assign an available SMS number for this country.
+              {t('senderCountryDescription')}
             </p>
           </div>
 
@@ -94,8 +96,9 @@ export function SenderSetup({
             <ItemNotice
               description={setupErrorMessage(
                 countries.error ?? provisionSender.error,
+                t,
             )}
-            title="Sender setup failed"
+            title={t('senderSetupFailedTitle')}
             variant="error"
           />
           ) : null}
@@ -122,7 +125,7 @@ export function SenderSetup({
               ) : (
                 <Phone aria-hidden="true" data-icon="inline-start" />
               )}
-              {provisionSender.isPending ? 'Setting up sender...' : 'Set up sender'}
+              {provisionSender.isPending ? t('settingUpSender') : t('setUpSender')}
             </Button>
           </div>
         </section>
@@ -133,36 +136,40 @@ export function SenderSetup({
 
 function senderStatusLabel(
   status: PublicOrganizationSmsSender['status'] | undefined,
+  t: ReturnType<typeof useTranslations<'Campaigns'>>,
 ) {
   if (status === 'pending') {
-    return 'Pending';
+    return t('senderStatusPending');
   }
 
   if (status === 'manual_action_required') {
-    return 'Needs action';
+    return t('senderStatusNeedsAction');
   }
 
   if (status === 'failed') {
-    return 'Failed';
+    return t('senderStatusFailed');
   }
 
   if (status === 'release_pending') {
-    return 'Ending';
+    return t('senderStatusEnding');
   }
 
   if (status === 'released') {
-    return 'Released';
+    return t('senderStatusReleased');
   }
 
   if (status === 'release_failed') {
-    return 'Needs attention';
+    return t('senderStatusNeedsAttention');
   }
 
-  return 'Not set up';
+  return t('senderStatusNotSetUp');
 }
 
-function setupErrorMessage(error: unknown) {
+function setupErrorMessage(
+  error: unknown,
+  t: ReturnType<typeof useTranslations<'Campaigns'>>,
+) {
   return error instanceof Error
     ? error.message
-    : 'Try choosing another sender country.';
+    : t('senderSetupFailedDescription');
 }

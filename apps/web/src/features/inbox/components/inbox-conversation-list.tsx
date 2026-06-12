@@ -5,7 +5,10 @@ import type {
   InboxConversationSummary,
 } from '@retaino/shared/contracts';
 import { Search } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import {
+  useLocale,
+  useTranslations,
+} from 'next-intl';
 import { BlockedStatusBadge } from '@/components/blocked-status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +18,6 @@ import { cn } from '@/lib/utils';
 import {
   formatInboxListTime,
   formatInboxDateTime,
-  inboxActivityLabel,
 } from '../inbox-format';
 
 const activityFilters: InboxConversationActivityFilter[] = [
@@ -43,6 +45,7 @@ export function InboxConversationList({
   selectedConversationId: string | null;
 }) {
   const locale = useLocale();
+  const t = useTranslations('Inbox');
 
   return (
     <section
@@ -59,18 +62,18 @@ export function InboxConversationList({
             strokeWidth={1.5}
           />
           <Input
-            aria-label="Search conversations"
+            aria-label={t('searchConversations')}
             autoComplete="off"
             className="h-9 rounded-lg bg-background pl-9"
             name="inbox-search"
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search"
+            placeholder={t('searchPlaceholder')}
             type="search"
             value={search}
           />
         </div>
         <div
-          aria-label="Inbox view"
+          aria-label={t('viewLabel')}
           className="inline-flex shrink-0 rounded-lg border border-border bg-background p-0.5"
           role="group"
         >
@@ -84,7 +87,7 @@ export function InboxConversationList({
               type="button"
               variant={activity === item ? 'default' : 'ghost'}
             >
-              {inboxActivityLabel(item)}
+              {item === 'all' ? t('all') : t('needsReply')}
             </Button>
           ))}
         </div>
@@ -146,9 +149,9 @@ export function InboxConversationList({
                       )}
                     >
                       {conversation.latestMessageDirection === 'outbound'
-                        ? 'You: '
+                        ? t('youPrefix')
                         : ''}
-                      {conversation.latestMessageBody || 'No message text'}
+                      {conversation.latestMessageBody || t('noMessageText')}
                     </span>
                   </span>
                   {conversation.latestCampaignName ||
@@ -172,10 +175,10 @@ export function InboxConversationList({
           <div className="flex min-h-full items-center justify-center px-4 py-8">
             <p className={cn('max-w-64 text-center', textStyles.mutedBody)}>
               {search.trim()
-                ? 'No conversations match your search.'
+                ? t('noSearchResults')
                 : activity === 'needs_reply'
-                  ? 'No conversations need a reply.'
-                  : 'No conversations yet.'}
+                  ? t('noNeedsReply')
+                  : t('noConversations')}
             </p>
           </div>
         )}

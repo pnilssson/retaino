@@ -5,7 +5,10 @@ import type {
   InboxMessage,
 } from '@retaino/shared/contracts';
 import { Inbox } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import {
+  useLocale,
+  useTranslations,
+} from 'next-intl';
 import {
   useEffect,
   useRef,
@@ -39,6 +42,7 @@ export function InboxConversationThread({
   organizationId: string | null;
 }) {
   const locale = useLocale();
+  const t = useTranslations('Inbox');
   const messageListRef = useRef<HTMLDivElement>(null);
   const campaignMessageId = messages.find(
     (message) => message.direction === 'outbound' && message.campaignName,
@@ -70,9 +74,9 @@ export function InboxConversationThread({
         )}
       >
         <EmptyState
-          description="Choose a conversation to read replies and continue the thread."
+          description={t('noConversationDescription')}
           icon={Inbox}
-          title="No conversation selected"
+          title={t('noConversationTitle')}
           variant="page"
         />
       </section>
@@ -97,7 +101,7 @@ export function InboxConversationThread({
             </span>
           ) : null}
           {conversation.replyBlocked ? (
-            <BlockedStatusBadge label="Replies blocked" />
+            <BlockedStatusBadge label={t('repliesBlockedTitle')} />
           ) : null}
         </div>
       </header>
@@ -109,11 +113,11 @@ export function InboxConversationThread({
         {error ? (
           <ItemNotice
             description={error.message}
-            title="Conversation could not be loaded"
+            title={t('conversationLoadErrorTitle')}
             variant="error"
           />
         ) : isLoading ? (
-          <LoadingState className="min-h-[320px]" label="Loading conversation" />
+          <LoadingState className="min-h-[320px]" label={t('loadingConversation')} />
         ) : messages.length > 0 ? (
           <ol className="grid gap-3">
             {messages.map((message, index) => {
@@ -141,6 +145,7 @@ export function InboxConversationThread({
                   <InboxMessageBubble
                     locale={locale}
                     message={message}
+                    noMessageText={t('noMessageText')}
                     showCampaignBadge={message.id === campaignMessageId}
                   />
                 </li>
@@ -149,9 +154,9 @@ export function InboxConversationThread({
           </ol>
         ) : (
           <EmptyState
-            description="Messages will appear here as soon as Retaino sends or receives SMS for this phone."
+            description={t('noMessagesDescription')}
             icon={Inbox}
-            title="No messages yet"
+            title={t('noMessagesTitle')}
           />
         )}
       </div>
@@ -168,10 +173,12 @@ export function InboxConversationThread({
 function InboxMessageBubble({
   locale,
   message,
+  noMessageText,
   showCampaignBadge,
 }: {
   locale: string;
   message: InboxMessage;
+  noMessageText: string;
   showCampaignBadge: boolean;
 }) {
   const isOutbound = message.direction === 'outbound';
@@ -199,7 +206,7 @@ function InboxMessageBubble({
             isOutbound ? 'text-primary-foreground' : 'text-foreground',
           )}
         >
-          {message.body || 'No message text'}
+          {message.body || noMessageText}
         </p>
         <div
           className={cn(

@@ -11,6 +11,7 @@ import {
   Plus,
   UsersRound,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import {
   useMemo,
@@ -29,6 +30,7 @@ import { useOrganizationSession } from '@/features/onboarding/hooks/use-organiza
 import { routes } from '@/lib/routes';
 import {
   campaignReadinessBlock,
+  campaignReadinessBlockView,
   campaignsAllowed,
 } from '../campaign-readiness';
 import type {
@@ -43,6 +45,9 @@ import { useCampaignListQueryState } from '../hooks/use-campaign-list-query-stat
 import { useCampaigns } from '../hooks/use-campaigns';
 
 export function CampaignsScreen() {
+  const t = useTranslations('Campaigns');
+  const common = useTranslations('Common');
+  const contacts = useTranslations('Contacts');
   const session = useOrganizationSession();
   const [{ direction, search, sort, status }, setQuery] =
     useCampaignListQueryState();
@@ -95,7 +100,7 @@ export function CampaignsScreen() {
         <div className="max-w-lg">
           <ItemNotice
             description={session.error.message}
-            title="Campaigns could not be loaded"
+            title={t('campaignsLoadErrorTitle')}
             variant="error"
           />
         </div>
@@ -124,12 +129,12 @@ export function CampaignsScreen() {
               <Button asChild>
                 <Link href={routes.campaignNew}>
                   <Plus aria-hidden="true" data-icon="inline-start" />
-                  New
+                  {t('newCampaign')}
                 </Link>
               </Button>
             ) : null
           }
-          title="Campaigns"
+          title={t('campaignsTitle')}
         />
 
         <div className="grid gap-5">
@@ -140,9 +145,9 @@ export function CampaignsScreen() {
                   description={
                     contactPresence.error instanceof Error
                       ? contactPresence.error.message
-                      : 'Try again in a moment.'
+                      : common('tryAgainSoon')
                   }
-                  title="Contact status could not be checked"
+                  title={contacts('contactStatusCheckErrorTitle')}
                   variant="error"
                 />
               </section>
@@ -153,7 +158,7 @@ export function CampaignsScreen() {
                 campaigns={[]}
                 direction={direction}
                 isLoading
-                loadingLabel="Checking contacts"
+                loadingLabel={t('checkingContacts')}
                 onSort={handleSort}
                 sort={sort}
               />
@@ -164,14 +169,14 @@ export function CampaignsScreen() {
                 <Button asChild>
                   <Link href={routes.contactsImport}>
                     <FileUp aria-hidden="true" data-icon="inline-start" />
-                    Import CSV
+                    {contacts('importCsv')}
                   </Link>
                 </Button>
               }
-              description="Import contacts first so every campaign can preview a real audience before you write and send SMS."
+              description={t('importContactsBeforeCampaignsDescription')}
               framed
               icon={UsersRound}
-              title="Import contacts before campaigns"
+              title={t('importContactsBeforeCampaignsTitle')}
               variant="page"
             />
           ) : campaigns.isError ? (
@@ -181,9 +186,9 @@ export function CampaignsScreen() {
                   description={
                     campaigns.error instanceof Error
                       ? campaigns.error.message
-                      : 'Try changing the filters or try again in a moment.'
+                      : t('campaignsFetchFallbackError')
                   }
-                  title="Campaigns could not be fetched"
+                  title={t('campaignsFetchErrorTitle')}
                   variant="error"
                 />
               </section>
@@ -212,14 +217,14 @@ export function CampaignsScreen() {
                 <Button asChild>
                   <Link href={routes.campaignNew}>
                     <Plus aria-hidden="true" data-icon="inline-start" />
-                    New
+                    {t('newCampaign')}
                   </Link>
                 </Button>
               }
-              description="Create a campaign to choose a lapsed audience, write the SMS copy, and prepare your first send."
+              description={t('createFirstCampaignDescription')}
               framed
               icon={Megaphone}
-              title="Create your first campaign"
+              title={t('createFirstCampaignTitle')}
               variant="page"
             />
           ) : (
@@ -255,8 +260,8 @@ export function CampaignsScreen() {
                     />
                   ) : (
                     <EmptyState
-                      description="Clear or change the filters to see more campaigns."
-                      title="No campaigns match these filters"
+                      description={t('emptyFilteredCampaignsDescription')}
+                      title={t('emptyFilteredCampaignsTitle')}
                     />
                   )}
                 </>
@@ -269,7 +274,9 @@ export function CampaignsScreen() {
 }
 
 function BlockedCampaigns({ session }: { session: OrganizationSession }) {
+  const t = useTranslations('Campaigns');
   const block = campaignReadinessBlock(session);
+  const view = campaignReadinessBlockView(session, t);
 
   return (
     <main className="flex flex-1 items-start bg-background">
@@ -277,27 +284,27 @@ function BlockedCampaigns({ session }: { session: OrganizationSession }) {
         <AppPageHeader
           badge={
             <StatusBadge
-              label={block.badgeLabel}
+              label={view.badgeLabel}
               tone="amber"
             />
           }
-          description={block.description}
-          eyebrow="Campaigns"
-          title={block.title}
+          description={view.description}
+          eyebrow={t('campaignsTitle')}
+          title={view.title}
         />
         <div className="grid gap-5">
           <ContentSection asChild>
             <section>
               <ItemNotice
-                description={block.description}
-                title={block.title}
+                description={view.description}
+                title={view.title}
                 variant="warning"
               />
               <div className="flex justify-end">
                 <Button asChild>
                   <Link href={block.actionHref}>
                     <FileText aria-hidden="true" data-icon="inline-start" />
-                    {block.actionLabel}
+                    {view.actionLabel}
                   </Link>
                 </Button>
               </div>

@@ -12,7 +12,10 @@ import {
   ShieldOff,
   type LucideIcon,
 } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import {
+  useLocale,
+  useTranslations,
+} from 'next-intl';
 import { MetricSummaryEntry } from '@/components/metric-summary-entry';
 import { ContentSection } from '@/features/appshell/components/content-section';
 import {
@@ -40,8 +43,9 @@ export function CampaignReportSummary({
   report: CampaignReport;
 }) {
   const locale = useLocale();
-  const outcome = createOutcomeSummary(report, locale);
-  const supportMetrics = createAtAGlanceMetrics(report, locale);
+  const t = useTranslations('Campaigns');
+  const outcome = createOutcomeSummary(report, locale, t);
+  const supportMetrics = createAtAGlanceMetrics(report, locale, t);
 
   return (
     <div className="grid gap-4 sm:grid-cols-3">
@@ -55,12 +59,13 @@ export function CampaignReportSummary({
 
 export function ResponseActivitySection({ report }: { report: CampaignReport }) {
   const locale = useLocale();
-  const metrics = createResponseMetrics(report, locale);
+  const t = useTranslations('Campaigns');
+  const metrics = createResponseMetrics(report, locale, t);
 
   return (
     <ContentSection
       framed={false}
-      title="Response activity"
+      title={t('responseActivity')}
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (

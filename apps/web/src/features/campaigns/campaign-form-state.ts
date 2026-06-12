@@ -8,6 +8,11 @@ import {
 } from '@retaino/shared/contracts';
 import { getIntlLocale } from '@/lib/locale-format';
 
+export type CampaignText = (
+  key: string,
+  values?: Record<string, string | number>,
+) => string;
+
 export type CampaignFormValues = {
   name: string;
   audienceRule: CampaignAudienceRule;
@@ -132,114 +137,110 @@ export function isAudienceStepComplete(values: CampaignFormValues) {
 }
 
 function isMessageStepComplete(values: CampaignFormValues) {
-  return !validateSmsBody(values.smsBody);
+  return isValidSmsBody(values.smsBody);
 }
 
 function isBookingStepComplete(values: CampaignFormValues) {
-  return !validateBookingUrl(values.bookingUrl);
+  return isValidBookingUrl(values.bookingUrl);
 }
 
 export function isMessageAndLinkStepComplete(values: CampaignFormValues) {
   return isMessageStepComplete(values) && isBookingStepComplete(values);
 }
 
-export function campaignStatusNotice(campaign: Campaign) {
+export function campaignStatusNotice(campaign: Campaign, t: CampaignText) {
   if (campaign.status === 'ready_to_send') {
     return {
-      title: 'Campaign is ready to send',
-      description:
-        'Recipients have been selected for this campaign. Campaign details are locked so the send uses this exact audience and message.',
+      title: t('campaignReadyNoticeTitle'),
+      description: t('campaignReadyNoticeDescription'),
     };
   }
 
   if (campaign.status === 'sending') {
     return {
-      title: 'Campaign send is in progress',
-      description:
-        'Messages are being sent in the background. Campaign details are locked while the send runs.',
+      title: t('campaignSendingNoticeTitle'),
+      description: t('campaignSendingNoticeDescription'),
     };
   }
 
   if (campaign.status === 'sent') {
     return {
-      title: 'Campaign has been sent',
-      description:
-        'Messages were sent to the selected recipients. Campaign details are locked.',
+      title: t('campaignSentNoticeTitle'),
+      description: t('campaignSentNoticeDescription'),
     };
   }
 
   if (campaign.status === 'failed') {
     return {
-      title: 'Campaign send needs attention',
-      description:
-        'The send did not finish. Review the campaign status before trying again.',
+      title: t('campaignFailedNoticeTitle'),
+      description: t('campaignFailedNoticeDescription'),
     };
   }
 
   return null;
 }
 
-export function campaignSendStatusText(campaign: Campaign, locale: string) {
+export function campaignSendStatusText(
+  campaign: Campaign,
+  locale: string,
+  t: CampaignText,
+) {
   if (campaign.status === 'sending') {
     return campaign.sendStartedAt
-      ? `Sending started ${formatDateTime(campaign.sendStartedAt, locale)}.`
-      : 'Sending is in progress.';
+      ? t('sendingStartedAt', {
+          date: formatDateTime(campaign.sendStartedAt, locale),
+        })
+      : t('sendingInProgress');
   }
 
   if (campaign.status === 'sent') {
     return campaign.sentAt
-      ? `Sent ${formatDateTime(campaign.sentAt, locale)}.`
-      : 'Campaign sent.';
+      ? t('sentAt', { date: formatDateTime(campaign.sentAt, locale) })
+      : t('campaignSent');
   }
 
   if (campaign.status === 'failed') {
     const failedAt = campaign.failedAt
-      ? `Send failed ${formatDateTime(campaign.failedAt, locale)}.`
-      : 'Send failed.';
+      ? t('sendFailedAt', {
+          date: formatDateTime(campaign.failedAt, locale),
+        })
+      : t('sendFailed');
 
     return `${failedAt} ${CAMPAIGN_SEND_FAILURE_MESSAGE}`;
   }
 
   return campaign.readyToSendAt
-    ? `Ready to send since ${formatDateTime(campaign.readyToSendAt, locale)}.`
-    : 'Ready to send.';
+    ? t('readyToSendSince', {
+        date: formatDateTime(campaign.readyToSendAt, locale),
+      })
+    : t('readyToSend');
 }
 
 export function validateRequired(value: string, message: string) {
   return value.trim() ? undefined : message;
 }
 
-export function validateLapsedDays(value: number) {
+export function validateLapsedDays(value: number, t: CampaignText) {
   return Number.isInteger(value) && value >= 30 && value <= 365
     ? undefined
-    : 'Choose a value from 30 to 365 days.';
+    : t('chooseLapsedDaysError');
 }
 
-export function validateBookingUrl(value: string) {
-  try {
-    const url = new URL(value);
-
-    return url.protocol === 'http:' || url.protocol === 'https:'
-      ? undefined
-      : 'Enter an http or https booking URL.';
-  } catch {
-    return 'Enter an http or https booking URL.';
-  }
+export function validateBookingUrl(value: string, t: CampaignText) {
+  return isValidBookingUrl(value) ? undefined : t('bookingUrlInvalid');
 }
 
-export function validateSmsBody(value: string) {
+export function validateSmsBody(value: string, t: CampaignText) {
   if (!value.trim()) {
-    return 'Enter the SMS message.';
+    return t('enterSmsMessage');
   }
 
-  const withoutAllowedTokens = value.replace(
-    /\{(first_name|last_booking_date)\}/g,
-    '',
-  );
-
-  return /[{}]/.test(withoutAllowedTokens)
-    ? 'Only {first_name} and {last_booking_date} are supported.'
-    : undefined;
+  return isValidSmsBody(value)
+    ? undefined
+    : t('unsupportedSmsTokens', {
+        first_name: '{first_name}',
+        last_booking_date: '{last_booking_date}',
+      });
 }
 
 export function isPreviewableAudienceRule(rule: CampaignAudienceRule) {
@@ -255,4 +256,27 @@ function formatDateTime(value: string, locale: string) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
+}
+
+function isValidBookingUrl(value: string) {
+  try {
+    const url = new URL(value);
+
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function isValidSmsBody(value: string) {
+  if (!value.trim()) {
+    return false;
+  }
+
+  const withoutAllowedTokens = value.replace(
+    /\{(first_name|last_booking_date)\}/g,
+    '',
+  );
+
+  return !/[{}]/.test(withoutAllowedTokens);
 }

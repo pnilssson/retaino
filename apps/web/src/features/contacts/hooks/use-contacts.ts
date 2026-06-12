@@ -5,6 +5,7 @@ import {
   useQuery,
 } from '@tanstack/react-query';
 import type { ContactListResponse } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import { useApi } from '@/hooks/use-api';
 import { type ContactListQueryState } from './use-contact-list-query-state';
 import { contactsQueryKeys } from '../query-keys';
@@ -21,6 +22,7 @@ export function useContacts({
   query: ContactListQueryState;
 }) {
   const api = useApi();
+  const t = useTranslations('Contacts');
 
   return useQuery({
     enabled: enabled && Boolean(organizationId),
@@ -28,7 +30,7 @@ export function useContacts({
     queryKey: contactsQueryKeys.list(organizationId ?? 'pending', query),
     queryFn: () => {
       if (!organizationId) {
-        throw new Error('Organization is required to load contacts.');
+        throw new Error(t('organizationRequiredLoadContacts'));
       }
 
       const params = new URLSearchParams({

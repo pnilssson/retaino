@@ -2,7 +2,10 @@
 
 import type { ReactNode } from 'react';
 import type { Campaign } from '@retaino/shared/contracts';
-import { useLocale } from 'next-intl';
+import {
+  useLocale,
+  useTranslations,
+} from 'next-intl';
 import { InfoTooltip } from '@/components/info-tooltip';
 import { StatusBadge } from '@/components/status-badge';
 import { ContentSection } from '@/features/appshell/components/content-section';
@@ -29,6 +32,7 @@ export function CampaignOverview({
   sendAccepted?: boolean;
 }) {
   const locale = useLocale();
+  const t = useTranslations('Campaigns');
   const values = campaignToFormValues(campaign);
 
   return (
@@ -44,9 +48,9 @@ export function CampaignOverview({
           <ContentSection
             title={
               <span className="flex flex-wrap items-center gap-2">
-                Campaign details
+                {t('campaignDetails')}
                 {sendAccepted ? (
-                  <StatusBadge label="Send queued" tone="amber" />
+                  <StatusBadge label={t('sendQueued')} tone="amber" />
                 ) : (
                   <CampaignStatusBadge status={campaign.status} />
                 )}
@@ -55,14 +59,16 @@ export function CampaignOverview({
           >
             <dl className="grid content-start gap-4">
               <OverviewDetail
-                label="Audience rule"
-                tooltip={audienceRuleDetail(campaign)}
-                value={audienceRuleValue(campaign)}
+                label={t('audienceRule')}
+                tooltipLabel={t('audienceRuleDetails')}
+                tooltip={audienceRuleDetail(campaign, t)}
+                value={audienceRuleValue(campaign, t)}
               />
 
               <OverviewDetail
-                label="Booking link"
-                tooltip="Tracked destination in each SMS."
+                label={t('bookingLink')}
+                tooltipLabel={t('bookingLinkDetails')}
+                tooltip={t('trackedDestinationTooltip')}
                 value={
                   campaign.bookingUrl ? (
                     <a
@@ -74,23 +80,23 @@ export function CampaignOverview({
                       {campaign.bookingUrl}
                     </a>
                   ) : (
-                    'Not added'
+                    t('notAdded')
                   )
                 }
               />
 
               <OverviewDetail
-                label="Campaign status"
+                label={t('campaignStatus')}
                 value={
                   sendAccepted
-                    ? 'Send accepted. Waiting for delivery activity.'
-                    : campaignSendStatusText(campaign, locale)
+                    ? t('sendAcceptedWaiting')
+                    : campaignSendStatusText(campaign, locale, t)
                 }
               />
             </dl>
           </ContentSection>
 
-          <ContentSection title="Message preview">
+          <ContentSection title={t('messagePreview')}>
             <MessagePreview showLabel={false} smsBody={values.smsBody} />
             <MessageEstimate smsBody={values.smsBody} />
           </ContentSection>
@@ -103,21 +109,22 @@ export function CampaignOverview({
 function OverviewDetail({
   label,
   tooltip,
+  tooltipLabel,
   value,
 }: {
   label: ReactNode;
   tooltip?: string;
+  tooltipLabel?: string;
   value: ReactNode;
 }) {
-  const tooltipLabel =
-    typeof label === 'string' ? `${label} details` : 'Campaign detail information';
-
   return (
     <div className="grid gap-1">
       <dt className={cn('flex items-center gap-1.5', textStyles.meta)}>
         {label}
         {tooltip ? (
-          <InfoTooltip label={tooltipLabel}>{tooltip}</InfoTooltip>
+          <InfoTooltip label={tooltipLabel ?? ''}>
+            {tooltip}
+          </InfoTooltip>
         ) : null}
       </dt>
       <dd className={cn('min-w-0', textStyles.itemTitle)}>{value}</dd>
@@ -125,12 +132,20 @@ function OverviewDetail({
   );
 }
 
-function audienceRuleValue(campaign: Campaign) {
-  return `Last booking at least ${campaign.audienceRule.lapsedDays} days ago`;
+function audienceRuleValue(
+  campaign: Campaign,
+  t: ReturnType<typeof useTranslations<'Campaigns'>>,
+) {
+  return t('lastBookingAtLeastDaysAgo', {
+    days: campaign.audienceRule.lapsedDays,
+  });
 }
 
-function audienceRuleDetail(campaign: Campaign) {
+function audienceRuleDetail(
+  campaign: Campaign,
+  t: ReturnType<typeof useTranslations<'Campaigns'>>,
+) {
   return campaign.audienceRule.includeNoBookingDate
-    ? 'Contacts without a booking date were included.'
-    : 'Contacts without a booking date were excluded.';
+    ? t('contactsWithoutBookingIncluded')
+    : t('contactsWithoutBookingExcluded');
 }

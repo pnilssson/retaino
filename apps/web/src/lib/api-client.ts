@@ -7,6 +7,7 @@ type TokenProvider = () => Promise<string | null>;
 
 type ApiClientOptions = {
   baseUrl?: string;
+  errorMessage?: string;
   fetch?: typeof fetch;
   getToken: TokenProvider;
   locale?: string;
@@ -48,6 +49,7 @@ export function createApiClient(options: ApiClientOptions) {
   const baseUrl = normalizeBaseUrl(
     options.baseUrl ?? process.env.NEXT_PUBLIC_API_URL
   );
+  const errorMessage = options.errorMessage ?? 'api_request_failed';
   const fetcher = options.fetch ?? fetch;
 
   async function requestWithAuth<TResponse>(
@@ -80,7 +82,7 @@ export function createApiClient(options: ApiClientOptions) {
 
     init.headers = Object.fromEntries(headers.entries());
 
-    return send<TResponse>(fetcher, baseUrl, path, init);
+    return send<TResponse>(fetcher, baseUrl, path, init, errorMessage);
   }
 
   async function upload<TResponse>(
@@ -98,12 +100,18 @@ export function createApiClient(options: ApiClientOptions) {
       headers.set('x-retaino-locale', options.locale);
     }
 
-    return send<TResponse>(fetcher, baseUrl, path, {
-      body: uploadOptions.body,
-      headers: Object.fromEntries(headers.entries()),
-      method: 'POST',
-      signal: uploadOptions.signal
-    });
+    return send<TResponse>(
+      fetcher,
+      baseUrl,
+      path,
+      {
+        body: uploadOptions.body,
+        headers: Object.fromEntries(headers.entries()),
+        method: 'POST',
+        signal: uploadOptions.signal
+      },
+      errorMessage,
+    );
   }
 
   return {
@@ -130,6 +138,7 @@ export async function fetchPublicApi<TResponse>(
     normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL),
     path,
     options,
+    'api_request_failed',
   );
 }
 
@@ -150,30 +159,31 @@ async function send<TResponse>(
   baseUrl: string,
   path: string,
   init: RequestInit,
+  errorMessage: string,
 ) {
   let response: Response;
 
   try {
     response = await fetcher(joinUrl(baseUrl, path), init);
-  } catch (error) {
+  } catch {
     throw new ApiClientError({
       code: 'network_error',
-      message:
-        error instanceof Error
-          ? error.message
-          : 'The API request could not be completed.',
+      message: errorMessage,
       status: 0
     });
   }
 
   if (!response.ok) {
-    throw await parseApiError(response);
+    throw await parseApiError(response, errorMessage);
   }
 
   return parseJsonResponse<TResponse>(response);
 }
 
-export async function parseApiError(response: Response) {
+export async function parseApiError(
+  response: Response,
+  fallbackMessage = 'api_request_failed',
+) {
   const payload = await readJson(response);
 
   if (isApiError(payload)) {
@@ -187,7 +197,7 @@ export async function parseApiError(response: Response) {
 
   return new ApiClientError({
     code: 'unknown_error',
-    message: `API request failed with status ${response.status}.`,
+    message: fallbackMessage,
     status: response.status
   });
 }

@@ -6,7 +6,10 @@ import type {
   PublicOrganizationSmsSender,
 } from '@retaino/shared/contracts';
 import { ExternalLink } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import {
+  useLocale,
+  useTranslations,
+} from 'next-intl';
 import { InfoTooltip } from '@/components/info-tooltip';
 import {
   StatusBadge,
@@ -35,9 +38,10 @@ export function BillingStatusPanel({
   sender: PublicOrganizationSmsSender | null;
 }) {
   const locale = useLocale();
+  const t = useTranslations('Billing');
   const subscription = billingStatus.subscription;
-  const status = subscriptionStatusView(subscription.status);
-  const senderTooltip = senderPolicyNotice(subscription, sender, locale);
+  const status = subscriptionStatusView(subscription.status, t);
+  const senderTooltip = senderPolicyNotice(subscription, sender, locale, t);
 
   return (
     <ContentSection
@@ -52,41 +56,42 @@ export function BillingStatusPanel({
               type="button"
             >
               <ExternalLink aria-hidden="true" data-icon="inline-start" />
-              {isPortalPending ? 'Opening' : 'Manage'}
+              {isPortalPending ? t('portalOpening') : t('manageBilling')}
             </Button>
       }
       title={
         <span className="flex flex-wrap items-center gap-2">
-          Account summary
+          {t('accountSummary')}
           <StatusBadge label={status.label} tone={status.tone} />
         </span>
       }
     >
         <dl className="grid gap-x-8 gap-y-4 pt-1 sm:grid-cols-4">
           <Metric
-            label="SMS credits"
+            label={t('smsCredits')}
             value={formatCreditCount(billingStatus.smsCredits.balance, locale)}
           />
           <Metric
-            label="Current plan"
-            value={subscription.planKey ? planLabel(subscription.planKey) : 'No plan'}
+            label={t('currentPlan')}
+            value={subscription.planKey ? planLabel(subscription.planKey) : t('noPlan')}
           />
           <Metric
-            label="Renews"
+            label={t('renews')}
             value={
               subscription.currentPeriodEnd
                 ? formatBillingDate(subscription.currentPeriodEnd, locale)
-                : 'Not scheduled'
+                : t('notScheduled')
             }
           />
           <Metric
-            label="Sender number"
+            label={t('senderNumber')}
+            tooltipLabel={t('senderNumberDetails')}
             tooltip={
               senderTooltip ? (
                 <span>{senderTooltip}</span>
               ) : null
             }
-            value={sender?.phoneNumber ?? 'Not active'}
+            value={sender?.phoneNumber ?? t('senderNotActive')}
           />
         </dl>
     </ContentSection>
@@ -96,10 +101,12 @@ export function BillingStatusPanel({
 function Metric({
   label,
   tooltip,
+  tooltipLabel,
   value,
 }: {
   label: string;
   tooltip?: ReactNode;
+  tooltipLabel?: string;
   value: string;
 }) {
   return (
@@ -107,7 +114,7 @@ function Metric({
       <dt className={cn('flex items-center gap-1.5', textStyles.meta)}>
         {label}
         {tooltip ? (
-          <InfoTooltip label={`${label} details`}>{tooltip}</InfoTooltip>
+          <InfoTooltip label={tooltipLabel}>{tooltip}</InfoTooltip>
         ) : null}
       </dt>
       <dd className={cn('mt-1 truncate', textStyles.numericInline)}>
@@ -117,26 +124,29 @@ function Metric({
   );
 }
 
-function subscriptionStatusView(status: BillingStatusResponse['subscription']['status']): {
+function subscriptionStatusView(
+  status: BillingStatusResponse['subscription']['status'],
+  t: ReturnType<typeof useTranslations<'Billing'>>,
+): {
   label: string;
   tone: StatusBadgeTone;
 } {
   switch (status) {
     case 'active':
-      return { label: 'Active', tone: 'green' };
+      return { label: t('statusActive'), tone: 'green' };
     case 'trialing':
-      return { label: 'Trialing', tone: 'blue' };
+      return { label: t('statusTrialing'), tone: 'blue' };
     case 'past_due':
     case 'unpaid':
-      return { label: 'Payment needed', tone: 'amber' };
+      return { label: t('statusPaymentNeeded'), tone: 'amber' };
     case 'canceled':
     case 'incomplete_expired':
-      return { label: 'Inactive', tone: 'gray' };
+      return { label: t('statusInactive'), tone: 'gray' };
     case 'incomplete':
     case 'paused':
-      return { label: 'Action needed', tone: 'amber' };
+      return { label: t('statusActionNeeded'), tone: 'amber' };
     case 'none':
-      return { label: 'No subscription', tone: 'gray' };
+      return { label: t('statusNoSubscription'), tone: 'gray' };
   }
 }
 
@@ -148,14 +158,17 @@ function senderPolicyNotice(
   subscription: BillingStatusResponse['subscription'],
   sender: PublicOrganizationSmsSender | null,
   locale: string,
+  t: ReturnType<typeof useTranslations<'Billing'>>,
 ): string | null {
   if (sender?.status !== 'ready') {
     return null;
   }
 
   if (subscription.cancelAtPeriodEnd && subscription.currentPeriodEnd) {
-    return `Your sender remains active until ${formatBillingDate(subscription.currentPeriodEnd, locale)}. After that, Retaino releases the number.`;
+    return t('senderReleaseAtPeriodEnd', {
+      date: formatBillingDate(subscription.currentPeriodEnd, locale),
+    });
   }
 
-  return 'If the plan is canceled, Retaino releases this sender number after paid access ends.';
+  return t('senderReleaseAfterCancel');
 }

@@ -4,6 +4,7 @@ import { useForm } from '@tanstack/react-form';
 import { MAX_REPORTED_BOOKING_ROWS } from '@retaino/shared';
 import type { Campaign } from '@retaino/shared/contracts';
 import { Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ItemNotice } from '@/components/item-notice';
@@ -35,6 +36,7 @@ export function ReportedBookingDialog({
   currency: string;
   organizationId: string | null;
 }) {
+  const t = useTranslations('Campaigns');
   const [open, setOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const createReportedBookings = useCreateReportedBookings({
@@ -45,7 +47,14 @@ export function ReportedBookingDialog({
     defaultValues:
       initialReportedBookingFormValues() satisfies ReportedBookingFormValues,
     onSubmit: async ({ value }) => {
-      const prepared = prepareReportedBookingsInput(value, currency);
+      const prepared = prepareReportedBookingsInput(value, currency, {
+        addAtLeastOneBooking: t('addAtLeastOneBooking'),
+        addBookingDateOnRow: (row) => t('addBookingDateOnRow', { row }),
+        checkRevenueOnRow: (row) => t('checkRevenueOnRow', { row }),
+        chooseContactOnRow: (row) => t('chooseContactOnRow', { row }),
+        saveUpToBookingsAtATime: (count) =>
+          t('saveUpToBookingsAtATime', { count }),
+      });
 
       if (!prepared.ok) {
         setFormError(prepared.error);
@@ -59,7 +68,7 @@ export function ReportedBookingDialog({
         return;
       }
 
-      toast.success('Reported bookings saved.');
+      toast.success(t('reportedBookingsSaved'));
       form.reset();
       setOpen(false);
     },
@@ -70,14 +79,14 @@ export function ReportedBookingDialog({
       <DialogTrigger asChild>
         <Button type="button">
           <Plus aria-hidden="true" data-icon="inline-start" />
-          Add
+          {t('add')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Add bookings</DialogTitle>
+          <DialogTitle>{t('addBookings')}</DialogTitle>
           <DialogDescription>
-            Add booking outcomes from {campaign.name}.
+            {t('addBookingsDescription', { name: campaign.name })}
           </DialogDescription>
         </DialogHeader>
 
@@ -126,7 +135,7 @@ export function ReportedBookingDialog({
                     variant="outline"
                   >
                     <Plus aria-hidden="true" data-icon="inline-start" />
-                    Add
+                    {t('add')}
                   </Button>
                 </div>
               </div>
@@ -139,9 +148,9 @@ export function ReportedBookingDialog({
                 formError ??
                 (createReportedBookings.error instanceof Error
                   ? createReportedBookings.error.message
-                  : 'Check the booking rows and try again.')
+                  : t('bookingsSaveErrorDescription'))
               }
-              title="Bookings could not be saved"
+              title={t('bookingsSaveErrorTitle')}
               variant="error"
             />
           ) : null}
@@ -149,8 +158,8 @@ export function ReportedBookingDialog({
           <DialogFooter>
             <Button disabled={createReportedBookings.isPending} type="submit">
               {createReportedBookings.isPending
-                ? 'Saving bookings...'
-                : 'Save bookings'}
+                ? t('savingBookings')
+                : t('saveBookings')}
             </Button>
           </DialogFooter>
         </form>

@@ -1,4 +1,5 @@
 import { compileMDX } from 'next-mdx-remote/rsc';
+import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import remarkGfm from 'remark-gfm';
 import type {
@@ -43,9 +44,11 @@ const mdxComponents = {
 
 export async function LegalDocumentArticle({
   backHref = routes.home,
-  backLabel = 'Back to home',
+  backLabel,
   document,
 }: LegalDocumentArticleProps) {
+  const t = await getTranslations('Legal');
+  const resolvedBackLabel = backLabel ?? t('backToHome');
   const { content } = await compileMDX({
     source: document.bodyMdx,
     components: mdxComponents,
@@ -67,18 +70,20 @@ export async function LegalDocumentArticle({
           )}
           href={backHref}
         >
-          {backLabel}
+          {resolvedBackLabel}
         </Link>
         <div className="mt-8 border-b pb-6">
           <p className={cn(textStyles.itemTitle, 'text-muted-foreground')}>
-            Retaino policy
+            {t('policyEyebrow')}
           </p>
           <h1 className={cn('mt-4', textStyles.displayTitle)}>
             {document.title}
           </h1>
           <p className={cn('mt-5', textStyles.mutedBody)}>
-            Effective {document.effectiveDate}, version{' '}
-            {document.documentVersion}
+            {t('documentMeta', {
+              date: document.effectiveDate,
+              version: document.documentVersion,
+            })}
           </p>
         </div>
         <div className={cn('mt-8 space-y-6', textStyles.legalProse)}>

@@ -6,6 +6,7 @@ import {
   Check,
   ChevronsUpDown,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -31,11 +32,12 @@ export function SenderCountryCombobox({
   onChange: (value: string) => void;
   value: string;
 }) {
+  const t = useTranslations('Campaigns');
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const selected =
     countries.find((country) => country.countryCode === value)?.label ??
-    'Choose country';
+    t('chooseCountry');
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = normalizedQuery
     ? countries.filter((country) =>
@@ -72,11 +74,11 @@ export function SenderCountryCombobox({
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) p-2">
         <Input
-          aria-label="Search sender countries"
+          aria-label={t('searchSenderCountries')}
           autoComplete="off"
           className="mb-2"
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search country"
+          placeholder={t('searchCountry')}
           value={query}
         />
         <div className="max-h-64 overflow-y-auto" role="listbox">
@@ -112,7 +114,7 @@ export function SenderCountryCombobox({
             ))
           ) : (
             <p className={cn('px-2 py-3', textStyles.mutedBody)}>
-              No countries found.
+              {t('noCountriesFound')}
             </p>
           )}
         </div>

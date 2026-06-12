@@ -6,6 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "contrast:check": "node scripts/check-contrast.mjs",
+    "i18n:check": "node scripts/check-i18n-messages.mjs",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",

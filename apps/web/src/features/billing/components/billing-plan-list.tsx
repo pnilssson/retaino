@@ -11,7 +11,10 @@ import {
   ArrowRight,
   CheckCircle2,
 } from "lucide-react";
-import { useLocale } from "next-intl";
+import {
+  useLocale,
+  useTranslations,
+} from "next-intl";
 import type { ReactNode } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -27,13 +30,13 @@ import {
 } from "../billing-format";
 
 const SHARED_PLAN_FEATURES = [
-  "Unlimited users",
-  "Unlimited contacts and imports",
-  "Unlimited campaign drafts",
-  "Campaign sending",
-  "Tracking links",
-  "Reporting",
-  "Unused credits roll over one month",
+  "featureUnlimitedUsers",
+  "featureUnlimitedContacts",
+  "featureUnlimitedDrafts",
+  "featureCampaignSending",
+  "featureTrackingLinks",
+  "featureReporting",
+  "featureCreditRollover",
 ] as const;
 
 const DISPLAYED_BILLING_PLAN_KEYS = [...BILLING_PLAN_KEYS].reverse();
@@ -54,6 +57,7 @@ export function BillingPlanList({
   pendingPlanKey: BillingPlanKey | null;
 }) {
   const locale = useLocale();
+  const t = useTranslations('Billing');
   const subscriptionLocked = subscriptionNeedsPortal(
     billingStatus.subscription.status,
   );
@@ -64,8 +68,8 @@ export function BillingPlanList({
   return (
     <section className="grid gap-3" aria-labelledby="billing-plans-title">
       <ContentHeading
-        description="Prices are ex VAT, tax is calculated in checkout."
-        title="Compare monthly plans"
+        description={t('plansDescription')}
+        title={t('plansTitle')}
         titleId="billing-plans-title"
       />
 
@@ -86,7 +90,14 @@ export function BillingPlanList({
             isPending,
             isPortalPending,
             isUpgradePlan,
-            planCta: `Choose ${plan.label}`,
+            labels: {
+              choosePlan: t('choosePlan', { plan: plan.label }),
+              currentPlan: t('currentPlanButton'),
+              manage: t('manageBilling'),
+              opening: t('portalOpening'),
+              openingCheckout: t('openingCheckout'),
+              upgrade: t('upgrade'),
+            },
             subscriptionLocked,
           });
           const buttonDisabled =
@@ -132,7 +143,7 @@ export function BillingPlanList({
                         )}
                       >
                         {" "}
-                        / month
+                        / {t('perMonth')}
                       </span>
                     </p>
                     <p
@@ -142,8 +153,9 @@ export function BillingPlanList({
                         isSelectedPlan && "text-primary-foreground",
                       )}
                     >
-                      Includes {formatCreditCount(plan.includedSmsCredits, locale)} SMS
-                      credits
+                      {t('includesCredits', {
+                        credits: formatCreditCount(plan.includedSmsCredits, locale),
+                      })}
                       <span
                         className={cn(
                           textStyles.meta,
@@ -151,7 +163,7 @@ export function BillingPlanList({
                         )}
                       >
                         {" "}
-                        / month
+                        / {t('perMonth')}
                       </span>
                     </p>
                   </div>
@@ -165,7 +177,7 @@ export function BillingPlanList({
                   >
                     {SHARED_PLAN_FEATURES.map((feature) => (
                       <PlanFeature isSelected={isSelectedPlan} key={feature}>
-                        {feature}
+                        {t(feature)}
                       </PlanFeature>
                     ))}
                   </ul>
@@ -209,29 +221,36 @@ function planActionLabel({
   isPending,
   isPortalPending,
   isUpgradePlan,
-  planCta,
+  labels,
   subscriptionLocked,
 }: {
   isCurrentPlan: boolean;
   isPending: boolean;
   isPortalPending: boolean;
   isUpgradePlan: boolean;
-  planCta: string;
+  labels: {
+    choosePlan: string;
+    currentPlan: string;
+    manage: string;
+    opening: string;
+    openingCheckout: string;
+    upgrade: string;
+  };
   subscriptionLocked: boolean;
 }) {
   if (isPending) {
-    return "Opening checkout";
+    return labels.openingCheckout;
   }
 
   if (isCurrentPlan) {
-    return "Current plan";
+    return labels.currentPlan;
   }
 
   if (subscriptionLocked) {
-    return isPortalPending ? "Opening" : isUpgradePlan ? "Upgrade" : "Manage";
+    return isPortalPending ? labels.opening : isUpgradePlan ? labels.upgrade : labels.manage;
   }
 
-  return planCta;
+  return labels.choosePlan;
 }
 
 function isPlanUpgrade(

@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import type { CampaignRecipientSummaryResponse } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import { useApi } from '@/hooks/use-api';
 import { campaignsQueryKeys } from '../query-keys';
 
@@ -15,6 +16,7 @@ export function useCampaignRecipientSummary({
   organizationId: string | null;
 }) {
   const api = useApi();
+  const t = useTranslations('Campaigns');
 
   return useQuery({
     enabled: enabled && Boolean(organizationId) && Boolean(campaignId),
@@ -24,7 +26,7 @@ export function useCampaignRecipientSummary({
     ),
     queryFn: () => {
       if (!organizationId || !campaignId) {
-        throw new Error('Organization and campaign are required.');
+        throw new Error(t('organizationCampaignRequired'));
       }
 
       return api.get<CampaignRecipientSummaryResponse>(

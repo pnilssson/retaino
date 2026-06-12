@@ -9,7 +9,10 @@ import {
 } from '@tanstack/react-table';
 import type { Campaign } from '@retaino/shared/contracts';
 import { Link } from '@/i18n/navigation';
-import { useLocale } from 'next-intl';
+import {
+  useLocale,
+  useTranslations,
+} from 'next-intl';
 import type { ReactNode } from 'react';
 import { DataTable } from '@/components/data-table';
 import {
@@ -26,12 +29,16 @@ import type { CampaignListSort } from '../campaign-list-state';
 import { CampaignRowActions } from './campaign-row-actions';
 import { CampaignStatusBadge } from './campaign-status-badge';
 
-const selectionColumn: ColumnDef<Campaign> = {
+function createSelectionColumn(labels: {
+  selectAllVisibleCampaigns: string;
+  selectCampaign: (name: string) => string;
+}): ColumnDef<Campaign> {
+  return {
   id: 'select',
   header: ({ table }) => (
     <div className="-mx-2 flex h-10 w-12 items-center justify-center">
       <Checkbox
-        aria-label="Select all visible campaigns"
+        aria-label={labels.selectAllVisibleCampaigns}
         checked={
           table.getIsAllPageRowsSelected()
             ? true
@@ -46,7 +53,7 @@ const selectionColumn: ColumnDef<Campaign> = {
   cell: ({ row }) => (
     <div className="flex w-12 items-center justify-center py-3">
       <Checkbox
-        aria-label={`Select ${row.original.name}`}
+        aria-label={labels.selectCampaign(row.original.name)}
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
       />
@@ -57,13 +64,14 @@ const selectionColumn: ColumnDef<Campaign> = {
   maxSize: 48,
   minSize: 48,
   size: 48,
-};
+  };
+}
 
 export function CampaignsTable({
   campaigns,
   direction,
   isLoading = false,
-  loadingLabel = 'Loading campaigns',
+  loadingLabel,
   onRowSelectionChange,
   onSort,
   organizationId,
@@ -85,8 +93,24 @@ export function CampaignsTable({
   tableActions?: ReactNode;
 }) {
   const locale = useLocale();
+  const t = useTranslations('Campaigns');
+  const selectionColumn = createSelectionColumn({
+    selectAllVisibleCampaigns: t('selectAllVisibleCampaigns'),
+    selectCampaign: (name) => t('selectCampaign', { name }),
+  });
   const campaignColumns = createCampaignColumns({
     direction,
+    labels: {
+      audience: t('audience'),
+      campaign: t('campaign'),
+      campaignActions: t('campaignActions'),
+      created: t('created'),
+      daysElapsed: (days) => t('daysElapsed', { days }),
+      lastUpdated: t('lastUpdated'),
+      noReference: t('noReference'),
+      reference: t('reference'),
+      status: t('status'),
+    },
     onSort,
     organizationId: organizationId ?? null,
     locale,
@@ -111,7 +135,7 @@ export function CampaignsTable({
     <DataTable
       cellClassName="p-0"
       isLoading={isLoading}
-      loadingLabel={loadingLabel}
+      loadingLabel={loadingLabel ?? t('loadingCampaigns')}
       rowClassName="group"
       table={table}
     />
@@ -120,6 +144,7 @@ export function CampaignsTable({
 
 function createCampaignColumns({
   direction,
+  labels,
   locale,
   onSort,
   organizationId,
@@ -127,6 +152,17 @@ function createCampaignColumns({
   tableActions,
 }: {
   direction: TableSortDirection;
+  labels: {
+    audience: string;
+    campaign: string;
+    campaignActions: string;
+    created: string;
+    daysElapsed: (days: number) => string;
+    lastUpdated: string;
+    noReference: string;
+    reference: string;
+    status: string;
+  };
   locale: string;
   onSort: (sort: CampaignListSort) => void;
   organizationId: string | null;
@@ -163,7 +199,7 @@ function createCampaignColumns({
       accessorKey: 'name',
       ...sortableHeader({
         defaultDirection: 'asc',
-        label: 'Campaign',
+        label: labels.campaign,
         sortKey: 'name',
       }),
       cell: ({ row }) => {
@@ -180,10 +216,10 @@ function createCampaignColumns({
     },
     {
       id: 'reference',
-      header: 'Reference',
+      header: labels.reference,
       cell: ({ row }) => (
         <LinkedCell campaign={row.original}>
-          {row.original.campaignCode ?? 'No reference'}
+          {row.original.campaignCode ?? labels.noReference}
         </LinkedCell>
       ),
     },
@@ -191,12 +227,12 @@ function createCampaignColumns({
       id: 'audience',
       ...sortableHeader({
         defaultDirection: 'desc',
-        label: 'Audience',
+        label: labels.audience,
         sortKey: 'lapsedDays',
       }),
       cell: ({ row }) => (
         <LinkedCell campaign={row.original}>
-          {row.original.audienceRule.lapsedDays} days elapsed
+          {labels.daysElapsed(row.original.audienceRule.lapsedDays)}
         </LinkedCell>
       ),
     },
@@ -204,7 +240,7 @@ function createCampaignColumns({
       accessorKey: 'createdAt',
       ...sortableHeader({
         defaultDirection: 'desc',
-        label: 'Created',
+        label: labels.created,
         sortKey: 'createdAt',
       }),
       cell: ({ row }) => (
@@ -217,7 +253,7 @@ function createCampaignColumns({
       accessorKey: 'updatedAt',
       ...sortableHeader({
         defaultDirection: 'desc',
-        label: 'Last updated',
+        label: labels.lastUpdated,
         sortKey: 'updatedAt',
       }),
       cell: ({ row }) => (
@@ -230,7 +266,7 @@ function createCampaignColumns({
       accessorKey: 'status',
       ...sortableHeader({
         defaultDirection: 'asc',
-        label: 'Status',
+        label: labels.status,
         sortKey: 'status',
       }),
       cell: ({ row }) => (
@@ -245,7 +281,7 @@ function createCampaignColumns({
         tableActions ? (
           <div className="flex justify-end pr-2">{tableActions}</div>
         ) : (
-          <span className="sr-only">Campaign actions</span>
+          <span className="sr-only">{labels.campaignActions}</span>
         ),
       cell: ({ row }) => (
         <div className="flex justify-end p-2">

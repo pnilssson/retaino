@@ -2,6 +2,7 @@
 
 import type { InboxConversationSummary } from '@retaino/shared/contracts';
 import { ArrowLeft } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   useEffect,
   useMemo,
@@ -23,6 +24,8 @@ import { InboxConversationList } from './inbox-conversation-list';
 import { InboxConversationThread } from './inbox-conversation-thread';
 
 export function InboxScreen() {
+  const t = useTranslations('Inbox');
+  const common = useTranslations('Common');
   const session = useOrganizationSession();
   const [{ conversation: selectedConversationId, search, view }, setQuery] =
     useInboxQueryState();
@@ -82,7 +85,7 @@ export function InboxScreen() {
   ]);
 
   if (session.isLoading) {
-    return <AppPageLoading className="max-w-7xl" label="Loading inbox…" />;
+    return <AppPageLoading className="max-w-7xl" label={t('loading')} />;
   }
 
   if (session.isError) {
@@ -91,7 +94,7 @@ export function InboxScreen() {
         <div className="max-w-lg">
           <ItemNotice
             description={session.error.message}
-            title="Inbox could not be loaded"
+            title={t('loadErrorTitle')}
             variant="error"
           />
         </div>
@@ -110,7 +113,7 @@ export function InboxScreen() {
           actions={
             selectedConversationId ? (
               <Button
-                aria-label="Back to inbox"
+                aria-label={t('backToInbox')}
                 className="px-0 lg:hidden"
                 onClick={() => {
                   void setQuery({ conversation: '' });
@@ -119,20 +122,20 @@ export function InboxScreen() {
                 variant="link"
               >
                 <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-                <span className="sm:hidden">Back</span>
-                <span className="hidden sm:inline">Back to inbox</span>
+                <span className="sm:hidden">{common('back')}</span>
+                <span className="hidden sm:inline">{t('backToInbox')}</span>
               </Button>
             ) : null
           }
-          title="Inbox"
+          title={t('title')}
         />
 
         {!session.data.readiness.ready ? (
           <ContentSection asChild className="w-full">
             <section>
               <ItemNotice
-                description="Finish organization setup before sending campaigns and managing SMS replies."
-                title="Setup required before inbox activity"
+                description={t('setupRequiredDescription')}
+                title={t('setupRequiredTitle')}
                 variant="warning"
               />
             </section>
@@ -144,9 +147,9 @@ export function InboxScreen() {
                 description={
                   conversations.error instanceof Error
                     ? conversations.error.message
-                    : 'Try again in a moment.'
+                    : common('tryAgainSoon')
                 }
-                title="Conversations could not be fetched"
+                title={t('fetchErrorTitle')}
                 variant="error"
               />
             </section>

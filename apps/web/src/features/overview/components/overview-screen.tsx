@@ -7,6 +7,7 @@ import {
   UsersRound,
   type LucideIcon,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import type { ReactNode } from 'react';
 import { EmptyState } from '@/components/data-table';
@@ -24,6 +25,10 @@ import { useOverviewDashboard } from '../hooks/use-overview-dashboard';
 import { OverviewDashboard } from './overview-dashboard';
 
 export function OverviewScreen() {
+  const t = useTranslations('Overview');
+  const contacts = useTranslations('Contacts');
+  const common = useTranslations('Common');
+  const chrome = useTranslations('Chrome');
   const session = useOrganizationSession();
   const organizationId = session.data?.organization.id ?? null;
   const dataEnabled = Boolean(session.data?.readiness.ready);
@@ -50,7 +55,7 @@ export function OverviewScreen() {
         <div className="max-w-lg">
           <ItemNotice
             description={session.error.message}
-            title="Overview could not be loaded"
+            title={t('loadErrorTitle')}
             variant="error"
           />
         </div>
@@ -69,9 +74,9 @@ export function OverviewScreen() {
     <main className="flex flex-1 bg-background">
       <section className="mx-auto grid w-full max-w-6xl content-start gap-6 px-5 py-8 sm:px-8 lg:px-10">
         <AppPageHeader
-          description="Last 30 days of campaign results and flow, plus recent campaign activity."
-          eyebrow="Workspace"
-          title="Overview"
+          description={t('description')}
+          eyebrow={chrome('workspace')}
+          title={t('title')}
         />
 
         {contactPresence.isError ? (
@@ -79,62 +84,62 @@ export function OverviewScreen() {
             description={
               contactPresence.error instanceof Error
                 ? contactPresence.error.message
-                : 'Try refreshing the page.'
+                : common('tryAgainSoon')
             }
-            title="Contact status could not be checked"
+            title={contacts('contactStatusCheckErrorTitle')}
           />
         ) : contactPresence.isLoading ? (
-          <OverviewLoading label="Checking contacts" />
+          <OverviewLoading label={t('checkingContacts')} />
         ) : !hasContacts ? (
           <OverviewEmptyState
             action={
               <Button asChild>
                 <Link href={routes.contactsImport}>
                   <FileUp aria-hidden="true" data-icon="inline-start" />
-                  Import CSV
+                  {contacts('importCsv')}
                 </Link>
               </Button>
             }
-            description="Import a client CSV to validate phone numbers, consent, dedupe results, and suppression checks before your first campaign."
+            description={contacts('importFirstContactsDescription')}
             icon={UsersRound}
-            title="Import your first contacts"
+            title={contacts('importFirstContactsTitle')}
           />
         ) : campaigns.isError ? (
           <OverviewNotice
             description={
               campaigns.error instanceof Error
                 ? campaigns.error.message
-                : 'Try refreshing the page.'
+                : common('tryAgainSoon')
             }
-            title="Campaign status could not be checked"
+            title={t('campaignStatusCheckErrorTitle')}
           />
         ) : campaigns.isLoading ? (
-          <OverviewLoading label="Checking campaigns" />
+          <OverviewLoading label={t('checkingCampaigns')} />
         ) : !hasCampaigns ? (
           <OverviewEmptyState
             action={
               <Button asChild>
                 <Link href={routes.campaignNew}>
                   <Plus aria-hidden="true" data-icon="inline-start" />
-                  New
+                  {t('newCampaign')}
                 </Link>
               </Button>
             }
-            description="Create a campaign to choose a lapsed audience, write the SMS copy, and prepare your first send."
+            description={t('createFirstCampaignDescription')}
             icon={Megaphone}
-            title="Create your first campaign"
+            title={t('createFirstCampaignTitle')}
           />
         ) : overview.isError ? (
           <OverviewNotice
             description={
               overview.error instanceof Error
                 ? overview.error.message
-                : 'Try refreshing the page.'
+                : common('tryAgainSoon')
             }
-            title="Overview dashboard could not be loaded"
+            title={t('dashboardLoadErrorTitle')}
           />
         ) : overview.isLoading || !overview.data ? (
-          <OverviewLoading label="Loading overview" />
+          <OverviewLoading label={t('loadingOverview')} />
         ) : (
           <OverviewDashboard overview={overview.data} />
         )}

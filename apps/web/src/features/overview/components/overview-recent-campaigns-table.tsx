@@ -14,7 +14,10 @@ import {
   ArrowRight,
   Pencil,
 } from "lucide-react";
-import { useLocale } from "next-intl";
+import {
+  useLocale,
+  useTranslations,
+} from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type { ReactNode } from "react";
 import { DataTable } from "@/components/data-table";
@@ -36,10 +39,11 @@ export function OverviewRecentCampaignsTable({
   campaigns: OverviewRecentCampaign[];
 }) {
   const locale = useLocale();
+  const t = useTranslations('Overview');
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    columns: createRecentCampaignColumns(locale),
+    columns: createRecentCampaignColumns(locale, createRecentCampaignLabels(t)),
     data: campaigns,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
@@ -56,11 +60,12 @@ export function OverviewRecentCampaignsTable({
 
 function createRecentCampaignColumns(
   locale: string,
+  labels: RecentCampaignLabels,
 ): ColumnDef<OverviewRecentCampaign>[] {
   return [
   {
     accessorKey: "name",
-    header: "Campaign",
+    header: labels.campaign,
     cell: ({ row }) => (
       <Link className="block min-w-44 p-2" href={routes.campaign(row.original.id)}>
         <span className={cn("block break-words", textStyles.itemTitle)}>
@@ -71,7 +76,7 @@ function createRecentCampaignColumns(
   },
   {
     id: "delivered",
-    header: "Delivered",
+    header: labels.delivered,
     cell: ({ row }) => (
       <LinkedCell campaign={row.original}>
         {formatOverviewNumber(row.original.deliveredCount, locale)}
@@ -80,7 +85,7 @@ function createRecentCampaignColumns(
   },
   {
     id: "replies",
-    header: "Replies",
+    header: labels.replies,
     cell: ({ row }) => (
       <LinkedCell campaign={row.original}>
         {formatOverviewNumber(row.original.inboundReplyCount, locale)}
@@ -89,7 +94,7 @@ function createRecentCampaignColumns(
   },
   {
     id: "optOuts",
-    header: "Opt-outs",
+    header: labels.optOuts,
     cell: ({ row }) => (
       <LinkedCell campaign={row.original}>
         {formatOverviewNumber(row.original.optOutCount, locale)}
@@ -98,7 +103,7 @@ function createRecentCampaignColumns(
   },
   {
     id: "bookings",
-    header: "Bookings",
+    header: labels.bookings,
     cell: ({ row }) => (
       <LinkedCell campaign={row.original}>
         {formatOverviewNumber(row.original.reportedBookingCount, locale)}
@@ -107,11 +112,11 @@ function createRecentCampaignColumns(
   },
   {
     id: "revenue",
-    header: "Revenue",
+    header: labels.revenue,
     cell: ({ row }) => (
       <LinkedCell campaign={row.original}>
         {row.original.reportedRevenueHasMixedCurrencies
-          ? "Mixed"
+          ? labels.mixed
             : formatOverviewCurrency(
                 row.original.reportedRevenueAmountMinor,
                 row.original.reportedRevenueCurrency,
@@ -122,11 +127,11 @@ function createRecentCampaignColumns(
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: labels.status,
     cell: ({ row }) => (
       <LinkedCell campaign={row.original}>
         <StatusBadge
-          label={campaignStatusLabel(row.original.status)}
+          label={labels.statusLabel(row.original.status)}
           tone={campaignStatusTone(row.original.status)}
         />
       </LinkedCell>
@@ -134,11 +139,11 @@ function createRecentCampaignColumns(
   },
   {
     id: "open",
-    header: () => <span className="sr-only">Campaign actions</span>,
+    header: () => <span className="sr-only">{labels.campaignActions}</span>,
     cell: ({ row }) => (
       <div className="flex justify-end p-2">
         <Button
-          aria-label={`${campaignActionLabel(row.original.nextAction)} ${row.original.name}`}
+          aria-label={labels.campaignAction(row.original.nextAction, row.original.name)}
           asChild
           size="icon-sm"
           variant="ghost"
@@ -174,12 +179,37 @@ function LinkedCell({
   );
 }
 
-function campaignActionLabel(action: OverviewCampaignNextAction) {
-  if (action === "continue_setup") return "Continue";
-  if (action === "monitor_send") return "Monitor";
-  if (action === "report_bookings") return "Report";
-  if (action === "fix_campaign") return "Review";
-  return "Open";
+type RecentCampaignLabels = ReturnType<typeof createRecentCampaignLabels>;
+
+function createRecentCampaignLabels(t: ReturnType<typeof useTranslations<'Overview'>>) {
+  return {
+    bookings: t('bookings'),
+    campaign: t('campaign'),
+    campaignActions: t('campaignActions'),
+    delivered: t('delivered'),
+    mixed: t('mixed'),
+    optOuts: t('optOuts'),
+    replies: t('replies'),
+    revenue: t('revenue'),
+    status: t('status'),
+    campaignAction: (action: OverviewCampaignNextAction, name: string) =>
+      t('campaignActionLabel', {
+        action: campaignActionLabel(action, t),
+        name,
+      }),
+    statusLabel: (status: CampaignStatus) => campaignStatusLabel(status, t),
+  };
+}
+
+function campaignActionLabel(
+  action: OverviewCampaignNextAction,
+  t: ReturnType<typeof useTranslations<'Overview'>>,
+) {
+  if (action === "continue_setup") return t('actionContinue');
+  if (action === "monitor_send") return t('actionMonitor');
+  if (action === "report_bookings") return t('actionReport');
+  if (action === "fix_campaign") return t('actionReview');
+  return t('open');
 }
 
 function CampaignActionIcon({
@@ -196,12 +226,15 @@ function CampaignActionIcon({
   return <Icon {...props} />;
 }
 
-function campaignStatusLabel(status: CampaignStatus) {
-  if (status === "ready_to_send") return "Ready";
-  if (status === "sending") return "Sending";
-  if (status === "sent") return "Sent";
-  if (status === "failed") return "Failed";
-  return "Draft";
+function campaignStatusLabel(
+  status: CampaignStatus,
+  t: ReturnType<typeof useTranslations<'Overview'>>,
+) {
+  if (status === "ready_to_send") return t('statusReady');
+  if (status === "sending") return t('statusSending');
+  if (status === "sent") return t('statusSent');
+  if (status === "failed") return t('statusFailed');
+  return t('statusDraft');
 }
 
 function campaignStatusTone(status: CampaignStatus): StatusBadgeTone {

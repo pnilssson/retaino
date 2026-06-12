@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Settings2,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import { ProfileSection } from './profile-section';
 import { TeamInvitationSection } from './team-invitation-section';
 
 export function OrganizationSettingsScreen() {
+  const t = useTranslations('Settings');
   const session = useOrganizationSession();
   const { openOrganizationProfile } = useClerk();
 
@@ -34,7 +36,7 @@ export function OrganizationSettingsScreen() {
         <div className="max-w-lg">
           <ItemNotice
             description={session.error.message}
-            title="Organization settings could not be loaded"
+            title={t('loadErrorTitle')}
             variant="error"
           />
         </div>
@@ -68,17 +70,18 @@ function SettingsContent({
   onManageOrganization: () => void;
   session: OrganizationSession;
 }) {
+  const t = useTranslations('Settings');
   const headerActions = canManageSetup ? (
     session.readiness.setupComplete ? (
       <Button onClick={onManageOrganization} type="button">
         <Settings2 aria-hidden="true" data-icon="inline-start" />
-        Manage organization
+        {t('manageOrganization')}
       </Button>
     ) : (
       <Button asChild variant="outline">
         <Link href={routes.organizationSetup}>
           <CheckCircle2 aria-hidden="true" data-icon="inline-start" />
-          Finish setup
+          {t('finishSetup')}
         </Link>
       </Button>
     )
@@ -89,7 +92,7 @@ function SettingsContent({
       <section className="mx-auto grid w-full max-w-6xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={headerActions}
-          eyebrow="Organization settings"
+          eyebrow={t('eyebrow')}
           title={session.organization.name}
         />
 

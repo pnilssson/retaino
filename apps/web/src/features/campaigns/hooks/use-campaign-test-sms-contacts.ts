@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import type { CampaignSmsTestContactSearchResponse } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import { useApi } from '@/hooks/use-api';
 import { campaignsQueryKeys } from '../query-keys';
 
@@ -17,6 +18,7 @@ export function useCampaignTestSmsContacts({
   search: string;
 }) {
   const api = useApi();
+  const t = useTranslations('Campaigns');
   const normalizedSearch = search.trim();
 
   return useQuery({
@@ -28,7 +30,7 @@ export function useCampaignTestSmsContacts({
     ),
     queryFn: () => {
       if (!organizationId || !campaignId) {
-        throw new Error('Campaign is required to search test SMS contacts.');
+        throw new Error(t('campaignRequiredSearchTestContacts'));
       }
 
       const params = new URLSearchParams();

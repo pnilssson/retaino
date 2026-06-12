@@ -10,6 +10,7 @@ import {
   SearchableCombobox,
   type SearchableComboboxOption,
 } from '@/components/searchable-combobox';
+import { useTranslations } from 'next-intl';
 
 export function CountryCombobox({
   'aria-invalid': ariaInvalid,
@@ -30,6 +31,7 @@ export function CountryCombobox({
   onChange: (value: string) => void;
   value: string;
 }) {
+  const t = useTranslations('Common');
   const countries = useMemo(() => getSupportedPhoneCountries(locale), [locale]);
   const options: Array<SearchableComboboxOption<string>> = useMemo(
     () =>
@@ -49,14 +51,14 @@ export function CountryCombobox({
   );
   const selected = isSupportedCountryCode(value)
     ? formatPhoneCountryLabel(value, locale)
-    : 'Choose country';
+    : t('chooseCountry');
 
   return (
     <SearchableCombobox
       aria-invalid={ariaInvalid}
       disabled={disabled}
       displayValue={selected}
-      emptyText="No countries found."
+      emptyText={t('noCountriesFound')}
       id={id}
       name={name}
       onBlur={onBlur}
@@ -64,8 +66,8 @@ export function CountryCombobox({
         onChange(option.value);
       }}
       options={options}
-      placeholder="Choose country"
-      searchPlaceholder="Search country or +46"
+      placeholder={t('chooseCountry')}
+      searchPlaceholder={t('searchCountry')}
       selectedKey={value}
     />
   );

@@ -5,6 +5,7 @@ import type {
   InboxConversationActivityFilter,
   InboxConversationListResponse,
 } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import { useApi } from '@/hooks/use-api';
 import { INBOX_REFETCH_INTERVAL_MS } from '../inbox-polling';
 import { inboxQueryKeys } from '../inbox-query-keys';
@@ -19,13 +20,14 @@ export function useInboxConversations({
   organizationId: string | null;
 }) {
   const api = useApi();
+  const t = useTranslations('Inbox');
 
   return useQuery({
     enabled: enabled && Boolean(organizationId),
     queryKey: inboxQueryKeys.conversations(organizationId ?? 'pending', activity),
     queryFn: () => {
       if (!organizationId) {
-        throw new Error('Organization is required to load the inbox.');
+        throw new Error(t('organizationRequiredLoadInbox'));
       }
 
       return api.get<InboxConversationListResponse>(

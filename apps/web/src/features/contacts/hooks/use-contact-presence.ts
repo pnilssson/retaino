@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import type { ContactListResponse } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import { useApi } from '@/hooks/use-api';
 import { contactsQueryKeys } from '../query-keys';
 
@@ -13,13 +14,14 @@ export function useContactPresence({
   organizationId: string | null;
 }) {
   const api = useApi();
+  const t = useTranslations('Contacts');
 
   return useQuery({
     enabled: enabled && Boolean(organizationId),
     queryKey: contactsQueryKeys.presence(organizationId ?? 'pending'),
     queryFn: () => {
       if (!organizationId) {
-        throw new Error('Organization is required to check contacts.');
+        throw new Error(t('organizationRequiredCheckContacts'));
       }
 
       return api.get<ContactListResponse>(

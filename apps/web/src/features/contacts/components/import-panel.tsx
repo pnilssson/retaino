@@ -8,6 +8,7 @@ import {
   FileUp,
   Loader2,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useState } from 'react';
 import { parse } from 'csv-parse/sync';
@@ -56,7 +57,6 @@ import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 import { BlockedContacts } from './blocked-contacts';
 import { ContactImportProgress } from './contact-import-progress';
-import { formatTargetField } from '../contacts-format';
 
 const MAX_UPLOAD_SIZE = 25 * 1024 * 1024;
 const SAMPLE_ROWS = 5;
@@ -68,14 +68,11 @@ type CsvPreview = {
 
 type ImportStepId = 'upload' | 'match' | 'review' | 'results';
 
-const importSteps: GuidedFlowStep<ImportStepId>[] = [
-  { id: 'upload', title: 'Upload' },
-  { id: 'match', title: 'Match' },
-  { id: 'review', title: 'Review' },
-  { id: 'results', title: 'Results' },
-];
+const importStepOrder: ImportStepId[] = ['upload', 'match', 'review', 'results'];
 
 export function ContactImportUploadScreen() {
+  const t = useTranslations('Contacts');
+  const common = useTranslations('Common');
   const session = useOrganizationSession();
   const [currentImportId, setCurrentImportId] = useState<string | null>(null);
 
@@ -89,7 +86,7 @@ export function ContactImportUploadScreen() {
         <div className="max-w-lg">
           <ItemNotice
             description={session.error.message}
-            title="Import form could not be loaded"
+            title={t('importFormLoadErrorTitle')}
             variant="error"
           />
         </div>
@@ -111,15 +108,15 @@ export function ContactImportUploadScreen() {
         <AppPageHeader
           actions={
             <Button asChild className="px-0" variant="link">
-              <Link aria-label="Back to contacts" href={routes.contacts}>
+              <Link aria-label={t('backToContacts')} href={routes.contacts}>
                 <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-                <span className="sm:hidden">Back</span>
-                <span className="hidden sm:inline">Back to contacts</span>
+                <span className="sm:hidden">{common('back')}</span>
+                <span className="hidden sm:inline">{t('backToContacts')}</span>
               </Link>
             </Button>
           }
-          eyebrow="Contacts"
-          title="Import contacts"
+          eyebrow={t('contactsTitle')}
+          title={t('importContactsTitle')}
         />
 
         <ImportForm
@@ -144,6 +141,7 @@ function ImportForm({
   onCurrentImportChange: (importId: string | null) => void;
   organizationId: string;
 }) {
+  const t = useTranslations('Contacts');
   const [activeStep, setActiveStep] = useState<ImportStepId>('upload');
   const [preview, setPreview] = useState<CsvPreview | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -176,8 +174,8 @@ function ImportForm({
       <GuidedFlowFrame
         completedStepIds={['upload', 'match', 'review', 'results']}
         currentStepId="results"
-        progressLabel="Contact import"
-        steps={importSteps}
+        progressLabel={t('contactImportProgressLabel')}
+        steps={createImportSteps(t)}
       >
         <ContactImportProgress
           importId={currentImportId}
@@ -225,26 +223,23 @@ function ImportForm({
               preview,
             })}
             currentStepId={activeStep}
-            progressLabel="Contact import"
-            steps={importSteps}
+            progressLabel={t('contactImportProgressLabel')}
+            steps={createImportSteps(t)}
           >
             <div className="grid gap-5">
               {activeStep === 'upload' ? (
                 <GuidedFlowSection
-                  description="Use a CSV export from your booking or client system."
+                  description={t('uploadCsvDescription')}
                   title={
                     <span className="inline-flex items-center gap-1.5">
-                      Upload the CSV
-                      <InfoTooltip label="Minimum CSV fields">
+                      {t('uploadCsvTitle')}
+                      <InfoTooltip label={t('minimumCsvFieldsTitle')}>
                         <span className="grid gap-1">
                           <span className="font-medium">
-                            Minimum CSV fields
+                            {t('minimumCsvFieldsTitle')}
                           </span>
                           <span>
-                            Include at least one contact method column (Phone or
-                            Email). Name and Last booking date are optional but
-                            recommended for better matching and campaign
-                            targeting.
+                            {t('minimumCsvFieldsDescription')}
                           </span>
                         </span>
                       </InfoTooltip>
@@ -257,7 +252,7 @@ function ImportForm({
                         name="file"
                         validators={{
                           onSubmit: ({ value }) =>
-                            value ? undefined : 'Choose a CSV file.',
+                            value ? undefined : t('chooseCsvFileError'),
                         }}
                       >
                         {(field) => {
@@ -283,6 +278,10 @@ function ImportForm({
                                       nextFile,
                                       setPreview,
                                       setParseError,
+                                      {
+                                        parseError: t('csvParseError'),
+                                        sizeError: t('csvSizeError'),
+                                      },
                                     ).then((csvPreview) => {
                                       form.setFieldValue(
                                         'mapping',
@@ -319,16 +318,15 @@ function ImportForm({
                                     >
                                       {selectedFile
                                         ? selectedFile.name
-                                        : 'Choose a CSV file'}
+                                        : t('chooseCsvFile')}
                                     </span>
                                     {selectedFile ? (
                                       <span className={textStyles.mutedBody}>
-                                        Selected. Choose another CSV to replace
-                                        it.
+                                        {t('selectedCsvReplace')}
                                       </span>
                                     ) : (
                                       <span className={textStyles.mutedBody}>
-                                        CSV only, up to 25 MB.
+                                        {t('csvLimits')}
                                       </span>
                                     )}
                                   </span>
@@ -355,7 +353,7 @@ function ImportForm({
                     continueIcon={
                       <ArrowRight aria-hidden="true" className="size-4" />
                     }
-                    continueLabel="Continue to matching"
+                    continueLabel={t('continueToMatching')}
                     onContinue={() => setActiveStep('match')}
                   />
                 </GuidedFlowSection>
@@ -363,8 +361,8 @@ function ImportForm({
 
               {activeStep === 'match' ? (
                 <GuidedFlowSection
-                  description="Choose which CSV columns should fill each contact field."
-                  title="Match the columns"
+                  description={t('matchColumnsDescription')}
+                  title={t('matchColumnsTitle')}
                 >
                   {preview ? (
                     <>
@@ -377,9 +375,9 @@ function ImportForm({
                                 textStyles.meta,
                               )}
                             >
-                              <span>CSV column</span>
+                              <span>{t('csvColumn')}</span>
                               <span aria-hidden="true" />
-                              <span>Retaino field</span>
+                              <span>{t('retainoField')}</span>
                             </div>
                             {CONTACT_IMPORT_TARGET_FIELDS.map((target) => (
                               <form.Field
@@ -395,7 +393,7 @@ function ImportForm({
                                           textStyles.meta,
                                         )}
                                       >
-                                        CSV column
+                                        {t('csvColumn')}
                                       </span>
                                       <Select
                                         onValueChange={(value) =>
@@ -412,7 +410,7 @@ function ImportForm({
                                         </SelectTrigger>
                                         <SelectContent>
                                           <SelectItem value="none">
-                                            Not mapped
+                                            {t('notMapped')}
                                           </SelectItem>
                                           {preview.headers.map((header) => (
                                             <SelectItem
@@ -436,9 +434,9 @@ function ImportForm({
                                           textStyles.meta,
                                         )}
                                       >
-                                        Retaino field
+                                        {t('retainoField')}
                                       </span>
-                                      <span>{formatTargetField(target)}</span>
+                                      <span>{formatTargetFieldLabel(target, t)}</span>
                                     </Label>
                                   </div>
                                 )}
@@ -452,7 +450,7 @@ function ImportForm({
                         continueIcon={
                           <ArrowRight aria-hidden="true" className="size-4" />
                         }
-                        continueLabel="Continue to review"
+                        continueLabel={t('continueToReview')}
                         onBack={() => setActiveStep('upload')}
                         onContinue={() => setActiveStep('review')}
                       />
@@ -461,8 +459,8 @@ function ImportForm({
                     <ContentSection asChild>
                       <section>
                         <ItemNotice
-                          description="Choose a CSV file before matching columns."
-                          title="CSV file required"
+                          description={t('csvRequiredForMatching')}
+                          title={t('csvRequiredTitle')}
                         />
                       </section>
                     </ContentSection>
@@ -472,8 +470,8 @@ function ImportForm({
 
               {activeStep === 'review' ? (
                 <GuidedFlowSection
-                  description="Check the mapped sample and confirm permission before importing."
-                  title="Review the import"
+                  description={t('reviewImportDescription')}
+                  title={t('reviewImportTitle')}
                 >
                   {preview ? (
                     <>
@@ -483,7 +481,7 @@ function ImportForm({
                             {(field) => (
                               <div className="grid max-w-2xl gap-2 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-center">
                                 <Label htmlFor={field.name}>
-                                  Phone country
+                                  {t('phoneCountry')}
                                 </Label>
                                 <CountryCombobox
                                   id={field.name}
@@ -502,7 +500,7 @@ function ImportForm({
                                     textStyles.mutedBody,
                                   )}
                                 >
-                                  Used for phone numbers without a country code.
+                                  {t('phoneCountryDescription')}
                                 </p>
                               </div>
                             )}
@@ -511,6 +509,7 @@ function ImportForm({
                           <MappedPreviewTable
                             fields={contactImportMappedFieldEntries(mapping)}
                             sampleRows={preview.sampleRows}
+                            targetLabel={(target) => formatTargetFieldLabel(target, t)}
                           />
                         </section>
                       </ContentSection>
@@ -522,7 +521,7 @@ function ImportForm({
                               onSubmit: ({ value }) =>
                                 value
                                   ? undefined
-                                  : 'Confirm these contacts can lawfully receive marketing SMS.',
+                                  : t('permissionAttestationError'),
                             }}
                           >
                             {(field) => (
@@ -542,9 +541,7 @@ function ImportForm({
                                 />
                                 <div className="grid gap-1">
                                   <Label htmlFor={field.name}>
-                                    I confirm these contacts can lawfully
-                                    receive marketing SMS from this
-                                    organization.
+                                    {t('permissionAttestationLabel')}
                                   </Label>
                                   {field.state.meta.errors.length > 0 ? (
                                     <p
@@ -563,7 +560,7 @@ function ImportForm({
                       {upload.error ? (
                         <ItemNotice
                           description={upload.error}
-                          title="Import could not start"
+                          title={t('importStartErrorTitle')}
                           variant="error"
                         />
                       ) : null}
@@ -592,7 +589,7 @@ function ImportForm({
                               data-icon="inline-start"
                             />
                           )}
-                          Start import
+                          {t('startImport')}
                         </Button>
                       </GuidedFlowActions>
                     </>
@@ -600,8 +597,8 @@ function ImportForm({
                     <ContentSection asChild>
                       <section>
                         <ItemNotice
-                          description="Choose a CSV file before reviewing the import."
-                          title="CSV file required"
+                          description={t('csvRequiredForReview')}
+                          title={t('csvRequiredTitle')}
                         />
                       </section>
                     </ContentSection>
@@ -656,30 +653,61 @@ function importStepIsPast(
 }
 
 function importStepRank(step: ImportStepId) {
-  return importSteps.findIndex((importStep) => importStep.id === step);
+  return importStepOrder.indexOf(step);
+}
+
+function createImportSteps(
+  t: ReturnType<typeof useTranslations<'Contacts'>>,
+): GuidedFlowStep<ImportStepId>[] {
+  return [
+    { id: 'upload', title: t('importStepUpload') },
+    { id: 'match', title: t('importStepMatch') },
+    { id: 'review', title: t('importStepReview') },
+    { id: 'results', title: t('importStepResults') },
+  ];
+}
+
+function formatTargetFieldLabel(
+  target: keyof CsvMapping,
+  t: ReturnType<typeof useTranslations<'Contacts'>>,
+) {
+  switch (target) {
+    case 'email':
+      return t('email');
+    case 'lastBookingAt':
+      return t('lastBooking');
+    case 'name':
+      return t('name');
+    case 'phone':
+      return t('phone');
+  }
 }
 
 function MappedPreviewTable({
   fields,
   sampleRows,
+  targetLabel,
 }: {
   fields: Array<{ header: string; target: keyof CsvMapping }>;
   sampleRows: Record<string, string>[];
+  targetLabel: (target: keyof CsvMapping) => string;
 }) {
+  const t = useTranslations('Contacts');
+
   if (fields.length === 0) {
     return null;
   }
 
   return (
     <div className="grid gap-2">
-      <ItemTitle>Sample values</ItemTitle>
+      <ItemTitle>{t('sampleValues')}</ItemTitle>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader className="[&_tr]:border-0">
             <TableRow className="border-0 hover:bg-transparent">
               {fields.map((field) => (
                 <TableHead key={field.target}>
-                  {formatTargetField(field.target)}
+                  {targetLabel(field.target)}
                 </TableHead>
               ))}
             </TableRow>
@@ -703,6 +731,10 @@ async function updatePreview(
   file: File | null,
   setPreview: (preview: CsvPreview | null) => void,
   setParseError: (error: string | null) => void,
+  errors: {
+    parseError: string;
+    sizeError: string;
+  },
 ): Promise<CsvPreview | null> {
   setParseError(null);
   setPreview(null);
@@ -712,7 +744,7 @@ async function updatePreview(
   }
 
   if (file.size > MAX_UPLOAD_SIZE) {
-    setParseError('CSV uploads are limited to 25 MB.');
+    setParseError(errors.sizeError);
     return null;
   }
 
@@ -721,7 +753,7 @@ async function updatePreview(
     setPreview(csvPreview);
     return csvPreview;
   } catch {
-    setParseError('CSV file could not be parsed.');
+    setParseError(errors.parseError);
     return null;
   }
 }
@@ -743,7 +775,7 @@ function parseCsvPreview(text: string): CsvPreview {
   );
 
   if (headers.length === 0) {
-    throw new Error('Missing header row.');
+    throw new Error('missing_header_row');
   }
 
   return { headers, sampleRows };

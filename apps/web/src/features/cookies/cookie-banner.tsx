@@ -1,6 +1,7 @@
 'use client';
 
 import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import {
   AnimatePresence,
   motion,
@@ -14,6 +15,7 @@ import { useCookieConsent } from './hooks/use-cookie-consent';
 import { CookiePreferencesDialog } from './cookie-preferences-dialog';
 
 export function CookieBanner() {
+  const t = useTranslations('Cookies');
   const { consent, loaded, acceptAll, rejectAll, openPreferences } =
     useCookieConsent();
   const showBanner = loaded && consent === null;
@@ -24,7 +26,7 @@ export function CookieBanner() {
         {showBanner ? (
           <motion.div
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            aria-label="Cookie consent"
+            aria-label={t('bannerLabel')}
             aria-modal="false"
             className="fixed right-4 bottom-4 z-50 w-[calc(100%-2rem)] max-w-md rounded-lg border bg-background p-4 shadow-xl sm:right-6 sm:bottom-6"
             exit={{ opacity: 0, scale: 0.98, y: 8 }}
@@ -34,14 +36,12 @@ export function CookieBanner() {
           >
             <div className="flex flex-col gap-4">
               <p className={textStyles.mutedBody}>
-                We use cookies and browser storage to make visits smoother,
-                remember choices, and understand how the site is used. You can
-                accept all cookies or keep only what is needed.{' '}
+                {t('bannerDescription')}{' '}
                 <Link
                   className="text-foreground underline underline-offset-2"
                   href={routes.cookies}
                 >
-                  Cookie Policy
+                  {t('policy')}
                 </Link>
               </p>
 
@@ -52,7 +52,7 @@ export function CookieBanner() {
                   type="button"
                   variant="outline"
                 >
-                  Essential only
+                  {t('essentialOnly')}
                 </Button>
                 <Button
                   onClick={openPreferences}
@@ -60,10 +60,10 @@ export function CookieBanner() {
                   type="button"
                   variant="outline"
                 >
-                  Manage
+                  {t('manage')}
                 </Button>
                 <Button onClick={acceptAll} size="sm" type="button">
-                  Accept all
+                  {t('acceptAll')}
                 </Button>
               </div>
             </div>

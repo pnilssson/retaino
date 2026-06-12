@@ -1,4 +1,3 @@
-import type { InboxConversationActivityFilter } from '@retaino/shared/contracts';
 import { getIntlLocale } from '@/lib/locale-format';
 
 export function formatInboxDateTime(value: string, locale: string) {
@@ -44,14 +43,6 @@ export function formatInboxDateSeparator(value: string, locale: string) {
   return new Intl.DateTimeFormat(getIntlLocale(locale), {
     dateStyle: 'medium',
   }).format(new Date(value));
-}
-
-export function inboxActivityLabel(activity: InboxConversationActivityFilter) {
-  if (activity === 'all') {
-    return 'All';
-  }
-
-  return 'Needs reply';
 }
 
 export function inboxMessageDayKey(value: string) {

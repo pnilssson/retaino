@@ -6,6 +6,7 @@ import {
   useReducedMotion,
 } from 'motion/react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import {
   useEffect,
@@ -19,30 +20,32 @@ import { cn } from '@/lib/utils';
 const quoteRotationInterval = 6500;
 
 type Quote = {
-  text: string;
-  attribution: string;
+  attributionKey: string;
+  textKey: string;
 };
 
 const quotes = [
   {
-    text: 'Every rebooked client lowers pressure to buy the next lead.',
-    attribution: 'Protect acquisition spend'
+    attributionKey: 'quoteProtectAttribution',
+    textKey: 'quoteProtectText',
   },
   {
-    text: 'Find clients who are drifting before they become lost revenue.',
-    attribution: 'Catch drift earlier'
+    attributionKey: 'quoteDriftAttribution',
+    textKey: 'quoteDriftText',
   },
   {
-    text: 'Run win-back and loyalty campaigns without losing track of consent and readiness.',
-    attribution: 'Act with confidence'
+    attributionKey: 'quoteConsentAttribution',
+    textKey: 'quoteConsentText',
   },
   {
-    text: 'See which clients are worth reactivating, which offers work, and where effort is wasted.',
-    attribution: 'Prove what works'
+    attributionKey: 'quoteProofAttribution',
+    textKey: 'quoteProofText',
   }
 ] satisfies readonly [Quote, ...Quote[]];
 
 export function AuthProofPanel() {
+  const chrome = useTranslations('Chrome');
+  const t = useTranslations('Auth');
   const [activeQuote, setActiveQuote] = useState(0);
   const shouldReduceMotion = useReducedMotion();
 
@@ -83,7 +86,7 @@ export function AuthProofPanel() {
         />
 
         <Link
-          aria-label="Retaino home"
+          aria-label={chrome('homeLabel')}
           className="absolute left-8 top-8 flex items-center text-white"
           href={routes.home}
         >
@@ -105,17 +108,17 @@ export function AuthProofPanel() {
               className="w-full"
               exit={{ opacity: 0, y: -verticalOffset }}
               initial={{ opacity: 0, y: verticalOffset }}
-              key={quote.text}
+              key={quote.textKey}
               transition={{
                 duration: shouldReduceMotion ? 0 : 0.5,
                 ease: 'easeOut'
               }}
             >
               <blockquote className={cn(textStyles.pageTitle, 'text-white')}>
-                {quote.text}
+                {t(quote.textKey)}
               </blockquote>
               <figcaption className={cn('mt-6', textStyles.body, 'text-white/75')}>
-                {quote.attribution}
+                {t(quote.attributionKey)}
               </figcaption>
             </motion.figure>
           </AnimatePresence>

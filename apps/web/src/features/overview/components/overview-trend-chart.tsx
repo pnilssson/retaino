@@ -9,7 +9,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { useLocale } from 'next-intl';
+import {
+  useLocale,
+  useTranslations,
+} from 'next-intl';
 import {
   ChartContainer,
   ChartLegend,
@@ -26,21 +29,6 @@ import {
   formatOverviewNumber,
 } from '../overview-format';
 
-const chartConfig = {
-  deliveredSmsTrendValue: {
-    color: 'var(--chart-2)',
-    label: 'Delivered SMS',
-  },
-  bookingTrendValue: {
-    color: 'var(--chart-1)',
-    label: 'Reported bookings',
-  },
-  revenueTrendValue: {
-    color: 'var(--chart-3)',
-    label: 'Reported revenue',
-  },
-} satisfies ChartConfig;
-
 const overviewGridTicks = [0, 25, 50, 75, 100];
 
 export function OverviewTrendChart({
@@ -53,6 +41,21 @@ export function OverviewTrendChart({
   trend: OverviewResponse['trend'];
 }) {
   const locale = useLocale();
+  const t = useTranslations('Overview');
+  const chartConfig = {
+    deliveredSmsTrendValue: {
+      color: 'var(--chart-2)',
+      label: t('deliveredSms'),
+    },
+    bookingTrendValue: {
+      color: 'var(--chart-1)',
+      label: t('reportedBookings'),
+    },
+    revenueTrendValue: {
+      color: 'var(--chart-3)',
+      label: t('reportedRevenue'),
+    },
+  } satisfies ChartConfig;
   const totals = React.useMemo(
     () => ({
       reportedBookingCount: trend.reduce(
@@ -113,17 +116,17 @@ export function OverviewTrendChart({
     value: string;
   }> = [
     {
-      label: 'Delivered SMS',
+      label: t('deliveredSms'),
       value: formatOverviewNumber(totals.deliveredSmsCount, locale),
     },
     {
-      label: 'Bookings',
+      label: t('bookings'),
       value: formatOverviewNumber(totals.reportedBookingCount, locale),
     },
     {
-      label: 'Revenue',
+      label: t('revenue'),
       value: hasMixedCurrencies
-        ? 'Mixed'
+        ? t('mixed')
         : formatOverviewCurrency(
             totals.reportedRevenueAmountMinor,
             currency,
@@ -136,14 +139,14 @@ export function OverviewTrendChart({
     <div className="grid gap-0 py-4 sm:py-0">
       <div className="flex flex-col items-stretch border-b p-0 md:flex-row">
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-6 pb-3 md:pb-0">
-          <h2 className={textStyles.sectionTitle}>Campaign results</h2>
+          <h2 className={textStyles.sectionTitle}>{t('campaignResults')}</h2>
           <p
             className={cn(
               'max-w-prose whitespace-normal',
               textStyles.mutedBody,
             )}
           >
-            Delivered SMS, reported bookings, and reported revenue.
+            {t('campaignResultsDescription')}
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-[minmax(150px,150px)_minmax(150px,150px)_minmax(220px,1fr)]">
@@ -254,10 +257,10 @@ export function OverviewTrendChart({
                     };
                     const label =
                       name === 'revenueTrendValue'
-                        ? 'Reported revenue'
+                        ? t('reportedRevenue')
                         : name === 'bookingTrendValue'
-                          ? 'Reported bookings'
-                          : 'Delivered SMS';
+                          ? t('reportedBookings')
+                          : t('deliveredSms');
                     const value =
                       name === 'revenueTrendValue'
                         ? formatOverviewCurrency(

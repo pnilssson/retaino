@@ -4,20 +4,24 @@ import type {
   SankeyBreakdownNode,
   SankeyBreakdownSummaryItem,
 } from '@/components/sankey-breakdown';
+import type { CampaignText } from './campaign-form-state';
 
-export function createCampaignReportFunnel(report: CampaignReport): {
+export function createCampaignReportFunnel(
+  report: CampaignReport,
+  t: CampaignText,
+): {
   links: SankeyBreakdownLink[];
   nodes: SankeyBreakdownNode[];
   summary: SankeyBreakdownSummaryItem[];
 } {
   return {
     nodes: [
-      { color: 'var(--chart-3)', name: 'Selected' },
-      { color: 'var(--chart-2)', name: 'Sent' },
-      { color: 'var(--muted-foreground)', name: 'Skipped' },
-      { color: 'var(--chart-2)', name: 'Delivered' },
-      { color: 'var(--destructive)', name: 'Failed' },
-      { color: 'var(--chart-4)', name: 'In progress' },
+      { color: 'var(--chart-3)', name: t('funnelSelected') },
+      { color: 'var(--chart-2)', name: t('funnelSent') },
+      { color: 'var(--muted-foreground)', name: t('funnelSkipped') },
+      { color: 'var(--chart-2)', name: t('funnelDelivered') },
+      { color: 'var(--destructive)', name: t('funnelFailed') },
+      { color: 'var(--chart-4)', name: t('funnelInProgress') },
     ],
     links: [
       { source: 0, target: 1, value: report.sentCount },
@@ -28,33 +32,33 @@ export function createCampaignReportFunnel(report: CampaignReport): {
     ],
     summary: [
       {
-        detail: 'Recipients selected for this send.',
-        label: 'Selected',
+        detail: t('funnelSelectedDetail'),
+        label: t('funnelSelected'),
         value: report.selectedCount,
       },
       {
-        detail: 'Messages sent from Retaino.',
-        label: 'Sent',
+        detail: t('funnelSentDetail'),
+        label: t('funnelSent'),
         value: report.sentCount,
       },
       {
-        detail: 'Messages confirmed delivered.',
-        label: 'Delivered',
+        detail: t('funnelDeliveredDetail'),
+        label: t('funnelDelivered'),
         value: report.deliveredCount,
       },
       {
-        detail: 'Messages waiting for status update.',
-        label: 'In progress',
+        detail: t('funnelInProgressDetail'),
+        label: t('funnelInProgress'),
         value: report.queuedCount,
       },
       {
-        detail: 'Messages that could not be delivered.',
-        label: 'Failed',
+        detail: t('funnelFailedDetail'),
+        label: t('funnelFailed'),
         value: report.failedCount,
       },
       {
-        detail: 'Recipients excluded before send.',
-        label: 'Skipped',
+        detail: t('funnelSkippedDetail'),
+        label: t('funnelSkipped'),
         value: report.skippedCount,
       },
     ],

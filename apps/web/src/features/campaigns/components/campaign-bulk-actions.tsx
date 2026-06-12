@@ -5,6 +5,7 @@ import {
   MoreVertical,
   Trash2,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Button } from '@/components/ui/button';
@@ -26,13 +27,15 @@ export function CampaignBulkActions({
   onClear: () => void;
   organizationId: string | null;
 }) {
+  const t = useTranslations('Campaigns');
+  const common = useTranslations('Common');
   const deleteDrafts = useDeleteCampaignDrafts(organizationId);
   const selectedCount = campaigns.length;
   const hasSelection = selectedCount > 0;
   const allDrafts =
     hasSelection && campaigns.every((campaign) => campaign.status === 'draft');
   const disabledReason = hasSelection
-    ? 'Only draft campaigns can be deleted'
+    ? t('onlyDraftCampaignsCanBeDeleted')
     : undefined;
 
   async function deleteSelectedDrafts() {
@@ -44,14 +47,14 @@ export function CampaignBulkActions({
       await deleteDrafts.mutateAsync(campaigns.map((campaign) => campaign.id));
       toast.success(
         selectedCount === 1
-          ? 'Draft campaign deleted'
-          : `${selectedCount} draft campaigns deleted`,
+          ? t('draftCampaignDeleted')
+          : t('draftCampaignsDeleted', { count: selectedCount }),
       );
       onClear();
     } catch (error) {
-      toast.error('Draft campaigns could not be deleted', {
+      toast.error(t('draftCampaignsDeleteErrorTitle'), {
         description:
-          error instanceof Error ? error.message : 'Try again in a moment.',
+          error instanceof Error ? error.message : common('tryAgainSoon'),
       });
     }
   }
@@ -60,7 +63,7 @@ export function CampaignBulkActions({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          aria-label="Open campaign actions"
+          aria-label={t('openCampaignActions')}
           disabled={!hasSelection || deleteDrafts.isPending}
           size="icon-sm"
           type="button"
@@ -71,15 +74,15 @@ export function CampaignBulkActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
         <ConfirmDialog
-          confirmLabel="Delete drafts"
+          confirmLabel={t('deleteDrafts')}
           description={
             selectedCount === 1
-              ? 'This permanently deletes the selected draft campaign.'
-              : `This permanently deletes ${selectedCount} selected draft campaigns.`
+              ? t('deleteSelectedDraftDescription')
+              : t('deleteSelectedDraftsDescription', { count: selectedCount })
           }
           isPending={deleteDrafts.isPending}
           onConfirm={deleteSelectedDrafts}
-          title="Delete selected drafts?"
+          title={t('deleteSelectedDraftsTitle')}
           trigger={
             <DropdownMenuItem
               disabled={!allDrafts}
@@ -88,12 +91,12 @@ export function CampaignBulkActions({
               variant="destructive"
             >
               <Trash2 aria-hidden="true" />
-              Delete drafts
+              {t('deleteDrafts')}
             </DropdownMenuItem>
           }
           variant="destructive"
         />
-        <DropdownMenuLabel>{selectedCount} selected</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('selectedCount', { count: selectedCount })}</DropdownMenuLabel>
       </DropdownMenuContent>
     </DropdownMenu>
   );

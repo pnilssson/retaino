@@ -2,6 +2,7 @@ import {
   CheckCircle2,
   FileText,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import {
   canManageOrganizationSetup,
@@ -15,31 +16,32 @@ import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { routes } from '@/lib/routes';
 
 export function BlockedContacts({ session }: { session: OrganizationSession }) {
+  const t = useTranslations('Contacts');
   const canManageSetup = canManageOrganizationSetup(session.organization.role);
   const blocker = session.eligibility.contactImports.blocker;
   const legalUpdateRequired = blocker === 'legal_update_required';
   const title = legalUpdateRequired
-    ? 'Legal updates required before importing contacts'
-    : 'Finish setup before importing contacts';
+    ? t('blockedLegalTitle')
+    : t('blockedSetupTitle');
   const description = legalUpdateRequired
-    ? 'Updated legal terms must be accepted before contact data can be imported.'
-    : 'Company profile and legal agreement acceptance are required before contact data can be imported.';
+    ? t('blockedLegalDescription')
+    : t('blockedSetupDescription');
   const alertTitle = legalUpdateRequired
-    ? 'Contact imports are paused'
-    : 'Contacts are blocked';
+    ? t('blockedLegalAlertTitle')
+    : t('blockedSetupAlertTitle');
   const alertDescription = legalUpdateRequired
     ? canManageSetup
-      ? 'Review and accept the updated legal terms to resume CSV uploads and imports.'
-      : 'An organization admin needs to accept the updated legal terms before CSV uploads and imports can continue.'
-    : 'Complete organization setup to enable CSV uploads, validation, dedupe, suppression checks, and contact status.';
+      ? t('blockedLegalManageDescription')
+      : t('blockedLegalMemberDescription')
+    : t('blockedSetupAlertDescription');
   const actionHref = legalUpdateRequired
     ? routes.legal
     : routes.organizationSetup;
   const actionLabel = legalUpdateRequired
     ? canManageSetup
-      ? 'Review legal updates'
-      : 'View legal'
-    : 'Finish setup';
+      ? t('reviewLegalUpdates')
+      : t('viewLegal')
+    : t('finishSetup');
 
   return (
     <main className="flex flex-1 items-start bg-background">
@@ -49,14 +51,14 @@ export function BlockedContacts({ session }: { session: OrganizationSession }) {
             <StatusBadge
               label={
                 legalUpdateRequired
-                  ? 'Legal updates required'
-                  : 'Setup required'
+                  ? t('legalUpdatesRequired')
+                  : t('setupRequired')
               }
               tone="amber"
             />
           }
           description={description}
-          eyebrow="Contacts"
+          eyebrow={t('contactsTitle')}
           title={title}
         />
         <div className="grid gap-5">

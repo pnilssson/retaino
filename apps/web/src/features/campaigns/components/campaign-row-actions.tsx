@@ -6,6 +6,7 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -26,17 +27,19 @@ export function CampaignRowActions({
   campaign: Campaign;
   organizationId: string | null;
 }) {
+  const t = useTranslations('Campaigns');
+  const common = useTranslations('Common');
   const deleteDraft = useDeleteCampaignDraft(organizationId);
   const isDraft = campaign.status === 'draft';
 
   async function handleDeleteDraft() {
     try {
       await deleteDraft.mutateAsync(campaign.id);
-      toast.success('Draft campaign deleted');
+      toast.success(t('draftCampaignDeleted'));
     } catch (error) {
-      toast.error('Draft campaign could not be deleted', {
+      toast.error(t('draftCampaignDeleteErrorTitle'), {
         description:
-          error instanceof Error ? error.message : 'Try again in a moment.',
+          error instanceof Error ? error.message : common('tryAgainSoon'),
       });
     }
   }
@@ -45,7 +48,7 @@ export function CampaignRowActions({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          aria-label={`Open actions for ${campaign.name}`}
+          aria-label={t('openActionsForCampaign', { name: campaign.name })}
           disabled={deleteDraft.isPending}
           size="icon-sm"
           type="button"
@@ -58,23 +61,23 @@ export function CampaignRowActions({
         <DropdownMenuItem asChild>
           <Link href={routes.campaign(campaign.id)}>
             <Pencil aria-hidden="true" />
-            Open campaign
+            {t('openCampaign')}
           </Link>
         </DropdownMenuItem>
         {isDraft ? (
           <ConfirmDialog
-            confirmLabel="Delete draft"
-            description={`This permanently deletes ${campaign.name}.`}
+            confirmLabel={t('deleteDraft')}
+            description={t('deleteDraftDescription', { name: campaign.name })}
             isPending={deleteDraft.isPending}
             onConfirm={handleDeleteDraft}
-            title="Delete draft campaign?"
+            title={t('deleteDraftTitle')}
             trigger={
               <DropdownMenuItem
                 onSelect={(event) => event.preventDefault()}
                 variant="destructive"
               >
                 <Trash2 aria-hidden="true" />
-                Delete draft
+                {t('deleteDraft')}
               </DropdownMenuItem>
             }
             variant="destructive"

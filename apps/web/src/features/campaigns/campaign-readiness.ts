@@ -1,6 +1,11 @@
 import type { OrganizationSession } from '@retaino/shared/contracts';
 import { routes } from '@/lib/routes';
 
+export type CampaignReadinessText = (
+  key: string,
+  values?: Record<string, string | number>,
+) => string;
+
 export function campaignsAllowed(session: OrganizationSession) {
   return (
     session.readiness.ready &&
@@ -15,13 +20,24 @@ export function campaignReadinessBlock(session: OrganizationSession) {
 
   return {
     actionHref: legalUpdateRequired ? routes.legal : routes.organizationSetup,
-    actionLabel: legalUpdateRequired ? 'Review legal updates' : 'Finish setup',
-    badgeLabel: legalUpdateRequired ? 'Legal updates required' : 'Setup required',
+  };
+}
+
+export function campaignReadinessBlockView(
+  session: OrganizationSession,
+  t: CampaignReadinessText,
+) {
+  const legalUpdateRequired =
+    session.readiness.legalUpdatesRequired || !session.readiness.legalCurrent;
+
+  return {
+    actionLabel: legalUpdateRequired ? t('reviewLegalUpdates') : t('finishSetup'),
+    badgeLabel: legalUpdateRequired ? t('legalUpdatesRequired') : t('setupRequired'),
     description: legalUpdateRequired
-      ? 'Updated legal terms must be accepted before campaign audiences can be previewed.'
-      : 'Company profile and legal agreement acceptance are required before campaigns can be prepared.',
+      ? t('legalUpdatesRequiredDescription')
+      : t('setupRequiredDescription'),
     title: legalUpdateRequired
-      ? 'Legal updates required before campaign previews'
-      : 'Finish setup before campaign work',
+      ? t('legalUpdatesRequiredTitle')
+      : t('setupRequiredTitle'),
   };
 }

@@ -3,6 +3,7 @@
 import {
   appLegalDocumentUrl,
   canManageOrganizationSetup,
+  type LegalBundleDocumentType,
   type OrganizationSession,
 } from '@retaino/shared/contracts';
 import { useForm } from '@tanstack/react-form';
@@ -12,7 +13,10 @@ import {
   CheckCircle2,
   Loader2,
 } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import {
+  useLocale,
+  useTranslations,
+} from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
@@ -31,16 +35,15 @@ import { AppPageHeader } from '@/features/appshell/components/app-page-header';
 import { ContentSection } from '@/features/appshell/components/content-section';
 import { useCreateCurrentOrganizationLegalAcceptance } from '@/features/onboarding/hooks/use-create-current-organization-legal-acceptance';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
-import {
-  legalBundleDocumentDescriptions,
-  legalBundleDocumentLabels,
-} from '@/features/onboarding/onboarding.constants';
 import { getFieldError } from '@/lib/form-errors';
 import { getIntlLocale } from '@/lib/locale-format';
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
 
 export function LegalOverviewScreen() {
+  const t = useTranslations('Legal');
+  const settings = useTranslations('Settings');
+  const common = useTranslations('Common');
   const session = useOrganizationSession();
 
   if (session.isLoading) {
@@ -53,7 +56,7 @@ export function LegalOverviewScreen() {
         <div className="max-w-lg">
           <ItemNotice
             description={session.error.message}
-            title="Legal terms could not be loaded"
+            title={t('loadErrorTitle')}
             variant="error"
           />
         </div>
@@ -68,7 +71,7 @@ export function LegalOverviewScreen() {
   const canManageSetup = canManageOrganizationSetup(
     session.data.organization.role,
   );
-  const status = legalAgreementStatus(session.data);
+  const status = legalAgreementStatus(session.data, settings);
 
   return (
     <main className="flex flex-1 items-start bg-background">
@@ -78,8 +81,8 @@ export function LegalOverviewScreen() {
             <Button asChild className="px-0" variant="link">
               <Link href={routes.settings}>
                 <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-                <span className="sm:hidden">Back</span>
-                <span className="hidden sm:inline">Back to organization</span>
+                <span className="sm:hidden">{common('back')}</span>
+                <span className="hidden sm:inline">{t('backToOrganization')}</span>
               </Link>
             </Button>
           }
@@ -88,9 +91,9 @@ export function LegalOverviewScreen() {
               <StatusBadge label={status.label} tone={status.tone} />
             ) : undefined
           }
-          description="Review the current legal bundle and accept updated terms when required."
-          eyebrow="Organization settings"
-          title="Legal agreement"
+          description={t('overviewDescription')}
+          eyebrow={settings('eyebrow')}
+          title={settings('legalAgreement')}
         />
 
         <div className="grid gap-5">
@@ -108,24 +111,25 @@ export function LegalOverviewScreen() {
 
 function CurrentBundleSection({ session }: { session: OrganizationSession }) {
   const locale = useLocale();
+  const t = useTranslations('Legal');
 
   return (
-    <ContentSection title="Current legal bundle">
+    <ContentSection title={t('currentBundleTitle')}>
       <dl className="grid gap-4 py-2 sm:grid-cols-3">
         <LegalMetadata
-          label="Bundle version"
+          label={t('bundleVersion')}
           value={session.legalBundle.version}
         />
         <LegalMetadata
-          label="Accepted by"
-          value={session.legalAcceptance?.acceptedByEmail ?? 'Not accepted'}
+          label={t('acceptedBy')}
+          value={session.legalAcceptance?.acceptedByEmail ?? t('notAccepted')}
         />
         <LegalMetadata
-          label="Accepted at"
+          label={t('acceptedAt')}
           value={
             session.legalAcceptance
               ? formatDateTime(session.legalAcceptance.acceptedAt, locale)
-              : 'Not accepted'
+              : t('notAccepted')
           }
         />
       </dl>
@@ -134,16 +138,14 @@ function CurrentBundleSection({ session }: { session: OrganizationSession }) {
 }
 
 function LegalDocumentsSection({ session }: { session: OrganizationSession }) {
+  const t = useTranslations('Legal');
+
   return (
-    <ContentSection framed={false} title="Documents">
+    <ContentSection framed={false} title={t('documentsTitle')}>
       {session.legalBundle.documents.map((document) => {
-        const documentType =
-          document.documentType as keyof typeof legalBundleDocumentLabels;
-        const label =
-          legalBundleDocumentLabels[documentType] ?? document.title;
-        const description =
-          legalBundleDocumentDescriptions[documentType] ??
-          'Legal document included in this bundle.';
+        const documentType = document.documentType as LegalBundleDocumentType;
+        const label = legalDocumentLabel(documentType, t);
+        const description = legalDocumentDescription(documentType, t);
         const titleId = `legal-document-${document.id}-title`;
 
         return (
@@ -160,11 +162,11 @@ function LegalDocumentsSection({ session }: { session: OrganizationSession }) {
               </div>
               <dl className="grid grid-cols-2 gap-3">
                 <LegalMetadata
-                  label="Version"
+                  label={t('version')}
                   value={document.documentVersion}
                 />
                 <LegalMetadata
-                  label="Effective date"
+                  label={t('effectiveDate')}
                   value={document.effectiveDate}
                 />
               </dl>
@@ -182,7 +184,7 @@ function LegalDocumentsSection({ session }: { session: OrganizationSession }) {
                     documentVersion: document.documentVersion,
                   })}
                 >
-                  Open
+                  {t('open')}
                   <ArrowRight aria-hidden="true" data-icon="inline-end" />
                 </Link>
               </Button>
@@ -203,6 +205,42 @@ function LegalMetadata({ label, value }: { label: string; value: string }) {
   );
 }
 
+function legalDocumentLabel(
+  documentType: LegalBundleDocumentType,
+  t: ReturnType<typeof useTranslations<'Legal'>>,
+) {
+  switch (documentType) {
+    case 'terms':
+      return t('documentLabels.terms');
+    case 'dpa':
+      return t('documentLabels.dpa');
+    case 'subprocessors':
+      return t('documentLabels.subprocessors');
+    case 'transfer_terms':
+      return t('documentLabels.transfer_terms');
+    case 'sending_policy':
+      return t('documentLabels.sending_policy');
+  }
+}
+
+function legalDocumentDescription(
+  documentType: LegalBundleDocumentType,
+  t: ReturnType<typeof useTranslations<'Legal'>>,
+) {
+  switch (documentType) {
+    case 'terms':
+      return t('documentDescriptions.terms');
+    case 'dpa':
+      return t('documentDescriptions.dpa');
+    case 'subprocessors':
+      return t('documentDescriptions.subprocessors');
+    case 'transfer_terms':
+      return t('documentDescriptions.transfer_terms');
+    case 'sending_policy':
+      return t('documentDescriptions.sending_policy');
+  }
+}
+
 function LegalAcceptanceSection({
   canManageSetup,
   session,
@@ -210,6 +248,7 @@ function LegalAcceptanceSection({
   canManageSetup: boolean;
   session: OrganizationSession;
 }) {
+  const t = useTranslations('Legal');
   const createLegalAcceptance = useCreateCurrentOrganizationLegalAcceptance();
   const form = useForm({
     defaultValues: {
@@ -224,8 +263,8 @@ function LegalAcceptanceSection({
   if (session.readiness.legalUpdatesRequired && canManageSetup) {
     return (
       <ContentSection
-        description="Imports are blocked until the current legal bundle is accepted."
-        title="Accept updated terms"
+        description={t('acceptDescription')}
+        title={t('acceptTitle')}
       >
           <form
             className="grid gap-4"
@@ -239,7 +278,7 @@ function LegalAcceptanceSection({
             {createLegalAcceptance.error ? (
               <ItemNotice
                 description={createLegalAcceptance.error.message}
-                title="Legal terms could not be accepted"
+                title={t('acceptErrorTitle')}
                 variant="error"
               />
             ) : null}
@@ -251,11 +290,11 @@ function LegalAcceptanceSection({
                   onBlur: ({ value }) =>
                     value
                       ? undefined
-                      : 'Confirm that you are authorized to accept the updated legal terms.',
+                      : t('authorizationRequired'),
                   onSubmit: ({ value }) =>
                     value
                       ? undefined
-                      : 'Confirm that you are authorized to accept the updated legal terms.',
+                      : t('authorizationRequired'),
                 }}
               >
                 {(field) => {
@@ -278,12 +317,10 @@ function LegalAcceptanceSection({
                       />
                       <div className="grid gap-1">
                         <Label htmlFor="legal-updates-authorization">
-                          I am authorized to accept the updated legal terms for
-                          this organization.
+                          {t('authorizationLabel')}
                         </Label>
                         <p className={textStyles.mutedBody}>
-                          Campaign sends will use the same gate when campaigns
-                          launch.
+                          {t('authorizationHint')}
                         </p>
                         {error ? (
                           <p
@@ -322,7 +359,7 @@ function LegalAcceptanceSection({
                         data-icon="inline-start"
                       />
                     )}
-                    Accept updated terms
+                    {t('acceptTitle')}
                   </Button>
                 )}
               </form.Subscribe>
@@ -335,8 +372,8 @@ function LegalAcceptanceSection({
   if (session.readiness.legalUpdatesRequired) {
     return (
       <ItemNotice
-        description="An organization admin needs to accept the updated legal terms before imports and campaigns can continue."
-        title="Admin acceptance required"
+        description={t('adminAcceptanceDescription')}
+        title={t('adminAcceptanceTitle')}
         variant="warning"
       />
     );
@@ -345,10 +382,13 @@ function LegalAcceptanceSection({
   return null;
 }
 
-function legalAgreementStatus(session: OrganizationSession) {
+function legalAgreementStatus(
+  session: OrganizationSession,
+  t: ReturnType<typeof useTranslations<'Settings'>>,
+) {
   if (session.readiness.legalUpdatesRequired) {
     return {
-      label: 'Legal updates required',
+      label: t('legalUpdatesRequired'),
       tone: 'amber',
     } as const;
   }
@@ -358,7 +398,7 @@ function legalAgreementStatus(session: OrganizationSession) {
   }
 
   return {
-    label: 'Setup incomplete',
+    label: t('setupIncomplete'),
     tone: 'amber',
   } as const;
 }

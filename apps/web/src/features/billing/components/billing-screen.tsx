@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { canManageOrganizationSetup } from '@retaino/shared/contracts';
 import type { BillingPlanKey } from '@retaino/shared/contracts';
+import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { ItemNotice } from '@/components/item-notice';
@@ -25,6 +26,8 @@ import { BillingPlanList } from './billing-plan-list';
 import { BillingStatusPanel } from './billing-status-panel';
 
 export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
+  const t = useTranslations('Billing');
+  const common = useTranslations('Common');
   const api = useApi();
   const session = useOrganizationSession();
   const organizationId = session.data?.organization.id ?? null;
@@ -48,11 +51,11 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
 
   useEffect(() => {
     if (showSuccess) {
-      toast.success('Checkout completed.', {
+      toast.success(t('checkoutCompleted'), {
         id: 'billing-checkout-completed',
       });
     }
-  }, [showSuccess]);
+  }, [showSuccess, t]);
 
   if (session.isLoading) {
     return <AppPageLoading />;
@@ -64,7 +67,7 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
         <div className="max-w-lg">
           <ItemNotice
             description={session.error.message}
-            title="Billing could not be loaded"
+            title={t('loadErrorTitle')}
             variant="error"
           />
         </div>
@@ -84,8 +87,8 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
     <main className="flex flex-1 items-start bg-background">
       <section className="mx-auto grid w-full max-w-6xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
-          eyebrow="Billing"
-          title="Billing"
+          eyebrow={t('title')}
+          title={t('title')}
         />
 
         <div className="grid gap-5">
@@ -94,17 +97,17 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
               description={
                 actionError instanceof Error
                   ? actionError.message
-                  : 'Try the billing action again.'
+                  : t('actionErrorDescription')
               }
-              title="Billing action failed"
+              title={t('actionErrorTitle')}
               variant="error"
             />
           ) : null}
 
           {!canManageBilling ? (
             <ItemNotice
-              description="You can view billing status, but only organization admins can start checkout or manage payment details."
-              title="Admin access required for billing changes"
+              description={t('adminRequiredDescription')}
+              title={t('adminRequiredTitle')}
               variant="warning"
             />
           ) : null}
@@ -114,13 +117,13 @@ export function BillingScreen({ showSuccess }: { showSuccess?: boolean }) {
               description={
                 billingStatus.error instanceof Error
                   ? billingStatus.error.message
-                  : 'Try again in a moment.'
+                  : common('tryAgainSoon')
               }
-              title="Billing status could not be loaded"
+              title={t('statusLoadErrorTitle')}
               variant="error"
             />
           ) : billingStatus.isLoading || !billingStatus.data ? (
-            <LoadingState className="py-6" label="Loading billing status" />
+            <LoadingState className="py-6" label={t('loadingStatus')} />
           ) : (
             <>
               <BillingStatusPanel

@@ -12,6 +12,7 @@ import {
   TriangleAlert,
   UserPlus,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import {
   useEffect,
@@ -34,7 +35,6 @@ import { useContactImport } from '@/features/contacts/hooks/use-contact-import';
 import { routes } from '@/lib/routes';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
-import { formatImportIssue } from '../contacts-format';
 import { ImportStatusBadge } from './status-badge';
 
 export function ContactImportProgress({
@@ -46,6 +46,8 @@ export function ContactImportProgress({
   onImportAnother: () => void;
   organizationId: string;
 }) {
+  const t = useTranslations('Contacts');
+  const common = useTranslations('Common');
   const { importQuery, latestImport } = useContactImport({
     importId,
     organizationId,
@@ -62,13 +64,18 @@ export function ContactImportProgress({
 
       toast.success(
         issueCount > 0
-          ? 'Import complete with issues'
-          : 'Import complete',
+          ? t('importCompleteWithIssues')
+          : t('importComplete'),
         {
           description:
             issueCount > 0
-              ? `${latestImport.processedRows} rows processed, ${issueCount} need attention.`
-              : `${importedContactCount(latestImport)} contacts imported.`,
+              ? t('importCompleteIssueToastDescription', {
+                  rows: latestImport.processedRows,
+                  issues: issueCount,
+                })
+              : t('importCompleteToastDescription', {
+                  contacts: importedContactCount(latestImport),
+                }),
           id: `contact-import-${latestImport.id}-completed`,
         },
       );
@@ -76,19 +83,19 @@ export function ContactImportProgress({
     }
 
     if (latestImport.status === 'failed') {
-      toast.error('Import failed', {
+      toast.error(t('importFailed'), {
         description:
-          latestImport.errorSummary[0] ?? 'Review the import result and try again.',
+          latestImport.errorSummary[0] ?? t('importFailedToastDescription'),
         id: `contact-import-${latestImport.id}-failed`,
       });
       notifiedStatus.current = latestImport.status;
     }
-  }, [latestImport]);
+  }, [latestImport, t]);
 
   if (importQuery.isLoading) {
     return (
       <section className="grid gap-4">
-        <p className={textStyles.mutedBody}>Loading import status.</p>
+        <p className={textStyles.mutedBody}>{t('loadingImportStatus')}</p>
       </section>
     );
   }
@@ -99,20 +106,20 @@ export function ContactImportProgress({
         description={
           importQuery.error instanceof Error
             ? importQuery.error.message
-            : 'Try again in a moment.'
+            : common('tryAgainSoon')
         }
-        title="Import status could not be loaded"
+        title={t('importStatusLoadErrorTitle')}
         variant="error"
       />
     );
   }
 
   const showMetrics = shouldShowImportMetrics(latestImport);
-  const importSummary = showMetrics ? createImportSummary(latestImport) : [];
+  const importSummary = showMetrics ? createImportSummary(latestImport, t) : [];
   const showActions =
     latestImport.status === 'completed' || latestImport.status === 'failed';
   const showIssues = latestImport.errorSummary.length > 0;
-  const header = importProgressHeaderView(latestImport);
+  const header = importProgressHeaderView(latestImport, t);
 
   return (
     <div className="grid gap-5">
@@ -146,24 +153,27 @@ export function ContactImportProgress({
   );
 }
 
-function importProgressHeaderView(importRow: ContactImportDetail) {
+function importProgressHeaderView(
+  importRow: ContactImportDetail,
+  t: ReturnType<typeof useTranslations<'Contacts'>>,
+) {
   const issueCount = importIssueCount(importRow);
   const title =
     importRow.status === 'processing'
-      ? 'Import is processing'
+      ? t('importProcessing')
       : importRow.status === 'failed'
-        ? 'Import failed'
+        ? t('importFailed')
         : issueCount > 0
-          ? 'Import complete with issues'
-          : 'Import complete';
+          ? t('importCompleteWithIssues')
+          : t('importComplete');
   const description =
     importRow.status === 'processing'
-      ? 'Validating, deduplicating, and checking suppressions.'
+      ? t('importProcessingDescription')
       : importRow.status === 'failed'
-        ? 'The contacts were not imported. Review the issue below and try again.'
+        ? t('importFailedDescription')
         : issueCount > 0
-          ? 'Contacts were imported, but some rows need attention.'
-          : 'Contacts were imported.';
+          ? t('importCompleteWithIssuesDescription')
+          : t('importCompleteDescription');
 
   return { description, title };
 }
@@ -175,7 +185,8 @@ function ImportFunnel({
   importRow: ContactImportDetail;
   summary: SankeyBreakdownSummaryItem[];
 }) {
-  const importNodes = createImportNodes();
+  const t = useTranslations('Contacts');
+  const importNodes = createImportNodes(t);
   const importLinks = createImportLinks(importRow);
 
   return (
@@ -184,7 +195,7 @@ function ImportFunnel({
       nodes={importNodes}
       showHeader={false}
       summary={summary}
-      title="Import results"
+      title={t('importResults')}
     />
   );
 }
@@ -223,17 +234,19 @@ function ImportActions({
   importStatus: ContactImportDetail['status'];
   onImportAnother: () => void;
 }) {
+  const t = useTranslations('Contacts');
+
   return (
     <GuidedFlowActions>
       <Button onClick={onImportAnother} type="button" variant="outline">
         <FileUp aria-hidden="true" data-icon="inline-start" />
-        Import another CSV
+        {t('importAnotherCsv')}
       </Button>
       {importStatus === 'completed' ? (
         <Button asChild>
           <Link href={routes.contacts}>
             <CheckCircle2 aria-hidden="true" data-icon="inline-start" />
-            View contacts
+            {t('viewContacts')}
           </Link>
         </Button>
       ) : null}
@@ -246,6 +259,7 @@ function shouldShowImportMetrics(importRow: ContactImportDetail) {
 }
 
 function ImportIssuesSection({ importRow }: { importRow: ContactImportDetail }) {
+  const t = useTranslations('Contacts');
   if (importRow.errorSummary.length === 0) {
     return null;
   }
@@ -256,7 +270,7 @@ function ImportIssuesSection({ importRow }: { importRow: ContactImportDetail }) 
 
   return (
     <ContentSection
-      description="Rows that need review before they can be used."
+      description={t('importIssuesDescription')}
       title={
         <span className="inline-flex items-center gap-2">
           <IssueIcon
@@ -268,7 +282,7 @@ function ImportIssuesSection({ importRow }: { importRow: ContactImportDetail }) 
                 : 'text-amber-600 dark:text-amber-400',
             )}
           />
-          {isFailed ? 'Import failed' : 'Rows need attention'}
+          {isFailed ? t('importFailed') : t('rowsNeedAttention')}
         </span>
       }
     >
@@ -279,7 +293,7 @@ function ImportIssuesSection({ importRow }: { importRow: ContactImportDetail }) 
         {importRow.errorSummary.map((issue) => (
           <StatusBadge
             key={issue}
-            label={formatImportIssue(issue)}
+            label={formatImportIssueLabel(issue, t)}
             tone={issueTone}
           />
         ))}
@@ -296,39 +310,41 @@ function importedContactCount(importRow: ContactImportDetail) {
   return importRow.createdCount + importRow.updatedCount;
 }
 
-function createImportNodes(): SankeyBreakdownNode[] {
+function createImportNodes(
+  t: ReturnType<typeof useTranslations<'Contacts'>>,
+): SankeyBreakdownNode[] {
   return [
     {
       color: 'var(--chart-3)',
-      name: 'Rows processed',
+      name: t('importNodeRowsProcessed'),
     },
     {
       color: 'var(--chart-2)',
-      name: 'Imported',
+      name: t('importNodeImported'),
     },
     {
       color: 'var(--chart-4)',
-      name: 'Needs attention',
+      name: t('importNodeNeedsAttention'),
     },
     {
       color: 'var(--chart-2)',
-      name: 'Ready',
+      name: t('importNodeReady'),
     },
     {
       color: 'var(--muted-foreground)',
-      name: 'Suppressed',
+      name: t('importNodeSuppressed'),
     },
     {
       color: 'var(--chart-4)',
-      name: 'Skipped',
+      name: t('importNodeSkipped'),
     },
     {
       color: 'var(--destructive)',
-      name: 'Invalid',
+      name: t('importNodeInvalid'),
     },
     {
       color: 'var(--chart-5)',
-      name: 'Duplicate',
+      name: t('importNodeDuplicate'),
     },
   ];
 }
@@ -357,49 +373,78 @@ function createImportLinks(
 
 function createImportSummary(
   importRow: ContactImportDetail,
+  t: ReturnType<typeof useTranslations<'Contacts'>>,
 ): SankeyBreakdownSummaryItem[] {
   return [
     {
-      detail: 'New contacts imported.',
+      detail: t('importSummaryCreatedDetail'),
       icon: UserPlus,
       iconClassName: 'bg-emerald-50 text-emerald-700',
-      label: 'Created',
+      label: t('importSummaryCreated'),
       value: importRow.createdCount,
     },
     {
-      detail: 'Existing contacts updated.',
+      detail: t('importSummaryUpdatedDetail'),
       icon: RefreshCw,
       iconClassName: 'bg-blue-50 text-blue-700',
-      label: 'Updated',
+      label: t('importSummaryUpdated'),
       value: importRow.updatedCount,
     },
     {
-      detail: 'Contacts excluded from SMS.',
+      detail: t('importSummarySuppressedDetail'),
       icon: ShieldOff,
       iconClassName: 'bg-rose-50 text-rose-700',
-      label: 'Suppressed',
+      label: t('importSummarySuppressed'),
       value: importRow.suppressedCount,
     },
     {
-      detail: 'Rows not imported.',
+      detail: t('importSummarySkippedDetail'),
       icon: CircleSlash,
       iconClassName: 'bg-zinc-100 text-zinc-700',
-      label: 'Skipped',
+      label: t('importSummarySkipped'),
       value: importRow.skippedCount,
     },
     {
-      detail: 'Rows with invalid data.',
+      detail: t('importSummaryInvalidDetail'),
       icon: AlertCircle,
       iconClassName: 'bg-rose-50 text-rose-700',
-      label: 'Invalid',
+      label: t('importSummaryInvalid'),
       value: importRow.invalidCount,
     },
     {
-      detail: 'Duplicate rows found.',
+      detail: t('importSummaryDuplicateDetail'),
       icon: Copy,
       iconClassName: 'bg-amber-50 text-amber-700',
-      label: 'Duplicate',
+      label: t('importSummaryDuplicate'),
       value: importRow.duplicateCount,
     },
   ];
+}
+
+function formatImportIssueLabel(
+  issue: string,
+  t: ReturnType<typeof useTranslations<'Contacts'>>,
+) {
+  switch (issue) {
+    case 'ambiguous_last_booking_at':
+      return t('importIssueAmbiguousLastBooking');
+    case 'duplicate_contact_method':
+      return t('importIssueDuplicateContactMethod');
+    case 'invalid_email':
+      return t('importIssueInvalidEmail');
+    case 'invalid_last_booking_at':
+      return t('importIssueInvalidLastBooking');
+    case 'invalid_phone':
+      return t('importIssueInvalidPhone');
+    case 'missing_contact_method':
+      return t('importIssueMissingContactMethod');
+    case 'suppressed_contact_method':
+      return t('importIssueSuppressedContactMethod');
+    default:
+      return issue
+        .split('_')
+        .map((word) => word.trim())
+        .filter(Boolean)
+        .join(' ');
+  }
 }

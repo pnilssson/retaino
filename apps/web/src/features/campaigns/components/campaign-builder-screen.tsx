@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   FileText,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from '@/i18n/navigation';
 import {
@@ -25,6 +26,7 @@ import { useOrganizationSession } from '@/features/onboarding/hooks/use-organiza
 import { routes } from '@/lib/routes';
 import {
   campaignReadinessBlock,
+  campaignReadinessBlockView,
   campaignsAllowed,
 } from '../campaign-readiness';
 import { CampaignDraftActions } from './campaign-draft-actions';
@@ -43,6 +45,7 @@ export function CampaignBuilderScreen({
 }: {
   campaignId?: string;
 }) {
+  const t = useTranslations('Campaigns');
   const router = useRouter();
   const [createdCampaignInitialStep] = useState<CampaignStepId | undefined>(
     () => {
@@ -88,8 +91,8 @@ export function CampaignBuilderScreen({
     latestCampaign?.status !== 'failed';
   const refetchCampaign = campaign.refetch;
   const title = campaignId
-    ? campaignOverviewTitle(latestCampaign)
-    : 'New campaign';
+    ? campaignOverviewTitle(latestCampaign, t)
+    : t('newCampaignTitle');
 
   useEffect(() => {
     if (!shouldPollCampaign) {
@@ -113,7 +116,7 @@ export function CampaignBuilderScreen({
         <div className="max-w-lg">
           <ItemNotice
             description={session.error.message}
-            title="Campaign builder could not be loaded"
+            title={t('campaignBuilderLoadErrorTitle')}
             variant="error"
           />
         </div>
@@ -136,10 +139,10 @@ export function CampaignBuilderScreen({
           actions={
             <>
               <Button asChild className="px-0" variant="link">
-                <Link aria-label="Back to campaigns" href={routes.campaigns}>
+                <Link aria-label={t('backToCampaigns')} href={routes.campaigns}>
                   <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-                  <span className="sm:hidden">Back</span>
-                  <span className="hidden sm:inline">Back to campaigns</span>
+                  <span className="sm:hidden">{t('back')}</span>
+                  <span className="hidden sm:inline">{t('backToCampaigns')}</span>
                 </Link>
               </Button>
               {latestCampaign?.status === 'draft' ? (
@@ -150,7 +153,7 @@ export function CampaignBuilderScreen({
               ) : null}
             </>
           }
-          eyebrow={showOverview ? 'Campaign overview' : 'Campaign builder'}
+          eyebrow={showOverview ? t('campaignOverview') : t('campaignBuilder')}
           title={title}
         />
 
@@ -159,13 +162,13 @@ export function CampaignBuilderScreen({
             description={
               campaign.error instanceof Error
                 ? campaign.error.message
-                : 'Try returning to the campaign list.'
+                : t('campaignFetchErrorDescription')
             }
-            title="Campaign could not be fetched"
+            title={t('campaignFetchErrorTitle')}
             variant="error"
           />
         ) : campaignId && campaign.isLoading ? (
-          <LoadingState className="py-6" label="Loading campaign" />
+          <LoadingState className="py-6" label={t('loadingCampaign')} />
         ) : showOverview && latestCampaign ? (
           <CampaignOverview
             campaign={latestCampaign}
@@ -218,7 +221,9 @@ function normalizedCampaignStepId(
 }
 
 function BlockedCampaignBuilder({ session }: { session: OrganizationSession }) {
+  const t = useTranslations('Campaigns');
   const block = campaignReadinessBlock(session);
+  const view = campaignReadinessBlockView(session, t);
 
   return (
     <main className="flex flex-1 items-start bg-background">
@@ -226,27 +231,27 @@ function BlockedCampaignBuilder({ session }: { session: OrganizationSession }) {
         <AppPageHeader
           badge={
             <StatusBadge
-              label={block.badgeLabel}
+              label={view.badgeLabel}
               tone="amber"
             />
           }
-          description={block.description}
-          eyebrow="Campaign builder"
-          title={block.title}
+          description={view.description}
+          eyebrow={t('campaignBuilder')}
+          title={view.title}
         />
         <div className="grid gap-5">
           <ContentSection asChild>
             <section>
               <ItemNotice
-                description={block.description}
-                title={block.title}
+                description={view.description}
+                title={view.title}
                 variant="warning"
               />
               <div className="flex justify-end">
                 <Button asChild>
                   <Link href={block.actionHref}>
                     <FileText aria-hidden="true" data-icon="inline-start" />
-                    {block.actionLabel}
+                    {view.actionLabel}
                   </Link>
                 </Button>
               </div>
@@ -262,9 +267,12 @@ function hasOverviewStatus(status: string) {
   return status === 'sending' || status === 'sent' || status === 'failed';
 }
 
-function campaignOverviewTitle(campaign: Campaign | null) {
+function campaignOverviewTitle(
+  campaign: Campaign | null,
+  t: ReturnType<typeof useTranslations<'Campaigns'>>,
+) {
   if (!campaign) {
-    return 'Campaign';
+    return t('campaignFallbackTitle');
   }
 
   const reference = campaign.campaignCode?.trim();

@@ -3,6 +3,7 @@
 import { useForm } from '@tanstack/react-form';
 import type { CampaignSmsTestContact } from '@retaino/shared/contracts';
 import { Send } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { GuidedFlowActions } from '@/components/guided-flow';
@@ -31,6 +32,7 @@ export function CampaignTestSms({
   organizationId: string | null;
   senderReady: boolean;
 }) {
+  const t = useTranslations('Campaigns');
   const testSend = useSendCampaignTestSms(campaignId);
   const [sampleContact, setSampleContact] =
     useState<CampaignSmsTestContact | null>(null);
@@ -49,10 +51,13 @@ export function CampaignTestSms({
           : undefined,
       });
 
-      toast.success('Test SMS sent.', {
-        description: `${response.testSend.chargedCredits} SMS ${
-          response.testSend.chargedCredits === 1 ? 'credit' : 'credits'
-        } used.`,
+      toast.success(t('testSmsSent'), {
+        description: t(
+          response.testSend.chargedCredits === 1
+            ? 'testSmsCreditUsed'
+            : 'testSmsCreditsUsed',
+          { count: response.testSend.chargedCredits },
+        ),
       });
       onSent?.();
     },
@@ -62,8 +67,8 @@ export function CampaignTestSms({
     <div className="grid gap-5">
       {!senderReady ? (
         <ItemNotice
-          description="Set up the sender before sending a test SMS."
-          title="Sender is not ready"
+          description={t('testSmsSenderNotReadyDescription')}
+          title={t('testSmsSenderNotReadyTitle')}
           variant="warning"
         />
       ) : null}
@@ -79,7 +84,7 @@ export function CampaignTestSms({
       <form.Field name="testPhone">
         {(field) => (
           <div className="grid gap-2">
-            <Label htmlFor={field.name}>Test phone</Label>
+            <Label htmlFor={field.name}>{t('testPhone')}</Label>
             <PhoneInput
               countryCode={form.getFieldValue('testPhoneCountryCode')}
               disabled={!senderReady || testSend.isPending}
@@ -94,8 +99,7 @@ export function CampaignTestSms({
               value={field.state.value}
             />
             <p className={textStyles.mutedBody}>
-              Send this test to a phone you control. Leave it blank to send the
-              test SMS to the responsible contact number for your organization.
+              {t('testPhoneDescription')}
             </p>
           </div>
         )}
@@ -106,9 +110,9 @@ export function CampaignTestSms({
           description={
             testSend.error instanceof Error
               ? testSend.error.message
-              : 'Check the phone number and try again.'
+              : t('testSmsSendErrorDescription')
           }
-          title="Test SMS could not be sent"
+          title={t('testSmsSendErrorTitle')}
           variant="error"
         />
       ) : null}
@@ -121,7 +125,7 @@ export function CampaignTestSms({
             type="button"
             variant="outline"
           >
-            Skip
+            {t('skip')}
           </Button>
         ) : null}
         <Button
@@ -130,7 +134,7 @@ export function CampaignTestSms({
           type="button"
         >
           <Send aria-hidden="true" data-icon="inline-start" />
-          {testSend.isPending ? 'Sending test SMS...' : 'Send test SMS'}
+          {testSend.isPending ? t('sendingTestSms') : t('sendTestSmsAction')}
         </Button>
       </GuidedFlowActions>
     </div>

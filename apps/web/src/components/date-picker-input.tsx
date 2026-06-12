@@ -8,7 +8,10 @@ import {
   enUS,
   sv,
 } from 'date-fns/locale';
-import { useLocale } from 'next-intl';
+import {
+  useLocale,
+  useTranslations,
+} from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -25,7 +28,7 @@ export function DatePickerInput({
   name,
   onBlur,
   onChange,
-  placeholder = 'Select date',
+  placeholder,
   value,
 }: {
   'aria-invalid'?: boolean;
@@ -37,8 +40,10 @@ export function DatePickerInput({
   value: string;
 }) {
   const locale = useLocale();
+  const t = useTranslations('Common');
   const [open, setOpen] = useState(false);
   const selectedDate = dateInputToLocalDate(value);
+  const resolvedPlaceholder = placeholder ?? t('selectDate');
 
   return (
     <Popover
@@ -54,7 +59,7 @@ export function DatePickerInput({
       <PopoverTrigger asChild>
         <Button
           aria-invalid={ariaInvalid}
-          aria-label={placeholder}
+          aria-label={resolvedPlaceholder}
           className="h-8 w-full justify-start"
           id={id}
           name={name}
@@ -62,7 +67,7 @@ export function DatePickerInput({
           variant="outline"
         >
           <CalendarIcon aria-hidden="true" data-icon="inline-start" />
-          {selectedDate ? formatDateInputLabel(value, locale) : placeholder}
+          {selectedDate ? formatDateInputLabel(value, locale) : resolvedPlaceholder}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">
@@ -88,7 +93,7 @@ export function DatePickerInput({
               variant="ghost"
             >
               <X aria-hidden="true" data-icon="inline-start" />
-              Clear
+              {t('clear')}
             </Button>
           </div>
         ) : null}
@@ -119,7 +124,7 @@ function formatDateInputLabel(value: string, locale: string) {
   const date = dateInputToLocalDate(value);
 
   if (!date) {
-    return 'Select date';
+    return '';
   }
 
   return new Intl.DateTimeFormat(getIntlLocale(locale), {

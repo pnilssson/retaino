@@ -1,15 +1,20 @@
 import type { Metadata } from 'next';
 import { auth } from '@clerk/nextjs/server';
+import { getTranslations } from 'next-intl/server';
 import { redirect } from '@/i18n/navigation';
 
 import { AuthForm } from '@/features/auth/components/auth-form';
 import { AuthProofPanel } from '@/features/auth/components/auth-proof-panel';
 import { routes } from '@/lib/routes';
 
-export const metadata: Metadata = {
-  title: 'Sign in | Retaino',
-  description: 'Sign in to continue setting up Retaino.'
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('Metadata');
+
+  return {
+    title: t('signInTitle'),
+    description: t('signInDescription'),
+  };
+}
 
 export default async function SignInPage({
   params,

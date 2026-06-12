@@ -5,6 +5,7 @@ import {
   MoreVertical,
   Trash2,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -29,6 +30,8 @@ export function ContactBulkActions({
   organizationId: string;
   selectedCount: number;
 }) {
+  const t = useTranslations('Contacts');
+  const common = useTranslations('Common');
   const bulkDelete = useBulkDeleteContacts(organizationId);
   const bulkSuppress = useBulkSuppressContacts(organizationId);
   const isPending =
@@ -44,9 +47,9 @@ export function ContactBulkActions({
       await bulkSuppress.mutation.mutateAsync({ contactIds, type: 'phone' });
       onClear();
     } catch (error) {
-      toast.error('Contacts could not be suppressed', {
+      toast.error(t('bulkSuppressErrorTitle'), {
         description:
-          error instanceof Error ? error.message : 'Try again in a moment.',
+          error instanceof Error ? error.message : common('tryAgainSoon'),
       });
     }
   }
@@ -60,9 +63,9 @@ export function ContactBulkActions({
       await bulkDelete.mutation.mutateAsync({ contactIds });
       onClear();
     } catch (error) {
-      toast.error('Contacts could not be deleted', {
+      toast.error(t('bulkDeleteErrorTitle'), {
         description:
-          error instanceof Error ? error.message : 'Try again in a moment.',
+          error instanceof Error ? error.message : common('tryAgainSoon'),
       });
     }
   }
@@ -71,7 +74,7 @@ export function ContactBulkActions({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          aria-label="Open contact actions"
+          aria-label={t('openContactActions')}
           disabled={!hasSelection || isPending}
           size="icon-sm"
           type="button"
@@ -82,36 +85,36 @@ export function ContactBulkActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <ConfirmDialog
-          confirmLabel="Suppress SMS"
-          description="This adds manual SMS suppressions for the selected contacts that have usable phone data."
+          confirmLabel={t('suppressSms')}
+          description={t('bulkSuppressDescription')}
           isPending={bulkSuppress.mutation.isPending}
           onConfirm={suppressSelectedContacts}
-          title="Suppress selected contacts?"
+          title={t('bulkSuppressTitle')}
           trigger={
             <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
               <Ban aria-hidden="true" />
-              Suppress SMS
+              {t('suppressSms')}
             </DropdownMenuItem>
           }
         />
         <ConfirmDialog
-          confirmLabel="Delete contacts"
-          description="This permanently deletes the selected contacts from this organization."
+          confirmLabel={t('deleteContacts')}
+          description={t('bulkDeleteDescription')}
           isPending={bulkDelete.mutation.isPending}
           onConfirm={deleteSelectedContacts}
-          title="Delete selected contacts?"
+          title={t('bulkDeleteTitle')}
           trigger={
             <DropdownMenuItem
               onSelect={(event) => event.preventDefault()}
               variant="destructive"
             >
               <Trash2 aria-hidden="true" />
-              Delete
+              {t('delete')}
             </DropdownMenuItem>
           }
           variant="destructive"
         />
-        <DropdownMenuLabel>{selectedCount} selected</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('selectedCount', { count: selectedCount })}</DropdownMenuLabel>
       </DropdownMenuContent>
     </DropdownMenu>
   );
