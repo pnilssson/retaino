@@ -39,6 +39,9 @@ This repository is the Retaino monorepo.
 - Never manually edit migration SQL or migration metadata. Update the Drizzle
   schema, then generate migrations with the project migration command.
 - Payments use Stripe.
+- Published legal document versions are immutable. If legal text changes,
+  create new versioned MDX files and update the manifest instead of editing
+  existing legal document versions.
 - Background jobs use Inngest.
 - Long-running operations must run in Inngest background jobs, not inside HTTP
   requests.

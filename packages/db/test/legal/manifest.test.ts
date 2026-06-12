@@ -44,6 +44,12 @@ describe('legal document manifest', () => {
       expect(diskPaths.has(manifestPath)).toBe(true);
     }
   });
+
+  it('publishes the current localized legal documents as a new rollout version', () => {
+    expect(
+      legalDocuments.every((document) => document.version === '2026-06-12'),
+    ).toBe(true);
+  });
 });
 
 function readLegalDocumentPaths(directory: string) {

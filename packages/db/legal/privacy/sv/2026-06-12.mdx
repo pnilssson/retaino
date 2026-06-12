@@ -1,0 +1,85 @@
+# Retainos integritetspolicy
+
+Senast uppdaterad: 2026-05-30
+
+Denna policy förklarar hur Retaino hanterar personuppgifter när någon besöker webbplatsen, loggar in, hanterar organisationer, importerar kunddata, förbereder kampanjer, skickar SMS, hanterar svar, betalar för tjänsten och mäter rapporterade bokningar.
+
+## Roller och kontakt
+
+Retaino är personuppgiftsansvarig för konto-, webbplats-, fakturerings-, säkerhets-, diagnostik- och produktdriftsdata som beskrivs i denna policy.
+
+När en kund importerar kontakt-, kampanj-, SMS-, svars-, opt-out-, spårnings- eller bokningsdata till Retaino är kunden personuppgiftsansvarig och Retaino agerar som personuppgiftsbiträde enligt personuppgiftsbiträdesavtalet.
+
+Kontakta Retaino på hello@retaino.io för integritetsförfrågningar eller frågor.
+
+## Data som Retaino samlar in som personuppgiftsansvarig
+
+### Konto- och autentiseringsdata
+
+Retaino behandlar e-postadresser, namn, organisationsmedlemskap, roller, autentiseringsidentifierare och sessionsdata som behövs för att skapa, skydda och administrera konton genom Clerk.
+
+### Webbplats- och appdata
+
+Retaino behandlar metadata om förfrågningar, enhets- och webbläsarinformation, säkerhetsloggar, cookieval, produktinställningar och tekniska händelser som behövs för att driva, säkra och förbättra webbplatsen och appen.
+
+### Faktureringsdata
+
+Stripe behandlar checkout-, betalnings-, skatte-, faktura-, prenumerations- och faktureringsportalposter. Retaino tar emot betalningsstatus, kundidentifierare, planinformation, fakturastatus, återbetalningsstatus och relaterad faktureringsmetadata som behövs för att ge åtkomst och administrera konton.
+
+### Diagnostik- och felövervakningsdata
+
+Retaino använder Sentry på backend för att upptäcka, undersöka och lösa fel. Sentry kan behandla teknisk diagnostik som rutt, förfrågningsmetod, miljö, release, feldetaljer, tidsstämplar och begränsade drifttaggar som organisation, kampanj, kontaktimport, leverantör eller leverantörsfelidentifierare. Retaino konfigurerar Sentry för att undvika att skicka standardpersonuppgifter och för att filtrera känsliga fält som behörighetsheaders, cookies, telefonnummer, e-postadresser, meddelandetexter, råa payloads, hemligheter och tokens.
+
+## Data som Retaino behandlar för kunder
+
+Retaino kan behandla kunders personuppgifter enligt kundens instruktioner, inklusive:
+
+- importerade kontaktnamn, telefonnummer, e-postadresser och bokningsmetadata;
+- normaliserade kontaktidentifierare och hashvärden;
+- kampanjers målgruppsregler, kampanjinnehåll, bokningslänkar, kampanjstatus och snapshots av kampanjmottagare;
+- SMS-avsändarinformation, mottagares telefonnummer, meddelandetexter, leveransstatusdata, inkommande svar, leverantörens meddelandeidentifierare, tidsstämplar och opt-out-händelser;
+- spårningslänkar och klickhändelser;
+- rapporterade bokningsdatum, intäktsbelopp, tjänsteetiketter, anteckningar och kampanjattribueringsreferenser;
+- bevis för tillstånd och juridisk acceptans.
+
+Kunden ansvarar för att ge sina egna klienter den integritetsinformation som krävs för kundens användning av Retaino.
+
+## Varför Retaino använder personuppgifter
+
+| Syfte | Rättslig grund eller roll |
+| --- | --- |
+| Skapa och säkra konton och organisationer. | Avtal och berättigade intressen av kontosäkerhet. |
+| Tillhandahålla kundreaktivering, SMS-kampanjer, opt-out-hantering, inkorg, spårning och rapportering. | Kundens instruktioner enligt personuppgiftsbiträdesavtalet. |
+| Bekräfta betalningar, beräkna skatt, hantera prenumerationer och ge faktureringsåtkomst. | Avtal och rättsliga skyldigheter för bokföring och skatteunderlag. |
+| Upprätthålla driftsäkerhet, undersöka fel, förebygga missbruk och skydda tjänsten. | Berättigade intressen av att driva en säker och tillförlitlig tjänst. |
+| Komma ihåg cookieval och valfria inställningar. | Rättslig skyldighet och samtycke där det krävs. |
+
+## Leverantörer
+
+Retaino använder tjänsteleverantörer för autentisering, databashosting, webbhosting, API-hosting, objektlagring, trafikroutning, säkerhet, betalningshantering, skatteberäkning, orkestrering av bakgrundsjobb, SMS-leverans, behandling av inkommande svar, behandling av leveranshändelser, opt-out-hantering, diagnostik och felövervakning.
+
+Nuvarande tjänsteleverantörer inkluderar Clerk, Neon, Vercel, Cloudflare, Stripe, Inngest, Twilio och Sentry. Kunders personuppgifter som behandlas för kunders räkning omfattas också av underbiträdesinformationen.
+
+## Internationella överföringar
+
+Retaino och dess leverantörer kan behandla personuppgifter utanför EU eller EES när det behövs för att tillhandahålla, säkra, stödja, övervaka eller fakturera tjänsten. Retaino använder lämpliga överföringsmekanismer som beslut om adekvat skyddsnivå, EU:s standardavtalsklausuler, EU-US Data Privacy Framework där det är tillämpligt och kompletterande skyddsåtgärder där det är lämpligt.
+
+## Lagringstid
+
+Retaino sparar personuppgifter endast så länge som behövs för det relevanta syftet, om inte en längre period krävs av säkerhets-, juridiska, skatte-, bokförings- eller revisionsskäl.
+
+MVP:ns standarder för lagringstid inkluderar:
+
+- råa uppladdade kontaktfiler är temporära och raderas efter behandling eller genom livscykelrensning;
+- normaliserade kontakter, kampanjposter, SMS-ledgerposter, opt-outs, svar, klick och rapporterade bokningsposter sparas medan organisationen är aktiv eller tills radering begärs och Retaino lagligen kan radera dem;
+- juridiska acceptansposter sparas som avtals- och revisionsbevis;
+- faktureringsposter sparas så länge det behövs för skatt, bokföring och betalningstvister;
+- diagnostik- och felövervakningsposter sparas för driftssäkerhet och felsökning.
+
+## Dina rättigheter
+
+Beroende på var du bor kan du ha rätt att få tillgång till, rätta, radera, begränsa, exportera eller invända mot behandling av dina personuppgifter. Du kan också återkalla samtycke när behandling bygger på samtycke.
+
+Om din begäran gäller data som kontrolleras av en Retaino-kund kan Retaino hänvisa begäran till kunden eller hjälpa kunden enligt personuppgiftsbiträdesavtalet.
+
+Du kan lämna klagomål till Integritetsskyddsmyndigheten, IMY, i Sverige eller till en annan behörig dataskyddsmyndighet.

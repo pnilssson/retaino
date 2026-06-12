@@ -61,7 +61,7 @@ export function SiteFooter() {
               {tChrome('cookiePreferences')}
             </button>
             <LocaleSwitcher
-              className="w-fit px-0 text-primary-foreground/70 hover:bg-transparent hover:text-primary-foreground"
+              className="w-fit text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground data-[state=open]:bg-primary-foreground/10"
               variant="ghost"
             />
           </nav>

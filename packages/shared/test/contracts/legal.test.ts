@@ -8,7 +8,7 @@ import {
 
 describe('legal contracts', () => {
   it('defines the current acceptance bundle version', () => {
-    expect(LEGAL_BUNDLE_VERSION).toBe('2026-05-30');
+    expect(LEGAL_BUNDLE_VERSION).toBe('2026-06-12');
   });
 
   it('keeps the acceptance bundle scoped to required documents only', () => {

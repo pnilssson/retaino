@@ -2,7 +2,6 @@ import { Show } from '@clerk/nextjs';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import { LocaleSwitcher } from '@/components/locale-switcher';
 import { Button } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
 
@@ -29,7 +28,6 @@ export function SiteHeader() {
         </Link>
 
         <div className="flex min-h-9 items-center justify-end gap-1.5">
-          <LocaleSwitcher className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" />
           <Show when="signed-out">
             <Button
               asChild
