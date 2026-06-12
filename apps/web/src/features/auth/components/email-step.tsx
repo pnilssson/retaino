@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from '@tanstack/react-form';
+import { useTranslations } from 'next-intl';
 import {
   ArrowRight,
   Loader2,
@@ -20,6 +21,7 @@ type EmailFormValues = {
 };
 
 export function EmailStep({ auth }: { auth: EmailCodeAuth }) {
+  const t = useTranslations('Auth');
   const emailForm = useForm({
     defaultValues: {
       email: '',
@@ -44,8 +46,8 @@ export function EmailStep({ auth }: { auth: EmailCodeAuth }) {
       <emailForm.Field
         name="email"
         validators={{
-          onBlur: ({ value }) => validateEmail(value),
-          onSubmit: ({ value }) => validateEmail(value),
+          onBlur: ({ value }) => validateEmail(value, t),
+          onSubmit: ({ value }) => validateEmail(value, t),
         }}
       >
         {(field) => {
@@ -56,7 +58,7 @@ export function EmailStep({ auth }: { auth: EmailCodeAuth }) {
 
           return (
             <div className="grid gap-2">
-              <Label htmlFor={field.name}>Email</Label>
+              <Label htmlFor={field.name}>{t('emailLabel')}</Label>
               <Input
                 aria-describedby={
                   emailError ? 'email-error' : undefined
@@ -72,7 +74,7 @@ export function EmailStep({ auth }: { auth: EmailCodeAuth }) {
                 name={field.name}
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.target.value)}
-                placeholder="name@example.com"
+                placeholder={t('emailPlaceholder')}
                 type="email"
                 value={field.state.value}
               />
@@ -106,11 +108,11 @@ export function EmailStep({ auth }: { auth: EmailCodeAuth }) {
                   className="size-4 animate-spin"
                   data-icon="inline-start"
                 />
-                Sending code
+                {t('sendingCode')}
               </>
             ) : (
               <>
-                Continue
+                {t('continue')}
                 <ArrowRight className="size-4" data-icon="inline-end" />
               </>
             )}
@@ -121,15 +123,15 @@ export function EmailStep({ auth }: { auth: EmailCodeAuth }) {
   );
 }
 
-function validateEmail(value: string) {
+function validateEmail(value: string, t: ReturnType<typeof useTranslations<'Auth'>>) {
   const normalizedEmail = value.trim().toLowerCase();
 
   if (!normalizedEmail) {
-    return 'Enter your email address.';
+    return t('emailRequired');
   }
 
   if (!emailPattern.test(normalizedEmail)) {
-    return 'Enter a full email address, for example name@example.com.';
+    return t('emailInvalid');
   }
 
   return undefined;

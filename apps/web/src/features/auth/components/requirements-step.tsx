@@ -1,6 +1,7 @@
 "use client";
 
 import { Mail } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import type { useEmailCodeAuth } from '@/features/auth/hooks/use-email-code-auth';
@@ -14,14 +15,16 @@ export function RequirementsStep({
   auth: EmailCodeAuth;
   formError: string | null;
 }) {
+  const t = useTranslations('Auth');
+
   return (
     <div className="grid gap-5">
       <ItemNotice
         description={
           formError ??
-          'This account needs more information before it can be created.'
+          t('requirementsDescription')
         }
-        title="Account setup needs attention"
+        title={t('requirementsTitle')}
         variant="error"
       />
       <Button
@@ -33,7 +36,7 @@ export function RequirementsStep({
         variant="outline"
       >
         <Mail aria-hidden="true" data-icon="inline-start" />
-        Use a different email
+        {t('useDifferentEmail')}
       </Button>
     </div>
   );

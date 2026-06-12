@@ -1,15 +1,16 @@
-"use client";
-
+import { useTranslations } from 'next-intl';
 import { OrganizationCreateForm } from './organization-create-form';
 import { OnboardingFrame } from './onboarding-frame';
 
 export function OrganizationNewScreen() {
+  const t = useTranslations('Onboarding');
+
   return (
     <OnboardingFrame completedSteps={[]} currentStep="organization">
       <OrganizationCreateForm
-        description="Set up a place for your team to manage contacts, campaigns, permissions, and results together."
-        submitLabel="Create workspace"
-        title="Create another workspace"
+        description={t('organizationNewDescription')}
+        submitLabel={t('createWorkspace')}
+        title={t('organizationNewTitle')}
       />
     </OnboardingFrame>
   );

@@ -9,6 +9,7 @@ import {
   Loader2,
   Plus,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import {
   type ReactNode,
@@ -39,12 +40,16 @@ type OrganizationCreateFormProps = {
 
 export function OrganizationCreateForm({
   description,
-  inviteCopy = 'Already invited? Open the invite link from your email to enter that workspace.',
-  loadingLabel = 'Preparing workspace creation.',
+  inviteCopy,
+  loadingLabel,
   notice,
-  submitLabel = 'Create workspace',
+  submitLabel,
   title,
 }: OrganizationCreateFormProps) {
+  const t = useTranslations('Onboarding');
+  const resolvedInviteCopy = inviteCopy ?? t('inviteCopy');
+  const resolvedLoadingLabel = loadingLabel ?? t('preparingWorkspaceCreation');
+  const resolvedSubmitLabel = submitLabel ?? t('createWorkspace');
   const { isLoaded: isUserLoaded, user } = useUser();
   const { createOrganization, isLoaded, setActive } = useOrganizationList();
   const defaultName = useMemo(
@@ -60,12 +65,12 @@ export function OrganizationCreateForm({
     if (title || description) {
       return (
         <OnboardingItem description={description} title={title}>
-          <LoadingState label={loadingLabel} />
+          <LoadingState label={resolvedLoadingLabel} />
         </OnboardingItem>
       );
     }
 
-    return <LoadingState label={loadingLabel} />;
+    return <LoadingState label={resolvedLoadingLabel} />;
   }
 
   return (
@@ -73,10 +78,10 @@ export function OrganizationCreateForm({
       createOrganization={createOrganization}
       defaultName={defaultName}
       description={description}
-      inviteCopy={inviteCopy}
+      inviteCopy={resolvedInviteCopy}
       notice={notice}
       setActive={setActive}
-      submitLabel={submitLabel}
+      submitLabel={resolvedSubmitLabel}
       title={title}
     />
   );
@@ -101,6 +106,7 @@ function OrganizationCreateFormFields({
   submitLabel: string;
   title?: ReactNode;
 }) {
+  const t = useTranslations('Onboarding');
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const form = useForm({
@@ -111,7 +117,7 @@ function OrganizationCreateFormFields({
       const name = value.organizationName.trim();
 
       if (!createOrganization || !setActive) {
-        setError('Workspace creation is still loading. Try again in a moment.');
+        setError(t('workspaceCreationLoadingError'));
         return;
       }
 
@@ -127,7 +133,7 @@ function OrganizationCreateFormFields({
         setError(
           cause instanceof Error
             ? cause.message
-            : 'The workspace could not be created.',
+            : t('workspaceCreateError'),
         );
       }
     },
@@ -149,7 +155,7 @@ function OrganizationCreateFormFields({
           {error ? (
             <ItemNotice
               description={error}
-              title="Workspace could not be created"
+              title={t('workspaceCreateErrorTitle')}
               variant="error"
             />
           ) : null}
@@ -158,9 +164,9 @@ function OrganizationCreateFormFields({
             name="organizationName"
             validators={{
               onBlur: ({ value }) =>
-                value.trim() ? undefined : 'Enter a workspace name.',
+                value.trim() ? undefined : t('workspaceNameRequired'),
               onSubmit: ({ value }) =>
-                value.trim() ? undefined : 'Enter a workspace name.',
+                value.trim() ? undefined : t('workspaceNameRequired'),
             }}
           >
             {(field) => {
@@ -168,7 +174,7 @@ function OrganizationCreateFormFields({
 
               return (
                 <div className="grid gap-2">
-                  <Label htmlFor={field.name}>Workspace name</Label>
+                  <Label htmlFor={field.name}>{t('workspaceNameLabel')}</Label>
                   <Input
                     aria-describedby={
                       fieldError ? `${field.name}-error` : undefined

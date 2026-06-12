@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { AlertCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   ItemDescription,
   ItemTitle,
@@ -7,11 +8,13 @@ import {
 import { OnboardingItem } from './onboarding-item';
 
 export function SetupPending({ organizationName }: { organizationName: string }) {
+  const t = useTranslations('Onboarding');
+
   return (
     <OnboardingItem
-      description="An organization admin needs to finish setup before members can use this workspace. You can switch to another organization if one is available."
-      eyebrow="Setup pending"
-      title={`${organizationName} is still being set up`}
+      description={t('setupPendingDescription')}
+      eyebrow={t('setupPendingEyebrow')}
+      title={t('setupPendingTitle', { organizationName })}
     />
   );
 }

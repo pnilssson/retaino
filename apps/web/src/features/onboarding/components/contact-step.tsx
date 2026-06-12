@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from '@tanstack/react-form';
+import { useTranslations } from 'next-intl';
 import {
   ArrowLeft,
   ArrowRight,
@@ -40,6 +41,7 @@ export function ContactStep({
   onBack: () => void;
   onComplete: (value: ProfileDraft) => Promise<void>;
 }) {
+  const t = useTranslations('Onboarding');
   const form = useForm({
     defaultValues,
     onSubmit: async ({ value }) => {
@@ -58,9 +60,9 @@ export function ContactStep({
       }}
     >
       <OnboardingItem
-        description="This contact is used for compliance, billing, and operational follow-up if a campaign needs review."
-        eyebrow="Responsible contact"
-        title="Add the person accountable for campaigns"
+        description={t('contactDescription')}
+        eyebrow={t('contactEyebrow')}
+        title={t('contactTitle')}
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <form.Field
@@ -73,7 +75,7 @@ export function ContactStep({
             {(field) => (
               <ProfileInput
                 error={getFieldError(field.state.meta.errors)}
-                label="Billing email"
+                label={t('billingEmail')}
                 name={field.name}
                 onBlur={field.handleBlur}
                 onChange={field.handleChange}
@@ -95,7 +97,7 @@ export function ContactStep({
             {(field) => (
               <ProfileInput
                 error={getFieldError(field.state.meta.errors)}
-                label="Responsible contact"
+                label={t('responsibleContact')}
                 name={field.name}
                 onBlur={field.handleBlur}
                 onChange={field.handleChange}
@@ -114,7 +116,7 @@ export function ContactStep({
             {(field) => (
               <ProfileInput
                 error={getFieldError(field.state.meta.errors)}
-                label="Responsible email"
+                label={t('responsibleEmail')}
                 name={field.name}
                 onBlur={field.handleBlur}
                 onChange={field.handleChange}
@@ -134,7 +136,7 @@ export function ContactStep({
             {(field) => (
               <CountryInput
                 error={getFieldError(field.state.meta.errors)}
-                label="Default phone country"
+                label={t('defaultPhoneCountry')}
                 name={field.name}
                 onBlur={field.handleBlur}
                 onChange={(value) =>
@@ -154,7 +156,7 @@ export function ContactStep({
             {(field) => (
               <CurrencyInput
                 error={getFieldError(field.state.meta.errors)}
-                label="Currency"
+                label={t('currency')}
                 name={field.name}
                 onBlur={field.handleBlur}
                 onChange={(value) =>
@@ -177,7 +179,7 @@ export function ContactStep({
               <PhoneField
                 countryCode={form.getFieldValue('countryCode')}
                 error={getFieldError(field.state.meta.errors)}
-                label="Responsible phone"
+                label={t('responsiblePhone')}
                 name={field.name}
                 onBlur={field.handleBlur}
                 onChange={field.handleChange}
@@ -193,7 +195,7 @@ export function ContactStep({
         {mutationError ? (
           <ItemNotice
             description={mutationError}
-            title="Profile could not be saved"
+            title={t('profileSaveErrorTitle')}
             variant="error"
           />
         ) : null}
@@ -202,7 +204,7 @@ export function ContactStep({
         backLabel={
           <>
             <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-            Back
+            {t('back')}
           </>
         }
         onBack={onBack}
@@ -222,7 +224,7 @@ export function ContactStep({
                   data-icon="inline-start"
                 />
               ) : null}
-              {isPending || isSubmitting ? 'Saving profile' : 'Save and continue'}
+              {isPending || isSubmitting ? t('savingProfile') : t('saveAndContinue')}
               {!isPending && !isSubmitting ? (
                 <ArrowRight aria-hidden="true" data-icon="inline-end" />
               ) : null}
@@ -254,7 +256,7 @@ function CountryInput({
       <div className="flex items-center gap-1.5">
         <Label htmlFor={name}>{label}</Label>
         <InfoTooltip label="Default phone country details">
-          Used when imported phone numbers have no country prefix.
+          {useTranslations('Onboarding')('defaultPhoneCountryTooltip')}
         </InfoTooltip>
       </div>
       <CountryCombobox

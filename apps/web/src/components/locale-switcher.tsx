@@ -57,18 +57,22 @@ export function LocaleSwitcher({
             <DropdownMenuItem
               aria-current={isCurrentLocale ? 'true' : undefined}
               asChild={!isCurrentLocale}
-              disabled={isCurrentLocale}
               key={option}
+              onSelect={
+                isCurrentLocale
+                  ? (event) => event.preventDefault()
+                  : undefined
+              }
             >
               {isCurrentLocale ? (
-                <span>
+                <>
                   <Check aria-hidden="true" className="opacity-100" />
-                  {t(option)}
-                </span>
+                  <span>{t(option)}</span>
+                </>
               ) : (
                 <Link href={href} locale={option}>
                   <Check aria-hidden="true" className="opacity-0" />
-                  {t(option)}
+                  <span>{t(option)}</span>
                 </Link>
               )}
             </DropdownMenuItem>

@@ -9,12 +9,12 @@ import {
   CheckCircle2,
   Loader2,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { GuidedFlowActions } from '@/components/guided-flow';
 import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
 import { textStyles } from '@/lib/text-styles';
-import { legalBundleDocumentLabels } from '../onboarding.constants';
 import { OnboardingItem } from './onboarding-item';
 
 export function AgreementsStep({
@@ -30,25 +30,24 @@ export function AgreementsStep({
   onBack: () => void;
   onComplete: () => Promise<void>;
 }) {
+  const t = useTranslations('Onboarding');
+
   return (
     <div className="grid gap-5">
       <OnboardingItem
-        eyebrow="Legal"
-        title="Finish setup"
+        eyebrow={t('agreementsEyebrow')}
+        title={t('agreementsTitle')}
       >
         <div className="grid gap-6">
           <p className={textStyles.mutedBody}>
-            Documents:{' '}
+            {t('documents')}:{' '}
             {legalBundle.documents.map((document, index) => {
-              const label =
-                legalBundleDocumentLabels[
-                  document.documentType as keyof typeof legalBundleDocumentLabels
-                ] ?? document.title;
+              const label = documentLabel(document.documentType, document.title, t);
               const separator =
                 index === legalBundle.documents.length - 1
                   ? ''
                   : index === legalBundle.documents.length - 2
-                    ? ', and '
+                    ? `, ${t('listAnd')} `
                     : ', ';
 
               return (
@@ -71,13 +70,13 @@ export function AgreementsStep({
           </p>
 
           <p className={textStyles.mutedBody}>
-            By finishing setup, you agree to the documents above.
+            {t('agreementsDescription')}
           </p>
 
           {mutationError ? (
             <ItemNotice
               description={mutationError}
-              title="Legal terms could not be accepted"
+              title={t('legalAcceptErrorTitle')}
               variant="error"
             />
           ) : null}
@@ -87,7 +86,7 @@ export function AgreementsStep({
         backLabel={
           <>
             <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-            Back
+            {t('back')}
           </>
         }
         onBack={onBack}
@@ -108,9 +107,30 @@ export function AgreementsStep({
           ) : (
             <CheckCircle2 aria-hidden="true" data-icon="inline-start" />
           )}
-          {isPending ? 'Finishing setup' : 'Finish setup'}
+          {isPending ? t('finishingSetup') : t('finishSetup')}
         </Button>
       </GuidedFlowActions>
     </div>
   );
+}
+
+function documentLabel(
+  documentType: string,
+  fallback: string,
+  t: ReturnType<typeof useTranslations<'Onboarding'>>,
+) {
+  switch (documentType) {
+    case 'terms':
+      return t('documentTerms');
+    case 'dpa':
+      return t('documentDpa');
+    case 'subprocessors':
+      return t('documentSubprocessors');
+    case 'transfer_terms':
+      return t('documentTransferTerms');
+    case 'sending_policy':
+      return t('documentSendingPolicy');
+    default:
+      return fallback;
+  }
 }

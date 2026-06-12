@@ -14,9 +14,6 @@ type ClerkErrorLike = {
   message?: string;
 };
 
-const fallbackMessage =
-  'We could not complete that step. Check the details and try again.';
-
 const fieldByCode: Record<string, AuthField> = {
   form_code_incorrect: 'code',
   form_identifier_invalid: 'email',
@@ -27,7 +24,8 @@ const fieldByCode: Record<string, AuthField> = {
 
 export function getAuthError(
   error: unknown,
-  fallbackField: AuthField
+  fallbackField: AuthField,
+  fallbackMessage: string,
 ): AuthError {
   if (isClerkErrorLike(error)) {
     const first = error.errors?.[0];
