@@ -29,7 +29,7 @@ const definitions = [
     slug: 'terms',
     titles: {
       en: 'Retaino Terms and Conditions',
-      sv: 'Retaino allmanna villkor',
+      sv: 'Retaino allmänna villkor',
     },
     version: CURRENT_LEGAL_DOCUMENT_VERSION,
     effectiveDate: CURRENT_LEGAL_DOCUMENT_VERSION,
@@ -68,7 +68,7 @@ const definitions = [
     slug: 'dpa',
     titles: {
       en: 'Retaino Data Processing Agreement',
-      sv: 'Retaino personuppgiftsbitradesavtal',
+      sv: 'Retaino personuppgiftsbiträdesavtal',
     },
     version: CURRENT_LEGAL_DOCUMENT_VERSION,
     effectiveDate: CURRENT_LEGAL_DOCUMENT_VERSION,
@@ -81,7 +81,7 @@ const definitions = [
     slug: 'subprocessors',
     titles: {
       en: 'Retaino Subprocessor Notice',
-      sv: 'Retaino underbitradesinformation',
+      sv: 'Retaino underbiträdesinformation',
     },
     version: CURRENT_LEGAL_DOCUMENT_VERSION,
     effectiveDate: CURRENT_LEGAL_DOCUMENT_VERSION,
@@ -94,7 +94,7 @@ const definitions = [
     slug: 'transfer_terms',
     titles: {
       en: 'Retaino Transfer Terms',
-      sv: 'Retaino overforingsvillkor',
+      sv: 'Retaino överföringsvillkor',
     },
     version: CURRENT_LEGAL_DOCUMENT_VERSION,
     effectiveDate: CURRENT_LEGAL_DOCUMENT_VERSION,
@@ -120,7 +120,7 @@ const definitions = [
     slug: 'campaign_attestation',
     titles: {
       en: 'Retaino SMS Marketing Attestation',
-      sv: 'Retaino intyg for SMS-marknadsforing',
+      sv: 'Retaino intyg för SMS-marknadsföring',
     },
     version: CURRENT_LEGAL_DOCUMENT_VERSION,
     effectiveDate: CURRENT_LEGAL_DOCUMENT_VERSION,
@@ -133,7 +133,7 @@ const definitions = [
     slug: 'customer_privacy_notice_guide',
     titles: {
       en: 'Retaino Customer Privacy Notice Guide',
-      sv: 'Retaino guide for kunders integritetsinformation',
+      sv: 'Retaino guide för kunders integritetsinformation',
     },
     version: CURRENT_LEGAL_DOCUMENT_VERSION,
     effectiveDate: CURRENT_LEGAL_DOCUMENT_VERSION,
