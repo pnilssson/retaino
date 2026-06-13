@@ -13,7 +13,6 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { CookieBanner } from "@/features/cookies/cookie-banner";
 import { CookieConsentProvider } from "@/features/cookies/cookie-consent-provider";
 import { routes } from "@/lib/routes";
 import "./globals.css";
@@ -68,7 +67,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <CookieConsentProvider>
                 <TooltipProvider>{children}</TooltipProvider>
                 <Toaster />
-                <CookieBanner />
               </CookieConsentProvider>
             </Providers>
           </NuqsAdapter>
