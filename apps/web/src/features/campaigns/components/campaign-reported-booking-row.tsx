@@ -218,28 +218,38 @@ function BookingRowInput({
   variant?: 'date' | 'text';
 }) {
   const t = useTranslations('Campaigns');
+  const errorId = `${id}-error`;
 
   return (
     <div className="grid min-w-0 gap-2">
       <Label htmlFor={id}>{label}</Label>
       {variant === 'date' ? (
         <DatePickerInput
+          aria-describedby={error ? errorId : undefined}
           aria-invalid={Boolean(error)}
           id={id}
+          name={id}
           onChange={onChange}
           placeholder={t('selectDate')}
           value={value}
         />
       ) : (
         <Input
+          aria-describedby={error ? errorId : undefined}
           aria-invalid={Boolean(error)}
+          autoComplete="off"
           id={id}
+          name={id}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
           value={value}
         />
       )}
-      {error ? <p className={textStyles.error}>{error}</p> : null}
+      {error ? (
+        <p className={textStyles.error} id={errorId} role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -263,6 +273,7 @@ function BookingRowTextarea({
       <Textarea
         className="min-h-20"
         id={id}
+        name={id}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         value={value}

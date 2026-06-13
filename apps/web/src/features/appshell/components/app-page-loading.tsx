@@ -14,6 +14,7 @@ export function AppPageLoading({
 
   return (
     <main
+      id="main-content"
       aria-busy="true"
       aria-label={t('loadingPage')}
       className="flex flex-1 items-start bg-background"

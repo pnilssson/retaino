@@ -86,6 +86,7 @@ export function CampaignTestSms({
           <div className="grid gap-2">
             <Label htmlFor={field.name}>{t('testPhone')}</Label>
             <PhoneInput
+              aria-describedby={`${field.name}-description`}
               countryCode={form.getFieldValue('testPhoneCountryCode')}
               disabled={!senderReady || testSend.isPending}
               id={field.name}
@@ -98,7 +99,7 @@ export function CampaignTestSms({
               placeholder="701234567"
               value={field.state.value}
             />
-            <p className={textStyles.mutedBody}>
+            <p className={textStyles.mutedBody} id={`${field.name}-description`}>
               {t('testPhoneDescription')}
             </p>
           </div>

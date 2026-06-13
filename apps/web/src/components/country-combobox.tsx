@@ -13,6 +13,8 @@ import {
 import { useTranslations } from 'next-intl';
 
 export function CountryCombobox({
+  'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedBy,
   'aria-invalid': ariaInvalid,
   disabled,
   id,
@@ -22,6 +24,8 @@ export function CountryCombobox({
   onChange,
   value,
 }: {
+  'aria-label'?: string;
+  'aria-describedby'?: string;
   'aria-invalid'?: boolean;
   disabled?: boolean;
   id?: string;
@@ -55,6 +59,8 @@ export function CountryCombobox({
 
   return (
     <SearchableCombobox
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
       aria-invalid={ariaInvalid}
       disabled={disabled}
       displayValue={selected}

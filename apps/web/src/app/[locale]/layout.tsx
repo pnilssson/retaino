@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { CookieBanner } from '@/features/cookies/cookie-banner';
+import { SkipLink } from '@/components/skip-link';
 import { routing } from '@/i18n/routing';
 
 export function generateStaticParams() {
@@ -23,9 +23,11 @@ export default async function LocaleLayout({
   }
 
   setRequestLocale(locale);
+  const common = await getTranslations('Common');
 
   return (
     <NextIntlClientProvider key={locale} locale={locale}>
+      <SkipLink label={common('skipToContent')} />
       {children}
       <CookieBanner />
     </NextIntlClientProvider>

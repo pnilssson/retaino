@@ -109,6 +109,8 @@ export function CampaignsTable({
       lastUpdated: t('lastUpdated'),
       noReference: t('noReference'),
       reference: t('reference'),
+      sortAscending: (label) => t('sortAscending', { label }),
+      sortDescending: (label) => t('sortDescending', { label }),
       status: t('status'),
     },
     onSort,
@@ -161,6 +163,8 @@ function createCampaignColumns({
     lastUpdated: string;
     noReference: string;
     reference: string;
+    sortAscending: (label: string) => string;
+    sortDescending: (label: string) => string;
     status: string;
   };
   locale: string;
@@ -179,6 +183,8 @@ function createCampaignColumns({
     sortKey: CampaignListSort;
   }) => {
     const active = sort === sortKey;
+    const nextDirection: TableSortDirection =
+      active ? (direction === 'asc' ? 'desc' : 'asc') : defaultDirection;
 
     return {
       header: () => (
@@ -188,6 +194,11 @@ function createCampaignColumns({
           direction={direction}
           label={label}
           onSort={() => onSort(sortKey)}
+          sortLabel={
+            nextDirection === 'asc'
+              ? labels.sortAscending(label)
+              : labels.sortDescending(label)
+          }
         />
       ),
       meta: sortableHeaderAriaSort({ active, direction }),

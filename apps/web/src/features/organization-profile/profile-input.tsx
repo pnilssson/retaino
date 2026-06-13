@@ -4,6 +4,7 @@ import { textStyles } from '@/lib/text-styles';
 import type { OrganizationProfileFormValues } from './organization-profile-form';
 
 export function ProfileInput({
+  autoComplete = 'off',
   error,
   label,
   name,
@@ -13,6 +14,7 @@ export function ProfileInput({
   type = 'text',
   value,
 }: {
+  autoComplete?: string;
   error: string | null;
   label: string;
   name: keyof OrganizationProfileFormValues;
@@ -28,17 +30,18 @@ export function ProfileInput({
       <Input
         aria-describedby={error ? `${name}-error` : undefined}
         aria-invalid={Boolean(error)}
-        autoComplete="off"
+        autoComplete={autoComplete}
         id={name}
         name={name}
         onBlur={onBlur}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
+        spellCheck={type === 'email' ? false : undefined}
         type={type}
         value={value}
       />
       {error ? (
-        <p className={textStyles.error} id={`${name}-error`}>
+        <p className={textStyles.error} id={`${name}-error`} role="alert">
           {error}
         </p>
       ) : null}

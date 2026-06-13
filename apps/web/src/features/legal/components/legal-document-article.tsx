@@ -61,7 +61,7 @@ export async function LegalDocumentArticle({
   });
 
   return (
-    <main className="min-h-[calc(100svh-4rem)] w-full px-5 py-16 sm:px-8 lg:px-10">
+    <main className="min-h-[calc(100svh-4rem)] w-full px-5 py-16 sm:px-8 lg:px-10" id="main-content">
       <article className="mx-auto w-full max-w-3xl">
         <Link
           className={cn(

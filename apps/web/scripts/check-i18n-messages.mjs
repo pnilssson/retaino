@@ -8,6 +8,9 @@ const messages = {
 const issues = [];
 
 compareKeys('', messages.en, messages.sv);
+scanMessages('messages/en.json', messages.en);
+scanMessages('messages/sv.json', messages.sv, '', true);
+scanTranslationFiles('../../packages/db/legal');
 scanSource('src');
 
 if (issues.length > 0) {
@@ -54,6 +57,82 @@ function scanSource(root) {
     scanJsxText(filePath, source);
     scanHardcodedAttributes(filePath, source);
   }
+}
+
+function scanMessages(filePath, value, prefix = '', checkSwedishText = false) {
+  if (typeof value === 'string') {
+    if (containsMojibake(value)) {
+      issues.push(`${filePath}:${prefix} contains possible mojibake`);
+    }
+
+    if (checkSwedishText && containsLikelySwedishAsciiFallback(value)) {
+      issues.push(`${filePath}:${prefix} contains possible Swedish ASCII fallback`);
+    }
+
+    return;
+  }
+
+  if (!isPlainObject(value)) {
+    return;
+  }
+
+  for (const [key, child] of Object.entries(value)) {
+    scanMessages(
+      filePath,
+      child,
+      prefix ? `${prefix}.${key}` : key,
+      checkSwedishText,
+    );
+  }
+}
+
+function containsMojibake(value) {
+  return /[\u00c2\u00c3\u00e2\ufffd]/.test(value);
+}
+
+function containsLikelySwedishAsciiFallback(value) {
+  return /(?:\b(?:allmanna|for|forsok|oppna|sok|valj)\b|andring|atkomst|bitrades|installning|manad|marknadsforing|nodvandig|overfor)/i.test(
+    value,
+  );
+}
+
+function scanTranslationFiles(root) {
+  for (const filePath of walkTranslationFiles(root)) {
+    const source = readFileSync(filePath, 'utf8');
+    const checkSwedishText = isSwedishTranslationFile(filePath);
+
+    source.split(/\r?\n/).forEach((line, index) => {
+      if (containsMojibake(line)) {
+        issues.push(
+          `${relative(process.cwd(), filePath)}:${index + 1} contains possible mojibake`,
+        );
+      }
+
+      if (checkSwedishText && containsLikelySwedishAsciiFallback(line)) {
+        issues.push(
+          `${relative(process.cwd(), filePath)}:${index + 1} contains possible Swedish ASCII fallback`,
+        );
+      }
+    });
+  }
+}
+
+function walkTranslationFiles(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      return walkTranslationFiles(entryPath);
+    }
+
+    return /\.(?:mdx|ts)$/.test(entry.name) ? [entryPath] : [];
+  });
+}
+
+function isSwedishTranslationFile(filePath) {
+  const normalized = filePath.replaceAll('\\', '/');
+
+  return normalized.includes('/sv/') || normalized.endsWith('/manifest.ts');
 }
 
 function walk(directory) {

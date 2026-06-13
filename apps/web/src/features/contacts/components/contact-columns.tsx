@@ -40,6 +40,8 @@ export function createContactColumns({
     openContact: string;
     openContactDetails: string;
     phone: string;
+    sortAscending: (label: string) => string;
+    sortDescending: (label: string) => string;
     status: string;
     unnamed: string;
   };
@@ -58,6 +60,8 @@ export function createContactColumns({
     sortKey: ContactSortKey;
   }) => {
     const active = sort === sortKey;
+    const nextDirection: TableSortDirection =
+      active ? (direction === 'asc' ? 'desc' : 'asc') : defaultDirection;
 
     return {
       header: () => (
@@ -67,6 +71,11 @@ export function createContactColumns({
           direction={direction}
           label={label}
           onSort={() => onSort(sortKey)}
+          sortLabel={
+            nextDirection === 'asc'
+              ? labels.sortAscending(label)
+              : labels.sortDescending(label)
+          }
         />
       ),
       meta: sortableHeaderAriaSort({ active, direction }),

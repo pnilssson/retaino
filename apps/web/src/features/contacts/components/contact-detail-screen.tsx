@@ -67,7 +67,7 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
 
   if (session.isError) {
     return (
-      <main className="flex flex-1 items-center justify-center bg-background px-5 py-10">
+      <main className="flex flex-1 items-center justify-center bg-background px-5 py-10" id="main-content">
         <div className="max-w-lg">
           <ItemNotice
             description={session.error.message}
@@ -91,7 +91,7 @@ export function ContactDetailScreen({ contactId }: { contactId: string }) {
   const title = latestContact?.name ?? t('unnamedContact');
 
   return (
-    <main className="flex flex-1 items-start bg-background">
+    <main className="flex flex-1 items-start bg-background" id="main-content">
       <section className="mx-auto grid w-full max-w-6xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={
@@ -261,8 +261,10 @@ function ContactEditForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <form.Field name="name">
           {(field) => (
-            <FormField label={t('name')}>
+            <FormField htmlFor={field.name} label={t('name')}>
               <Input
+                autoComplete="name"
+                id={field.name}
                 name={field.name}
                 onChange={(event) => field.handleChange(event.target.value)}
                 value={field.state.value}
@@ -272,9 +274,10 @@ function ContactEditForm({
         </form.Field>
         <form.Field name="phone">
           {(field) => (
-            <FormField label={t('phone')}>
+            <FormField htmlFor={field.name} label={t('phone')}>
               <PhoneInput
                 countryCode={form.getFieldValue('phoneCountryCode')}
+                id={field.name}
                 name={field.name}
                 onChange={field.handleChange}
                 onCountryChange={(value) =>
@@ -287,10 +290,13 @@ function ContactEditForm({
         </form.Field>
         <form.Field name="email">
           {(field) => (
-            <FormField label={t('email')}>
+            <FormField htmlFor={field.name} label={t('email')}>
               <Input
+                autoComplete="email"
+                id={field.name}
                 name={field.name}
                 onChange={(event) => field.handleChange(event.target.value)}
+                spellCheck={false}
                 type="email"
                 value={field.state.value}
               />
@@ -299,7 +305,7 @@ function ContactEditForm({
         </form.Field>
         <form.Field name="lastBookingAt">
           {(field) => (
-            <FormField label={t('lastBooking')}>
+            <FormField htmlFor={field.name} label={t('lastBooking')}>
               <LastBookingDatePicker
                 name={field.name}
                 onChange={field.handleChange}
@@ -527,14 +533,16 @@ function DetailField({ label, value }: { label: string; value: string }) {
 
 function FormField({
   children,
+  htmlFor,
   label,
 }: {
   children: React.ReactNode;
+  htmlFor: string;
   label: string;
 }) {
   return (
     <div className="grid gap-2">
-      <Label>{label}</Label>
+      <Label htmlFor={htmlFor}>{label}</Label>
       {children}
     </div>
   );

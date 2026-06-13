@@ -14,19 +14,18 @@ export type SortableTableHeaderMeta = {
 
 export function SortableTableHeader({
   active,
-  defaultDirection = 'asc',
   direction,
   label,
   onSort,
+  sortLabel,
 }: {
   active: boolean;
   defaultDirection?: TableSortDirection;
   direction: TableSortDirection;
   label: string;
   onSort: () => void;
+  sortLabel: string;
 }) {
-  const nextDirection: TableSortDirection =
-    active ? (direction === 'asc' ? 'desc' : 'asc') : defaultDirection;
   const Icon = active
     ? direction === 'asc'
       ? ArrowUp
@@ -35,7 +34,7 @@ export function SortableTableHeader({
 
   return (
     <button
-      aria-label={`Sort by ${label.toLowerCase()} ${nextDirection === 'asc' ? 'ascending' : 'descending'}`}
+      aria-label={sortLabel}
       className={cn(
         '-ml-2 inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-left transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         textStyles.itemTitle,

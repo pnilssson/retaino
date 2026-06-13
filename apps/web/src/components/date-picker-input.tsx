@@ -23,6 +23,8 @@ import {
 import { getIntlLocale } from '@/lib/locale-format';
 
 export function DatePickerInput({
+  'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedBy,
   'aria-invalid': ariaInvalid,
   id,
   name,
@@ -31,6 +33,8 @@ export function DatePickerInput({
   placeholder,
   value,
 }: {
+  'aria-label'?: string;
+  'aria-describedby'?: string;
   'aria-invalid'?: boolean;
   id?: string;
   name?: string;
@@ -44,6 +48,7 @@ export function DatePickerInput({
   const [open, setOpen] = useState(false);
   const selectedDate = dateInputToLocalDate(value);
   const resolvedPlaceholder = placeholder ?? t('selectDate');
+  const accessibleLabel = ariaLabel ?? (id ? undefined : resolvedPlaceholder);
 
   return (
     <Popover
@@ -58,8 +63,9 @@ export function DatePickerInput({
     >
       <PopoverTrigger asChild>
         <Button
+          aria-describedby={ariaDescribedBy}
           aria-invalid={ariaInvalid}
-          aria-label={resolvedPlaceholder}
+          aria-label={accessibleLabel}
           className="h-8 w-full justify-start"
           id={id}
           name={name}

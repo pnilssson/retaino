@@ -90,7 +90,7 @@ export function InboxScreen() {
 
   if (session.isError) {
     return (
-      <main className="flex flex-1 items-center justify-center bg-background px-5 py-10">
+      <main className="flex flex-1 items-center justify-center bg-background px-5 py-10" id="main-content">
         <div className="max-w-lg">
           <ItemNotice
             description={session.error.message}
@@ -107,7 +107,7 @@ export function InboxScreen() {
   }
 
   return (
-    <main className="flex h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] min-h-0 flex-1 overflow-hidden bg-background">
+    <main className="flex h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] min-h-0 flex-1 overflow-hidden bg-background" id="main-content">
       <section className="mx-auto grid h-full max-h-full min-h-0 w-full max-w-7xl flex-1 grid-rows-[auto_minmax(0,1fr)] gap-3 overflow-hidden px-3 py-3 sm:gap-6 sm:px-8 sm:py-6 lg:px-10">
         <AppPageHeader
           actions={

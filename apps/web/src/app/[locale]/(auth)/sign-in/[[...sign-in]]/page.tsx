@@ -31,7 +31,7 @@ export default async function SignInPage({
   }
 
   return (
-    <main className="grid min-h-svh lg:grid-cols-[1fr_1fr]">
+    <main className="grid min-h-svh lg:grid-cols-[1fr_1fr]" id="main-content">
       <AuthProofPanel />
       <AuthForm />
     </main>

@@ -12,7 +12,7 @@ function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
   return (
     <nav
       role="navigation"
-      aria-label="pagination"
+      aria-label="Pagination"
       data-slot="pagination"
       className={cn("mx-auto flex w-full justify-center", className)}
       {...props}
@@ -114,6 +114,8 @@ function PaginationEllipsis({
   className,
   ...props
 }: React.ComponentProps<"span"> & { label?: string }) {
+  void label;
+
   return (
     <span
       aria-hidden
@@ -124,9 +126,7 @@ function PaginationEllipsis({
       )}
       {...props}
     >
-      <MoreHorizontalIcon
-      />
-      <span className="sr-only">{label}</span>
+      <MoreHorizontalIcon aria-hidden="true" />
     </span>
   )
 }
