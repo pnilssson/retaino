@@ -437,6 +437,7 @@ function ProfileCountryInput({
         </InfoTooltip>
       </div>
       <CountryCombobox
+        aria-describedby={error ? `${name}-error` : undefined}
         aria-invalid={Boolean(error)}
         id={name}
         name={name}
@@ -445,7 +446,7 @@ function ProfileCountryInput({
         value={value}
       />
       {error ? (
-        <p className={textStyles.error} id={`${name}-error`}>
+        <p className={textStyles.error} id={`${name}-error`} role="alert">
           {error}
         </p>
       ) : null}
@@ -472,6 +473,7 @@ function ProfileCurrencyInput({
     <div className="grid gap-2">
       <Label htmlFor={name}>{label}</Label>
       <CurrencyCombobox
+        aria-describedby={error ? `${name}-error` : undefined}
         aria-invalid={Boolean(error)}
         id={name}
         name={name}
@@ -480,7 +482,7 @@ function ProfileCurrencyInput({
         value={value}
       />
       {error ? (
-        <p className={textStyles.error} id={`${name}-error`}>
+        <p className={textStyles.error} id={`${name}-error`} role="alert">
           {error}
         </p>
       ) : null}
@@ -511,6 +513,7 @@ function ProfilePhoneInput({
     <div className="grid gap-2">
       <Label htmlFor={name}>{label}</Label>
       <PhoneInput
+        aria-describedby={error ? `${name}-error` : undefined}
         aria-invalid={Boolean(error)}
         countryCode={countryCode}
         id={name}
@@ -521,7 +524,7 @@ function ProfilePhoneInput({
         value={value}
       />
       {error ? (
-        <p className={textStyles.error} id={`${name}-error`}>
+        <p className={textStyles.error} id={`${name}-error`} role="alert">
           {error}
         </p>
       ) : null}

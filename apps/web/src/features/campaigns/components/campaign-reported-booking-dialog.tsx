@@ -36,6 +36,7 @@ export function ReportedBookingDialog({
   currency: string;
   organizationId: string | null;
 }) {
+  const common = useTranslations('Common');
   const t = useTranslations('Campaigns');
   const [open, setOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -82,7 +83,7 @@ export function ReportedBookingDialog({
           {t('add')}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-4xl">
+      <DialogContent className="sm:max-w-4xl" closeLabel={common('close')}>
         <DialogHeader>
           <DialogTitle>{t('addBookings')}</DialogTitle>
           <DialogDescription>

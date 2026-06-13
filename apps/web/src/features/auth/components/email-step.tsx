@@ -105,6 +105,7 @@ export function EmailStep({ auth }: { auth: EmailCodeAuth }) {
             {isSubmitting || auth.isFetching ? (
               <>
                 <Loader2
+                  aria-hidden="true"
                   className="size-4 animate-spin"
                   data-icon="inline-start"
                 />
@@ -113,7 +114,7 @@ export function EmailStep({ auth }: { auth: EmailCodeAuth }) {
             ) : (
               <>
                 {t('continue')}
-                <ArrowRight className="size-4" data-icon="inline-end" />
+                <ArrowRight aria-hidden="true" className="size-4" data-icon="inline-end" />
               </>
             )}
           </Button>

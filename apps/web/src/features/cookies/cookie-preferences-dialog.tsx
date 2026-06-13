@@ -70,6 +70,7 @@ function CookiePreferencesForm({
 }: {
   initialAnalytics: boolean;
 }) {
+  const common = useTranslations('Common');
   const t = useTranslations('Cookies');
   const { updateConsent, setIsPreferencesOpen } = useCookieConsent();
   const [analyticsEnabled, setAnalyticsEnabled] = useState(initialAnalytics);
@@ -80,7 +81,7 @@ function CookiePreferencesForm({
   }
 
   return (
-    <DialogContent>
+    <DialogContent closeLabel={common('close')}>
       <DialogHeader>
         <DialogTitle>{t('preferencesTitle')}</DialogTitle>
         <DialogDescription>
@@ -91,7 +92,9 @@ function CookiePreferencesForm({
       <div className="space-y-4 py-1">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <label className={textStyles.body}>{t('essential')}</label>
+            <label className={textStyles.body} htmlFor="essential-cookies">
+              {t('essential')}
+            </label>
             <p className={textStyles.meta}>
               {t('essentialDescription')}
             </p>

@@ -30,7 +30,7 @@ export function OnboardingFrame({
   ];
 
   return (
-    <main className="flex flex-1 bg-background px-5 py-8 sm:px-8 lg:px-10">
+    <main className="flex flex-1 bg-background px-5 py-8 sm:px-8 lg:px-10" id="main-content">
       <section className="mx-auto w-full max-w-5xl">
         <GuidedFlowFrame
           completedStepIds={completedSteps}

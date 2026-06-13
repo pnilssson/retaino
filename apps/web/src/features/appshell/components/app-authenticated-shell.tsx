@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { Separator } from '@/components/ui/separator';
 import {
   SidebarInset,
@@ -12,10 +13,19 @@ import { AppBreadcrumb } from './app-breadcrumb';
 import { AppSidebar } from './app-sidebar';
 
 export function AppAuthenticatedShell({ children }: { children: ReactNode }) {
+  const chrome = useTranslations('Chrome');
+
   return (
-    <SidebarProvider>
+    <SidebarProvider
+      labels={{
+        closeSidebar: chrome('closeNavigation'),
+        sidebarDescription: chrome('mobileSidebarDescription'),
+        sidebarTitle: chrome('navigation'),
+        toggleSidebar: chrome('toggleNavigation'),
+      }}
+    >
       <AppSidebar />
-      <SidebarInset id="main-content">
+      <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex min-w-0 items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />

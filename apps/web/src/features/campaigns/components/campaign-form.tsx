@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useId,
   useRef,
   useState,
 } from 'react';
@@ -27,6 +28,8 @@ import {
 import { InfoTooltip } from '@/components/info-tooltip';
 import { ItemNotice } from '@/components/item-notice';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { useCreateCampaign } from '@/features/campaigns/hooks/use-create-campaign';
 import { useUpdateCampaign } from '@/features/campaigns/hooks/use-update-campaign';
 import { ContentSection } from '@/features/appshell/components/content-section';
@@ -71,7 +74,6 @@ import { insertTextAtCursor } from '../campaign-text';
 import { useCampaigns } from '../hooks/use-campaigns';
 import { useSendCampaign } from '../hooks/use-send-campaign';
 import { useSmsSender } from '../hooks/use-sms-sender';
-import { Checkbox } from '@/components/ui/checkbox';
 
 export type { CampaignStepId } from '../campaign-form-state';
 
@@ -120,6 +122,7 @@ export function CampaignForm({
     recentCampaignExclusionAcknowledged,
     setRecentCampaignExclusionAcknowledged,
   ] = useState(false);
+  const recentProtectionAckId = useId();
   const messageTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const createCampaign = useCreateCampaign(organizationId);
   const campaigns = useCampaigns({
@@ -608,19 +611,23 @@ export function CampaignForm({
                             <ContentSection>
                               <ItemNotice
                                 action={
-                                  <label className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2">
                                     <Checkbox
                                       checked={recentCampaignExclusionAcknowledged}
+                                      id={recentProtectionAckId}
                                       onCheckedChange={(value) =>
                                         setRecentCampaignExclusionAcknowledged(
                                           value === true,
                                         )
                                       }
                                     />
-                                    <span className={textStyles.itemTitle}>
+                                    <Label
+                                      className={textStyles.itemTitle}
+                                      htmlFor={recentProtectionAckId}
+                                    >
                                       {t('iUnderstand')}
-                                    </span>
-                                  </label>
+                                    </Label>
+                                  </div>
                                 }
                                 description={t('confirmRecentCampaignProtectionDescription')}
                                 title={t('confirmRecentCampaignProtection')}

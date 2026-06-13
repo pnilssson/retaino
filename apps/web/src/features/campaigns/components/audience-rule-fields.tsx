@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { useId } from 'react';
 import {
   RECENT_CAMPAIGN_EXCLUSION_DAYS,
   type Campaign,
@@ -61,6 +62,7 @@ export function AudienceRuleFields({
   onLapsedDaysChange: (value: number) => void;
 }) {
   const t = useTranslations('Campaigns');
+  const includeNoBookingDateId = useId();
   const lapsedDaysIsPreset = isPresetLapsedDays(lapsedDays);
   const [customSelected, setCustomSelected] = useState(false);
   const showCustomInput = customSelected || !lapsedDaysIsPreset;
@@ -132,18 +134,22 @@ export function AudienceRuleFields({
         </div>
       ) : null}
 
-      <label className="flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <Checkbox
           checked={includeNoBookingDate}
           disabled={disabled}
+          id={includeNoBookingDateId}
           onCheckedChange={(value) =>
             onIncludeNoBookingDateChange(value === true)
           }
         />
-        <span className={textStyles.itemTitle}>
+        <Label
+          className={textStyles.itemTitle}
+          htmlFor={includeNoBookingDateId}
+        >
           {t('includeContactsWithoutBookingDate')}
-        </span>
-      </label>
+        </Label>
+      </div>
     </div>
   );
 }
@@ -167,6 +173,7 @@ export function AudienceExclusionFields({
 }) {
   const locale = useLocale();
   const t = useTranslations('Campaigns');
+  const excludedCampaignsListboxId = `${useId()}-excluded-campaigns`;
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const lastSentCampaign = campaigns
@@ -270,7 +277,9 @@ export function AudienceExclusionFields({
           >
             <PopoverTrigger asChild>
               <Button
+                aria-controls={open ? excludedCampaignsListboxId : undefined}
                 aria-expanded={open}
+                aria-haspopup="listbox"
                 className="h-auto min-h-9 w-full justify-between gap-3 px-3 py-2"
                 disabled={disabled}
                 id="excluded-campaigns"
@@ -302,7 +311,9 @@ export function AudienceExclusionFields({
               />
               <div
                 aria-multiselectable="true"
+                aria-labelledby="excluded-campaigns"
                 className="max-h-64 overflow-y-auto"
+                id={excludedCampaignsListboxId}
                 role="listbox"
               >
                 {filteredCampaigns.length > 0 ? (
@@ -318,6 +329,7 @@ export function AudienceExclusionFields({
                           selected && 'bg-accent/60',
                         )}
                         key={campaign.id}
+                        id={`${excludedCampaignsListboxId}-${campaign.id}`}
                         onClick={() => {
                           onExcludeCampaignIdsChange(
                             selected
@@ -354,7 +366,7 @@ export function AudienceExclusionFields({
                     );
                   })
                 ) : (
-                  <p className={cn('px-2 py-3', textStyles.mutedBody)}>
+                  <p className={cn('px-2 py-3', textStyles.mutedBody)} role="status">
                     {t('noCampaignsFound')}
                   </p>
                 )}

@@ -31,7 +31,7 @@ export function AppBreadcrumb() {
   const organizationName = session.data?.organization.name ?? t('workspace');
 
   return (
-    <Breadcrumb className="min-w-0">
+    <Breadcrumb aria-label={t('breadcrumb')} className="min-w-0">
       <BreadcrumbList className="min-w-0 flex-nowrap">
         <BreadcrumbItem>
           <BreadcrumbPage className="truncate">

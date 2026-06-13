@@ -36,10 +36,13 @@ export function CampaignTextInput({
   type?: string;
   value: string;
 }) {
+  const errorId = `${name}-error`;
+
   return (
     <div className="grid gap-2">
       <Label htmlFor={name}>{label}</Label>
       <Input
+        aria-describedby={error ? errorId : undefined}
         aria-invalid={Boolean(error)}
         autoComplete={autoComplete}
         disabled={disabled}
@@ -54,7 +57,7 @@ export function CampaignTextInput({
         value={value}
       />
       {error ? (
-        <p aria-live="polite" className={textStyles.error}>
+        <p aria-live="polite" className={textStyles.error} id={errorId}>
           {error}
         </p>
       ) : null}
@@ -83,10 +86,13 @@ export function CampaignTextAreaInput({
   textAreaRef?: Ref<HTMLTextAreaElement>;
   value: string;
 }) {
+  const errorId = `${name}-error`;
+
   return (
     <div className="grid gap-2">
       <Label htmlFor={name}>{label}</Label>
       <textarea
+        aria-describedby={error ? errorId : undefined}
         aria-invalid={Boolean(error)}
         autoComplete="off"
         className={cn(
@@ -103,7 +109,7 @@ export function CampaignTextAreaInput({
         value={value}
       />
       {error ? (
-        <p aria-live="polite" className={textStyles.error}>
+        <p aria-live="polite" className={textStyles.error} id={errorId}>
           {error}
         </p>
       ) : null}

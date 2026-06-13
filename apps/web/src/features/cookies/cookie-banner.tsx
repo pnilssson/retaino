@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import {
   AnimatePresence,
   motion,
+  useReducedMotion,
 } from 'motion/react';
 
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,14 @@ export function CookieBanner() {
   const t = useTranslations('Cookies');
   const { consent, loaded, acceptAll, rejectAll, openPreferences } =
     useCookieConsent();
+  const shouldReduceMotion = useReducedMotion();
   const showBanner = loaded && consent === null;
+  const hiddenState = shouldReduceMotion
+    ? { opacity: 0 }
+    : { opacity: 0, scale: 0.98, y: 12 };
+  const exitState = shouldReduceMotion
+    ? { opacity: 0 }
+    : { opacity: 0, scale: 0.98, y: 8 };
 
   return (
     <>
@@ -29,10 +37,13 @@ export function CookieBanner() {
             aria-label={t('bannerLabel')}
             aria-modal="false"
             className="fixed right-4 bottom-4 z-50 w-[calc(100%-2rem)] max-w-md rounded-lg border bg-background p-4 shadow-xl sm:right-6 sm:bottom-6"
-            exit={{ opacity: 0, scale: 0.98, y: 8 }}
-            initial={{ opacity: 0, scale: 0.98, y: 12 }}
+            exit={exitState}
+            initial={hiddenState}
             role="dialog"
-            transition={{ duration: 0.24, ease: 'easeOut' }}
+            transition={{
+              duration: shouldReduceMotion ? 0 : 0.24,
+              ease: 'easeOut',
+            }}
           >
             <div className="flex flex-col gap-4">
               <p className={textStyles.mutedBody}>

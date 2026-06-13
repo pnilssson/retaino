@@ -85,6 +85,7 @@ export function ContactStep({
           >
             {(field) => (
               <ProfileInput
+                autoComplete="email"
                 error={getFieldError(field.state.meta.errors)}
                 label={t('billingEmail')}
                 name={field.name}
@@ -107,6 +108,7 @@ export function ContactStep({
           >
             {(field) => (
               <ProfileInput
+                autoComplete="name"
                 error={getFieldError(field.state.meta.errors)}
                 label={t('responsibleContact')}
                 name={field.name}
@@ -136,6 +138,7 @@ export function ContactStep({
           >
             {(field) => (
               <ProfileInput
+                autoComplete="email"
                 error={getFieldError(field.state.meta.errors)}
                 label={t('responsibleEmail')}
                 name={field.name}
@@ -295,6 +298,7 @@ function CountryInput({
         </InfoTooltip>
       </div>
       <CountryCombobox
+        aria-describedby={error ? `${name}-error` : undefined}
         aria-invalid={Boolean(error)}
         id={name}
         name={name}
@@ -303,7 +307,7 @@ function CountryInput({
         value={value}
       />
       {error ? (
-        <p className={textStyles.error} id={`${name}-error`}>
+        <p className={textStyles.error} id={`${name}-error`} role="alert">
           {error}
         </p>
       ) : null}
@@ -330,6 +334,7 @@ function CurrencyInput({
     <div className="grid gap-2">
       <Label htmlFor={name}>{label}</Label>
       <CurrencyCombobox
+        aria-describedby={error ? `${name}-error` : undefined}
         aria-invalid={Boolean(error)}
         id={name}
         name={name}
@@ -338,7 +343,7 @@ function CurrencyInput({
         value={value}
       />
       {error ? (
-        <p className={textStyles.error} id={`${name}-error`}>
+        <p className={textStyles.error} id={`${name}-error`} role="alert">
           {error}
         </p>
       ) : null}
@@ -369,6 +374,7 @@ function PhoneField({
     <div className="grid gap-2">
       <Label htmlFor={name}>{label}</Label>
       <PhoneInput
+        aria-describedby={error ? `${name}-error` : undefined}
         aria-invalid={Boolean(error)}
         countryCode={countryCode}
         id={name}
@@ -379,7 +385,7 @@ function PhoneField({
         value={value}
       />
       {error ? (
-        <p className={textStyles.error} id={`${name}-error`}>
+        <p className={textStyles.error} id={`${name}-error`} role="alert">
           {error}
         </p>
       ) : null}

@@ -44,7 +44,7 @@ export function BlockedContacts({ session }: { session: OrganizationSession }) {
     : t('finishSetup');
 
   return (
-    <main className="flex flex-1 items-start bg-background">
+    <main className="flex flex-1 items-start bg-background" id="main-content">
       <section className="mx-auto grid w-full max-w-5xl content-start gap-6 px-5 py-8 sm:px-8 lg:px-10">
         <AppPageHeader
           badge={

@@ -114,6 +114,7 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
             {isSubmitting || auth.isFetching ? (
               <>
                 <Loader2
+                  aria-hidden="true"
                   className="size-4 animate-spin"
                   data-icon="inline-start"
                 />
@@ -122,7 +123,7 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
             ) : (
               <>
                 {t('verifyCode')}
-                <ArrowRight className="size-4" data-icon="inline-end" />
+                <ArrowRight aria-hidden="true" className="size-4" data-icon="inline-end" />
               </>
             )}
           </Button>
@@ -148,7 +149,7 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
           type="button"
           variant="link"
         >
-          <RefreshCw className="size-3.5" data-icon="inline-start" />
+          <RefreshCw aria-hidden="true" className="size-3.5" data-icon="inline-start" />
           {t('resendCode')}
         </Button>
       </div>

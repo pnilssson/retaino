@@ -102,6 +102,8 @@ export function ContactsTable({
       openContact: t('openContact'),
       openContactDetails: t('openContactDetails'),
       phone: t('phone'),
+      sortAscending: (label) => t('sortAscending', { label }),
+      sortDescending: (label) => t('sortDescending', { label }),
       status: t('status'),
       unnamed: t('unnamed'),
     },

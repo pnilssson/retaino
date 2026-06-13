@@ -1,7 +1,10 @@
 "use client";
 
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import {
+  useId,
+  useState,
+} from 'react';
 import {
   Check,
   ChevronsUpDown,
@@ -26,6 +29,8 @@ export type SearchableComboboxOption<TValue = string> = {
 };
 
 export function SearchableCombobox<TValue = string>({
+  'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedBy,
   'aria-invalid': ariaInvalid,
   clearQueryOnClose = true,
   disabled,
@@ -46,6 +51,8 @@ export function SearchableCombobox<TValue = string>({
   searchPlaceholder,
   selectedKey,
 }: {
+  'aria-label'?: string;
+  'aria-describedby'?: string;
   'aria-invalid'?: boolean;
   clearQueryOnClose?: boolean;
   disabled?: boolean;
@@ -67,6 +74,9 @@ export function SearchableCombobox<TValue = string>({
   selectedKey?: string | null;
 }) {
   const t = useTranslations('Common');
+  const generatedId = useId();
+  const triggerId = id ?? `${generatedId}-trigger`;
+  const listboxId = `${triggerId}-listbox`;
   const [internalOpen, setInternalOpen] = useState(false);
   const [internalQuery, setInternalQuery] = useState('');
   const currentOpen = open ?? internalOpen;
@@ -111,11 +121,15 @@ export function SearchableCombobox<TValue = string>({
     >
       <PopoverTrigger asChild>
         <Button
+          aria-controls={currentOpen ? listboxId : undefined}
+          aria-describedby={ariaDescribedBy}
           aria-expanded={currentOpen}
+          aria-haspopup="listbox"
           aria-invalid={ariaInvalid}
+          aria-label={ariaLabel}
           className="h-8 min-w-0 w-full justify-between"
           disabled={disabled}
-          id={id}
+          id={triggerId}
           name={name}
           role="combobox"
           type="button"
@@ -144,9 +158,14 @@ export function SearchableCombobox<TValue = string>({
           placeholder={searchPlaceholder}
           value={currentQuery}
         />
-        <div className="max-h-64 overflow-y-auto" role="listbox">
+        <div
+          aria-labelledby={triggerId}
+          className="max-h-64 overflow-y-auto"
+          id={listboxId}
+          role="listbox"
+        >
           {isLoading ? (
-            <p className={cn('px-2 py-3', textStyles.mutedBody)}>
+            <p className={cn('px-2 py-3', textStyles.mutedBody)} role="status">
               {loadingText ?? t('searching')}
             </p>
           ) : filtered.length > 0 ? (
@@ -162,6 +181,7 @@ export function SearchableCombobox<TValue = string>({
                     selected && 'bg-accent/60',
                   )}
                   key={option.key}
+                  id={`${listboxId}-${option.key}`}
                   onClick={() => {
                     onSelect(option);
                     setOpen(false);
@@ -190,7 +210,7 @@ export function SearchableCombobox<TValue = string>({
               );
             })
           ) : (
-            <p className={cn('px-2 py-3', textStyles.mutedBody)}>
+            <p className={cn('px-2 py-3', textStyles.mutedBody)} role="status">
               {emptyText}
             </p>
           )}

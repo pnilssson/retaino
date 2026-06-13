@@ -96,7 +96,7 @@ export function CampaignsScreen() {
 
   if (session.isError) {
     return (
-      <main className="flex flex-1 items-center justify-center bg-background px-5 py-10">
+      <main className="flex flex-1 items-center justify-center bg-background px-5 py-10" id="main-content">
         <div className="max-w-lg">
           <ItemNotice
             description={session.error.message}
@@ -121,7 +121,7 @@ export function CampaignsScreen() {
   const hasCampaigns = (campaigns.data?.campaigns.length ?? 0) > 0;
 
   return (
-    <main className="flex flex-1 items-start bg-background">
+    <main className="flex flex-1 items-start bg-background" id="main-content">
       <section className="mx-auto grid w-full max-w-7xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={
@@ -279,7 +279,7 @@ function BlockedCampaigns({ session }: { session: OrganizationSession }) {
   const view = campaignReadinessBlockView(session, t);
 
   return (
-    <main className="flex flex-1 items-start bg-background">
+    <main className="flex flex-1 items-start bg-background" id="main-content">
       <section className="mx-auto grid w-full max-w-5xl content-start gap-6 px-5 py-8 sm:px-8 lg:px-10">
         <AppPageHeader
           badge={

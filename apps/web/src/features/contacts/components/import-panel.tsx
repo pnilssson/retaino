@@ -82,7 +82,7 @@ export function ContactImportUploadScreen() {
 
   if (session.isError) {
     return (
-      <main className="flex flex-1 items-center justify-center bg-background px-5 py-10">
+      <main className="flex flex-1 items-center justify-center bg-background px-5 py-10" id="main-content">
         <div className="max-w-lg">
           <ItemNotice
             description={session.error.message}
@@ -103,7 +103,7 @@ export function ContactImportUploadScreen() {
   }
 
   return (
-    <main className="flex flex-1 items-start bg-background">
+    <main className="flex flex-1 items-start bg-background" id="main-content">
       <section className="mx-auto grid w-full max-w-5xl content-start gap-6 px-5 py-6 sm:px-8 lg:px-10">
         <AppPageHeader
           actions={
@@ -266,6 +266,12 @@ function ImportForm({
                                 htmlFor={field.name}
                               >
                                 <input
+                                  aria-describedby={
+                                    error || parseError
+                                      ? `${field.name}-error`
+                                      : undefined
+                                  }
+                                  aria-invalid={Boolean(error || parseError)}
                                   accept=".csv,text/csv"
                                   className="sr-only"
                                   id={field.name}
@@ -333,12 +339,11 @@ function ImportForm({
                                 </span>
                               </label>
                               {error ? (
-                                <p className={textStyles.error}>
+                                <p className={textStyles.error} id={`${field.name}-error`} role="alert">
                                   {String(error)}
                                 </p>
-                              ) : null}
-                              {parseError ? (
-                                <p className={textStyles.error}>
+                              ) : parseError ? (
+                                <p className={textStyles.error} id={`${field.name}-error`} role="alert">
                                   {parseError}
                                 </p>
                               ) : null}
@@ -405,7 +410,10 @@ function ImportForm({
                                         }
                                         value={field.state.value ?? 'none'}
                                       >
-                                        <SelectTrigger className="w-full">
+                                        <SelectTrigger
+                                          aria-label={`${t('csvColumn')}: ${formatTargetFieldLabel(target, t)}`}
+                                          className="w-full"
+                                        >
                                           <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -427,7 +435,7 @@ function ImportForm({
                                       aria-hidden="true"
                                       className="hidden size-4 justify-self-center text-muted-foreground sm:block"
                                     />
-                                    <Label>
+                                    <div className="grid gap-1">
                                       <span
                                         className={cn(
                                           'uppercase sm:hidden',
@@ -437,7 +445,7 @@ function ImportForm({
                                         {t('retainoField')}
                                       </span>
                                       <span>{formatTargetFieldLabel(target, t)}</span>
-                                    </Label>
+                                    </div>
                                   </div>
                                 )}
                               </form.Field>
