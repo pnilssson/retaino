@@ -3,6 +3,7 @@ import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { SkipLink } from '@/components/skip-link';
+import { CookieBanner } from '@/features/cookies/cookie-banner';
 import { routing } from '@/i18n/routing';
 
 export function generateStaticParams() {
