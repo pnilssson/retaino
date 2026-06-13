@@ -29,6 +29,7 @@ export default async function LocaleLayout({
     <NextIntlClientProvider key={locale} locale={locale}>
       <SkipLink label={common('skipToContent')} />
       {children}
+      <CookieBanner />
     </NextIntlClientProvider>
   );
 }

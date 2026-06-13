@@ -13,6 +13,7 @@ import { EmailStep } from './email-step';
 import { RequirementsStep } from './requirements-step';
 
 export function AuthForm() {
+  const chrome = useTranslations('Chrome');
   const t = useTranslations('Auth');
   const auth = useEmailCodeAuth();
   const formError =
@@ -23,14 +24,17 @@ export function AuthForm() {
   return (
     <section className="mx-auto flex min-h-svh w-full max-w-[420px] flex-col px-5 py-8 sm:px-8">
       <div className="flex items-center lg:hidden">
-        <Image
-          alt="Retaino"
-          className="size-9"
-          height={36}
-          priority
-          src="/brand/icons/retaino-icon-transparent.svg"
-          width={36}
-        />
+        <Link aria-label={chrome('homeLabel')} href={routes.home}>
+          <Image
+            alt=""
+            aria-hidden="true"
+            className="size-9"
+            height={36}
+            priority
+            src="/brand/icons/retaino-icon-transparent.svg"
+            width={36}
+          />
+        </Link>
       </div>
 
       <div className="flex flex-1 flex-col justify-center">
