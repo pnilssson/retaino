@@ -54,8 +54,12 @@ function scanSource(root) {
     }
 
     const source = readFileSync(filePath, 'utf8');
-    scanJsxText(filePath, source);
-    scanHardcodedAttributes(filePath, source);
+    scanMessageReferences(filePath, source);
+
+    if (filePath.endsWith('.tsx')) {
+      scanJsxText(filePath, source);
+      scanHardcodedAttributes(filePath, source);
+    }
   }
 }
 
@@ -143,7 +147,7 @@ function walk(directory) {
       return walk(entryPath);
     }
 
-    return entry.name.endsWith('.tsx') ? [entryPath] : [];
+    return /\.tsx?$/.test(entry.name) ? [entryPath] : [];
   });
 }
 
@@ -160,6 +164,59 @@ function shouldScan(filePath) {
   }
 
   return true;
+}
+
+
+function scanMessageReferences(filePath, source) {
+  const declarations = [
+    ...source.matchAll(
+      /\b(?:const|let|var)\s+(\w+)\s*=\s*(?:await\s+)?(?:useTranslations|getTranslations)\(\s*['"]([^'"]+)['"]\s*\)/g,
+    ),
+  ];
+
+  for (const [index, declaration] of declarations.entries()) {
+    const [, variableName, namespace] = declaration;
+    const start = declaration.index + declaration[0].length;
+    const nextDeclaration = declarations
+      .slice(index + 1)
+      .find((candidate) => candidate[1] === variableName);
+    const end = nextDeclaration?.index ?? source.length;
+    const scopeSource = source.slice(start, end);
+    const callPattern = new RegExp(
+      `\\b${escapeRegExp(variableName)}\\(\\s*['"]([^'"]+)['"]`,
+      'g',
+    );
+
+    for (const call of scopeSource.matchAll(callPattern)) {
+      const key = `${namespace}.${call[1]}`;
+
+      if (!hasMessagePath(messages.en, key)) {
+        report(filePath, start + call.index, `missing English message ${key}`);
+      }
+
+      if (!hasMessagePath(messages.sv, key)) {
+        report(filePath, start + call.index, `missing Swedish message ${key}`);
+      }
+    }
+  }
+}
+
+function hasMessagePath(messageRoot, path) {
+  let current = messageRoot;
+
+  for (const part of path.split('.')) {
+    if (!isPlainObject(current) || !(part in current)) {
+      return false;
+    }
+
+    current = current[part];
+  }
+
+  return true;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function scanJsxText(filePath, source) {
