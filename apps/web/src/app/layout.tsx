@@ -15,6 +15,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CookieConsentProvider } from "@/features/cookies/cookie-consent-provider";
 import { routes } from "@/lib/routes";
+import { siteUrl } from "@/lib/seo";
 import "./globals.css";
 
 const fontSans = Geist({
@@ -26,8 +27,6 @@ const fontMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
 });
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://retaino.io";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Metadata");
