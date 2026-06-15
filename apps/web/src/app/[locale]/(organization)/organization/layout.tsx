@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react';
+import type { Metadata } from 'next';
 import { auth } from '@clerk/nextjs/server';
 import { localizedPathname } from '@/i18n/paths';
 import { routes } from '@/lib/routes';
+import { buildNoIndexMetadata } from '@/lib/seo';
+
+export const metadata: Metadata = buildNoIndexMetadata();
 
 export default async function OrganizationLayout({
   children,
