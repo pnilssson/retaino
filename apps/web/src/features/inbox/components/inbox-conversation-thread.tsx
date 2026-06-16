@@ -4,7 +4,10 @@ import type {
   InboxConversationSummary,
   InboxMessage,
 } from '@retaino/shared/contracts';
-import { Inbox } from 'lucide-react';
+import {
+  Inbox,
+  UserPlus,
+} from 'lucide-react';
 import {
   useLocale,
   useTranslations,
@@ -12,11 +15,14 @@ import {
 import {
   useEffect,
   useRef,
+  useState,
 } from 'react';
 import { BlockedStatusBadge } from '@/components/blocked-status-badge';
 import { EmptyState } from '@/components/empty-state';
 import { ItemNotice } from '@/components/item-notice';
 import { LoadingState } from '@/components/loading-state';
+import { Button } from '@/components/ui/button';
+import { ContactCreateDialog } from '@/features/contacts/components/contact-create-dialog';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 import {
@@ -33,6 +39,7 @@ export function InboxConversationThread({
   isLoading,
   messages,
   organizationId,
+  phoneCountryCode,
 }: {
   className?: string;
   conversation: InboxConversationSummary | null;
@@ -40,9 +47,12 @@ export function InboxConversationThread({
   isLoading: boolean;
   messages: InboxMessage[];
   organizationId: string | null;
+  phoneCountryCode: string;
 }) {
   const locale = useLocale();
   const t = useTranslations('Inbox');
+  const contactTranslations = useTranslations('Contacts');
+  const [addContactOpen, setAddContactOpen] = useState(false);
   const messageListRef = useRef<HTMLDivElement>(null);
   const campaignMessageId = messages.find(
     (message) => message.direction === 'outbound' && message.campaignName,
@@ -103,7 +113,27 @@ export function InboxConversationThread({
           {conversation.replyBlocked ? (
             <BlockedStatusBadge label={t('repliesBlockedTitle')} />
           ) : null}
+          {!conversation.contactId ? (
+            <Button
+              onClick={() => setAddContactOpen(true)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <UserPlus aria-hidden="true" data-icon="inline-start" />
+              {contactTranslations('addContact')}
+            </Button>
+          ) : null}
         </div>
+        {!conversation.contactId ? (
+          <ContactCreateDialog
+            defaultPhone={conversation.phone}
+            onOpenChange={setAddContactOpen}
+            open={addContactOpen}
+            organizationId={organizationId}
+            phoneCountryCode={phoneCountryCode}
+          />
+        ) : null}
       </header>
 
       <div

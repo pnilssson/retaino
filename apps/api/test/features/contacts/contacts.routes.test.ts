@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createContactImport,
   createContactSuppression,
+  createContact,
   deleteContact,
   deleteContactSuppression,
   deleteContacts,
@@ -31,6 +32,7 @@ import type { AppEnv } from '../../../src/types';
 vi.mock('@retaino/db', () => ({
   createContactSuppression: vi.fn(),
   createContactImport: vi.fn(),
+  createContact: vi.fn(),
   deleteContact: vi.fn(),
   deleteContactSuppression: vi.fn(),
   deleteContacts: vi.fn(),
@@ -251,6 +253,7 @@ describe('contactsRoutes', () => {
   beforeEach(() => {
     vi.mocked(createContactSuppression).mockReset();
     vi.mocked(createContactImport).mockReset();
+    vi.mocked(createContact).mockReset();
     vi.mocked(deleteContact).mockReset();
     vi.mocked(deleteContactSuppression).mockReset();
     vi.mocked(deleteContacts).mockReset();
@@ -615,5 +618,108 @@ describe('contactsRoutes', () => {
       actorUserId: user.id,
       userAgent: null,
     });
+  });
+
+  it('lets members create a single contact', async () => {
+    vi.mocked(createContact).mockResolvedValue({
+      status: 'created',
+      contact: contactDetail,
+    });
+
+    const response = await testApp({ role: 'org:member' }).request(
+      '/v1/contacts',
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'user-agent': 'vitest',
+        },
+        body: JSON.stringify({
+          name: 'Ada Lovelace',
+          phone: '0701234567',
+          email: 'ada@example.com',
+          phoneCountryCode: 'SE',
+          lastBookingAt: null,
+          marketingSmsAllowed: true,
+        }),
+      },
+      env(),
+    );
+
+    expect(response.status).toBe(201);
+    expect(createContact).toHaveBeenCalledWith(expect.anything(), {
+      organizationId: organization.id,
+      actorUserId: user.id,
+      input: {
+        name: 'Ada Lovelace',
+        phone: '0701234567',
+        email: 'ada@example.com',
+        phoneCountryCode: 'SE',
+        lastBookingAt: null,
+        marketingSmsAllowed: true,
+      },
+      userAgent: 'vitest',
+    });
+    await expect(response.json()).resolves.toEqual({ contact: contactDetail });
+  });
+
+  it('rejects invalid and duplicate single contacts', async () => {
+    const missingPhone = await testApp().request(
+      '/v1/contacts',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Ada Lovelace',
+          phoneCountryCode: 'SE',
+          marketingSmsAllowed: true,
+        }),
+      },
+      env(),
+    );
+
+    vi.mocked(createContact).mockResolvedValueOnce({ status: 'duplicate' });
+    const duplicate = await testApp().request(
+      '/v1/contacts',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          phone: '0701234567',
+          phoneCountryCode: 'SE',
+          marketingSmsAllowed: true,
+        }),
+      },
+      env(),
+    );
+
+    expect(missingPhone.status).toBe(400);
+    expect(duplicate.status).toBe(409);
+  });
+
+  it('rejects single contact creation for blocked organizations', async () => {
+    vi.mocked(getOrganizationProfileByOrganizationId).mockResolvedValueOnce(null);
+
+    const response = await testApp().request(
+      '/v1/contacts',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          phone: '0701234567',
+          phoneCountryCode: 'SE',
+          marketingSmsAllowed: false,
+        }),
+      },
+      env(),
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      error: {
+        message: 'Organization setup must be complete before adding contacts.',
+      },
+    });
+    expect(createContact).not.toHaveBeenCalled();
   });
 });

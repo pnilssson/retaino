@@ -24,6 +24,7 @@ import {
   type ContactListQuery,
   type ContactListResponse,
   type ContactSuppression,
+  type CreateContactInput,
   type CsvMapping,
   type SuppressionType,
   type UpdateContactInput,
@@ -67,6 +68,12 @@ export type ContactImportCounts = {
 export type UpdateContactResult =
   | { status: 'updated'; contact: ContactDetail }
   | { status: 'not_found' }
+  | { status: 'invalid_phone' }
+  | { status: 'invalid_email' }
+  | { status: 'duplicate' };
+
+export type CreateContactResult =
+  | { status: 'created'; contact: ContactDetail }
   | { status: 'invalid_phone' }
   | { status: 'invalid_email' }
   | { status: 'duplicate' };
@@ -372,6 +379,101 @@ export async function getContactById(
     row,
     await listContactSuppressionsForRow(db, input.organizationId, row),
   );
+}
+
+export async function createContact(
+  db: DbClient,
+  input: {
+    organizationId: string;
+    actorUserId: string;
+    input: CreateContactInput;
+    userAgent?: string | null;
+  },
+): Promise<CreateContactResult> {
+  assertOrganizationId(input.organizationId);
+
+  return db.transaction(async (tx) => {
+    const methods = await prepareContactMethodIdentity({
+      phone: input.input.phone,
+      email: input.input.email,
+      phoneCountryCode: input.input.phoneCountryCode,
+      requireContactMethod: true,
+    });
+
+    if (methods.errors.includes('invalid_phone') || !methods.normalizedPhone) {
+      return { status: 'invalid_phone' };
+    }
+
+    if (methods.errors.includes('invalid_email')) {
+      return { status: 'invalid_email' };
+    }
+
+    if (
+      await contactMethodBelongsToAnyContact(tx, {
+        organizationId: input.organizationId,
+        phoneHash: methods.phoneHash,
+        emailHash: methods.emailHash,
+      })
+    ) {
+      return { status: 'duplicate' };
+    }
+
+    const [created] = await tx
+      .insert(contacts)
+      .values({
+        organizationId: input.organizationId,
+        name: input.input.name,
+        phone: methods.phone,
+        email: methods.email,
+        normalizedPhone: methods.normalizedPhone,
+        normalizedEmail: methods.normalizedEmail,
+        phoneHash: methods.phoneHash,
+        emailHash: methods.emailHash,
+        lastBookingAt: input.input.lastBookingAt
+          ? new Date(input.input.lastBookingAt)
+          : null,
+        consentStatus: input.input.marketingSmsAllowed ? 'granted' : 'denied',
+      })
+      .onConflictDoNothing()
+      .returning();
+
+    if (!created) {
+      return { status: 'duplicate' };
+    }
+
+    const suppressionResult = input.input.marketingSmsAllowed
+      ? {
+          created: false,
+          rows: await listContactSuppressionsForRow(
+            tx,
+            input.organizationId,
+            created,
+          ),
+        }
+      : await createManualContactPhoneSuppression(tx, {
+          organizationId: input.organizationId,
+          phone: methods.phone ?? input.input.phone,
+          normalizedPhone: methods.normalizedPhone,
+          phoneHash: methods.phoneHash,
+        });
+
+    await recordAuditLog(
+      tx,
+      auditEvents.contactCreated({
+        organizationId: input.organizationId,
+        actorUserId: input.actorUserId,
+        contactId: created.id,
+        marketingSmsAllowed: input.input.marketingSmsAllowed,
+        suppressionCreated: suppressionResult.created,
+        userAgent: input.userAgent ?? null,
+      }),
+    );
+
+    return {
+      status: 'created',
+      contact: contactDetailToContract(created, suppressionResult.rows),
+    };
+  });
 }
 
 export async function updateContact(
@@ -942,6 +1044,89 @@ async function listContactSuppressionsForRow(
     .select()
     .from(suppressions)
     .where(and(eq(suppressions.organizationId, organizationId), or(...filters)));
+}
+
+async function createManualContactPhoneSuppression(
+  db: Pick<AuditLogDb, 'insert' | 'select'>,
+  input: {
+    organizationId: string;
+    phone: string;
+    normalizedPhone: string;
+    phoneHash: string | null;
+  },
+) {
+  if (!input.phoneHash) {
+    return { created: false, rows: [] };
+  }
+
+  const [created] = await db
+    .insert(suppressions)
+    .values({
+      organizationId: input.organizationId,
+      type: 'phone',
+      value: input.phone,
+      normalizedValue: input.normalizedPhone,
+      valueHash: input.phoneHash,
+      reason: 'manual_contact_suppression',
+      source: 'app',
+    })
+    .onConflictDoNothing({
+      target: [
+        suppressions.organizationId,
+        suppressions.type,
+        suppressions.valueHash,
+      ],
+    })
+    .returning();
+
+  if (created) {
+    return { created: true, rows: [created] };
+  }
+
+  const [existing] = await db
+    .select()
+    .from(suppressions)
+    .where(
+      and(
+        eq(suppressions.organizationId, input.organizationId),
+        eq(suppressions.type, 'phone'),
+        eq(suppressions.valueHash, input.phoneHash),
+      ),
+    )
+    .limit(1);
+
+  return { created: false, rows: existing ? [existing] : [] };
+}
+
+async function contactMethodBelongsToAnyContact(
+  db: Pick<AuditLogDb, 'select'>,
+  input: {
+    organizationId: string;
+    phoneHash: string | null;
+    emailHash: string | null;
+  },
+) {
+  const filters = [
+    input.phoneHash ? eq(contacts.phoneHash, input.phoneHash) : undefined,
+    input.emailHash ? eq(contacts.emailHash, input.emailHash) : undefined,
+  ].filter(Boolean);
+
+  if (filters.length === 0) {
+    return false;
+  }
+
+  const [match] = await db
+    .select({ id: contacts.id })
+    .from(contacts)
+    .where(
+      and(
+        eq(contacts.organizationId, input.organizationId),
+        or(...filters),
+      ),
+    )
+    .limit(1);
+
+  return Boolean(match);
 }
 
 async function contactMethodBelongsToAnotherContact(

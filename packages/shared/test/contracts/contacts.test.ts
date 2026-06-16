@@ -12,6 +12,7 @@ import {
   contactImportStartSchema,
   contactSchema,
   countryCodeSchema,
+  createContactSchema,
   createContactSuppressionSchema,
   deriveSmsContactStatus,
   formatPhoneCountryLabel,
@@ -213,6 +214,34 @@ describe('contact contracts', () => {
   });
 
   it('validates contact update and suppression payloads', () => {
+    expect(
+      createContactSchema.parse({
+        name: 'Ada Lovelace',
+        phone: '070 123 45 67',
+        phoneCountryCode: 'SE',
+        marketingSmsAllowed: false,
+      }),
+    ).toMatchObject({
+      email: null,
+      marketingSmsAllowed: false,
+      phone: '070 123 45 67',
+    });
+    expect(
+      createContactSchema.safeParse({
+        email: 'ada@example.com',
+        marketingSmsAllowed: true,
+        phoneCountryCode: 'SE',
+      }).success,
+    ).toBe(false);
+    expect(
+      createContactSchema.safeParse({
+        phone: '070 123 45 67',
+        phoneCountryCode: 'SE',
+        marketingSmsAllowed: true,
+        unexpected: 'value',
+      }).success,
+    ).toBe(false);
+
     expect(
       updateContactSchema.parse({
         name: 'Ada Lovelace',

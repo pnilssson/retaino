@@ -8,6 +8,7 @@ import {
   contactSuppressionMethodFilter,
   contactStatusFilter,
   contactToContract,
+  createContact,
   deleteProviderOptOutSuppressionByHash,
   deleteContacts,
   failContactImport,
@@ -15,6 +16,8 @@ import {
   suppressContacts,
   upsertSuppressionByHash,
 } from '../../src/queries/contacts';
+
+const organizationId = '22222222-2222-4222-8222-222222222222';
 
 describe('contact query helpers', () => {
   it('rejects tenant scoped calls without an organization id', () => {
@@ -273,6 +276,427 @@ describe('contact query helpers', () => {
           deletedCount: 1,
           deletedContactIds: ['11111111-1111-4111-8111-111111111111'],
         }),
+      }),
+    ]);
+  });
+
+  it('creates a manually added contact with granted marketing permission', async () => {
+    const auditValues: unknown[] = [];
+    const now = new Date('2026-05-08T00:00:00.000Z');
+    const createdRow = contactRow({
+      consentStatus: 'granted',
+      email: 'ada@example.com',
+      normalizedEmail: 'ada@example.com',
+      phone: '070 123 45 67',
+      normalizedPhone: '+46701234567',
+      now,
+    });
+    const tx = {
+      select: () => ({
+        from: () => ({
+          where: () => selectionRows([]),
+        }),
+      }),
+      insert: () => ({
+        values: (values: Record<string, unknown>) => {
+          if ('eventType' in values) {
+            auditValues.push(values);
+
+            return { returning: () => [] };
+          }
+
+          expect(values).toMatchObject({
+            organizationId,
+            name: 'Ada Lovelace',
+            phone: '070 123 45 67',
+            email: 'ada@example.com',
+            normalizedPhone: '+46701234567',
+            normalizedEmail: 'ada@example.com',
+            consentStatus: 'granted',
+          });
+          expect(values.phoneHash).toHaveLength(64);
+          expect(values.emailHash).toHaveLength(64);
+
+          return {
+            onConflictDoNothing: () => ({
+              returning: () => [createdRow],
+            }),
+          };
+        },
+      }),
+    };
+    const db = {
+      transaction: async (callback: (inner: typeof tx) => unknown) =>
+        callback(tx),
+    };
+
+    await expect(
+      createContact(db as never, {
+        organizationId,
+        actorUserId: '99999999-9999-4999-8999-999999999999',
+        input: {
+          name: 'Ada Lovelace',
+          phone: '070 123 45 67',
+          email: 'ada@example.com',
+          phoneCountryCode: 'SE',
+          lastBookingAt: null,
+          marketingSmsAllowed: true,
+        },
+        userAgent: 'vitest',
+      }),
+    ).resolves.toMatchObject({
+      status: 'created',
+      contact: {
+        consentStatus: 'granted',
+        contactStatus: 'ready',
+        suppressions: [],
+      },
+    });
+    expect(auditValues).toEqual([
+      expect.objectContaining({
+        actorUserId: '99999999-9999-4999-8999-999999999999',
+        eventType: 'contact.created',
+        resourceType: 'contact',
+        resourceId: createdRow.id,
+        metadata: {
+          marketingSmsAllowed: true,
+          suppressionCreated: false,
+        },
+        userAgent: 'vitest',
+      }),
+    ]);
+  });
+
+  it('creates a manually added contact suppression when marketing is not allowed', async () => {
+    const suppressionValues: unknown[] = [];
+    const createdRow = contactRow({
+      consentStatus: 'denied',
+      phone: '070 123 45 67',
+      normalizedPhone: '+46701234567',
+    });
+    const suppressionRow = {
+      id: '77777777-7777-4777-8777-777777777777',
+      organizationId,
+      type: 'phone',
+      value: '070 123 45 67',
+      normalizedValue: '+46701234567',
+      valueHash: 'phone-hash',
+      reason: 'manual_contact_suppression',
+      source: 'app',
+      createdAt: new Date('2026-05-08T00:00:00.000Z'),
+    };
+    let insertedContact = false;
+    const tx = {
+      select: () => ({
+        from: () => ({
+          where: () => selectionRows([]),
+        }),
+      }),
+      insert: () => ({
+        values: (values: Record<string, unknown>) => {
+          if ('eventType' in values) {
+            return { returning: () => [] };
+          }
+
+          if (!insertedContact) {
+            insertedContact = true;
+
+            return {
+              onConflictDoNothing: () => ({
+                returning: () => [createdRow],
+              }),
+            };
+          }
+
+          suppressionValues.push(values);
+
+          return {
+            onConflictDoNothing: () => ({
+              returning: () => [suppressionRow],
+            }),
+          };
+        },
+      }),
+    };
+    const db = {
+      transaction: async (callback: (inner: typeof tx) => unknown) =>
+        callback(tx),
+    };
+
+    await expect(
+      createContact(db as never, {
+        organizationId,
+        actorUserId: '99999999-9999-4999-8999-999999999999',
+        input: {
+          name: null,
+          phone: '070 123 45 67',
+          email: null,
+          phoneCountryCode: 'SE',
+          lastBookingAt: null,
+          marketingSmsAllowed: false,
+        },
+      }),
+    ).resolves.toMatchObject({
+      status: 'created',
+      contact: {
+        consentStatus: 'denied',
+        contactStatus: 'blocked',
+        contactIssues: ['suppressed_phone', 'missing_consent'],
+        suppressions: [
+          {
+            reason: 'manual_contact_suppression',
+            source: 'app',
+            type: 'phone',
+          },
+        ],
+      },
+    });
+    expect(suppressionValues).toEqual([
+      expect.objectContaining({
+        organizationId,
+        type: 'phone',
+        value: '070 123 45 67',
+        normalizedValue: '+46701234567',
+        reason: 'manual_contact_suppression',
+        source: 'app',
+      }),
+    ]);
+  });
+
+  it('rejects duplicate manual contact methods', async () => {
+    const db = {
+      transaction: async (callback: (inner: unknown) => unknown) =>
+        callback({
+          select: () => ({
+            from: () => ({
+              where: () =>
+                selectionRows([
+                  { id: '11111111-1111-4111-8111-111111111111' },
+                ]),
+            }),
+          }),
+        }),
+    };
+
+    await expect(
+      createContact(db as never, {
+        organizationId,
+        actorUserId: '99999999-9999-4999-8999-999999999999',
+        input: {
+          name: 'Ada Lovelace',
+          phone: '070 123 45 67',
+          email: null,
+          phoneCountryCode: 'SE',
+          lastBookingAt: null,
+          marketingSmsAllowed: true,
+        },
+      }),
+    ).resolves.toEqual({ status: 'duplicate' });
+  });
+
+  it('returns duplicate when a manual contact insert loses a unique race', async () => {
+    let auditInsertCalls = 0;
+    const tx = {
+      select: () => ({
+        from: () => ({
+          where: () => selectionRows([]),
+        }),
+      }),
+      insert: () => ({
+        values: (values: Record<string, unknown>) => {
+          if ('eventType' in values) {
+            auditInsertCalls += 1;
+
+            return { returning: () => [] };
+          }
+
+          return {
+            onConflictDoNothing: () => ({
+              returning: () => [],
+            }),
+          };
+        },
+      }),
+    };
+    const db = {
+      transaction: async (callback: (inner: typeof tx) => unknown) =>
+        callback(tx),
+    };
+
+    await expect(
+      createContact(db as never, {
+        organizationId,
+        actorUserId: '99999999-9999-4999-8999-999999999999',
+        input: {
+          name: null,
+          phone: '070 123 45 67',
+          email: null,
+          phoneCountryCode: 'SE',
+          lastBookingAt: null,
+          marketingSmsAllowed: true,
+        },
+      }),
+    ).resolves.toEqual({ status: 'duplicate' });
+    expect(auditInsertCalls).toBe(0);
+  });
+
+  it('returns existing suppressions when a manually added contact is already blocked', async () => {
+    const suppressionRow = {
+      id: '77777777-7777-4777-8777-777777777777',
+      organizationId,
+      type: 'phone',
+      value: '+46701234567',
+      normalizedValue: '+46701234567',
+      valueHash: 'phone-hash',
+      reason: 'provider_opt_out',
+      source: 'twilio',
+      createdAt: new Date('2026-05-08T00:00:00.000Z'),
+    };
+    let selectCalls = 0;
+    const tx = {
+      select: () => ({
+        from: () => ({
+          where: () => {
+            selectCalls += 1;
+
+            return selectCalls === 1
+              ? selectionRows([])
+              : selectionRows([suppressionRow]);
+          },
+        }),
+      }),
+      insert: () => ({
+        values: (values: Record<string, unknown>) => {
+          if ('eventType' in values) {
+            return { returning: () => [] };
+          }
+
+          return {
+            onConflictDoNothing: () => ({
+              returning: () => [
+                contactRow({
+                  consentStatus: 'granted',
+                  phone: '070 123 45 67',
+                  normalizedPhone: '+46701234567',
+                }),
+              ],
+            }),
+          };
+        },
+      }),
+    };
+    const db = {
+      transaction: async (callback: (inner: typeof tx) => unknown) =>
+        callback(tx),
+    };
+
+    await expect(
+      createContact(db as never, {
+        organizationId,
+        actorUserId: '99999999-9999-4999-8999-999999999999',
+        input: {
+          name: null,
+          phone: '070 123 45 67',
+          email: null,
+          phoneCountryCode: 'SE',
+          lastBookingAt: null,
+          marketingSmsAllowed: true,
+        },
+      }),
+    ).resolves.toMatchObject({
+      status: 'created',
+      contact: {
+        consentStatus: 'granted',
+        contactStatus: 'blocked',
+        contactIssues: ['suppressed_phone'],
+        suppressions: [{ reason: 'provider_opt_out', source: 'twilio' }],
+      },
+    });
+  });
+
+  it('does not audit a new suppression when the unchecked contact phone was already suppressed', async () => {
+    const auditValues: unknown[] = [];
+    const suppressionRow = {
+      id: '77777777-7777-4777-8777-777777777777',
+      organizationId,
+      type: 'phone',
+      value: '+46701234567',
+      normalizedValue: '+46701234567',
+      valueHash: 'phone-hash',
+      reason: 'provider_opt_out',
+      source: 'twilio',
+      createdAt: new Date('2026-05-08T00:00:00.000Z'),
+    };
+    let insertedContact = false;
+    let selectCalls = 0;
+    const tx = {
+      select: () => ({
+        from: () => ({
+          where: () => {
+            selectCalls += 1;
+
+            return selectCalls === 1
+              ? selectionRows([])
+              : selectionRows([suppressionRow]);
+          },
+        }),
+      }),
+      insert: () => ({
+        values: (values: Record<string, unknown>) => {
+          if ('eventType' in values) {
+            auditValues.push(values);
+
+            return { returning: () => [] };
+          }
+
+          if (!insertedContact) {
+            insertedContact = true;
+
+            return {
+              onConflictDoNothing: () => ({
+                returning: () => [
+                  contactRow({
+                    consentStatus: 'denied',
+                    phone: '070 123 45 67',
+                    normalizedPhone: '+46701234567',
+                  }),
+                ],
+              }),
+            };
+          }
+
+          return {
+            onConflictDoNothing: () => ({
+              returning: () => [],
+            }),
+          };
+        },
+      }),
+    };
+    const db = {
+      transaction: async (callback: (inner: typeof tx) => unknown) =>
+        callback(tx),
+    };
+
+    await createContact(db as never, {
+      organizationId,
+      actorUserId: '99999999-9999-4999-8999-999999999999',
+      input: {
+        name: null,
+        phone: '070 123 45 67',
+        email: null,
+        phoneCountryCode: 'SE',
+        lastBookingAt: null,
+        marketingSmsAllowed: false,
+      },
+    });
+
+    expect(auditValues).toEqual([
+      expect.objectContaining({
+        metadata: {
+          marketingSmsAllowed: false,
+          suppressionCreated: false,
+        },
       }),
     ]);
   });
@@ -574,3 +998,37 @@ describe('contact query helpers', () => {
     expect(updateCalls).toBe(0);
   });
 });
+
+function contactRow(
+  input: Partial<{
+    consentStatus: string;
+    email: string | null;
+    normalizedEmail: string | null;
+    normalizedPhone: string | null;
+    now: Date;
+    phone: string | null;
+  }> = {},
+) {
+  const now = input.now ?? new Date('2026-05-08T00:00:00.000Z');
+
+  return {
+    id: '66666666-6666-4666-8666-666666666666',
+    organizationId,
+    name: 'Ada Lovelace',
+    phone: input.phone ?? null,
+    email: input.email ?? null,
+    normalizedPhone: input.normalizedPhone ?? null,
+    normalizedEmail: input.normalizedEmail ?? null,
+    phoneHash: input.normalizedPhone ? 'phone-hash' : null,
+    emailHash: input.normalizedEmail ? 'email-hash' : null,
+    lastBookingAt: null,
+    lastContactedAt: null,
+    consentStatus: input.consentStatus ?? 'unknown',
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function selectionRows<T>(rows: T[]) {
+  return Object.assign(rows, { limit: () => rows });
+}

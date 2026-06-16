@@ -1,18 +1,15 @@
 "use client";
 
 import {
-  FileUp,
   UsersRound,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/navigation';
 import {
   useMemo,
   useState,
 } from 'react';
 import type { RowSelectionState } from '@tanstack/react-table';
 import { ItemNotice } from '@/components/item-notice';
-import { Button } from '@/components/ui/button';
 import {
   EmptyState,
   PaginationControls,
@@ -24,11 +21,11 @@ import { useContactListQueryState } from '@/features/contacts/hooks/use-contact-
 import { useContactPresence } from '@/features/contacts/hooks/use-contact-presence';
 import { useContacts } from '@/features/contacts/hooks/use-contacts';
 import { useOrganizationSession } from '@/features/onboarding/hooks/use-organization-session';
-import { routes } from '@/lib/routes';
 import { BlockedContacts } from './blocked-contacts';
 import { ContactBulkActions } from './contact-bulk-actions';
 import type { ContactSortKey } from './contact-columns';
 import { ContactFilters } from './contact-filters';
+import { ContactPageActions } from './contact-page-actions';
 import { ContactsTable } from './contacts-table';
 
 export function ContactsScreen() {
@@ -102,6 +99,7 @@ export function ContactsScreen() {
 
   const hasContacts = (contactPresence.data?.total ?? 0) > 0;
   const contactPresenceLoaded = Boolean(contactPresence.data);
+  const phoneCountryCode = session.data.profile?.countryCode ?? 'SE';
 
   return (
     <main className="flex flex-1 items-start bg-background" id="main-content">
@@ -109,12 +107,10 @@ export function ContactsScreen() {
         <AppPageHeader
           actions={
             hasContacts ? (
-              <Button asChild>
-                <Link href={routes.contactsImport}>
-                  <FileUp aria-hidden="true" data-icon="inline-start" />
-                  {t('importCsv')}
-                </Link>
-              </Button>
+              <ContactPageActions
+                organizationId={session.data.organization.id}
+                phoneCountryCode={phoneCountryCode}
+              />
             ) : null
           }
           title={t('contactsTitle')}
@@ -149,12 +145,10 @@ export function ContactsScreen() {
           ) : !hasContacts ? (
             <EmptyState
               action={
-                <Button asChild>
-                  <Link href={routes.contactsImport}>
-                    <FileUp aria-hidden="true" data-icon="inline-start" />
-                    {t('importCsv')}
-                  </Link>
-                </Button>
+                <ContactPageActions
+                  organizationId={session.data.organization.id}
+                  phoneCountryCode={phoneCountryCode}
+                />
               }
               description={t('importFirstContactsDescription')}
               framed

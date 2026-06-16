@@ -100,4 +100,28 @@ describe('audit event factories', () => {
       },
     });
   });
+
+  it('builds manual contact creation audit evidence', () => {
+    expect(
+      auditEvents.contactCreated({
+        organizationId,
+        actorUserId,
+        contactId: '66666666-6666-4666-8666-666666666666',
+        marketingSmsAllowed: false,
+        suppressionCreated: true,
+        userAgent: 'vitest',
+      }),
+    ).toEqual({
+      organizationId,
+      actorUserId,
+      eventType: 'contact.created',
+      resourceType: 'contact',
+      resourceId: '66666666-6666-4666-8666-666666666666',
+      metadata: {
+        marketingSmsAllowed: false,
+        suppressionCreated: true,
+      },
+      userAgent: 'vitest',
+    });
+  });
 });

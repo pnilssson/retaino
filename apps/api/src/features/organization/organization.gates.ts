@@ -18,6 +18,15 @@ export async function requireContactImportEligibility(c: Context<AppEnv>) {
   });
 }
 
+export async function requireContactManagementEligibility(c: Context<AppEnv>) {
+  return requireOrganizationReadiness(c, {
+    setupRequired:
+      'Organization setup must be complete before adding contacts.',
+    legalUpdateRequired:
+      'Legal agreement must be current before adding contacts.',
+  });
+}
+
 export async function requireCampaignEligibility(c: Context<AppEnv>) {
   return requireOrganizationReadiness(c, {
     setupRequired:

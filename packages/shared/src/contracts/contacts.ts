@@ -171,6 +171,17 @@ export const contactImportStartSchema = z.object({
   }),
 });
 
+export const createContactSchema = z
+  .object({
+    name: z.string().trim().min(1).nullable().optional().default(null),
+    phone: nonEmptyStringSchema,
+    phoneCountryCode: countryCodeSchema,
+    email: z.email().nullable().optional().default(null),
+    lastBookingAt: timestampSchema.nullable().optional().default(null),
+    marketingSmsAllowed: z.boolean(),
+  })
+  .strict();
+
 export const updateContactSchema = z
   .object({
     name: z.string().trim().min(1).nullable().optional(),
@@ -207,6 +218,7 @@ export type ContactListQuery = z.infer<typeof contactListQuerySchema>;
 export type ContactImportStartInput = z.infer<
   typeof contactImportStartSchema
 >;
+export type CreateContactInput = z.infer<typeof createContactSchema>;
 export type UpdateContactInput = z.infer<typeof updateContactSchema>;
 export type CreateContactSuppressionInput = z.infer<
   typeof createContactSuppressionSchema
@@ -227,6 +239,8 @@ export type ContactListResponse = {
 export type ContactDetailResponse = {
   contact: ContactDetail;
 };
+
+export type CreateContactResponse = ContactDetailResponse;
 
 export type CreateContactImportResponse = {
   import: ContactImportDetail;

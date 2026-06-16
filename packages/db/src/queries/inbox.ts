@@ -456,8 +456,9 @@ async function conversationSummaryRows(
         conversation_base.organization_id,
         conversation_base.phone_hash,
         conversation_base.phone,
-        latest_messages.contact_id,
-        latest_messages.contact_name,
+        coalesce(phone_hash_contact.id, latest_messages.contact_id) as contact_id,
+        coalesce(phone_hash_contact.name, latest_messages.contact_name)
+          as contact_name,
         latest_messages.latest_campaign_id,
         latest_messages.latest_campaign_name,
         latest_messages.latest_message_direction,
@@ -481,6 +482,9 @@ async function conversationSummaryRows(
       left join unread_counts
         on unread_counts.organization_id = conversation_base.organization_id
         and unread_counts.phone_hash = conversation_base.phone_hash
+      left join ${contacts} phone_hash_contact
+        on phone_hash_contact.organization_id = conversation_base.organization_id
+        and phone_hash_contact.phone_hash = conversation_base.phone_hash
       left join ${suppressions} latest_suppression
         on latest_suppression.organization_id = conversation_base.organization_id
         and latest_suppression.type = ${'phone'}

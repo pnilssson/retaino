@@ -201,6 +201,7 @@ export function InboxScreen() {
                 isLoading={conversation.isLoading}
                 messages={conversation.data?.messages ?? []}
                 organizationId={organizationId}
+                phoneCountryCode={session.data.profile?.countryCode ?? 'SE'}
               />
             </Item>
           </div>

@@ -1,3 +1,5 @@
+import { sql, type SQL } from 'drizzle-orm';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it, vi } from 'vitest';
 import {
   createManualReplySmsMessage,
@@ -92,6 +94,36 @@ describe('inbox query helpers', () => {
         }),
       ],
     });
+  });
+
+  it('resolves conversation contacts by current phone hash matches', async () => {
+    let statement: SQL | undefined;
+    const db = {
+      execute: async (query: SQL) => {
+        statement = query;
+
+        return { rows: [] };
+      },
+    };
+
+    await listInboxConversations(db as never, {
+      organizationId,
+      activity: 'all',
+    });
+
+    if (!statement) {
+      throw new Error('Expected listInboxConversations to execute SQL.');
+    }
+
+    const query = new PgDialect().sqlToQuery(sql`${statement}`);
+
+    expect(query.sql).toContain('phone_hash_contact');
+    expect(query.sql).toContain(
+      'phone_hash_contact.phone_hash = conversation_base.phone_hash',
+    );
+    expect(query.sql).toContain(
+      'coalesce(phone_hash_contact.id, latest_messages.contact_id)',
+    );
   });
 
   it('counts unread conversations without loading conversation summaries', async () => {

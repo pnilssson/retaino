@@ -68,6 +68,25 @@ export const auditEvents = {
     };
   },
 
+  contactCreated(input: BaseAuditEventInput & {
+    contactId: string;
+    marketingSmsAllowed: boolean;
+    suppressionCreated: boolean;
+  }): AuditLogEvent {
+    return {
+      organizationId: input.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'contact.created',
+      resourceType: 'contact',
+      resourceId: input.contactId,
+      metadata: {
+        marketingSmsAllowed: input.marketingSmsAllowed,
+        suppressionCreated: input.suppressionCreated,
+      },
+      userAgent: input.userAgent ?? null,
+    };
+  },
+
   campaignReadyToSend(input: BaseAuditEventInput & {
     campaignId: string;
     audienceRule: CampaignAudienceRule;

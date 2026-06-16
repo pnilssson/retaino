@@ -1,4 +1,5 @@
 import {
+  createContact,
   createContactImport,
   createContactSuppression,
   deleteContact,
@@ -14,6 +15,7 @@ import {
 import {
   bulkContactIdsSchema,
   bulkSuppressContactsSchema,
+  createContactSchema,
   contactImportStartSchema,
   contactListQuerySchema,
   createContactSuppressionSchema,
@@ -25,7 +27,10 @@ import { z } from 'zod';
 import { apiError } from '../../lib/errors';
 import { parseJsonBody } from '../../lib/route-helpers';
 import type { AppEnv } from '../../types';
-import { requireContactImportEligibility } from '../organization/organization.gates';
+import {
+  requireContactImportEligibility,
+  requireContactManagementEligibility,
+} from '../organization/organization.gates';
 import { deleteTemporaryImportFile } from './contact-import-storage';
 import { enqueueContactImportProcessing } from './contacts.jobs';
 
@@ -55,6 +60,56 @@ export const contactsRoutes = new Hono<AppEnv>()
         query: parsed.data,
       }),
     );
+  })
+  .post('/', async (c) => {
+    const gate = await requireContactManagementEligibility(c);
+
+    if (!gate.ok) {
+      return gate.response;
+    }
+
+    const parsed = await parseJsonBody(
+      c,
+      createContactSchema,
+      'Invalid contact.',
+    );
+
+    if (!parsed.ok) {
+      return parsed.response;
+    }
+
+    const result = await createContact(c.get('db'), {
+      organizationId: c.get('organization').id,
+      actorUserId: c.get('user').id,
+      input: parsed.data,
+      userAgent: c.req.header('user-agent') ?? null,
+    });
+
+    if (result.status === 'invalid_phone') {
+      return c.json(
+        apiError('validation_failed', 'Enter a valid phone number.'),
+        400,
+      );
+    }
+
+    if (result.status === 'invalid_email') {
+      return c.json(
+        apiError('validation_failed', 'Enter a valid email address.'),
+        400,
+      );
+    }
+
+    if (result.status === 'duplicate') {
+      return c.json(
+        apiError(
+          'validation_failed',
+          'Another contact already uses that phone or email.',
+        ),
+        409,
+      );
+    }
+
+    return c.json({ contact: result.contact }, 201);
   })
   .post('/bulk-delete', async (c) => {
     const parsed = await parseJsonBody(
