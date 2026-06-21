@@ -2,8 +2,12 @@ import * as Sentry from '@sentry/cloudflare';
 import type {
   CaptureContext,
   CloudflareOptions,
-  ErrorEvent,
 } from '@sentry/cloudflare';
+import {
+  createRetainoSentryDataCollection,
+  sanitizeSentryUrl,
+  scrubSentryEvent,
+} from '@retaino/shared/sentry-scrubbing';
 import type { Context } from 'hono';
 import type { AppEnv } from '../types';
 
@@ -21,31 +25,6 @@ type CaptureInput = {
   retryable?: boolean | null;
 };
 
-const FILTERED = '[Filtered]';
-const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
-const PHONE_PATTERN = /(?<![A-Za-z0-9])(?:\+?\d[\d\s().-]{6,}\d)(?![A-Za-z0-9])/g;
-const SENSITIVE_KEYS = new Set([
-  'authorization',
-  'cookie',
-  'set-cookie',
-  'phone',
-  'phoneNumber',
-  'normalizedPhone',
-  'fromPhone',
-  'toPhone',
-  'email',
-  'normalizedEmail',
-  'body',
-  'smsBody',
-  'renderedBody',
-  'rawBody',
-  'rawPayload',
-  'requestBody',
-  'password',
-  'secret',
-  'token',
-]);
-
 export function createSentryOptions(
   env: Pick<
     AppEnv['Bindings'],
@@ -59,13 +38,13 @@ export function createSentryOptions(
       env.SENTRY_ENVIRONMENT ??
       (env.CF_VERSION_METADATA ? 'production' : 'development'),
     release: env.CF_VERSION_METADATA?.id,
-    sendDefaultPii: false,
+    dataCollection: createRetainoSentryDataCollection(),
     skipOpenTelemetrySetup: true,
     integrations: (integrations) =>
       integrations.filter(
         (integration) => integration.name !== 'Hono' && integration.name !== 'Console',
       ),
-    beforeSend: (event) => scrubEvent(event),
+    beforeSend: (event) => scrubSentryEvent(event),
   };
 }
 
@@ -136,7 +115,7 @@ function sentryCaptureContext(
       ...requestTags,
     },
     extra: {
-      url: sanitizedUrl(c.req.url),
+      url: sanitizeSentryUrl(c.req.url),
     },
   };
 }
@@ -179,83 +158,4 @@ function currentOrganizationId(c: Context<AppEnv>) {
 
 function toError(error: unknown) {
   return error instanceof Error ? error : new Error(String(error));
-}
-
-function scrubEvent(event: ErrorEvent): ErrorEvent {
-  const request = event.request ? sanitizedRequest(event.request) : undefined;
-  const rest = { ...event };
-
-  delete rest.user;
-
-  return scrubObject({
-    ...rest,
-    request,
-    extra: scrubValue(event.extra),
-    contexts: scrubValue(event.contexts),
-    breadcrumbs: event.breadcrumbs?.map((breadcrumb) => scrubValue(breadcrumb)),
-  }) as unknown as ErrorEvent;
-}
-
-function sanitizedRequest(request: NonNullable<ErrorEvent['request']>) {
-  const rest = { ...request };
-
-  delete rest.data;
-
-  return {
-    ...rest,
-    url: request.url ? sanitizedUrl(request.url) : undefined,
-    headers: scrubHeaders(request.headers),
-  };
-}
-
-function scrubHeaders(headers: ErrorEvent['request'] extends { headers?: infer T }
-  ? T
-  : unknown) {
-  if (!headers || typeof headers !== 'object' || Array.isArray(headers)) {
-    return headers;
-  }
-
-  return Object.fromEntries(
-    Object.entries(headers as Record<string, unknown>).filter(
-      ([key]) => !SENSITIVE_KEYS.has(key.toLowerCase()),
-    ),
-  );
-}
-
-function scrubValue(value: unknown): unknown {
-  if (typeof value === 'string') {
-    return value.replace(EMAIL_PATTERN, '[Email]').replace(PHONE_PATTERN, '[Phone]');
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((item) => scrubValue(item));
-  }
-
-  if (!value || typeof value !== 'object') {
-    return value;
-  }
-
-  return scrubObject(value as Record<string, unknown>);
-}
-
-function scrubObject(value: Record<string, unknown>) {
-  return Object.fromEntries(
-    Object.entries(value).map(([key, entry]) => [
-      key,
-      SENSITIVE_KEYS.has(key) || SENSITIVE_KEYS.has(key.toLowerCase())
-        ? FILTERED
-        : scrubValue(entry),
-    ]),
-  );
-}
-
-function sanitizedUrl(value: string) {
-  try {
-    const url = new URL(value);
-    url.search = '';
-    url.hash = '';
-    return url.toString().replace(/\/$/, url.pathname === '/' ? '/' : '');
-  } catch {
-    return value.split('?')[0] ?? value;
-  }
 }

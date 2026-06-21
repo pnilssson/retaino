@@ -17,7 +17,23 @@ describe('Sentry helpers', () => {
     expect(options.dsn).toBeUndefined();
     expect(options.enabled).toBe(false);
     expect(options.environment).toBe('development');
-    expect(options.sendDefaultPii).toBe(false);
+    expect(options.dataCollection).toEqual({
+      userInfo: false,
+      cookies: false,
+      httpHeaders: {
+        request: false,
+        response: false,
+      },
+      httpBodies: [],
+      queryParams: false,
+      genAI: {
+        inputs: false,
+        outputs: false,
+      },
+      stackFrameVariables: false,
+      frameContextLines: 0,
+    });
+    expect(options).not.toHaveProperty('sendDefaultPii');
     expect(options.skipOpenTelemetrySetup).toBe(true);
     expect(options).not.toHaveProperty('tracesSampleRate');
   });

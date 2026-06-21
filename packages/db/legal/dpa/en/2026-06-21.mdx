@@ -1,0 +1,139 @@
+# Retaino Data Processing Agreement
+
+Last updated: 2026-06-21
+
+This Data Processing Agreement applies when Retaino processes personal data for
+the customer as processor. The customer is the controller for imported contacts,
+campaign data, SMS activity, booking references, reported outcomes, and related
+customer-controlled data.
+
+## Processing instructions
+
+Retaino processes personal data only on documented customer instructions,
+including instructions expressed through product configuration, account
+settings, imports, campaign preparation, campaign sends, replies, reported
+bookings, support requests, and this agreement.
+
+Retaino will inform the customer if Retaino believes an instruction infringes
+applicable data protection law, unless the law prevents Retaino from doing so.
+
+## Processing scope
+
+The subject matter is customer reactivation, SMS campaign delivery, two-way SMS
+reply handling, opt-out handling, tracking, billing support, diagnostics,
+security, and related reporting.
+
+The duration is the customer's subscription period plus the period needed for
+deletion, return, legal retention, security, backup, billing, dispute, or audit
+purposes.
+
+Retaino may process the categories of data, data subjects, and operations listed
+in the processing schedule below.
+
+## Customer obligations
+
+The customer must:
+
+- have a lawful basis for the personal data and marketing activity;
+- provide required privacy information to its own clients;
+- keep marketing permissions and opt-outs current;
+- avoid uploading health notes, journal notes, treatment notes, diagnoses,
+  consultation notes, and other sensitive unsupported fields;
+- use Retaino only for lawful messages about the customer's own similar
+  services;
+- respond to data subject requests and regulator requests as controller.
+
+## Retaino personnel
+
+Retaino will ensure that persons authorized to process personal data are bound
+by confidentiality obligations or are under an appropriate statutory obligation
+of confidentiality.
+
+## Security
+
+Retaino will maintain appropriate technical and organizational measures designed
+to protect personal data against unauthorized access, loss, alteration,
+disclosure, or destruction.
+
+Current measures include:
+
+- authenticated access to the app;
+- organization-level access controls;
+- tenant-scoped database queries;
+- environment separation between local development and production;
+- encryption in transit where supported by providers;
+- provider credential protection through environment bindings and secrets;
+- webhook signature validation for supported provider callbacks;
+- suppression checks before campaign sends and manual replies;
+- audit records for legal acceptance, imports, campaign decisions, and other
+  user-driven administrative actions;
+- filtering of sensitive fields from backend and web app Sentry error events
+  where Retaino controls event payloads;
+- temporary raw import file storage with deletion after processing and
+  lifecycle cleanup fallback.
+
+## Subprocessors
+
+The customer authorizes Retaino to use subprocessors listed in the Subprocessor
+Notice. Retaino will bind subprocessors by written obligations that protect
+customer personal data to a standard materially consistent with this agreement.
+
+Retaino will provide notice of material subprocessor changes through the
+product, email, or published legal pages. The customer may object on reasonable
+data protection grounds before the change takes effect. If Retaino cannot
+reasonably resolve the objection, either party may terminate the affected
+service.
+
+## International transfers
+
+Retaino will use an appropriate transfer mechanism for restricted transfers,
+such as an adequacy decision, the EU Standard Contractual Clauses, the EU-US
+Data Privacy Framework where applicable, or another lawful mechanism available
+under applicable data protection law. Transfer details are described in the
+Transfer Terms.
+
+## Assistance
+
+Taking into account the nature of processing and information available to
+Retaino, Retaino will provide reasonable assistance for:
+
+- data subject access, correction, deletion, restriction, portability,
+  objection, and consent withdrawal requests;
+- security incident investigation and notification duties;
+- data protection impact assessments and prior consultation where required;
+- regulator requests where the customer cannot reasonably handle the request
+  without Retaino.
+
+## Personal data breaches
+
+Retaino will notify the customer without undue delay after becoming aware of a
+personal data breach affecting customer personal data processed by Retaino.
+Retaino will provide available information reasonably needed for the customer to
+meet its own notification duties.
+
+## Deletion and return
+
+Upon termination or written request, Retaino will delete or return customer
+personal data unless Retaino must keep it for legal, security, billing, dispute,
+backup, or audit reasons. Retaino may delete data according to the product
+settings and retention rules.
+
+## Audits
+
+Retaino will make information reasonably necessary to demonstrate compliance
+available to the customer. Retaino may satisfy audit requests through
+documentation, security summaries, written responses, and commercially
+reasonable cooperation. Audits must be reasonable in scope, respect security and
+confidentiality obligations, and avoid disrupting Retaino operations.
+
+## Processing schedule
+
+| Item | Details |
+| --- | --- |
+| Processing purposes | Customer reactivation, SMS campaign preparation and sending, reply handling, opt-out handling, click tracking, reported booking and revenue reporting, billing support, service security, diagnostics, and customer support. |
+| Data subjects | Customer's clients and prospects already known to the customer, customer personnel, Retaino account users, and message recipients. |
+| Data categories | Names, phone numbers, email addresses, normalized identifiers, hashed identifiers, last booking dates, campaign membership, SMS message bodies, sender numbers, recipient numbers, delivery status, provider message identifiers, replies, opt-out records, click events, booking links, reported booking dates, reported revenue, service labels, notes, user IDs, organization IDs, legal acceptance evidence, billing metadata, and diagnostic metadata. |
+| Processing operations | Collection, upload, validation, mapping, storage, deduplication, normalization, hashing, suppression checks, segmentation, message rendering, transmission, receipt, logging, tracking, reporting, deletion, backup, security monitoring, and troubleshooting. |
+| Sensitive data restrictions | Retaino does not support health notes, journal notes, treatment notes, diagnoses, consultation notes, free-text medical fields, or other sensitive unsupported fields. Customers must not import those fields. |
+| Retention | Customer lifecycle retention applies unless product settings, deletion requests, legal retention, billing, security, backup, dispute, or audit needs require another period. Raw uploaded import files are temporary. |
+| Subprocessors | Clerk, Neon, Vercel, Cloudflare, Stripe, Inngest, Twilio, and Sentry as described in the Subprocessor Notice. |

@@ -1,0 +1,32 @@
+# Retainos underbiträdesinformation
+
+Senast uppdaterad: 2026-06-21
+
+Kunden godkänner att Retaino använder underbiträden som behövs för att tillhandahålla, säkra, hosta, stödja, övervaka, fakturera och leverera tjänsten.
+
+## Allmänt godkännande
+
+Retaino får anlita underbiträden om de är bundna av skriftliga skyldigheter som skyddar kundens personuppgifter på en nivå som i allt väsentligt motsvarar personuppgiftsbiträdesavtalet.
+
+## Meddelande om ändringar
+
+Retaino kommer att meddela väsentliga ändringar av underbiträden genom produkten, via e-post eller på en publicerad juridisk sida. Kunden får invända på rimliga dataskyddsgrunder innan ändringen träder i kraft.
+
+Om kunden invänder mot ett nytt underbiträde och Retaino inte rimligen kan lösa invändningen får endera parten säga upp den berörda tjänsten.
+
+## Nuvarande underbiträden
+
+| Underbiträde | Syfte | Datakategorier |
+| --- | --- | --- |
+| Clerk | Autentisering, kontoåtkomst, användarsessioner och organisationsmedlemskap. | Kontonanvändares namn, e-postadresser, autentiseringsidentifierare, organisationsmedlemskap, roller, sessionsdata och relaterad säkerhetsmetadata. |
+| Neon | Databashosting och lagring. | Kund-, kampanj-, SMS-, opt-out-, spårnings-, rapporterings-, faktureringsprognos-, juridisk acceptans- och revisionsdata som lagras i Retaino. |
+| Vercel | Hosting och leverans av webbapplikationen. | Metadata för webbplats- och appförfrågningar, leveransdata för publika sidor och trafikmetadata för autentiserad apptrafik. |
+| Cloudflare | API-hosting, Workers-runtime, R2-objektlagring för importer, Hyperdrive-databasanslutning, trafikroutning, rate limiting, säkerhet, loggar och observerbarhet. | API-metadata, temporära råa importfiler, kunddata som behandlas av API-rutter och bakgrundsjobb, routningsmetadata, rate limit-metadata och driftloggar. |
+| Stripe | Checkout, betalningar, skatteberäkning, prenumerationer, fakturor, återbetalningar, kundportal och faktureringswebhooks. | Faktureringskontaktdata, betalningsmetadata, skatteinformation, fakturadata, prenumerationsdata, checkoutdata, kundidentifierare, organisationsidentifierare och betalningsstatus. |
+| Inngest | Orkestrering av bakgrundsjobb för importer, kampanjutskick och frisläppning av avsändare. | Jobb-payloadidentifierare som organisations-ID, användar-ID, kontaktimport-ID, kampanj-ID, avsändar-ID, tidsstämplar och metadata för jobbkörning. |
+| Twilio | SMS-avsändarprovisionering, kampanjutskick, testutskick, leverans-callbacks, inkommande svar och opt-out-hantering. | Avsändarnummer, mottagares telefonnummer, meddelandetexter, leveransstatusdata, leverantörens meddelandeidentifierare, svarsinnehåll, opt-out-händelser, tidsstämplar och relaterad teknisk metadata. |
+| Sentry | Felövervakning i backend och webbappen, diagnostik och driftlarm. | Feldetaljer, rutt- och metodmetadata, webbläsar- och enhetsuppgifter, miljö, release, tidsstämplar, drifttaggar som organisation, kampanj, kontaktimport, leverantör och leverantörsfelidentifierare. Känsliga fält filtreras innan de skickas där Retaino kontrollerar händelsepayloaden. |
+
+## Kundkontrollerade verktyg
+
+Retainos kunder kan självständigt använda bokningssystem, CRM-system, kalkylark eller andra verktyg innan data importeras till Retaino eller efter att bokningslänkar och svar har tagits emot. Dessa verktyg är inte Retainos underbiträden om inte Retaino anlitar dem direkt för att tillhandahålla Retaino-tjänsten.

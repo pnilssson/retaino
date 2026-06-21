@@ -1,7 +1,7 @@
 import { LOCALES, type Locale } from '@retaino/shared';
 import type { LegalDocumentType } from '@retaino/shared/contracts';
 
-const CURRENT_LEGAL_DOCUMENT_VERSION = '2026-06-12';
+const CURRENT_LEGAL_DOCUMENT_VERSION = '2026-06-21';
 
 export type LegalDocumentManifestEntry = {
   documentType: LegalDocumentType;

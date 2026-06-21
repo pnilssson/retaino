@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./contracts": "./src/contracts/index.ts",
+    "./sentry-scrubbing": "./src/sentry-scrubbing.ts",
     "./schemas": "./src/schemas/index.ts"
   },
   "scripts": {
