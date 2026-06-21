@@ -1,329 +1,139 @@
-# Landing Page Research
+# Landing Page Brief
 
-This document defines what Retaino's landing page should sell, who it should
-target first, what proof it can use, and what language to avoid. It is a
+This document defines the first Retaino landing page. It is a concise
 messaging and conversion brief, not a visual design spec.
 
-## Decision Summary
+## Core Decision
 
-Retaino should not lead with "SMS marketing software." That category is crowded
-with bulk texting tools, generic inboxes, marketing automation, and broad
-customer communication platforms.
+Retaino should not lead with "SMS marketing software." That category is too
+generic.
 
-Retaino should lead with one narrow commercial promise:
+Lead with one narrow promise:
 
 > Bring lapsed aesthetic clients back to the calendar.
 
-The first landing page should target:
+First target:
 
 > Independent Swedish aesthetic and advanced beauty clinics with 2 to 15
 > bookable staff, an existing booking system, and a customer list they can
 > export without health notes.
 
-Retaino's positioning:
+Positioning:
 
-> Retaino helps clinics find clients who have not booked recently, send one
-> reactivation campaign, answer replies from one inbox, and report the bookings
+> Retaino helps clinics find clients who have not booked recently, send focused
+> reactivation campaigns, answer replies from one inbox, and report the bookings
 > that come back.
 
-The page should make this buying logic obvious:
+## Page Goal
 
-1. The clinic already has past clients.
-2. Some clients are due, delayed, or drifting.
-3. One recovered booking can justify a first test.
-4. SMS is useful because it gets attention and invites replies.
-5. Replies need to become conversations, not ignored campaign activity.
-6. Retaino works beside the booking system.
-7. Retaino shows cost, opt-outs, replies, bookings, and revenue.
+The page should make one next action feel obvious:
 
-## Product Grounding
+> Start your first reactivation campaign.
 
-Retaino v1 is a vertical SaaS for SMS-based customer reactivation. It is not a
-generic SMS gateway, CRM, booking system, or omnichannel marketing platform.
+Everything on the page must do at least one of these:
 
-From the product docs, the core workflow is:
+- increase desire for reactivation
+- prove Retaino fits the clinic
+- reduce anxiety about SMS, cost, data, replies, or opt-outs
+- move the visitor toward the primary CTA
 
-1. Import contacts.
-2. Choose eligible lapsed customers.
-3. Write one SMS offer.
-4. Send from a dedicated two-way sender.
-5. Handle replies in the inbox.
-6. Report bookings and revenue.
+## 2026 Minimum Page
 
-The landing page should sell reactivation and revenue reporting, not cheap SMS
-transport.
-
-## Best First Niche
-
-### Recommended Beachhead
-
-Independent Swedish aesthetic and advanced beauty clinics.
-
-Examples:
-
-- aesthetic clinics
-- skin clinics
-- laser hair removal clinics
-- injectables clinics
-- advanced facial and skin treatment clinics
-- beauty clinics with higher-value repeat services
-
-Ideal customer profile:
-
-- owner, manager, or front-desk lead
-- 2 to 15 bookable staff
-- uses an online booking system already
-- has at least a few hundred previous clients
-- can export customers with phone number and last booking date
-- offers repeatable treatments, such as injectables, skinboosters, laser hair
-  removal, PRP, chemical peels, facials, advanced skin care, lashes, brows, or
-  beauty treatments
-- wants more bookings without buying more ads or replacing the booking system
-- does not need Retaino to store journal notes, health declarations, treatment
-  notes, or sensitive free-text fields
-
-### Why This Is Better Than Hair Salons
-
-Hair salons are understandable but weaker as the first beachhead. Many clients
-already have a regular stylist or salon and naturally return when they need a
-haircut. Reactivation pain exists, but it is often less urgent.
-
-Aesthetic and advanced beauty clinics are a better MVP fit because:
-
-- Booking value is usually higher, so one recovered appointment matters more.
-- Treatments have natural follow-up windows.
-- Paid acquisition is competitive, so bringing back past clients is a clearer
-  economic argument than getting more leads.
-- Clients often reply with questions about timing, suitability, consultations,
-  price, or availability, which makes the inbox a seller.
-- The MVP data needs are simple: name, phone, last booking date, booking link,
-  and reported booking outcome.
-- Retaino can explicitly avoid sensitive health notes and treatment notes.
-
-### Not First
-
-Do not make the first page for:
-
-- hair-only salons built mostly around regular haircut cadence
-- dental, chiropractic, or healthcare recall
-- enterprise chains
-- ecommerce brands
-- restaurants
-- generic local services
-- businesses without permission to text customers
-
-Dental and healthcare recall have strong economics, but they pull Retaino toward
-practice-management integrations, protected patient data, and a medical-grade
-trust posture too early.
-
-## Market Proof
-
-Use these as market proof, not Retaino customer results.
-
-| Fact | Why it matters | Source |
-| --- | --- | --- |
-| Bokadirekt reported 17.6M Swedish beauty and health bookings worth 12.7B SEK in 2021. Hair was large, and Botox/fillers bookings grew 20%. | Beauty and aesthetics is a real booking market. Aesthetics has growth and repeat-treatment logic. | [Bokadirekt beauty economy report](https://www.mynewsdesk.com/se/bokadirekt-group-nordic-ab/pressreleases/skoenhetsekonomens-rapport-bokslut-2021-svenskarna-investerade-127-miljarder-paa-sig-sjaelva-3153562) |
-| Bokadirekt lists roughly 1,400 plus Swedish Botox/fillers businesses. | There is a visible market of clinics already using online booking. | [Bokadirekt Botox and fillers](https://www.bokadirekt.se/botox/fillers) |
-| AmSpa reported the average U.S. medical spa had 245 patient visits per month and 73% repeat patients. | Repeat visits are central to the category, even if U.S. data should not be presented as Swedish proof. | [AmSpa 2024 recap](https://www.americanmedspa.org/news/2024-medical-spa-state-of-the-industry-executive-report-recap/) |
-| Text Request found 84.8% of consumers want appointment scheduling text notifications. | Appointment-related texting is normal, not exotic. | [Text Request 2025 report](https://www.textrequest.com/ebooks/state-of-business-texting-report-2025) |
-| Text Request found 58.9% say texting is the most effective channel for getting a response. | Supports the inbox and two-way reply story. | [Text Request 2025 report](https://www.textrequest.com/ebooks/state-of-business-texting-report-2025) |
-| Twilio says 90% of SMS messages are read within 3 minutes. | Supports timely reactivation offers and open appointment pushes. | [Twilio text marketing](https://www.twilio.com/en-us/solutions/text-marketing) |
-| Mailchimp reports a 2.62% all-user average email click rate. | Useful as a cautious email contrast, not an attack on email. | [Mailchimp email benchmarks](https://mailchimp.com/resources/email-marketing-benchmarks/) |
-
-Recommended hero metric strip:
-
-| Value | Label |
-| --- | --- |
-| 90% | of SMS messages read within 3 minutes |
-| 85% | of consumers want appointment scheduling texts |
-| 59% | say text is the best channel for a response |
-| 0 | booking-system switch required |
-
-Use source notes for the first three. The fourth is a Retaino product claim.
-Avoid unsupported Retaino metrics such as `35K+ messages`, `12x cheaper`, or
-`800% ROI` until Retaino has real customer data.
-
-## Competitor Pattern
-
-Competitors usually sell one of four things:
-
-| Pattern | Examples | Retaino response |
-| --- | --- | --- |
-| Generic SMS tools | SimpleTexting, Textmagic, EZ Texting | Do not compete on bulk sending. Sell recovered bookings and reply handling. |
-| Business texting inboxes | Kenect, Birdeye, Textline, Avochato | Borrow the "replies matter" argument, but tie it to lapsed-client campaigns. |
-| Salon or wellness platforms | DaySmart, Zenoti | Retaino should feel lighter. No booking-system switch. No full operating system decision. |
-| Revenue recovery tools | missed lead and win-back products | Use the economic urgency, but stay honest about manual reporting and MVP scope. |
-
-Useful competitor-inspired angles:
-
-- One-way messaging frustrates customers because they cannot respond.
-- Phone tag is a familiar pain.
-- Replies after promotions or reminders should be easy to answer.
-- A delayed reply can mean the customer books elsewhere.
-- Appointment scheduling by text is a strong service-business use case.
-
-Retaino-specific adaptations:
-
-- "Send the campaign, then keep the conversation open."
-- "A text can get attention. The inbox turns that attention into follow-up."
-- "Do not leave booking replies buried in a send report."
-- "Let clients reply on their terms, then answer from one clinic inbox."
-- "Use SMS for the moment that needs action, then use the inbox to finish the
-  booking."
-
-## Page Structure
-
-The landing page should be tight. Every section must either increase desire,
-reduce risk, or clarify the next action.
+Build only these parts for the first page:
 
 1. **Hero**
-   - Say the outcome and niche.
-   - Show one primary CTA.
-   - Include a short trust line.
-   - Include sourced market metrics only if labels are clear.
+   - H1: "Bring lapsed aesthetic clients back to the calendar."
+   - Name the fit: independent Swedish aesthetic and advanced beauty clinics.
+   - Show one primary CTA: "Start your first reactivation campaign."
+   - Show one real product visual, not an illustration: import, lapsed audience,
+     SMS, inbox, or reported bookings.
 
-2. **Problem**
-   - Past clients are easier to reactivate than cold leads.
-   - Clinics already have clients who are due, delayed, or drifting.
-   - Replies and questions often decide whether a campaign becomes a booking.
+2. **How It Works**
+   - Keep the workflow to five steps: import, choose lapsed clients, text, reply,
+     report.
+   - Show Retaino beside the booking system, not replacing it.
 
-3. **Workflow**
-   - Import customers.
-   - Choose a lapsed audience.
-   - Send a reactivation campaign.
-   - Answer replies from the inbox.
-   - Report bookings and revenue.
+3. **Trust And Control**
+   - Say permission is confirmed during import.
+   - Say opt-out wording is included and STOP replies suppress future sends.
+   - Say credits are shown before send.
+   - Say Retaino needs contact and booking fields, not health notes or treatment
+     notes.
 
-4. **Reactivation, Not Blasts**
-   - Retaino is not a cheaper way to text everyone.
-   - It is a controlled campaign workflow for clients with a reason to return.
+4. **Cost And Payback**
+   - Show Starter as a first reactivation test.
+   - Frame price against recovered bookings.
+   - Do not claim guaranteed ROI or automatic attribution.
 
-5. **Inbox**
-   - Replies are booking opportunities.
-   - The inbox keeps campaign context, customer replies, and manual follow-up in
-     one place.
+5. **FAQ**
+   - Include only the questions that block the CTA:
+     "Do we need to replace our booking system?"
+     "What data do we import?"
+     "What happens when clients reply?"
+     "How are opt-outs handled?"
+     "How do we see bookings and revenue?"
 
-6. **Reporting**
-   - Show delivery, clicks, replies, opt-outs, credits, bookings, and revenue.
-   - Label team-reported bookings honestly.
-   - Do not imply automatic attribution before booking reconciliation exists.
+Do not add testimonials, customer logos, awards, case studies, ROI claims,
+comparisons, integrations, calculators, or long feature grids until Retaino has
+real proof or the product needs them to reduce a specific buying anxiety.
 
-7. **Trust And Control**
-   - Permission confirmation during import.
-   - Required opt-out wording.
-   - STOP handling and suppression.
-   - Credit preview before send.
-   - No surprise overage invoices in MVP.
-   - No treatment notes or health notes required.
+## SEO Minimum
 
-8. **Pricing And Payback**
-   - Show that Starter can be tested with one campaign.
-   - Frame pricing against recovered bookings, not SMS volume.
+The page must be indexable, useful, and specific:
 
-9. **FAQ**
-   - Is this just mass SMS?
-   - Do we need to replace our booking system?
-   - What happens when clients reply?
-   - What data do we need to import?
-   - How are opt-outs handled?
-   - Can we see the cost before sending?
-   - Can Retaino prove exact attribution?
+- Use one localized page per language with normal crawlable links and visible
+  HTML text. Do not hide the real message inside images or animations.
+- Put the search language in the page title, H1, first paragraph, image alt text,
+  and internal links. Swedish terms should include `kundreaktivering`,
+  `SMS-kampanj`, `estetisk klinik`, `skönhetsklinik`, `bokningssystem`, and
+  `tidigare kunder` where they fit naturally.
+- Use a page title like:
+  `Retaino | Kundreaktivering via SMS för estetiska kliniker`
+- Use a meta description that states the buyer, outcome, and risk reducers:
+  `Retaino hjälper estetiska kliniker att hitta tidigare kunder, skicka
+  reaktiveringskampanjer via SMS, hantera svar och rapportera bokningar utan att
+  byta bokningssystem.`
+- Use descriptive headings that match buyer questions, not clever campaign
+  lines.
+- Add `Organization` structured data. Add software or product structured data
+  only if pricing and product details on the page match the markup.
+- Keep the page fast and stable: good Core Web Vitals, optimized images, no
+  heavy decorative video, no layout shift around the CTA.
+- Connect the page from public navigation and link out to pricing, terms, privacy
+  or legal, and the login or signup path.
 
-10. **Final CTA**
-    - Repeat the niche and first action.
+## Evidence Notes
 
-## Hero And Copy
+- Google's Search Essentials prioritize helpful people-first content, buyer
+  language in titles and headings, crawlable links, and understandable images or
+  structured data.
+- Google's 2026 generative search guidance still treats AI search as SEO:
+  crawlable, unique, useful content beats commodity summaries.
+- Google recommends clear meta descriptions that summarize the page and help the
+  searcher decide whether the result fits.
+- Google Core Web Vitals measure loading, responsiveness, and visual stability.
+  These are search and user-experience requirements, not polish.
+- CXL's B2B landing-page guidance says generic pages fail because buyers must
+  translate the value themselves, and the CTA must make the next step obvious.
+- Unbounce benchmark data shows SaaS landing pages are a hard sell, with a 3.8%
+  median conversion rate. Simple, clear copy and mobile-first pages matter.
+- Current SaaS examples repeatedly use product-as-proof: Linear, ReadMe, and
+  Airtable show actual product workflows; Notion and Webflow use specific proof
+  points; Stripe reduces buyer risk with structured detail. Retaino should copy
+  the pattern, not their scale.
 
-Recommended hero:
+Sources:
 
-> Keep the clients you already paid to acquire, and turn existing relationships
-> into booked appointments.
->
-> Retaino helps independent aesthetic and advanced beauty clinics find clients
-> who have not booked recently, handle replies, and see which campaigns turn
-> into bookings.
->
-> Start your first reactivation campaign
->
-> Works beside your booking system. Credits shown before send. Opt-outs handled
-> automatically.
+- [Google Search Essentials](https://developers.google.com/search/docs/essentials)
+- [Google SEO Starter Guide](https://developers.google.com/search/docs/fundamentals/seo-starter-guide)
+- [Google generative AI search guide](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide)
+- [Google meta description guidance](https://developers.google.com/search/docs/appearance/snippet)
+- [Google Core Web Vitals](https://developers.google.com/search/docs/appearance/core-web-vitals)
+- [CXL B2B landing page infrastructure](https://cxl.com/blog/landing-page-infrastructure/)
+- [Unbounce SaaS conversion benchmarks](https://unbounce.com/conversion-benchmark-report/saas-conversion-rate/)
+- [Userpilot 2026 SaaS landing page examples](https://userpilot.com/blog/saas-landing-pages/)
 
-Alternative headlines:
-
-- "Turn past treatment clients into booked appointments."
-- "Fill open clinic appointments from clients who already know you."
-- "Text clients who have not booked in months, then keep every reply in one
-  place."
-- "A reactivation tool for clinics that want bookings, not SMS blasts."
-- "Find clients due for another visit, send one clear reason to return, and
-  report the bookings that come back."
-
-Primary CTA options:
-
-- Start your first reactivation campaign
-- Start reactivation
-- Bring clients back
-- Run your first campaign
-
-Secondary CTA options:
-
-- See how it works
-- View pricing
-- See the workflow
-
-Avoid vague CTAs like "Get started" when a more specific action fits.
-
-## Inbox Positioning
-
-The inbox should not be framed as support. It should be framed as the reason
-reactivation works.
-
-Core message:
-
-> A reactivation message often starts a conversation before it creates a
-> booking. Retaino keeps those replies visible, tied to the campaign context,
-> and ready for your team to answer from the same clinic sender.
-
-What to show:
-
-- Replies from campaigns land in one inbox.
-- "Needs reply" shows conversations where the latest client message has not
-  been answered.
-- Conversation history stays attached to the phone number across campaigns.
-- Staff can reply manually from Retaino.
-- Suppressed numbers cannot be replied to.
-
-Good phrases:
-
-- "Send the campaign, then keep the conversation open."
-- "A text can get attention. The inbox turns that attention into follow-up."
-- "Do not leave booking replies buried in a send report."
-- "See who replied, what they replied to, and who still needs an answer."
-
-## Trust And Compliance
-
-Retaino should reduce SMS anxiety without overpromising.
-
-Say:
-
-- "Permission confirmation during import."
-- "Opt-out wording is included automatically."
-- "STOP replies create suppressions."
-- "Credits are estimated before sending."
-- "Retaino needs booking and contact data, not treatment notes."
-- "Works beside your booking system."
-
-Do not say:
-
-- "fully compliant"
-- "automatic attribution"
-- "guaranteed ROI"
-- "set and forget revenue"
-- "recover every lost client"
-
-## Anti AI-Slop Guardrails
-
-Marketing copy must sound like a specific B2B product, not generic SaaS filler.
+## Copy Rules
 
 Use the buyer's nouns:
 
@@ -338,7 +148,7 @@ Use the buyer's nouns:
 - opt-out
 - reported booking
 
-Prefer plain verbs:
+Use plain verbs:
 
 - find
 - text
@@ -349,7 +159,7 @@ Prefer plain verbs:
 - pay
 - try
 
-Avoid these words and phrases in public copy:
+Avoid:
 
 - unlock
 - elevate
@@ -373,9 +183,6 @@ Avoid these words and phrases in public copy:
 - leverage
 - actionable insights
 - personalized experiences
-- streamlined workflow
-- in today's fast-paced world
-- ever-evolving landscape
 
 Preferred replacements:
 
@@ -386,73 +193,26 @@ Preferred replacements:
 | Seamless communication | Keep campaign replies in one inbox |
 | Drive growth | Report bookings and revenue after the campaign |
 | Actionable insights | See who clicked, replied, opted out, and booked |
-| Personalized experiences | Add the client's first name and last booking date |
-| Streamlined workflow | Import, choose lapsed clients, send, reply, report |
 | Maximize ROI | Compare plan cost with recovered bookings |
 | All-in-one platform | Works beside your booking system |
 
-Rejected phrases from earlier drafts:
+## AI Design Guardrail
 
-| Rejected phrase | Better direction |
-| --- | --- |
-| "Do not let warm replies fall through the cracks." | "Do not leave booking replies buried in a send report." |
-| "while intent is still warm" | "before the customer moves on" |
-| "valuable outcome" | "booked appointment" or "commercial outcome" |
-| "proof that the channel is worth the spend" | "proof that the campaign brought back bookings" |
-| "customer engagement" | "replies, bookings, and opt-outs" |
+Do not ask AI to "make a beautiful landing page." That produces generic SaaS
+layouts because the tool is inventing strategy, copy, hierarchy, and taste at
+the same time.
 
-## Open Questions
+Use AI only after these constraints are fixed:
 
-- What is the most common booking value for the first target clinics?
-- Which booking systems do Swedish aesthetic clinics most commonly export from?
-- Should the first CTA create an account or start a short guided workflow?
-- Can Retaino get beta proof from one friendly clinic before launch?
-- What exact permission language feels clear for Swedish and EU buyers without
-  sounding like legal friction?
+- target clinic type
+- commercial promise
+- primary CTA
+- proof rules
+- product visuals to show
+- banned copy patterns
 
-## Source List
+Useful AI prompt shape:
 
-Product docs:
-
-- [Product](product.md)
-- [Campaigns](campaigns.md)
-- [Inbox](inbox.md)
-- [Reporting](reporting.md)
-- [Pricing](pricing.md)
-- [Compliance](compliance.md)
-
-Market and channel proof:
-
-- [Bokadirekt beauty economy report 2021](https://www.mynewsdesk.com/se/bokadirekt-group-nordic-ab/pressreleases/skoenhetsekonomens-rapport-bokslut-2021-svenskarna-investerade-127-miljarder-paa-sig-sjaelva-3153562)
-- [Bokadirekt Botox and fillers](https://www.bokadirekt.se/botox/fillers)
-- [AmSpa 2024 report recap](https://www.americanmedspa.org/news/2024-medical-spa-state-of-the-industry-executive-report-recap/)
-- [Text Request 2025 State of Business Texting](https://www.textrequest.com/ebooks/state-of-business-texting-report-2025)
-- [Twilio text marketing](https://www.twilio.com/en-us/solutions/text-marketing)
-- [Mailchimp email benchmarks](https://mailchimp.com/resources/email-marketing-benchmarks/)
-- [Sinch SMS vs email](https://sinch.com/blog/sms-vs-email-marketing/)
-- [SHR branschrapport 2020-2022](https://www.shr.nu/sites/default/files/Branschrapport_SHR_2020-2022.pdf)
-
-Competitor and positioning research:
-
-- [SimpleTexting two-way messaging](https://simpletexting.com/features/2-way-messaging/)
-- [Kenect business texting](https://www.kenect.com/product/text-messaging)
-- [DaySmart salon text marketing](https://www.daysmart.com/salon/features/text-marketing/)
-- [Zenoti marketing](https://www.zenoti.com/platform/marketing)
-- [Textline two-way texting](https://www.textline.com/platform-solutions/two-way-texting)
-- [SlickText features](https://www.slicktext.com/features/)
-- [Text-Em-All two-way SMS](https://www.text-em-all.com/2-way-sms-service)
-- [Quo two-way SMS](https://www.quo.com/product/messaging/two-way-sms)
-- [April Dunford positioning](https://www.aprildunford.com/post/obviously-awesome)
-- [HubSpot vertical SaaS](https://blog.hubspot.com/sales/vertical-saas)
-
-Copy and conversion research:
-
-- [Fogg Behavior Model](https://www.behaviormodel.org/)
-- [MECLABS Conversion Sequence Heuristic](https://meclabs.com/about/heuristic)
-- [CXL SaaS homepage optimization](https://cxl.com/blog/saas-homepage-optimization/)
-- [CXL landing page structure](https://cxl.com/blog/how-to-build-a-high-converting-landing-page/)
-- [How Content Volume on Landing Pages Influences Consumer Behavior](https://arxiv.org/abs/1806.00923)
-- [UltimateWB AI writing phrases](https://www.ultimatewb.com/blog/8275/phrases-that-instantly-make-writing-sound-ai-generated/)
-- [TechXplore on AI writing tells](https://techxplore.com/news/2025-07-em-dashes-weird-words-delves.html)
-- [AI Phrase Finder on "delve"](https://aiphrasefinder.com/why-does-chatgpt-use-delve-a-lot/)
-- [arXiv on lexical overrepresentation in LLMs](https://arxiv.org/abs/2412.11385)
+> Design one section for a Swedish aesthetic clinic owner. The section must
+> show how Retaino brings lapsed clients back to the calendar. Avoid generic
+> SaaS language. Show product UI, not abstract graphics.

@@ -18,13 +18,34 @@ export function HeroSection() {
 
   return (
     <section className="bg-background">
-      <div className="mx-auto w-full max-w-7xl">
-        <div className="relative isolate w-screen overflow-hidden sm:w-auto">
-          <div className="relative z-10 flex min-h-[33rem] items-center px-5 pb-16 pt-[5.5rem] sm:min-h-[34rem] sm:px-8 sm:py-[4.5rem] lg:min-h-[43rem] lg:px-20 lg:py-0 xl:px-24">
-            <div className="max-w-[58rem]">
+      <div className="mx-auto w-full max-w-7xl px-3 py-6 sm:px-5">
+        <div className="relative isolate overflow-hidden rounded-lg bg-primary">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-6"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 76% 24%, rgb(255 255 255 / 0.18), transparent 32%), radial-gradient(circle at 60% 88%, rgb(80 220 170 / 0.24), transparent 34%), radial-gradient(circle at 22% 48%, rgb(255 255 255 / 0.08), transparent 28%)'
+            }}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-4 opacity-[0.14]"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.5) 1px, transparent 0)',
+              backgroundSize: '3px 3px'
+            }}
+          />
+
+          <div className="relative z-10 flex min-h-[27rem] items-center px-5 py-6 sm:min-h-[31rem] sm:px-8 lg:min-h-[38rem] lg:px-20 xl:px-24">
+            <div className="mx-auto flex max-w-[66rem] flex-col items-center text-center">
               <motion.h1
                 animate={{ opacity: 1, y: 0 }}
-                className={cn('max-w-[22rem] sm:max-w-[50rem]', textStyles.displayTitle)}
+                className={cn(
+                  textStyles.displayTitle,
+                  'max-w-[24rem] text-white sm:max-w-[58rem] lg:max-w-[66rem]',
+                )}
                 initial={{ opacity: 0, y: 16 }}
                 transition={{
                   delay: shouldReduceMotion ? 0 : 0.08,
@@ -32,33 +53,39 @@ export function HeroSection() {
                 }}
               >
                 {t('heroTitle')}{' '}
-                <span className="text-muted-foreground">
+                <span className="text-white/68">
                   {t('heroMuted')}
                 </span>
               </motion.h1>
 
-              <motion.div
+              <motion.p
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-9 flex flex-col items-start gap-2.5 sm:flex-row sm:items-stretch"
+                className="mt-6 max-w-[30rem] text-lg leading-7 text-white/72"
                 initial={{ opacity: 0, y: 14 }}
                 transition={{
-                  delay: shouldReduceMotion ? 0 : 0.28,
+                  delay: shouldReduceMotion ? 0 : 0.22,
                   duration: shouldReduceMotion ? 0 : 0.45
                 }}
               >
-                <Button asChild className="h-11 px-5" size="lg">
-                  <Link href={routes.signIn} prefetch={false}>
-                    {t('heroCta')}
-                  </Link>
-                </Button>
+                {t('heroSubheadline')}
+              </motion.p>
+
+              <motion.div
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-9 flex justify-center"
+                initial={{ opacity: 0, y: 14 }}
+                transition={{
+                  delay: shouldReduceMotion ? 0 : 0.34,
+                  duration: shouldReduceMotion ? 0 : 0.45
+                }}
+              >
                 <Button
                   asChild
-                  className="h-11 bg-background px-5"
-                  size="lg"
+                  size="xl"
                   variant="outline"
                 >
                   <Link href={routes.signIn} prefetch={false}>
-                    {t('heroSecondaryCta')}
+                    {t('heroCta')}
                   </Link>
                 </Button>
               </motion.div>

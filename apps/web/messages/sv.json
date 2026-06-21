@@ -46,10 +46,10 @@
   "Marketing": {
     "footerCopyright": "Med ensamrätt.",
     "heroCta": "Starta reaktivering",
-    "heroSecondaryCta": "Logga in",
-    "heroMuted": "genom att göra befintliga relationer till bokade besök.",
-    "heroTitle": "Behåll kunderna ni redan betalat för att nå",
-    "tagline": "Fyll kalendern med kunder ni redan har en relation till."
+    "heroMuted": "till bokade besök.",
+    "heroSubheadline": "Återaktivera kunder ni redan investerat i att nå genom fokuserade SMS-kampanjer med alla svar i en inkorg.",
+    "heroTitle": "Omvandla vilande kundrelationer",
+    "tagline": "Behåll kunderna ni redan investerat i att nå genom att omvandla befintliga kundrelationer till bokade besök."
   },
   "Metadata": {
     "title": "Retaino",

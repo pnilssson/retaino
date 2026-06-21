@@ -9,17 +9,17 @@ export function SiteHeader() {
   const t = useTranslations('Chrome');
 
   return (
-    <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5 sm:pt-4">
-      <div className="mx-auto flex h-[3.25rem] w-full max-w-5xl items-center justify-between gap-4 rounded-lg bg-primary px-3 text-primary-foreground shadow-xl shadow-primary/20 ring-1 ring-primary-foreground/10 sm:px-4">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background px-3 sm:px-5">
+      <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-3 text-foreground sm:px-4">
         <Link
           aria-label={t('homeLabel')}
-          className="flex items-center text-primary-foreground"
+          className="flex items-center text-foreground"
           href={routes.home}
         >
           <Image
             alt=""
             aria-hidden="true"
-            className="size-5 brightness-0 invert"
+            className="size-5"
             height={20}
             priority
             src="/brand/icons/retaino-icon-transparent.svg"
@@ -31,7 +31,7 @@ export function SiteHeader() {
           <Show when="signed-out">
             <Button
               asChild
-              className="hidden text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground sm:inline-flex"
+              className="hidden sm:inline-flex"
               size="sm"
               variant="ghost"
             >
@@ -41,9 +41,7 @@ export function SiteHeader() {
             </Button>
             <Button
               asChild
-              className="text-foreground hover:text-foreground"
               size="sm"
-              variant="outline"
             >
               <Link href={routes.signIn} prefetch={false}>
                 {t('startReactivation')}
@@ -54,9 +52,7 @@ export function SiteHeader() {
           <Show when="signed-in">
             <Button
               asChild
-              className="text-foreground hover:text-foreground"
               size="sm"
-              variant="outline"
             >
               <Link href={routes.app} prefetch={false}>
                 {t('goToApp')}

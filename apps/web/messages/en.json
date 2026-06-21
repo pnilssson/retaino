@@ -46,10 +46,10 @@
   "Marketing": {
     "footerCopyright": "All rights reserved.",
     "heroCta": "Start reactivation",
-    "heroSecondaryCta": "Sign in",
-    "heroMuted": "by turning existing relationships into booked appointments.",
-    "heroTitle": "Keep the clients you already paid to acquire",
-    "tagline": "Keep the clients you already paid to acquire and turn existing relationships into booked appointments."
+    "heroMuted": "into booked appointments.",
+    "heroSubheadline": "Reactivate customers you already invested in reaching through focused SMS campaigns with every reply in one inbox.",
+    "heroTitle": "Turn dormant customer relationships",
+    "tagline": "Keep the clients you already paid to acquire by turning existing relationships into booked appointments."
   },
   "Metadata": {
     "title": "Retaino",
