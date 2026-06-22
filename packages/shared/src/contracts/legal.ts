@@ -23,7 +23,7 @@ export const REQUIRED_LEGAL_DOCUMENT_TYPES = [
   'sending_policy',
 ] as const;
 
-export const LEGAL_BUNDLE_VERSION = '2026-06-12' as const;
+export const LEGAL_BUNDLE_VERSION = '2026-06-21' as const;
 
 export const REQUIRED_LEGAL_BUNDLE_DOCUMENT_TYPES =
   REQUIRED_LEGAL_DOCUMENT_TYPES;

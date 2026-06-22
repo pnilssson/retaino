@@ -47,7 +47,7 @@ describe('legal document manifest', () => {
 
   it('publishes the current localized legal documents as a new rollout version', () => {
     expect(
-      legalDocuments.every((document) => document.version === '2026-06-12'),
+      legalDocuments.every((document) => document.version === LEGAL_BUNDLE_VERSION),
     ).toBe(true);
   });
 });
