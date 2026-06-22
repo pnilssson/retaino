@@ -7,8 +7,11 @@ import {
   ilike,
   inArray,
   isNotNull,
+  isNull,
+  lt,
   ne,
   or,
+  sql,
 } from 'drizzle-orm';
 import {
   normalizeCampaignAudienceRule,
@@ -441,22 +444,36 @@ export async function markCampaignRecipientSent(
 ) {
   assertOrganizationId(input.organizationId);
   const now = input.now ?? new Date();
-  const [row] = await db
-    .update(campaignRecipients)
-    .set({
-      status: 'sent',
-      sentAt: now,
-      updatedAt: now,
-    })
-    .where(
-      and(
-        eq(campaignRecipients.organizationId, input.organizationId),
-        eq(campaignRecipients.id, input.recipientId),
-      ),
-    )
-    .returning();
 
-  return row ? recipientToContract(row) : null;
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(campaignRecipients)
+      .set({
+        status: 'sent',
+        sentAt: sql`coalesce(${campaignRecipients.sentAt}, ${now})`,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(campaignRecipients.organizationId, input.organizationId),
+          eq(campaignRecipients.id, input.recipientId),
+        ),
+      )
+      .returning();
+
+    if (!row) {
+      return null;
+    }
+
+    await updateContactLastContactedAt(tx, {
+      organizationId: input.organizationId,
+      contactId: row.contactId,
+      lastContactedAt: row.sentAt,
+      now,
+    });
+
+    return recipientToContract(row);
+  });
 }
 
 export async function markCampaignRecipientSkipped(
@@ -723,6 +740,37 @@ function recipientForSendToContract(
     lastContactedAt: row.lastContactedAt?.toISOString() ?? null,
     selectedAt: row.selectedAt?.toISOString() ?? null,
   };
+}
+
+async function updateContactLastContactedAt(
+  db: Pick<DbClient, 'update'>,
+  input: {
+    organizationId: string;
+    contactId: string | null;
+    lastContactedAt: Date | null;
+    now: Date;
+  },
+) {
+  if (!input.contactId || !input.lastContactedAt) {
+    return;
+  }
+
+  await db
+    .update(contacts)
+    .set({
+      lastContactedAt: input.lastContactedAt,
+      updatedAt: input.now,
+    })
+    .where(
+      and(
+        eq(contacts.organizationId, input.organizationId),
+        eq(contacts.id, input.contactId),
+        or(
+          isNull(contacts.lastContactedAt),
+          lt(contacts.lastContactedAt, input.lastContactedAt),
+        ),
+      ),
+    );
 }
 
 function chunkArray<T>(values: T[], chunkSize: number): T[][] {

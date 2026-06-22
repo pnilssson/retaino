@@ -49,6 +49,18 @@
     "heroMuted": "into booked appointments.",
     "heroSubheadline": "Reactivate customers you already invested in reaching through focused SMS campaigns with every reply in one inbox.",
     "heroTitle": "Turn dormant customer relationships",
+    "howItWorksAudienceDescription": "Build a send list from clients who have not booked recently, then exclude anyone without permission or with an opt-out.",
+    "howItWorksAudienceTitle": "Find the right clients",
+    "howItWorksCampaignDescription": "Write one clear message, add the booking destination, and give clients a reason to come back.",
+    "howItWorksCampaignTitle": "Create the campaign",
+    "howItWorksDescription": "A focused campaign flow that turns previous client relationships into new bookings.",
+    "howItWorksImportDescription": "Use contact and booking fields from the system you already use.",
+    "howItWorksImportTitle": "Import your client list",
+    "howItWorksReplyDescription": "Keep campaign replies in one inbox so booking questions do not disappear.",
+    "howItWorksReplyTitle": "Answer replies",
+    "howItWorksReportDescription": "See clicks, replies, opt-outs, credits, and the bookings your team reports.",
+    "howItWorksReportTitle": "Report bookings",
+    "howItWorksTitle": "How Retaino brings clients back",
     "tagline": "Keep the clients you already paid to acquire by turning existing relationships into booked appointments."
   },
   "Metadata": {

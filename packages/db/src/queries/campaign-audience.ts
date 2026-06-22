@@ -9,7 +9,6 @@ import {
   isNotNull,
   isNull,
   lte,
-  ne,
   not,
   or,
   sql,
@@ -41,7 +40,7 @@ export function campaignAudienceWhere(
   return and(
     campaignAudienceBaseWhere(organizationId, normalizedRule, now),
     not(selectedCampaignSendExistsFilter(organizationId, normalizedRule)),
-    not(recentCampaignSendExistsFilter(organizationId, normalizedRule, now)),
+    not(recentContactedFilter(normalizedRule, now)),
   );
 }
 
@@ -65,11 +64,7 @@ export async function previewCampaignAudience(
     input.organizationId,
     audienceRule,
   );
-  const recentExclusionWhere = recentCampaignSendExistsFilter(
-    input.organizationId,
-    audienceRule,
-    now,
-  );
+  const recentExclusionWhere = recentContactedFilter(audienceRule, now);
   const eligibleWhere = and(
     baseEligibleWhere,
     not(selectedExclusionWhere),
@@ -223,7 +218,6 @@ export async function findCampaignSendExclusionForRecipient(
   db: DbClient,
   input: {
     organizationId: string;
-    currentCampaignId: string;
     contactId: string | null;
     phoneHash: string | null;
     audienceRule: CampaignAudienceRule;
@@ -254,24 +248,23 @@ export async function findCampaignSendExclusionForRecipient(
   }
 
   if (audienceRule.recentCampaignExclusionDays !== null) {
-    const [recentCampaignRecipient] = await db
-      .select({ id: campaignRecipients.id })
-      .from(campaignRecipients)
+    const [recentContact] = await db
+      .select({ id: contacts.id })
+      .from(contacts)
       .where(
-        campaignRecipientMembershipWhere({
+        recentContactedMembershipWhere({
           organizationId: input.organizationId,
           contactId: input.contactId,
           phoneHash: input.phoneHash,
-          recentSince: recentCampaignExclusionSince(
+          recentSince: recentContactedSince(
             audienceRule.recentCampaignExclusionDays,
             now,
           ),
-          currentCampaignId: input.currentCampaignId,
         }),
       )
       .limit(1);
 
-    if (recentCampaignRecipient) {
+    if (recentContact) {
       return 'recent_campaign_send';
     }
   }
@@ -417,27 +410,20 @@ function selectedCampaignSendExistsFilter(
   )`;
 }
 
-function recentCampaignSendExistsFilter(
-  organizationId: string,
-  rule: CampaignAudienceRule,
-  now: Date,
-) {
+function recentContactedFilter(rule: CampaignAudienceRule, now: Date) {
   if (rule.recentCampaignExclusionDays === null) {
     return sql`false`;
   }
 
-  const recentSince = recentCampaignExclusionSince(
+  const recentSince = recentContactedSince(
     rule.recentCampaignExclusionDays,
     now,
   );
 
-  return sql`exists (
-    select 1 from ${campaignRecipients}
-    where ${campaignRecipients.organizationId} = ${organizationId}
-      and ${campaignRecipients.sentAt} is not null
-      and ${campaignRecipients.sentAt} >= ${recentSince}
-      and ${campaignRecipientMatchesContactFilter()}
-  )`;
+  return and(
+    isNotNull(contacts.lastContactedAt),
+    gte(contacts.lastContactedAt, recentSince),
+  ) ?? sql`false`;
 }
 
 function campaignRecipientMatchesContactFilter() {
@@ -455,8 +441,6 @@ function campaignRecipientMembershipWhere(input: {
   contactId: string | null;
   phoneHash: string | null;
   campaignIds?: string[];
-  recentSince?: Date;
-  currentCampaignId?: string;
 }) {
   const identityWhere = or(
     input.contactId
@@ -476,13 +460,29 @@ function campaignRecipientMembershipWhere(input: {
     input.campaignIds && input.campaignIds.length > 0
       ? inArray(campaignRecipients.campaignId, input.campaignIds)
       : undefined,
-    input.recentSince
-      ? gte(campaignRecipients.sentAt, input.recentSince)
-      : undefined,
-    input.currentCampaignId
-      ? ne(campaignRecipients.campaignId, input.currentCampaignId)
-      : undefined,
     isNotNull(campaignRecipients.sentAt),
+    identityWhere,
+  );
+}
+
+function recentContactedMembershipWhere(input: {
+  organizationId: string;
+  contactId: string | null;
+  phoneHash: string | null;
+  recentSince: Date;
+}) {
+  const identityWhere = or(
+    input.contactId ? eq(contacts.id, input.contactId) : undefined,
+    input.phoneHash ? eq(contacts.phoneHash, input.phoneHash) : undefined,
+  );
+
+  if (!identityWhere) {
+    return sql`false`;
+  }
+
+  return and(
+    eq(contacts.organizationId, input.organizationId),
+    gte(contacts.lastContactedAt, input.recentSince),
     identityWhere,
   );
 }
@@ -494,7 +494,7 @@ function campaignIdSqlList(campaignIds: string[]) {
   );
 }
 
-function recentCampaignExclusionSince(days: 7 | 14 | 30, now: Date) {
+function recentContactedSince(days: 7 | 14 | 30, now: Date) {
   const recentSince = new Date(now);
 
   recentSince.setUTCDate(recentSince.getUTCDate() - days);

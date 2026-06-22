@@ -49,6 +49,18 @@
     "heroMuted": "till bokade besök.",
     "heroSubheadline": "Återaktivera kunder ni redan investerat i att nå genom fokuserade SMS-kampanjer med alla svar i en inkorg.",
     "heroTitle": "Omvandla vilande kundrelationer",
+    "howItWorksAudienceDescription": "Bygg en mottagarlista av kunder som inte har bokat nyligen och exkludera dem utan samtycke eller med opt-out.",
+    "howItWorksAudienceTitle": "Hitta rätt kunder",
+    "howItWorksCampaignDescription": "Skriv ett tydligt meddelande, lägg till bokningssidan och ge kunderna en anledning att komma tillbaka.",
+    "howItWorksCampaignTitle": "Skapa kampanjen",
+    "howItWorksDescription": "Ett fokuserat kampanjflöde som gör tidigare kundrelationer till nya bokningar.",
+    "howItWorksImportDescription": "Använd kontakt- och bokningsfält från systemet ni redan använder.",
+    "howItWorksImportTitle": "Importera kundlistan",
+    "howItWorksReplyDescription": "Samla kampanjsvar i en inkorg så att bokningsfrågor inte försvinner.",
+    "howItWorksReplyTitle": "Svara på inkommande svar",
+    "howItWorksReportDescription": "Se klick, svar, opt-outs, krediter och de bokningar teamet rapporterar.",
+    "howItWorksReportTitle": "Rapportera bokningar",
+    "howItWorksTitle": "Så får Retaino kunder att boka igen",
     "tagline": "Behåll kunderna ni redan investerat i att nå genom att omvandla befintliga kundrelationer till bokade besök."
   },
   "Metadata": {

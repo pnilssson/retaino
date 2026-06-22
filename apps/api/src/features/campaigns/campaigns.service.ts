@@ -813,7 +813,6 @@ async function findCampaignExclusion(
 ) {
   return findCampaignSendExclusionForRecipient(db, {
     organizationId: recipient.organizationId,
-    currentCampaignId: campaign.id,
     contactId: recipient.contactId,
     phoneHash: recipient.phoneHash,
     audienceRule: campaign.audienceRule,

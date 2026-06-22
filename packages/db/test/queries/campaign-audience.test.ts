@@ -32,9 +32,31 @@ describe('campaign audience query helpers', () => {
     expect(query.sql).toContain('"campaign_recipients"');
     expect(query.sql).toContain('"campaign_recipients"."sent_at" is not null');
     expect(query.sql).toContain('"campaign_recipients"."campaign_id" in');
+    expect(query.sql).toContain('"contacts"."last_contacted_at" >=');
     expect(query.sql).toContain('in ($');
     expect(query.params).toContain('88888888-8888-4888-8888-888888888888');
     expect(query.params).toContain('99999999-9999-4999-8999-999999999999');
+    expect(query.params.map(String)).toContain('2026-04-16T10:00:00.000Z');
+  });
+
+  it('builds recent campaign protection from contact last contacted dates', () => {
+    const condition = campaignAudienceWhere(
+      campaignRow.organizationId,
+      {
+        lapsedDays: 90,
+        includeNoBookingDate: false,
+        excludeCampaignIds: [],
+        recentCampaignExclusionDays: 14,
+      },
+      new Date('2026-05-16T10:00:00.000Z'),
+    );
+
+    const query = new PgDialect().sqlToQuery(sql`select 1 where ${condition}`);
+
+    expect(query.sql).toContain('"contacts"."last_contacted_at" is not null');
+    expect(query.sql).toContain('"contacts"."last_contacted_at" >=');
+    expect(query.sql).not.toContain('"campaign_recipients"."sent_at" >=');
+    expect(query.params.map(String)).toContain('2026-05-02T10:00:00.000Z');
   });
 
   it('builds eligible audience filters with SMS readiness and suppression checks', () => {
@@ -227,7 +249,6 @@ describe('campaign audience query helpers', () => {
     await expect(
       findCampaignSendExclusionForRecipient(db as never, {
         organizationId: campaignRow.organizationId,
-        currentCampaignId: campaignRow.id,
         contactId: recipientRow.contactId,
         phoneHash: recipientRow.phoneHash,
         audienceRule: {
@@ -292,7 +313,6 @@ describe('campaign audience query helpers', () => {
     await expect(
       findCampaignSendExclusionForRecipient(db as never, {
         organizationId: campaignRow.organizationId,
-        currentCampaignId: campaignRow.id,
         contactId: recipientRow.contactId,
         phoneHash: recipientRow.phoneHash,
         audienceRule: {
@@ -309,8 +329,11 @@ describe('campaign audience query helpers', () => {
       sql`select 1 where ${whereConditions[1]}`,
     );
 
-    expect(query.sql).toContain('"campaign_recipients"."campaign_id" <>');
-    expect(query.sql).toContain('"campaign_recipients"."sent_at" >=');
+    expect(query.sql).toContain('"contacts"."organization_id" = $1');
+    expect(query.sql).toContain('"contacts"."last_contacted_at" >=');
+    expect(query.sql).toContain('"contacts"."id" =');
+    expect(query.sql).toContain('"contacts"."phone_hash" =');
+    expect(query.sql).not.toContain('"campaign_recipients"."sent_at" >=');
     expect(query.params.map(String)).toContain('2026-05-02T10:00:00.000Z');
   });
 });

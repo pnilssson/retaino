@@ -16,9 +16,19 @@ import {
   updateCampaignDraft,
 } from '../../src/queries/campaigns';
 import { recordAuditLog } from '../../src/queries/audit-logs';
+import { campaignRecipients, contacts } from '../../src/schema';
 import { campaignRow, recipientRow } from './campaign-fixtures';
 
 describe('campaign query helpers', () => {
+  function transactionalDb<TTransaction>(transaction: TTransaction) {
+    return {
+      transaction: vi.fn(
+        async (callback: (transaction: TTransaction) => unknown) =>
+          callback(transaction),
+      ),
+    };
+  }
+
   it('updates drafts with organization and draft filters', async () => {
     let whereCondition: SQL | undefined;
     const db = {
@@ -725,7 +735,7 @@ describe('campaign query helpers', () => {
 
   it('marks campaign recipients and campaigns after send attempts', async () => {
     const now = new Date('2026-05-16T10:02:00.000Z');
-    const db = {
+    const tx = {
       update: vi
         .fn()
         .mockReturnValueOnce({
@@ -735,6 +745,16 @@ describe('campaign query helpers', () => {
             }),
           }),
         })
+        .mockReturnValueOnce({
+          set: () => ({
+            where: () => undefined,
+          }),
+        }),
+    };
+    const db = {
+      ...transactionalDb(tx),
+      update: vi
+        .fn()
         .mockReturnValueOnce({
           set: () => ({
             where: () => ({
@@ -793,6 +813,152 @@ describe('campaign query helpers', () => {
     ).resolves.toMatchObject({
       status: 'sent',
       actualCreditCount: 1,
+    });
+  });
+
+  it('updates the linked contact last contacted date when a campaign recipient is sent', async () => {
+    const now = new Date('2026-05-16T10:02:00.000Z');
+    const updateTargets: unknown[] = [];
+    const setValues: unknown[] = [];
+    const whereConditions: SQL[] = [];
+    const tx = {
+      update: vi.fn((target: unknown) => {
+        updateTargets.push(target);
+
+        return {
+          set: (values: unknown) => {
+            setValues.push(values);
+
+            return {
+              where: (condition: SQL | undefined) => {
+                if (condition) {
+                  whereConditions.push(condition);
+                }
+
+                return {
+                  returning: () =>
+                    target === campaignRecipients
+                      ? [{ ...recipientRow, status: 'sent', sentAt: now }]
+                      : [],
+                };
+              },
+            };
+          },
+        };
+      }),
+    };
+    const db = transactionalDb(tx);
+
+    await expect(
+      markCampaignRecipientSent(db as never, {
+        organizationId: campaignRow.organizationId,
+        recipientId: recipientRow.id,
+        now,
+      }),
+    ).resolves.toMatchObject({ status: 'sent' });
+
+    expect(db.transaction).toHaveBeenCalledTimes(1);
+    expect(updateTargets).toEqual([campaignRecipients, contacts]);
+    expect(setValues[0]).toMatchObject({
+      status: 'sent',
+      updatedAt: now,
+    });
+    expect(setValues[1]).toMatchObject({
+      lastContactedAt: now,
+      updatedAt: now,
+    });
+
+    const contactQuery = new PgDialect().sqlToQuery(
+      sql`select 1 where ${whereConditions[1]}`,
+    );
+
+    expect(contactQuery.sql).toContain('"contacts"."organization_id" =');
+    expect(contactQuery.sql).toContain('"contacts"."id" =');
+    expect(contactQuery.sql).toContain('"contacts"."last_contacted_at" is null');
+    expect(contactQuery.sql).toContain('"contacts"."last_contacted_at" <');
+    expect(contactQuery.params).toContain(campaignRow.organizationId);
+    expect(contactQuery.params).toContain(recipientRow.contactId);
+  });
+
+  it('does not touch contacts when a sent campaign recipient has no contact id', async () => {
+    const now = new Date('2026-05-16T10:02:00.000Z');
+    const updateTargets: unknown[] = [];
+    const tx = {
+      update: vi.fn((target: unknown) => {
+        updateTargets.push(target);
+
+        return {
+          set: () => ({
+            where: () => ({
+              returning: () => [
+                {
+                  ...recipientRow,
+                  contactId: null,
+                  status: 'sent',
+                  sentAt: now,
+                },
+              ],
+            }),
+          }),
+        };
+      }),
+    };
+    const db = transactionalDb(tx);
+
+    await expect(
+      markCampaignRecipientSent(db as never, {
+        organizationId: campaignRow.organizationId,
+        recipientId: recipientRow.id,
+        now,
+      }),
+    ).resolves.toMatchObject({ status: 'sent' });
+
+    expect(updateTargets).toEqual([campaignRecipients]);
+  });
+
+  it('keeps an existing campaign recipient sent date when send processing retries', async () => {
+    const now = new Date('2026-05-16T10:02:00.000Z');
+    const existingSentAt = new Date('2026-05-16T10:01:00.000Z');
+    const setValues: unknown[] = [];
+    const tx = {
+      update: vi.fn((target: unknown) => ({
+        set: (values: unknown) => {
+          setValues.push(values);
+
+          return {
+            where: () => ({
+              returning: () =>
+                target === campaignRecipients
+                  ? [
+                      {
+                        ...recipientRow,
+                        status: 'sent',
+                        sentAt: existingSentAt,
+                      },
+                    ]
+                  : [],
+            }),
+          };
+        },
+      })),
+    };
+    const db = transactionalDb(tx);
+
+    await expect(
+      markCampaignRecipientSent(db as never, {
+        organizationId: campaignRow.organizationId,
+        recipientId: recipientRow.id,
+        now,
+      }),
+    ).resolves.toMatchObject({
+      status: 'sent',
+      sentAt: existingSentAt.toISOString(),
+    });
+
+    expect(setValues[0]).not.toMatchObject({ sentAt: now });
+    expect(setValues[1]).toMatchObject({
+      lastContactedAt: existingSentAt,
+      updatedAt: now,
     });
   });
 

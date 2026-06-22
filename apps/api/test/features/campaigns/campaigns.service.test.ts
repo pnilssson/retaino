@@ -1224,7 +1224,6 @@ describe('campaign send service', () => {
 
     expect(findCampaignSendExclusionForRecipient).toHaveBeenCalledWith(db, {
       organizationId,
-      currentCampaignId: campaignId,
       contactId: recipient.contactId,
       phoneHash: recipient.phoneHash,
       audienceRule: campaign.audienceRule,
