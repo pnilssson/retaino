@@ -1,4 +1,4 @@
-import { scaleLinear } from "@visx/scale";
+﻿import { scaleLinear } from "@visx/scale";
 import type { LineConfig } from "./chart-context";
 import { type ChartPhase, Y_DOMAIN_TWEEN_SKIP_THRESHOLD } from "./chart-phase";
 import { groupLinesByYAxisId, normalizeYAxisId } from "./y-axis-scales";
@@ -14,7 +14,7 @@ export function niceYDomain(domain: YDomain): YDomain {
 
 /**
  * Skip Y tween when both endpoints move less than the threshold relative to span.
- * When in doubt callers should tween — beauty wins over micro-optimization.
+ * When in doubt callers should tween  beauty wins over micro-optimization.
  */
 export function shouldTweenYDomain(from: YDomain, to: YDomain): boolean {
   const span = Math.max(

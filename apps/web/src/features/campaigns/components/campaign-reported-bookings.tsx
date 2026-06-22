@@ -148,7 +148,7 @@ function createReportedBookingColumns(
     id: 'customer',
     header: t('customer'),
     cell: ({ row }) => (
-      <span className={textStyles.itemTitle}>
+      <span className={textStyles.h3}>
         {bookingTitle(row.original, t)}
       </span>
     ),
@@ -177,7 +177,7 @@ function createReportedBookingColumns(
     accessorKey: 'revenueAmountMinor',
     header: () => <div className="text-right">{t('revenue')}</div>,
     cell: ({ row }) => (
-      <div className={cn('text-right', textStyles.numericInline)}>
+      <div className={cn('text-right', textStyles.smallNumber)}>
         {row.original.revenueAmountMinor === null
           ? t('notAdded')
           : formatReportCurrency(

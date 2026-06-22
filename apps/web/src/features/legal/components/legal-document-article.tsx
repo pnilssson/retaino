@@ -34,7 +34,7 @@ const mdxComponents = {
   th: (props: ThHTMLAttributes<HTMLTableCellElement>) => (
     <th
       {...props}
-      className={cn('border bg-muted px-3 py-2 text-left', textStyles.body)}
+      className={cn('border bg-muted px-3 py-2 text-left', textStyles.p)}
     />
   ),
   td: (props: TdHTMLAttributes<HTMLTableCellElement>) => (
@@ -66,27 +66,29 @@ export async function LegalDocumentArticle({
         <Link
           className={cn(
             'underline-offset-4 hover:text-foreground hover:underline',
-            textStyles.meta,
+            textStyles.small,
           )}
           href={backHref}
         >
           {resolvedBackLabel}
         </Link>
         <div className="mt-8 border-b pb-6">
-          <p className={cn(textStyles.itemTitle, 'text-muted-foreground')}>
+          <p className={cn(textStyles.h3, 'text-muted-foreground')}>
             {t('policyEyebrow')}
           </p>
-          <h1 className={cn('mt-4', textStyles.displayTitle)}>
+          <h1 className={cn('mt-4', textStyles.h1)}>
             {document.title}
           </h1>
-          <p className={cn('mt-5', textStyles.mutedBody)}>
+          <p className={cn('mt-5', textStyles.mutedP)}>
             {t('documentMeta', {
               date: document.effectiveDate,
               version: document.documentVersion,
             })}
           </p>
         </div>
-        <div className={cn('mt-8 space-y-6', textStyles.legalProse)}>
+        <div
+          className="mt-8 space-y-6 text-[15px] leading-7 text-muted-foreground [&_code]:font-mono [&_code]:text-xs [&_code]:text-foreground [&_h1]:hidden [&_h2]:pt-4 [&_h2]:text-xl [&_h2]:leading-8 [&_h2]:text-foreground [&_h3]:pt-2 [&_h3]:text-base [&_h3]:leading-7 [&_h3]:text-foreground [&_li]:ml-5 [&_li]:list-disc [&_strong]:text-foreground"
+        >
           {content}
         </div>
       </article>

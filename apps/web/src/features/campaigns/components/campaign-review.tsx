@@ -165,7 +165,7 @@ export function CampaignReview({
                   <a
                     className={cn(
                       'break-words underline underline-offset-4',
-                      textStyles.body,
+                      textStyles.p,
                     )}
                     href={values.bookingUrl}
                     rel="noreferrer"
@@ -196,7 +196,7 @@ export function CampaignReview({
         </section>
 
         <section className="grid content-start gap-3">
-          <h3 className={textStyles.itemTitle}>{t('messagePreview')}</h3>
+          <h3 className={textStyles.h3}>{t('messagePreview')}</h3>
           <MessagePreview showLabel={false} smsBody={values.smsBody} />
           <MessageEstimate smsBody={values.smsBody} />
         </section>
@@ -221,14 +221,14 @@ function ReviewItem({
   return (
     <div className="grid gap-1">
       <div className="flex items-center gap-1.5">
-        <h3 className={textStyles.itemTitle}>{label}</h3>
+        <h3 className={textStyles.h3}>{label}</h3>
         {tooltip ? (
           <InfoTooltip label={tooltipLabel ?? ''}>{tooltip}</InfoTooltip>
         ) : null}
       </div>
-      <div className={cn('min-w-0', textStyles.body)}>{value}</div>
+      <div className={cn('min-w-0', textStyles.p)}>{value}</div>
       {typeof detail === 'string' ? (
-        <p className={textStyles.meta}>{detail}</p>
+        <p className={textStyles.small}>{detail}</p>
       ) : (
         detail
       )}

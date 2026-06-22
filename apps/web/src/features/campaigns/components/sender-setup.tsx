@@ -47,8 +47,8 @@ export function SenderSetup({
       <section className="grid gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="grid gap-1">
-            <h3 className={textStyles.itemTitle}>{t('sender')}</h3>
-            <p className={textStyles.mutedBody}>
+            <h3 className={textStyles.h3}>{t('sender')}</h3>
+            <p className={textStyles.mutedP}>
               {sender?.phoneNumber
                 ? sender.phoneNumber
                 : t('chooseSenderNumberBase')}
@@ -87,7 +87,7 @@ export function SenderSetup({
               onChange={setCountryCode}
               value={effectiveCountryCode}
             />
-            <p className={textStyles.mutedBody}>
+            <p className={textStyles.mutedP}>
               {t('senderCountryDescription')}
             </p>
           </div>

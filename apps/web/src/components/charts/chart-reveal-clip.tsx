@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { Transition } from "motion/react";
 import { motion } from "motion/react";
@@ -17,7 +17,7 @@ export interface ChartRevealClipProps {
   padding?: number;
   /** When false, clip stays at full width (no grow animation). */
   animating?: boolean;
-  /** Reveal grows 0 → full; conceal shrinks full → 0 (ready → loading). */
+  /** Reveal grows 0 ' full; conceal shrinks full ' 0 (ready ' loading). */
   mode?: ChartRevealClipMode;
   /** Called when a conceal animation finishes. */
   onComplete?: () => void;
@@ -25,7 +25,7 @@ export interface ChartRevealClipProps {
 
 /**
  * Left-to-right clip reveal for cartesian series.
- * Grows clip rect width from 0 → full (true LTR; scaleX is avoided — it reveals from center).
+ * Grows clip rect width from 0 ' full (true LTR; scaleX is avoided  it reveals from center).
  */
 export function ChartRevealClip({
   clipPathId,

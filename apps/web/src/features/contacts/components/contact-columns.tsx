@@ -95,7 +95,7 @@ export function createContactColumns({
 
         return (
           <Link className="block p-2" href={detailPath}>
-            <span className={textStyles.itemTitle}>
+            <span className={textStyles.h3}>
               {row.original.name ?? labels.unnamed}
             </span>
             <span className="sr-only">{labels.openContactDetails}</span>

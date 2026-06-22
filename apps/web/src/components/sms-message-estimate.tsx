@@ -22,7 +22,7 @@ export function SmsMessageEstimate({
   const t = useTranslations('Common');
 
   return (
-    <p className={cn(textStyles.meta, className)}>
+    <p className={cn(textStyles.small, className)}>
       {smsMessageEstimateText({
         body,
         labels: {

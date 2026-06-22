@@ -127,10 +127,8 @@ export function InboxConversationList({
                       <span
                         className={cn(
                           'block truncate',
-                          textStyles.itemTitle,
-                          conversation.isUnread
-                            ? 'font-semibold'
-                            : 'font-normal',
+                          textStyles.h3,
+                          conversation.isUnread && 'text-foreground',
                         )}
                       >
                         {conversation.contactName ?? conversation.phone}
@@ -140,8 +138,8 @@ export function InboxConversationList({
                           className={cn(
                             'min-w-0 flex-1 truncate',
                             conversation.isUnread
-                              ? textStyles.body
-                              : textStyles.mutedBody,
+                              ? textStyles.p
+                              : textStyles.mutedP,
                           )}
                         >
                           {conversation.latestMessageDirection === 'outbound'
@@ -194,9 +192,9 @@ export function InboxConversationList({
                       <span
                         className={cn(
                           'ml-2',
-                          textStyles.meta,
+                          textStyles.small,
                           conversation.isUnread
-                            ? 'font-medium text-foreground'
+                            ? 'text-foreground'
                             : 'text-muted-foreground',
                         )}
                         title={formatInboxDateTime(
@@ -217,7 +215,7 @@ export function InboxConversationList({
           </ol>
         ) : (
           <div className="flex min-h-full items-center justify-center px-4 py-8">
-            <p className={cn('max-w-64 text-center', textStyles.mutedBody)}>
+            <p className={cn('max-w-64 text-center', textStyles.mutedP)}>
               {search.trim()
                 ? t('noSearchResults')
                 : activity === 'needs_reply'

@@ -7,17 +7,22 @@ import type {
 import {
   AlertTriangle,
   ArrowRight,
-  CalendarCheck,
-  Megaphone,
-  Send,
 } from "lucide-react";
 import {
   useTranslations,
 } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { ItemNotice } from "@/components/item-notice";
-import { SankeyBreakdown } from "@/components/sankey-breakdown";
+import { FunnelBreakdown } from "@/components/funnel-breakdown";
 import { Button } from "@/components/ui/button";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
 import { ContentSection } from "@/features/appshell/components/content-section";
 import { routes } from "@/lib/routes";
 import { textStyles } from "@/lib/text-styles";
@@ -27,7 +32,7 @@ import {
   type OverviewAttentionLabels,
 } from "../overview-attention";
 import { OverviewRecentCampaignsTable } from "./overview-recent-campaigns-table";
-import { OverviewTrendChart } from "./overview-trend-chart";
+import { OverviewResultsGauges } from "./overview-results-gauges";
 import { OverviewWorkspaceStatus } from "./overview-workspace-status";
 
 export function OverviewDashboard({
@@ -36,18 +41,11 @@ export function OverviewDashboard({
   overview: OverviewResponse;
 }) {
   const t = useTranslations('Overview');
-  const campaignFlowWidth = Math.max(
-    overview.funnel.selectedCount,
-    overview.funnel.sentCount,
-    overview.funnel.deliveredCount,
-    overview.funnel.reportedBookingCount,
-    1,
-  );
   return (
     <div className="grid gap-5">
       {overview.attentionItems.length > 0 ? (
-        <ContentSection title={t('needsAttention')}>
-          <div className="divide-y">
+        <ContentSection framed={false} title={t('needsAttention')}>
+          <ItemGroup>
             {overview.attentionItems.map((item) => (
               <AttentionItem
                 item={item}
@@ -56,7 +54,7 @@ export function OverviewDashboard({
                 overview={overview}
               />
             ))}
-          </div>
+          </ItemGroup>
         </ContentSection>
       ) : null}
 
@@ -65,84 +63,26 @@ export function OverviewDashboard({
         sender={overview.sender}
       />
 
-      <ContentSection contentClassName="gap-0 overflow-hidden p-0">
-        {overview.metrics.reportedRevenueHasMixedCurrencies ? (
-          <div className="px-6 pt-6">
-            <ItemNotice
-              description={t('mixedCurrenciesDescription')}
-              title={t('mixedCurrenciesTitle')}
-              variant="warning"
-            />
-          </div>
-        ) : null}
-        <OverviewTrendChart
-          currency={overview.metrics.reportedRevenueCurrency}
-          hasMixedCurrencies={
-            overview.metrics.reportedRevenueHasMixedCurrencies
-          }
-          trend={overview.trend}
-        />
-      </ContentSection>
+      <OverviewResultsGauges overview={overview} />
 
       <ContentSection
         title={t('campaignFlow')}
       >
-        <SankeyBreakdown
-          links={[
-            { source: 0, target: 1, value: campaignFlowWidth },
-            { source: 1, target: 2, value: campaignFlowWidth },
+        <FunnelBreakdown
+          stages={[
             {
-              source: 2,
-              target: 3,
-              value: campaignFlowWidth,
-            },
-          ]}
-          nodes={[
-            {
-              color: "var(--chart-1)",
-              displayValue: overview.funnel.selectedCount,
-              name: t('flowSelected'),
-            },
-            {
-              color: "var(--chart-2)",
-              displayValue: overview.funnel.sentCount,
-              name: t('flowSent'),
-            },
-            {
-              color: "var(--chart-3)",
-              displayValue: overview.funnel.deliveredCount,
-              name: t('flowDelivered'),
-            },
-            {
-              color: "var(--chart-5)",
-              displayValue: overview.funnel.reportedBookingCount,
-              name: t('flowBooked'),
-            },
-          ]}
-          showHeader={false}
-          showTooltip={false}
-          summary={[
-            {
-              icon: Megaphone,
-              iconClassName: "bg-slate-100 text-slate-700",
               label: t('flowSelected'),
               value: overview.funnel.selectedCount,
             },
             {
-              icon: Send,
-              iconClassName: "bg-sky-50 text-sky-700",
               label: t('flowSent'),
               value: overview.funnel.sentCount,
             },
             {
-              icon: Send,
-              iconClassName: "bg-emerald-50 text-emerald-700",
               label: t('flowDelivered'),
               value: overview.funnel.deliveredCount,
             },
             {
-              icon: CalendarCheck,
-              iconClassName: "bg-emerald-50 text-emerald-700",
               label: t('flowBooked'),
               value: overview.funnel.reportedBookingCount,
             },
@@ -158,7 +98,7 @@ export function OverviewDashboard({
         {overview.recentCampaigns.length > 0 ? (
           <OverviewRecentCampaignsTable campaigns={overview.recentCampaigns} />
         ) : (
-          <p className={textStyles.mutedBody}>
+          <p className={textStyles.mutedP}>
             {t('recentCampaignsEmpty')}
           </p>
         )}
@@ -180,12 +120,12 @@ function AttentionItem({
   const view = attentionItemView(item, overview, labels);
 
   return (
-    <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
-      <div className="flex min-w-0 items-start gap-2">
+    <Item className="px-5 py-5" role="listitem">
+      <ItemMedia>
         <AlertTriangle
           aria-hidden="true"
           className={cn(
-            "mt-0.5 size-4 shrink-0",
+            "size-4",
             item.tone === "critical"
               ? "text-rose-500"
               : item.tone === "warning"
@@ -193,20 +133,20 @@ function AttentionItem({
                 : "text-muted-foreground",
           )}
         />
-        <div className="min-w-0">
-          <p className={textStyles.itemTitle}>{view.title}</p>
-          <p className={cn("mt-1", textStyles.mutedBody)}>
-            {view.description}
-          </p>
-        </div>
-      </div>
-      <Button asChild className="shrink-0" size="sm" variant="outline">
-        <Link href={attentionActionHref(item.action)}>
-          {t('open')}
-          <ArrowRight aria-hidden="true" data-icon="inline-end" />
-        </Link>
-      </Button>
-    </div>
+      </ItemMedia>
+      <ItemContent>
+        <ItemTitle>{view.title}</ItemTitle>
+        <ItemDescription>{view.description}</ItemDescription>
+      </ItemContent>
+      <ItemActions>
+        <Button asChild className="shrink-0" size="sm" variant="outline">
+          <Link href={attentionActionHref(item.action)}>
+            {t('open')}
+            <ArrowRight aria-hidden="true" data-icon="inline-end" />
+          </Link>
+        </Button>
+      </ItemActions>
+    </Item>
   );
 }
 

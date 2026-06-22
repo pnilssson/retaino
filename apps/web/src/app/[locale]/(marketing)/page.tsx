@@ -7,6 +7,7 @@ import {
 } from 'next-intl/server';
 import { redirect } from '@/i18n/navigation';
 import { HeroSection } from '@/features/marketing/components/hero-section';
+import { HowItWorksSection } from '@/features/marketing/components/how-it-works-section';
 import { routes } from '@/lib/routes';
 import { buildPublicPageMetadata } from '@/lib/seo';
 
@@ -51,6 +52,7 @@ export default async function HomePage({
   return (
     <main className="flex-1" id="main-content">
       <HeroSection />
+      <HowItWorksSection />
     </main>
   );
 }

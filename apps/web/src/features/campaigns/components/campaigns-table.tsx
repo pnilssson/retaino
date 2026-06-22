@@ -218,7 +218,7 @@ function createCampaignColumns({
 
         return (
           <Link className="block min-w-44 p-2" href={detailPath}>
-            <span className={cn('block break-words', textStyles.itemTitle)}>
+            <span className={cn('block break-words', textStyles.h3)}>
               {row.original.name}
             </span>
           </Link>

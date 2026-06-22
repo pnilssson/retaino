@@ -181,7 +181,7 @@ export function AppSidebar() {
                     alt={userName}
                     className={cn(
                       'size-8 bg-sidebar-primary',
-                      textStyles.meta,
+                      textStyles.small,
                       'text-sidebar-primary-foreground',
                     )}
                     collapsedFallback={
@@ -196,7 +196,7 @@ export function AppSidebar() {
                     imageUrl={user?.imageUrl}
                   />
                   <span className="grid flex-1 text-left">
-                    <span className={cn('truncate', textStyles.itemTitle)}>
+                    <span className={cn('truncate', textStyles.h3)}>
                       {userName}
                     </span>
                   </span>
@@ -215,7 +215,7 @@ export function AppSidebar() {
               >
                 <DropdownMenuLabel className="p-0">
                   <div className="grid gap-1 px-1 py-1.5 text-left">
-                    <span className={cn('truncate', textStyles.itemTitle)}>
+                    <span className={cn('truncate', textStyles.h3)}>
                       {userName}
                     </span>
                   </div>

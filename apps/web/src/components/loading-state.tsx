@@ -21,7 +21,7 @@ export function LoadingState({
       aria-label={resolvedLabel}
       className={cn(
         'flex w-full items-center justify-center gap-2 text-center',
-        textStyles.mutedBody,
+        textStyles.mutedP,
         className,
       )}
       role="status"

@@ -1,4 +1,4 @@
-export function filterDataByXDomain(
+﻿export function filterDataByXDomain(
   data: Record<string, unknown>[],
   xDomain: [Date, Date],
   xAccessor: (d: Record<string, unknown>) => Date
@@ -42,7 +42,7 @@ export function resolveDataXExtent(
   return [new Date(minTime), new Date(maxTime)];
 }
 
-/** Brush track extent — optionally extends past the last data row (e.g. projections). */
+/** Brush track extent  optionally extends past the last data row (e.g. projections). */
 export function resolveBrushTrackXExtent(
   data: Record<string, unknown>[],
   xAccessor: (d: Record<string, unknown>) => Date,

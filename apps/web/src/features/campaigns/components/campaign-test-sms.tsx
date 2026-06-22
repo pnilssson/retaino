@@ -99,7 +99,7 @@ export function CampaignTestSms({
               placeholder="701234567"
               value={field.state.value}
             />
-            <p className={textStyles.mutedBody} id={`${field.name}-description`}>
+            <p className={textStyles.mutedP} id={`${field.name}-description`}>
               {t('testPhoneDescription')}
             </p>
           </div>

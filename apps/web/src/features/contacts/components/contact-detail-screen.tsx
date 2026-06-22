@@ -188,7 +188,7 @@ function ContactDetailContent({
                 <span
                   className={cn(
                     'rounded-md bg-muted px-2 py-1',
-                    textStyles.mutedBody,
+                    textStyles.mutedP,
                   )}
                   key={issue}
                 >
@@ -197,7 +197,7 @@ function ContactDetailContent({
               ))}
             </div>
           ) : (
-            <p className={textStyles.mutedBody}>
+            <p className={textStyles.mutedP}>
               {t('validPhoneDescription')}
             </p>
           )}
@@ -386,7 +386,7 @@ function ContactSuppressionSection({
             ))}
           </div>
         ) : (
-          <p className={textStyles.mutedBody}>
+          <p className={textStyles.mutedP}>
             {t('noSuppressions')}
           </p>
         )}
@@ -439,8 +439,8 @@ function SuppressionRow({
     <div className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
       <div className="grid min-w-0 gap-1">
         <ItemTitle>{method}</ItemTitle>
-        <p className={cn('break-all', textStyles.body)}>{suppression.value}</p>
-        <p className={textStyles.meta}>
+        <p className={cn('break-all', textStyles.p)}>{suppression.value}</p>
+        <p className={textStyles.small}>
           {formatSuppressionReasonLabel(suppression.reason, t)},{' '}
           {formatDateTime(suppression.createdAt, locale, t('notSet'))}
         </p>
@@ -525,8 +525,8 @@ function LastBookingDatePicker({
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid gap-1">
-      <dt className={textStyles.meta}>{label}</dt>
-      <dd className={textStyles.itemTitle}>{value}</dd>
+      <dt className={textStyles.small}>{label}</dt>
+      <dd className={textStyles.h3}>{value}</dd>
     </div>
   );
 }

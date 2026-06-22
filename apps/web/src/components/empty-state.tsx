@@ -37,8 +37,8 @@ export function EmptyState({
         </div>
       ) : null}
       <div className="grid max-w-md gap-1">
-        <h2 className={textStyles.sectionTitle}>{title}</h2>
-        <p className={textStyles.mutedBody}>{description}</p>
+        <h2 className={textStyles.h3}>{title}</h2>
+        <p className={textStyles.mutedP}>{description}</p>
       </div>
       {action ? <div>{action}</div> : null}
     </div>

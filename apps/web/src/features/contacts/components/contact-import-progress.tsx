@@ -19,14 +19,12 @@ import {
   useRef,
 } from 'react';
 import { toast } from 'sonner';
-import { ItemNotice } from '@/components/item-notice';
-import { MetricSummaryEntry } from '@/components/metric-summary-entry';
 import {
-  SankeyBreakdown,
-  type SankeyBreakdownLink,
-  type SankeyBreakdownNode,
-  type SankeyBreakdownSummaryItem,
-} from '@/components/sankey-breakdown';
+  FunnelBreakdown,
+  type FunnelBreakdownMetric,
+  type FunnelBreakdownStage,
+} from '@/components/funnel-breakdown';
+import { ItemNotice } from '@/components/item-notice';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { GuidedFlowActions } from '@/components/guided-flow';
@@ -95,7 +93,7 @@ export function ContactImportProgress({
   if (importQuery.isLoading) {
     return (
       <section className="grid gap-4">
-        <p className={textStyles.mutedBody}>{t('loadingImportStatus')}</p>
+        <p className={textStyles.mutedP}>{t('loadingImportStatus')}</p>
       </section>
     );
   }
@@ -115,7 +113,7 @@ export function ContactImportProgress({
   }
 
   const showMetrics = shouldShowImportMetrics(latestImport);
-  const importSummary = showMetrics ? createImportSummary(latestImport, t) : [];
+  const importMetrics = showMetrics ? createImportMetrics(latestImport, t) : [];
   const showActions =
     latestImport.status === 'completed' || latestImport.status === 'failed';
   const showIssues = latestImport.errorSummary.length > 0;
@@ -129,17 +127,9 @@ export function ContactImportProgress({
         title={header.title}
       >
         {showMetrics ? (
-          <ImportFunnel importRow={latestImport} summary={importSummary} />
+          <ImportFunnel importRow={latestImport} metrics={importMetrics} />
         ) : null}
       </ContentSection>
-
-      {importSummary.length > 0 ? (
-        <div className="hidden min-w-0 gap-4 sm:grid sm:grid-cols-2 xl:grid-cols-3">
-          {importSummary.map((metric) => (
-            <ImportMetricItem key={metric.label} metric={metric} />
-          ))}
-        </div>
-      ) : null}
 
       {showIssues ? <ImportIssuesSection importRow={latestImport} /> : null}
 
@@ -180,49 +170,20 @@ function importProgressHeaderView(
 
 function ImportFunnel({
   importRow,
-  summary,
+  metrics,
 }: {
   importRow: ContactImportDetail;
-  summary: SankeyBreakdownSummaryItem[];
+  metrics: FunnelBreakdownMetric[];
 }) {
   const t = useTranslations('Contacts');
-  const importNodes = createImportNodes(t);
-  const importLinks = createImportLinks(importRow);
+  const importStages = createImportStages(importRow, t);
 
   return (
-    <SankeyBreakdown
-      links={importLinks}
-      nodes={importNodes}
-      showHeader={false}
-      summary={summary}
+    <FunnelBreakdown
+      hideZeroMetrics={false}
+      metrics={metrics}
+      stages={importStages}
       title={t('importResults')}
-    />
-  );
-}
-
-function ImportMetricItem({
-  metric,
-}: {
-  metric: SankeyBreakdownSummaryItem;
-}) {
-  return (
-    <ContentSection asChild>
-      <dl>
-        <ImportMetric metric={metric} />
-      </dl>
-    </ContentSection>
-  );
-}
-
-function ImportMetric({ metric }: { metric: SankeyBreakdownSummaryItem }) {
-  return (
-    <MetricSummaryEntry
-      className="min-h-0 border-t-0 p-0"
-      detail={metric.detail}
-      icon={metric.icon}
-      iconClassName={metric.iconClassName}
-      label={metric.label}
-      value={metric.value}
     />
   );
 }
@@ -310,71 +271,37 @@ function importedContactCount(importRow: ContactImportDetail) {
   return importRow.createdCount + importRow.updatedCount;
 }
 
-function createImportNodes(
-  t: ReturnType<typeof useTranslations<'Contacts'>>,
-): SankeyBreakdownNode[] {
-  return [
-    {
-      color: 'var(--chart-3)',
-      name: t('importNodeRowsProcessed'),
-    },
-    {
-      color: 'var(--chart-2)',
-      name: t('importNodeImported'),
-    },
-    {
-      color: 'var(--chart-4)',
-      name: t('importNodeNeedsAttention'),
-    },
-    {
-      color: 'var(--chart-2)',
-      name: t('importNodeReady'),
-    },
-    {
-      color: 'var(--muted-foreground)',
-      name: t('importNodeSuppressed'),
-    },
-    {
-      color: 'var(--chart-4)',
-      name: t('importNodeSkipped'),
-    },
-    {
-      color: 'var(--destructive)',
-      name: t('importNodeInvalid'),
-    },
-    {
-      color: 'var(--chart-5)',
-      name: t('importNodeDuplicate'),
-    },
-  ];
-}
-
-function createImportLinks(
+function createImportStages(
   importRow: ContactImportDetail,
-): SankeyBreakdownLink[] {
+  t: ReturnType<typeof useTranslations<'Contacts'>>,
+): FunnelBreakdownStage[] {
   const importedCount = importedContactCount(importRow);
   const suppressedImportedCount = Math.min(
     importRow.suppressedCount,
     importedCount,
   );
   const readyImportedCount = Math.max(importedCount - suppressedImportedCount, 0);
-  const attentionCount = importIssueCount(importRow);
 
   return [
-    { source: 0, target: 1, value: importedCount },
-    { source: 0, target: 2, value: attentionCount },
-    { source: 1, target: 3, value: readyImportedCount },
-    { source: 1, target: 4, value: suppressedImportedCount },
-    { source: 2, target: 5, value: importRow.skippedCount },
-    { source: 2, target: 6, value: importRow.invalidCount },
-    { source: 2, target: 7, value: importRow.duplicateCount },
+    {
+      label: t('importNodeRowsProcessed'),
+      value: importRow.processedRows,
+    },
+    {
+      label: t('importNodeImported'),
+      value: importedCount,
+    },
+    {
+      label: t('importNodeReady'),
+      value: readyImportedCount,
+    },
   ];
 }
 
-function createImportSummary(
+function createImportMetrics(
   importRow: ContactImportDetail,
   t: ReturnType<typeof useTranslations<'Contacts'>>,
-): SankeyBreakdownSummaryItem[] {
+): FunnelBreakdownMetric[] {
   return [
     {
       detail: t('importSummaryCreatedDetail'),

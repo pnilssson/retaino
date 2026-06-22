@@ -438,7 +438,7 @@ export function CampaignForm({
                                       />
                                       <div className="grid gap-2">
                                         <div className="flex items-center gap-1.5">
-                                          <p className={textStyles.itemTitle}>
+                                          <p className={textStyles.h3}>
                                             {t('personalize')}
                                           </p>
                                           <InfoTooltip label={t('personalizationDetails')}>
@@ -622,7 +622,7 @@ export function CampaignForm({
                                       }
                                     />
                                     <Label
-                                      className={textStyles.itemTitle}
+                                      className={textStyles.h3}
                                       htmlFor={recentProtectionAckId}
                                     >
                                       {t('iUnderstand')}

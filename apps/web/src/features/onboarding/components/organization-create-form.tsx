@@ -202,7 +202,7 @@ function OrganizationCreateFormFields({
               );
             }}
           </form.Field>
-          <p className={textStyles.mutedBody}>
+          <p className={textStyles.mutedP}>
             {inviteCopy}
           </p>
         </div>

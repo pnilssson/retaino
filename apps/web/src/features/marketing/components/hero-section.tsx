@@ -17,8 +17,8 @@ export function HeroSection() {
   const t = useTranslations('Marketing');
 
   return (
-    <section className="bg-background">
-      <div className="mx-auto w-full max-w-7xl px-3 py-6 sm:px-5">
+    <section className="bg-background px-3 py-6 sm:px-5">
+      <div className="mx-auto w-full max-w-7xl">
         <div className="relative isolate overflow-hidden rounded-lg bg-primary">
           <div
             aria-hidden="true"
@@ -38,12 +38,12 @@ export function HeroSection() {
             }}
           />
 
-          <div className="relative z-10 flex min-h-[27rem] items-center px-5 py-6 sm:min-h-[31rem] sm:px-8 lg:min-h-[38rem] lg:px-20 xl:px-24">
+          <div className="relative z-10 flex min-h-[30rem] items-center px-5 py-8 sm:min-h-[35rem] sm:px-8 lg:min-h-[42rem] lg:px-20 xl:px-24">
             <div className="mx-auto flex max-w-[66rem] flex-col items-center text-center">
               <motion.h1
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(
-                  textStyles.displayTitle,
+                  textStyles.h1,
                   'max-w-[24rem] text-white sm:max-w-[58rem] lg:max-w-[66rem]',
                 )}
                 initial={{ opacity: 0, y: 16 }}
@@ -53,14 +53,15 @@ export function HeroSection() {
                 }}
               >
                 {t('heroTitle')}{' '}
-                <span className="text-white/68">
-                  {t('heroMuted')}
-                </span>
+                {t('heroMuted')}
               </motion.h1>
 
               <motion.p
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-6 max-w-[30rem] text-lg leading-7 text-white/72"
+                className={cn(
+                  textStyles.lead,
+                  'mt-6 max-w-[30rem] text-white/72',
+                )}
                 initial={{ opacity: 0, y: 14 }}
                 transition={{
                   delay: shouldReduceMotion ? 0 : 0.22,

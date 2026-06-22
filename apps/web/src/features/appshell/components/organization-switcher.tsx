@@ -74,10 +74,10 @@ export function OrganizationSwitcher() {
                 imageUrl={activeOrganizationImageUrl}
               />
               <span className="grid flex-1 text-left">
-                <span className={cn(textStyles.meta, 'text-sidebar-foreground/60')}>
+                <span className={cn(textStyles.small, 'text-sidebar-foreground/60')}>
                   {t('organization')}
                 </span>
-                <span className={cn('truncate', textStyles.itemTitle)}>
+                <span className={cn('truncate', textStyles.h3)}>
                   {activeOrganizationName}
                 </span>
               </span>
@@ -94,7 +94,7 @@ export function OrganizationSwitcher() {
             side={isMobile ? 'bottom' : 'right'}
             sideOffset={4}
           >
-            <DropdownMenuLabel className={cn('px-2 py-1.5', textStyles.meta)}>
+            <DropdownMenuLabel className={cn('px-2 py-1.5', textStyles.small)}>
               {t('organizations')}
             </DropdownMenuLabel>
             {memberships.map((membership) => {
@@ -111,17 +111,17 @@ export function OrganizationSwitcher() {
                 >
                   <SidebarAvatar
                     alt={organization.name}
-                    className={cn('size-7 border bg-background', textStyles.meta, 'text-foreground')}
+                    className={cn('size-7 border bg-background', textStyles.small, 'text-foreground')}
                     fallback={initialsFor(organization.name, 'OR')}
                     hasImage={organization.hasImage}
                     imageUrl={organization.imageUrl}
                   />
                   <span className="grid min-w-0 flex-1">
-                    <span className={cn('truncate', textStyles.itemTitle)}>
+                    <span className={cn('truncate', textStyles.h3)}>
                       {organization.name}
                     </span>
                     {isActive ? (
-                      <span className={textStyles.meta}>
+                      <span className={textStyles.small}>
                         {t('activeOrganization')}
                       </span>
                     ) : null}
@@ -142,7 +142,7 @@ export function OrganizationSwitcher() {
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background">
                   <Building2 aria-hidden="true" className="size-4" />
                 </span>
-                <span className={textStyles.mutedBody}>
+                <span className={textStyles.mutedP}>
                   {t('noOrganizationsFound')}
                 </span>
               </DropdownMenuItem>
@@ -153,7 +153,7 @@ export function OrganizationSwitcher() {
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background">
                   <Plus aria-hidden="true" className="size-4" />
                 </span>
-                <span className={textStyles.itemTitle}>{t('createWorkspace')}</span>
+                <span className={textStyles.h3}>{t('createWorkspace')}</span>
               </Link>
             </DropdownMenuItem>
             {canFinishSetup ? (
@@ -162,7 +162,7 @@ export function OrganizationSwitcher() {
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background">
                     <Settings2 aria-hidden="true" className="size-4" />
                   </span>
-                  <span className={textStyles.itemTitle}>{t('finishSetup')}</span>
+                  <span className={textStyles.h3}>{t('finishSetup')}</span>
                 </Link>
               </DropdownMenuItem>
             ) : null}

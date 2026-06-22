@@ -120,7 +120,7 @@ export function BillingPlanList({
               <article>
                 <div className="grid gap-5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className={textStyles.itemTitle}>{plan.label}</h3>
+                    <h3 className={textStyles.h3}>{plan.label}</h3>
                     {isCurrentPlan ? (
                       <StatusBadge
                         className={cn(
@@ -134,11 +134,11 @@ export function BillingPlanList({
                   </div>
 
                   <div>
-                    <p className={textStyles.numeric}>
+                    <p className={cn(textStyles.h2, 'tabular-nums')}>
                       {formatSek(plan.monthlyPriceSek, locale)}
                       <span
                         className={cn(
-                          textStyles.meta,
+                          textStyles.small,
                           isSelectedPlan && "text-primary-foreground/75",
                         )}
                       >
@@ -149,7 +149,7 @@ export function BillingPlanList({
                     <p
                       className={cn(
                         "mt-2",
-                        textStyles.itemTitle,
+                        textStyles.h3,
                         isSelectedPlan && "text-primary-foreground",
                       )}
                     >
@@ -158,7 +158,7 @@ export function BillingPlanList({
                       })}
                       <span
                         className={cn(
-                          textStyles.meta,
+                          textStyles.small,
                           isSelectedPlan && "text-primary-foreground/75",
                         )}
                       >
@@ -171,7 +171,7 @@ export function BillingPlanList({
                   <ul
                     className={cn(
                       "grid gap-2",
-                      textStyles.mutedBody,
+                      textStyles.mutedP,
                       isSelectedPlan && "text-primary-foreground/85",
                     )}
                   >

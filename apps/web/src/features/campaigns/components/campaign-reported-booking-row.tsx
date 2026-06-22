@@ -60,7 +60,7 @@ export function ReportedBookingRow({
   return (
     <fieldset className="grid gap-3">
       <div className="flex items-center justify-between gap-3">
-        <legend className={textStyles.meta}>
+        <legend className={textStyles.small}>
           {t('bookingNumber', { number: index + 1 })}
         </legend>
         <Button
@@ -121,7 +121,7 @@ export function ReportedBookingRow({
       </div>
 
       {booking.contactId ? (
-        <p className={textStyles.meta}>
+        <p className={textStyles.small}>
           {[booking.phone, booking.email].filter(Boolean).join(', ') ||
             t('noContactMethodsSaved')}
         </p>

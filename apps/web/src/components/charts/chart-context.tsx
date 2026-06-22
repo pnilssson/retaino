@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { scaleBand, scaleLinear, scaleTime } from "@visx/scale";
 
@@ -51,7 +51,7 @@ export const chartCssVars = {
   tooltipBackground: "var(--chart-tooltip-background)",
 };
 
-/** Default scatter series colors from the chart palette (`--chart-1` … `--chart-5`). */
+/** Default scatter series colors from the chart palette (`--chart-1` to `--chart-5`). */
 export const defaultScatterColors = [
   "var(--chart-1)",
   "var(--chart-2)",
@@ -89,8 +89,8 @@ export interface LineConfig {
 }
 
 /**
- * Hover/selection state — every field here changes on mouse movement.
- * Lives in its own context so cold consumers (Grid, YAxis, PatternArea, …)
+ * Hover/selection state  every field here changes on mouse movement.
+ * Lives in its own context so cold consumers (Grid, YAxis, PatternArea, )
  * can subscribe to the stable slice and skip re-rendering on every hover.
  */
 export interface ChartHoverContextValue {
@@ -125,7 +125,7 @@ export interface ChartContextValue extends ChartHoverContextValue {
 
   // Scales
   xScale: ScaleTime<number, number>;
-  /** Primary (left) y-scale — alias for `yScales[DEFAULT_Y_AXIS_ID]`. */
+  /** Primary (left) y-scale  alias for `yScales[DEFAULT_Y_AXIS_ID]`. */
   yScale: ScaleLinear<number, number>;
   /** Per-axis y-scales keyed by `yAxisId`. */
   yScales: Record<string, ScaleLinear<number, number>>;
@@ -146,7 +146,7 @@ export interface ChartContextValue extends ChartHoverContextValue {
   // Line configurations (extracted from children)
   lines: LineConfig[];
 
-  /** {@link ReferenceArea} bands — drives y-axis label colors in range. */
+  /** {@link ReferenceArea} bands  drives y-axis label colors in range. */
   referenceAreas: ReferenceAreaConfig[];
 
   // Loading / lifecycle (LineChart status transitions)
@@ -154,11 +154,11 @@ export interface ChartContextValue extends ChartHoverContextValue {
   chartStatus: ChartStatus;
   /** Centered label while `chartPhase` shows loading chrome. */
   loadingLabel?: string;
-  /** Y-domain tween duration when transitioning loading ↔ ready (ms). */
+  /** Y-domain tween duration when transitioning loading  ready (ms). */
   yDomainTweenDuration: number;
-  /** Nice’d y-domains per axis from skeleton data (placeholder). */
+  /** Niced y-domains per axis from skeleton data (placeholder). */
   yDomainSkeletonByAxis: Record<string, YDomain>;
-  /** Nice’d y-domains per axis from the current target data. */
+  /** Niced y-domains per axis from the current target data. */
   yDomainTargetByAxis: Record<string, YDomain>;
 
   // Animation state
@@ -166,7 +166,7 @@ export interface ChartContextValue extends ChartHoverContextValue {
   animationDuration: number;
   /** CSS easing for clip-reveal / line draw (cartesian charts). */
   animationEasing?: string;
-  /** Motion enter transition (spring or tween) — drives clip reveal when spring. */
+  /** Motion enter transition (spring or tween)  drives clip reveal when spring. */
   enterTransition?: Transition;
   /** Increments when enter animation should replay. */
   revealEpoch?: number;
@@ -179,7 +179,7 @@ export interface ChartContextValue extends ChartHoverContextValue {
   // Pre-computed date labels for ticker animation
   dateLabels: string[];
 
-  /** Active brush zoom range — when set, axis ticks align to visible data rows. */
+  /** Active brush zoom range  when set, axis ticks align to visible data rows. */
   xDomain?: [Date, Date];
   /** Full dataset length when brush zoom is enabled (for zoom vs full-range detection). */
   xDomainSlotCount?: number;
@@ -209,14 +209,14 @@ export interface ChartContextValue extends ChartHoverContextValue {
   composedBarGap?: number;
   /** When true, `SeriesBar` segments stack in child order at each x. */
   composedStacked?: boolean;
-  /** Per-row cumulative offsets for stacked `SeriesBar` (data index → dataKey → offset). */
+  /** Per-row cumulative offsets for stacked `SeriesBar` (data index ' dataKey ' offset). */
   composedStackOffsets?: Map<number, Map<string, number>>;
   /** Vertical gap in px between stacked `SeriesBar` segments. Default: 0 */
   composedStackGap?: number;
 }
 
 /**
- * Stable slice of the chart context — everything that doesn't change on hover
+ * Stable slice of the chart context  everything that doesn't change on hover
  * (data, scales, dimensions, animation state, layout config). Consumers that
  * subscribe via `useChartStable()` skip re-renders on every mouse move.
  */
@@ -232,7 +232,7 @@ const ChartHoverContext = createContext<ChartHoverContextValue | null>(null);
  * Splits the merged `value` into a stable slice and a volatile hover slice,
  * publishing each to its own context. Each slice is memoized on its own
  * field identities, so changing `tooltipData` does not bust the stable
- * slice — consumers of `useChartStable()` skip re-renders on hover.
+ * slice  consumers of `useChartStable()` skip re-renders on hover.
  */
 export function ChartProvider({
   children,
@@ -367,7 +367,7 @@ export function ChartProvider({
 }
 
 /**
- * Stable slice — data, scales, dimensions, animation state, layout config.
+ * Stable slice  data, scales, dimensions, animation state, layout config.
  * Subscribers skip re-renders on hover (the hover slice lives in a separate
  * context). Prefer this in cold consumers like axes, grid, pattern fills.
  */
@@ -393,7 +393,7 @@ export function useYScale(
 }
 
 /**
- * Hover slice — tooltipData, selection, hovered bar / candle indices.
+ * Hover slice  tooltipData, selection, hovered bar / candle indices.
  * Subscribers re-render on every mouse move. Use only when the component
  * actually reads hover state.
  */
@@ -417,7 +417,7 @@ export function useChartHover(): ChartHoverContextValue {
 export function useChart(): ChartContextValue {
   const stable = useChartStable();
   const hover = useChartHover();
-  // Identity changes on every hover (hover is the volatile slice) — that's
+  // Identity changes on every hover (hover is the volatile slice)  that's
   // fine for consumers using this merged hook; they explicitly opted in to
   // re-rendering on hover.
   return { ...stable, ...hover };

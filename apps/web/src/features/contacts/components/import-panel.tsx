@@ -235,7 +235,7 @@ function ImportForm({
                       {t('uploadCsvTitle')}
                       <InfoTooltip label={t('minimumCsvFieldsTitle')}>
                         <span className="grid gap-1">
-                          <span className="font-medium">
+                          <span className={textStyles.h3}>
                             {t('minimumCsvFieldsTitle')}
                           </span>
                           <span>
@@ -319,7 +319,7 @@ function ImportForm({
                                     <span
                                       className={cn(
                                         'break-all',
-                                        textStyles.itemTitle,
+                                        textStyles.h3,
                                       )}
                                     >
                                       {selectedFile
@@ -327,11 +327,11 @@ function ImportForm({
                                         : t('chooseCsvFile')}
                                     </span>
                                     {selectedFile ? (
-                                      <span className={textStyles.mutedBody}>
+                                      <span className={textStyles.mutedP}>
                                         {t('selectedCsvReplace')}
                                       </span>
                                     ) : (
-                                      <span className={textStyles.mutedBody}>
+                                      <span className={textStyles.mutedP}>
                                         {t('csvLimits')}
                                       </span>
                                     )}
@@ -377,7 +377,7 @@ function ImportForm({
                             <div
                               className={cn(
                                 'hidden grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)] items-center gap-3 px-1 uppercase sm:grid',
-                                textStyles.meta,
+                                textStyles.small,
                               )}
                             >
                               <span>{t('csvColumn')}</span>
@@ -395,7 +395,7 @@ function ImportForm({
                                       <span
                                         className={cn(
                                           'uppercase sm:hidden',
-                                          textStyles.meta,
+                                          textStyles.small,
                                         )}
                                       >
                                         {t('csvColumn')}
@@ -439,7 +439,7 @@ function ImportForm({
                                       <span
                                         className={cn(
                                           'uppercase sm:hidden',
-                                          textStyles.meta,
+                                          textStyles.small,
                                         )}
                                       >
                                         {t('retainoField')}
@@ -505,7 +505,7 @@ function ImportForm({
                                 <p
                                   className={cn(
                                     'sm:col-start-2',
-                                    textStyles.mutedBody,
+                                    textStyles.mutedP,
                                   )}
                                 >
                                   {t('phoneCountryDescription')}

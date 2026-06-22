@@ -22,7 +22,7 @@ export function ContentHeading({
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className={textStyles.itemTitle} id={titleId}>
+          <h2 className={textStyles.h3} id={titleId}>
             {title}
           </h2>
         </div>
@@ -33,7 +33,7 @@ export function ContentHeading({
         ) : null}
       </div>
       {description ? (
-        <p className={cn('max-w-2xl', textStyles.mutedBody)}>
+        <p className={cn('max-w-2xl', textStyles.mutedP)}>
           {description}
         </p>
       ) : null}

@@ -68,7 +68,7 @@ function createRecentCampaignColumns(
     header: labels.campaign,
     cell: ({ row }) => (
       <Link className="block min-w-44 p-2" href={routes.campaign(row.original.id)}>
-        <span className={cn("block break-words", textStyles.itemTitle)}>
+        <span className={cn("block break-words", textStyles.h3)}>
           {row.original.name}
         </span>
       </Link>

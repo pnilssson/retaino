@@ -41,7 +41,7 @@ export function TeamInvitationSection({ session }: TeamInvitationSectionProps) {
         <span className="flex flex-wrap items-center gap-2">
           {t('teamAccess')}
           {!canManageTeam ? (
-            <span className={textStyles.mutedBody}>
+            <span className={textStyles.mutedP}>
               {t('teamLocked')}
             </span>
           ) : null}

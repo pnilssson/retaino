@@ -46,7 +46,7 @@ export function CookieBanner() {
             }}
           >
             <div className="flex flex-col gap-4">
-              <p className={textStyles.mutedBody}>
+              <p className={textStyles.mutedP}>
                 {t('bannerDescription')}{' '}
                 <Link
                   className="text-foreground underline underline-offset-2"

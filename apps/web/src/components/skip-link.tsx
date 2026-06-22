@@ -1,3 +1,6 @@
+import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
+
 type SkipLinkProps = {
   label: string;
 };
@@ -5,7 +8,10 @@ type SkipLinkProps = {
 export function SkipLink({ label }: SkipLinkProps) {
   return (
     <a
-      className="sr-only fixed top-3 left-3 z-[100] rounded-md bg-background px-3 py-2 text-sm font-medium text-foreground shadow-lg ring-2 ring-ring focus:not-sr-only focus:outline-none"
+      className={cn(
+        'sr-only fixed top-3 left-3 z-[100] rounded-md bg-background px-3 py-2 text-foreground shadow-lg ring-2 ring-ring focus:not-sr-only focus:outline-none',
+        textStyles.h3,
+      )}
       href="#main-content"
     >
       {label}

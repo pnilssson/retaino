@@ -111,13 +111,13 @@ function Metric({
 }) {
   return (
     <div className="min-w-0">
-      <dt className={cn('flex items-center gap-1.5', textStyles.meta)}>
+      <dt className={cn('flex items-center gap-1.5', textStyles.small)}>
         {label}
         {tooltip ? (
           <InfoTooltip label={tooltipLabel}>{tooltip}</InfoTooltip>
         ) : null}
       </dt>
-      <dd className={cn('mt-1 truncate', textStyles.numericInline)}>
+      <dd className={cn('mt-1 truncate', textStyles.smallNumber)}>
         {value}
       </dd>
     </div>

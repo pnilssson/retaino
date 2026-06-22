@@ -128,7 +128,7 @@ export function AudienceRuleFields({
             type="number"
             value={Number.isFinite(lapsedDays) ? lapsedDays : ''}
           />
-          <p className={textStyles.meta}>
+          <p className={textStyles.small}>
             {t('lapsedDaysRangeDescription')}
           </p>
         </div>
@@ -144,7 +144,7 @@ export function AudienceRuleFields({
           }
         />
         <Label
-          className={textStyles.itemTitle}
+          className={textStyles.h3}
           htmlFor={includeNoBookingDateId}
         >
           {t('includeContactsWithoutBookingDate')}
@@ -261,7 +261,7 @@ export function AudienceExclusionFields({
         </div>
 
         {campaigns.length === 0 ? (
-          <p className={textStyles.meta}>
+          <p className={textStyles.small}>
             {t('sentCampaignsWillAppear')}
           </p>
         ) : (
@@ -325,7 +325,7 @@ export function AudienceExclusionFields({
                         aria-selected={selected}
                         className={cn(
                           'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
-                          textStyles.body,
+                          textStyles.p,
                           selected && 'bg-accent/60',
                         )}
                         key={campaign.id}
@@ -343,10 +343,10 @@ export function AudienceExclusionFields({
                         type="button"
                       >
                         <span className="min-w-0 flex-1">
-                          <span className={cn('block truncate', textStyles.itemTitle)}>
+                          <span className={cn('block truncate', textStyles.h3)}>
                             {campaign.name}
                           </span>
-                          <span className={cn('block truncate', textStyles.meta)}>
+                          <span className={cn('block truncate', textStyles.small)}>
                             {campaign.sentAt
                               ? t('sentOn', {
                                   date: formatCampaignDate(campaign.sentAt, locale),
@@ -366,14 +366,14 @@ export function AudienceExclusionFields({
                     );
                   })
                 ) : (
-                  <p className={cn('px-2 py-3', textStyles.mutedBody)} role="status">
+                  <p className={cn('px-2 py-3', textStyles.mutedP)} role="status">
                     {t('noCampaignsFound')}
                   </p>
                 )}
               </div>
               {selectedCampaigns.length > 0 ? (
                 <div className="mt-2 flex items-center justify-between gap-2 px-2 pt-2">
-                  <p className={textStyles.meta}>
+                  <p className={textStyles.small}>
                     {t(
                       selectedCampaigns.length === 1
                         ? 'campaignSelected'

@@ -25,7 +25,7 @@ export function AppPageHeader({
       ) : null}
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className={cn('truncate', textStyles.pageTitle)}>
+          <h1 className={cn('truncate', textStyles.h2)}>
             {title}
           </h1>
         </div>
@@ -36,7 +36,7 @@ export function AppPageHeader({
         ) : null}
       </div>
       {description ? (
-        <p className={cn('max-w-2xl', textStyles.mutedBody)}>
+        <p className={cn('max-w-2xl', textStyles.mutedP)}>
           {description}
         </p>
       ) : null}

@@ -141,7 +141,7 @@ export function OrganizationRequired() {
             </div>
           </div>
 
-          <p className={textStyles.mutedBody}>
+          <p className={textStyles.mutedP}>
             {t('inviteCopy')}
           </p>
         </OnboardingItem>

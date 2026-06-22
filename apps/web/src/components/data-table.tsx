@@ -141,7 +141,7 @@ export function PaginationControls({
   const hasNextPage = page < totalPages;
 
   return (
-    <div className={cn('flex flex-wrap items-center justify-between gap-3', textStyles.mutedBody)}>
+    <div className={cn('flex flex-wrap items-center justify-between gap-3', textStyles.mutedP)}>
       <span>{summary}</span>
       {totalPages > 1 ? (
         <Pagination aria-label={t('pagination')} className="mx-0 w-auto justify-end">

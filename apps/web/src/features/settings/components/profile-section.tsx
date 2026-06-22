@@ -535,8 +535,8 @@ function ProfilePhoneInput({
 function ProfileRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid min-w-0 gap-1">
-      <dt className={textStyles.meta}>{label}</dt>
-      <dd className={cn('min-w-0 truncate', textStyles.itemTitle)}>
+      <dt className={textStyles.small}>{label}</dt>
+      <dd className={cn('min-w-0 truncate', textStyles.h3)}>
         {value}
       </dd>
     </div>

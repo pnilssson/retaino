@@ -114,10 +114,10 @@ export function AuthProofPanel() {
                 ease: 'easeOut'
               }}
             >
-              <blockquote className={cn(textStyles.pageTitle, 'text-white')}>
+              <blockquote className={cn(textStyles.h2, 'text-white')}>
                 {t(quote.textKey)}
               </blockquote>
-              <figcaption className={cn('mt-6', textStyles.body, 'text-white/75')}>
+              <figcaption className={cn('mt-6', textStyles.p, 'text-white/75')}>
                 {t(quote.attributionKey)}
               </figcaption>
             </motion.figure>

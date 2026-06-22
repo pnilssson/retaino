@@ -23,35 +23,39 @@ export function MetricSummaryEntry({
   return (
     <div
       className={cn(
-        'grid min-h-20 content-start gap-2 border-t border-border py-3',
+        'grid min-h-20 grid-cols-[minmax(0,1fr)_auto] content-center gap-x-4 gap-y-2 border-t border-border py-3',
         className,
       )}
     >
-      <dt className="flex min-w-0 items-start gap-2">
+      <dt className="flex min-w-0 items-center gap-2">
         {Icon ? (
           <span
             className={cn(
-              'flex size-9 shrink-0 items-center justify-center rounded-md',
+              'flex size-4 shrink-0 items-center justify-center bg-transparent',
               iconClassName ?? 'bg-muted text-muted-foreground',
+              'bg-transparent',
             )}
           >
             <Icon aria-hidden="true" className="size-4" />
           </span>
         ) : null}
-        <span className="grid min-w-0 content-center">
-          <span className={cn('truncate', textStyles.itemTitle)}>
-            {label}
-          </span>
-          {detail ? (
-            <span className={textStyles.meta}>
-              {detail}
-            </span>
-          ) : null}
+        <span className={cn('truncate', textStyles.h3)}>
+          {label}
         </span>
       </dt>
       {hasValue ? (
-        <dd className={textStyles.numericInline}>
+        <dd
+          className={cn(
+            'row-span-2 self-center justify-self-end text-right',
+            textStyles.smallNumber,
+          )}
+        >
           {value}
+        </dd>
+      ) : null}
+      {detail ? (
+        <dd className={cn('col-start-1 min-w-0', textStyles.small)}>
+          {detail}
         </dd>
       ) : null}
     </div>

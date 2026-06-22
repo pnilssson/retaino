@@ -59,10 +59,10 @@ function GuidedFlowSteps<StepId extends string>({
   return (
     <nav className="grid min-w-0 gap-2" aria-label={progressLabel}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className={cn('uppercase', textStyles.meta)}>
+        <p className={cn('uppercase', textStyles.small)}>
           {progressLabel}
         </p>
-        <p className={textStyles.meta}>
+        <p className={textStyles.small}>
           {currentIndex + 1}/{steps.length}
         </p>
       </div>
@@ -112,9 +112,9 @@ export function GuidedFlowSection({
   return (
     <section className="grid gap-3">
       <div className="grid gap-1">
-        <h2 className={textStyles.itemTitle}>{title}</h2>
+        <h2 className={textStyles.h3}>{title}</h2>
         {description ? (
-          <p className={textStyles.mutedBody}>{description}</p>
+          <p className={textStyles.mutedP}>{description}</p>
         ) : null}
       </div>
       {children}

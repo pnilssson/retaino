@@ -119,7 +119,7 @@ function OverviewDetail({
 }) {
   return (
     <div className="grid gap-1">
-      <dt className={cn('flex items-center gap-1.5', textStyles.meta)}>
+      <dt className={cn('flex items-center gap-1.5', textStyles.small)}>
         {label}
         {tooltip ? (
           <InfoTooltip label={tooltipLabel ?? ''}>
@@ -127,7 +127,7 @@ function OverviewDetail({
           </InfoTooltip>
         ) : null}
       </dt>
-      <dd className={cn('min-w-0', textStyles.itemTitle)}>{value}</dd>
+      <dd className={cn('min-w-0', textStyles.h3)}>{value}</dd>
     </div>
   );
 }

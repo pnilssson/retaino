@@ -24,12 +24,12 @@ export function MessagePreview({
   return (
     <div className="grid content-start gap-2">
       {showLabel ? (
-        <p className={textStyles.itemTitle}>{t('messagePreview')}</p>
+        <p className={textStyles.h3}>{t('messagePreview')}</p>
       ) : null}
       <div
         className={cn(
           'min-h-36 rounded-lg bg-muted px-3 py-2',
-          hasBody ? textStyles.body : textStyles.mutedBody,
+          hasBody ? textStyles.p : textStyles.mutedP,
         )}
       >
         <p className="whitespace-pre-wrap break-words">

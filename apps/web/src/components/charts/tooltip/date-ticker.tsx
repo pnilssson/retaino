@@ -2,9 +2,11 @@
 
 import { motion, useSpring } from "motion/react";
 import { memo, useMemo, useRef } from "react";
+import { textStyles } from "@/lib/text-styles";
+import { cn } from "@/lib/utils";
 
 const TICKER_ITEM_HEIGHT = 24;
-/** Full scroll stacks are skipped above this count — single label + instant updates. */
+/** Full scroll stacks are skipped above this count. */
 const COMPACT_TICKER_THRESHOLD = 60;
 
 export interface DateTickerProps {
@@ -22,7 +24,9 @@ const DateTickerCompact = memo(function DateTickerCompact({
   return (
     <div className="overflow-hidden rounded-full bg-zinc-900 px-4 py-1 text-white shadow-lg dark:bg-zinc-100 dark:text-zinc-900">
       <div className="flex h-6 items-center justify-center">
-        <span className="whitespace-nowrap font-medium text-sm">{label}</span>
+        <span className={cn("whitespace-nowrap", textStyles.h3)}>
+          {label}
+        </span>
       </div>
     </div>
   );
@@ -42,7 +46,7 @@ const DateTickerInner = memo(function DateTickerInner({
     });
   }, [labels]);
 
-  // Month segments: one entry per consecutive run (Jan → Feb → …), keyed by start index
+  // Month segments: one entry per consecutive run, keyed by start index.
   const monthSegments = useMemo(() => {
     const segments: { month: string; key: string; startIndex: number }[] = [];
 
@@ -104,7 +108,7 @@ const DateTickerInner = memo(function DateTickerInner({
                   className="flex h-6 shrink-0 items-center justify-center"
                   key={segment.key}
                 >
-                  <span className="whitespace-nowrap font-medium text-sm">
+                  <span className={cn("whitespace-nowrap", textStyles.h3)}>
                     {segment.month}
                   </span>
                 </div>
@@ -120,7 +124,7 @@ const DateTickerInner = memo(function DateTickerInner({
                   className="flex h-6 shrink-0 items-center justify-center"
                   key={label.key}
                 >
-                  <span className="whitespace-nowrap font-medium text-sm">
+                  <span className={cn("whitespace-nowrap", textStyles.h3)}>
                     {label.day}
                   </span>
                 </div>

@@ -1,4 +1,4 @@
-export type ChartStatus = "loading" | "ready";
+﻿export type ChartStatus = "loading" | "ready";
 
 /** Loading animation style: the default traveling pulse, or a diagonal
  * shimmer that sweeps across the skeleton. */
@@ -20,7 +20,7 @@ export type ChartPhase =
 
 export const DEFAULT_CHART_STATUS: ChartStatus = "ready";
 
-/** Default Y-domain tween when transitioning loading ↔ ready (ms). */
+/** Default Y-domain tween when transitioning loading  ready (ms). */
 export const DEFAULT_Y_DOMAIN_TWEEN_MS = 500;
 
 /** Relative domain delta below which Y tween may be skipped (see plan). */

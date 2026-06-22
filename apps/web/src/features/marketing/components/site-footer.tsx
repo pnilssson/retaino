@@ -16,7 +16,7 @@ export function SiteFooter() {
   const tMarketing = useTranslations('Marketing');
   const year = new Date().getFullYear();
   const footerLinkClasses = cn(
-    textStyles.mutedBody,
+    textStyles.mutedP,
     'transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none',
   );
 
@@ -27,11 +27,7 @@ export function SiteFooter() {
           <div className="flex flex-col gap-2">
             <Link
               aria-label={tChrome('homeLabel')}
-              className={cn(
-                'flex items-center gap-2',
-                textStyles.brand,
-                'text-foreground',
-              )}
+              className="flex items-center gap-2 text-foreground"
               href={routes.home}
             >
               <Image
@@ -43,7 +39,7 @@ export function SiteFooter() {
                 width={20}
               />
             </Link>
-            <p className={cn('max-w-sm', textStyles.mutedBody)}>
+            <p className={cn('max-w-sm', textStyles.mutedP)}>
               {tMarketing('tagline')}
             </p>
           </div>
@@ -71,14 +67,14 @@ export function SiteFooter() {
             <LocaleSwitcher
               className={cn(
                 'w-fit data-[state=open]:bg-muted',
-                textStyles.mutedBody,
+                textStyles.mutedP,
               )}
               variant="ghost"
             />
           </nav>
         </div>
 
-        <p className={textStyles.meta}>
+        <p className={textStyles.small}>
           &copy; {year} Retaino. {tMarketing('footerCopyright')}
         </p>
       </div>

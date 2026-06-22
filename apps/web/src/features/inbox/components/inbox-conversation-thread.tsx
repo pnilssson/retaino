@@ -102,11 +102,11 @@ export function InboxConversationThread({
     >
       <header className="border-b border-border px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
-          <h2 className={cn('min-w-0 flex-1 truncate', textStyles.itemTitle)}>
+          <h2 className={cn('min-w-0 flex-1 truncate', textStyles.h3)}>
             {conversation.contactName ?? conversation.phone}
           </h2>
           {conversation.contactName ? (
-            <span className={cn('shrink-0 truncate', textStyles.meta)}>
+            <span className={cn('shrink-0 truncate', textStyles.small)}>
               {conversation.phone}
             </span>
           ) : null}
@@ -165,7 +165,7 @@ export function InboxConversationThread({
                       <span
                         className={cn(
                           'rounded-full bg-sidebar px-2.5 py-1 shadow-xs',
-                          textStyles.meta,
+                          textStyles.small,
                         )}
                       >
                         {formatInboxDateSeparator(time, locale)}
@@ -232,7 +232,7 @@ function InboxMessageBubble({
         <p
           className={cn(
             'min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]',
-            textStyles.body,
+            textStyles.p,
             isOutbound ? 'text-primary-foreground' : 'text-foreground',
           )}
         >
@@ -250,7 +250,7 @@ function InboxMessageBubble({
             <span
               className={cn(
                 'rounded-md border px-1.5 py-0.5',
-                textStyles.meta,
+                textStyles.small,
                 isOutbound
                   ? 'border-primary-foreground/30 text-primary-foreground/75'
                   : 'border-border',
@@ -261,7 +261,7 @@ function InboxMessageBubble({
           ) : null}
           <span
             className={cn(
-              textStyles.meta,
+              textStyles.small,
               isOutbound ? 'text-primary-foreground/75' : '',
             )}
           >
@@ -270,7 +270,7 @@ function InboxMessageBubble({
           {isOutbound ? (
             <span
               className={cn(
-                textStyles.meta,
+                textStyles.small,
                 'capitalize text-primary-foreground/75',
               )}
             >

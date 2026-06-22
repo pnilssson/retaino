@@ -92,10 +92,10 @@ function CookiePreferencesForm({
       <div className="space-y-4 py-1">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <label className={textStyles.body} htmlFor="essential-cookies">
+            <label className={textStyles.p} htmlFor="essential-cookies">
               {t('essential')}
             </label>
-            <p className={textStyles.meta}>
+            <p className={textStyles.small}>
               {t('essentialDescription')}
             </p>
           </div>
@@ -112,12 +112,12 @@ function CookiePreferencesForm({
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <label
-              className={textStyles.body}
+              className={textStyles.p}
               htmlFor="analytics-cookies"
             >
               {t('analytics')}
             </label>
-            <p className={textStyles.meta}>
+            <p className={textStyles.small}>
               {t('analyticsDescription')}
             </p>
           </div>
@@ -129,7 +129,7 @@ function CookiePreferencesForm({
         </div>
       </div>
 
-      <p className={textStyles.meta}>
+      <p className={textStyles.small}>
         {t('readPolicyPrefix')}{' '}
         <Link
           className="text-foreground underline underline-offset-2"

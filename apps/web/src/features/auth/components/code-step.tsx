@@ -92,7 +92,7 @@ export function CodeStep({ auth }: { auth: EmailCodeAuth }) {
                   {codeError}
                 </p>
               ) : (
-                <p className={textStyles.meta} id="code-hint">
+                <p className={textStyles.small} id="code-hint">
                   {t('codeHint', { email: auth.normalizedEmail })}
                 </p>
               )}

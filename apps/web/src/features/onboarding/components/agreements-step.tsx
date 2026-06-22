@@ -39,7 +39,7 @@ export function AgreementsStep({
         title={t('agreementsTitle')}
       >
         <div className="grid gap-6">
-          <p className={textStyles.mutedBody}>
+          <p className={textStyles.mutedP}>
             {t('documents')}:{' '}
             {legalBundle.documents.map((document, index) => {
               const label = documentLabel(document.documentType, document.title, t);
@@ -69,7 +69,7 @@ export function AgreementsStep({
             .
           </p>
 
-          <p className={textStyles.mutedBody}>
+          <p className={textStyles.mutedP}>
             {t('agreementsDescription')}
           </p>
 

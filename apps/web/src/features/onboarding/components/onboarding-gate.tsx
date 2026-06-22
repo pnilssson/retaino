@@ -153,10 +153,10 @@ function LegalUpdatesBanner({ canManageSetup }: { canManageSetup: boolean }) {
             aria-hidden="true"
             className="mt-0.5 size-4 text-amber-600"
           />
-          <p className={cn('min-w-0 text-amber-950 dark:text-amber-100', textStyles.itemTitle)}>
+          <p className={cn('min-w-0 text-amber-950 dark:text-amber-100', textStyles.h3)}>
             {t('legalUpdateTitle')}
           </p>
-          <p className={cn('col-start-2 min-w-0', textStyles.body, 'text-amber-900 dark:text-amber-100')}>
+          <p className={cn('col-start-2 min-w-0', textStyles.p, 'text-amber-900 dark:text-amber-100')}>
             {canManageSetup
               ? t('legalUpdateManageDescription')
               : t('legalUpdateMemberDescription')}

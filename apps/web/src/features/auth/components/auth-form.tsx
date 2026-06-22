@@ -38,7 +38,7 @@ export function AuthForm() {
       </div>
 
       <div className="flex flex-1 flex-col justify-center">
-        <h1 className={cn('mt-3 max-w-sm', textStyles.pageTitle)}>
+        <h1 className={cn('mt-3 max-w-sm', textStyles.h2)}>
           {t('title')}
         </h1>
 
@@ -65,7 +65,7 @@ export function AuthForm() {
         </div>
       </div>
 
-      <p className={cn('text-center', textStyles.meta)}>
+      <p className={cn('text-center', textStyles.small)}>
         {t('agreementPrefix')}{' '}
         <Link
           className="text-foreground underline underline-offset-2"

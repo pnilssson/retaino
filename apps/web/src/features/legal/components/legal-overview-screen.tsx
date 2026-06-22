@@ -199,8 +199,8 @@ function LegalDocumentsSection({ session }: { session: OrganizationSession }) {
 function LegalMetadata({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid min-w-0 gap-1">
-      <dt className={textStyles.meta}>{label}</dt>
-      <dd className={textStyles.itemTitle}>{value}</dd>
+      <dt className={textStyles.small}>{label}</dt>
+      <dd className={textStyles.h3}>{value}</dd>
     </div>
   );
 }
@@ -319,7 +319,7 @@ function LegalAcceptanceSection({
                         <Label htmlFor="legal-updates-authorization">
                           {t('authorizationLabel')}
                         </Label>
-                        <p className={textStyles.mutedBody}>
+                        <p className={textStyles.mutedP}>
                           {t('authorizationHint')}
                         </p>
                         {error ? (
