@@ -50,11 +50,11 @@ export function InboxConversationList({
   return (
     <section
       className={cn(
-        'grid min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-card',
+        'grid min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden',
         className,
       )}
     >
-      <header className="flex items-center gap-2 border-b border-border px-3 py-3">
+      <header className="flex items-center gap-2 px-3 py-3">
         <div className="relative min-w-0 flex-1">
           <Search
             aria-hidden="true"
@@ -96,7 +96,7 @@ export function InboxConversationList({
         {conversations.length > 0 ? (
           <ol className="m-0 flex list-none flex-col p-0">
             {conversations.map((conversation) => (
-              <li className="m-0 border-b border-border p-0" key={conversation.id}>
+              <li className="m-0 p-0" key={conversation.id}>
                 <button
                   className={cn(
                     'grid w-full gap-1.5 px-4 py-3 text-left transition-[background-color,color] hover:bg-muted/50 focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',

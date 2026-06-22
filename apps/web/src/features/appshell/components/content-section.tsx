@@ -118,7 +118,7 @@ function ContentPanel({
   return (
     <Item
       className={cn(
-        'grid items-stretch gap-5 border-border bg-card px-5 py-5',
+        'grid items-stretch gap-5 px-5 py-5',
         className,
       )}
       {...props}

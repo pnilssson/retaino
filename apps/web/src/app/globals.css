@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-    --background: oklch(0.99 0 0);
+    --background: oklch(1 0 0);
     --foreground: oklch(0 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0 0 0);
@@ -23,6 +23,7 @@
     --destructive-foreground: oklch(1 0 0);
     --border: oklch(0.8452 0 0);
     --input: oklch(0.66 0 0);
+    --input-background: oklch(1 0 0);
     --ring: oklch(0 0 0);
     --chart-1: oklch(0.938 0.127 124.321);
     --chart-2: oklch(0.841 0.238 128.85);
@@ -104,6 +105,7 @@
     --destructive-foreground: oklch(0 0 0);
     --border: oklch(0.2603 0 0);
     --input: oklch(0.48 0 0);
+    --input-background: oklch(0.2138 0.0019 286.2347);
     --ring: oklch(0.7187 0 0);
     --chart-1: oklch(0.8089 0.1698 75.2054);
     --chart-2: oklch(0.5811 0.21 260.8318);
@@ -178,6 +180,7 @@
     --color-destructive-foreground: var(--destructive-foreground);
     --color-border: var(--border);
     --color-input: var(--input);
+    --color-input-background: var(--input-background);
     --color-ring: var(--ring);
     --color-chart-1: var(--chart-1);
     --color-chart-2: var(--chart-2);
@@ -235,6 +238,13 @@
     body {
         @apply bg-background text-foreground;
     }
+}
+
+[data-slot="input"],
+[data-slot="textarea"],
+[data-slot="select-trigger"],
+[data-slot="input-otp-slot"] {
+    background-color: var(--input-background);
 }
 
 @media (prefers-reduced-motion: reduce) {

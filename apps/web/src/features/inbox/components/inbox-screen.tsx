@@ -159,7 +159,7 @@ export function InboxScreen() {
             <Item
               asChild
               className={cn(
-                'grid min-h-0 items-stretch gap-0 overflow-hidden border-border bg-card p-0',
+                'grid min-h-0 items-stretch gap-0 overflow-hidden p-0',
                 selectedConversationId && 'hidden lg:grid',
               )}
               variant="outline"
@@ -186,7 +186,7 @@ export function InboxScreen() {
             <Item
               asChild
               className={cn(
-                'grid min-h-0 items-stretch gap-0 overflow-hidden border-border bg-card p-0',
+                'grid min-h-0 items-stretch gap-0 overflow-hidden p-0',
                 !selectedConversationId && 'hidden lg:grid',
               )}
               variant="outline"

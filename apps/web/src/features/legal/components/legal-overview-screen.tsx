@@ -151,7 +151,7 @@ function LegalDocumentsSection({ session }: { session: OrganizationSession }) {
         return (
           <Item
             aria-labelledby={titleId}
-            className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 border-border bg-card px-4 py-4"
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 px-5 py-5"
             key={document.id}
             variant="outline"
           >

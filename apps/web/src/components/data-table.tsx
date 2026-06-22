@@ -84,7 +84,7 @@ export function DataTable<TData>({
           ) : (
             <>
               {isLoading ? (
-                <TableRow className="border-border bg-background hover:bg-background">
+                <TableRow className="border-border bg-sidebar hover:bg-sidebar">
                   <TableCell className="h-12" colSpan={visibleColumnCount}>
                     <LoadingState label={resolvedLoadingLabel} />
                   </TableCell>

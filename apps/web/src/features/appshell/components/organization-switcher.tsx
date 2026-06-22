@@ -56,6 +56,13 @@ export function OrganizationSwitcher() {
               <SidebarAvatar
                 alt={activeOrganizationName}
                 className="size-8 bg-sidebar-accent text-sidebar-accent-foreground"
+                collapsedFallback={
+                  <Building2
+                    aria-hidden="true"
+                    className="size-4"
+                    strokeWidth={1.5}
+                  />
+                }
                 fallback={
                   <Building2
                     aria-hidden="true"
@@ -76,7 +83,7 @@ export function OrganizationSwitcher() {
               </span>
               <ChevronsUpDown
                 aria-hidden="true"
-                className="ml-auto size-4"
+                className="ml-auto size-4 group-data-[collapsible=icon]:hidden"
                 strokeWidth={1.5}
               />
             </SidebarMenuButton>

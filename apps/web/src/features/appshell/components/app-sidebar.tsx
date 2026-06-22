@@ -184,6 +184,13 @@ export function AppSidebar() {
                       textStyles.meta,
                       'text-sidebar-primary-foreground',
                     )}
+                    collapsedFallback={
+                      <UserCircle
+                        aria-hidden="true"
+                        className="size-4"
+                        strokeWidth={1.5}
+                      />
+                    }
                     fallback={userInitials}
                     hasImage={user?.hasImage}
                     imageUrl={user?.imageUrl}
@@ -195,7 +202,7 @@ export function AppSidebar() {
                   </span>
                   <ChevronsUpDown
                     aria-hidden="true"
-                    className="ml-auto size-4"
+                    className="ml-auto size-4 group-data-[collapsible=icon]:hidden"
                     strokeWidth={1.5}
                   />
                 </SidebarMenuButton>

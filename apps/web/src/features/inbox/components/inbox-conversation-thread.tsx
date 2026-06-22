@@ -79,7 +79,7 @@ export function InboxConversationThread({
     return (
       <section
         className={cn(
-          'grid min-h-0 bg-card',
+          'grid min-h-0',
           className,
         )}
       >
@@ -96,7 +96,7 @@ export function InboxConversationThread({
   return (
     <section
       className={cn(
-        'grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-card',
+        'grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden',
         className,
       )}
     >
@@ -137,7 +137,7 @@ export function InboxConversationThread({
       </header>
 
       <div
-        className="min-h-0 overflow-auto bg-card px-4 py-4"
+        className="min-h-0 overflow-auto px-4 py-4"
         ref={messageListRef}
       >
         {error ? (
@@ -164,7 +164,7 @@ export function InboxConversationThread({
                     <div className="flex justify-center py-1">
                       <span
                         className={cn(
-                          'rounded-full border border-border bg-card px-2.5 py-1 shadow-xs',
+                          'rounded-full bg-sidebar px-2.5 py-1 shadow-xs',
                           textStyles.meta,
                         )}
                       >
