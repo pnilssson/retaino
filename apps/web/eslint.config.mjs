@@ -1,3 +1,10 @@
 import config from '@retaino/eslint-config/next';
 
-export default config;
+const eslintConfig = [
+  {
+    ignores: ['src/components/charts/**'],
+  },
+  ...config,
+];
+
+export default eslintConfig;
