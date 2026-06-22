@@ -1,8 +1,6 @@
 import type { OverviewResponse } from '@retaino/shared/contracts';
-import { formatOverviewNumber } from './overview-format';
 
 export type OverviewAttentionLabels = {
-  answerRepliesDescription: string;
   billingAccessInactiveDescription: string;
   billingAccessInactiveTitle: string;
   billingPlanRequiredDescription: string;
@@ -13,27 +11,27 @@ export type OverviewAttentionLabels = {
   creditsEmptyTitle: string;
   creditsLowDescription: string;
   creditsLowTitle: string;
-  needsReplyTitle: (count: string) => string;
   reportBookingsDescription: string;
   reportBookingsTitle: string;
   reviewFallbackDescription: string;
   reviewFallbackTitle: string;
   senderReleaseDescription: string;
   senderReleaseTitle: string;
+  unreadConversationsDescription: string;
+  unreadConversationsTitle: (count: number) => string;
 };
 
 export function attentionItemView(
   item: OverviewResponse['attentionItems'][number],
   overview: OverviewResponse,
-  locale: string,
   labels: OverviewAttentionLabels,
 ) {
-  if (item.id === 'needs-reply') {
-    const count = formatOverviewNumber(overview.metrics.needsReplyCount, locale);
-
+  if (item.id === 'unread-conversations') {
     return {
-      title: labels.needsReplyTitle(count),
-      description: labels.answerRepliesDescription,
+      title: labels.unreadConversationsTitle(
+        overview.metrics.unreadConversationCount,
+      ),
+      description: labels.unreadConversationsDescription,
     };
   }
 

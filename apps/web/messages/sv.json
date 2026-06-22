@@ -622,8 +622,8 @@
     "statusFailed": "Misslyckad",
     "statusDraft": "Utkast",
     "attention": {
-      "needsReplyTitle": "{count} konversationer behöver svar",
-      "answerRepliesDescription": "Svara på nya svar innan kunden går vidare.",
+      "unreadConversationsTitle": "{count, plural, =1 {# oläst konversation} other {# olästa konversationer}}",
+      "unreadConversationsDescription": "Granska olästa konversationer när du är redo.",
       "billingPlanRequiredTitle": "Plan behöver konfigureras",
       "billingPlanRequiredDescription": "Konfigurera en plan innan SMS-kampanjer skickas.",
       "billingAccessInactiveTitle": "Fakturering behöver åtgärdas",

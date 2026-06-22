@@ -19,7 +19,7 @@ describe('overview query helpers', () => {
               reported_revenue_amount_minor: 125000,
               reported_revenue_currency: 'SEK',
               reported_revenue_has_mixed_currencies: false,
-              needs_reply_count: 2,
+              unread_conversation_count: 2,
               sms_credit_balance: 180,
               sender_phone_number: '+46701234567',
               sender_status: 'ready',
@@ -73,7 +73,7 @@ describe('overview query helpers', () => {
         reportedRevenueAmountMinor: 125000,
         reportedRevenueCurrency: 'SEK',
         reportedBookingCount: 4,
-        needsReplyCount: 2,
+        unreadConversationCount: 2,
         smsCreditBalance: 180,
       },
       sender: {
@@ -107,9 +107,14 @@ describe('overview query helpers', () => {
     }
 
     const query = new PgDialect().sqlToQuery(statement);
+    const normalizedSql = query.sql.replace(/\s+/g, ' ');
     expect(query.sql).toContain('$1::uuid as organization_id');
     expect(query.sql).toContain('"reported_bookings"."organization_id"');
     expect(query.sql).toContain('"sms_conversations"."organization_id"');
+    expect(normalizedSql).toContain(
+      'count(*)::integer as unread_conversation_count',
+    );
+    expect(query.sql).toContain('"sms_conversations"."unread_at" is not null');
     expect(query.sql).toContain('"sms_credit_transactions"."organization_id"');
     expect(query.sql).toContain('"sms_messages"."campaign_id" is not null');
     expect(query.sql).toContain('"campaigns"."organization_id"');
@@ -125,7 +130,7 @@ describe('overview query helpers', () => {
             reported_revenue_amount_minor: null,
             reported_revenue_currency: 'SEK',
             reported_revenue_has_mixed_currencies: true,
-            needs_reply_count: 0,
+            unread_conversation_count: 0,
             sms_credit_balance: 12,
             selected_count: 20,
             sent_count: 20,

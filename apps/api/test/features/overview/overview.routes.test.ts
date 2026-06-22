@@ -21,7 +21,7 @@ const overview: OverviewResponse = {
     reportedRevenueCurrency: 'SEK',
     reportedRevenueHasMixedCurrencies: false,
     reportedBookingCount: 4,
-    needsReplyCount: 2,
+    unreadConversationCount: 2,
     smsCreditBalance: 180,
   },
   sender: {

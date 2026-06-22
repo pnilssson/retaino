@@ -41,7 +41,7 @@ export const overviewResponseSchema = z.object({
     reportedRevenueCurrency: currencyCodeSchema,
     reportedRevenueHasMixedCurrencies: z.boolean(),
     reportedBookingCount: z.number().int().nonnegative(),
-    needsReplyCount: z.number().int().nonnegative(),
+    unreadConversationCount: z.number().int().nonnegative(),
     smsCreditBalance: z.number().int(),
   }),
   sender: z.object({

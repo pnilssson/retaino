@@ -622,8 +622,8 @@
     "statusFailed": "Failed",
     "statusDraft": "Draft",
     "attention": {
-      "needsReplyTitle": "{count} conversations need a reply",
-      "answerRepliesDescription": "Answer recent replies before the customer moves on.",
+      "unreadConversationsTitle": "{count, plural, =1 {# unread conversation} other {# unread conversations}}",
+      "unreadConversationsDescription": "Review unread conversations when you are ready.",
       "billingPlanRequiredTitle": "Plan setup is required",
       "billingPlanRequiredDescription": "Set up a plan before sending SMS campaigns.",
       "billingAccessInactiveTitle": "Billing needs attention",

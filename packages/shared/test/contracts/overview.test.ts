@@ -14,7 +14,7 @@ describe('overview contracts', () => {
         reportedRevenueCurrency: 'SEK',
         reportedRevenueHasMixedCurrencies: false,
         reportedBookingCount: 4,
-        needsReplyCount: 2,
+        unreadConversationCount: 2,
         smsCreditBalance: 180,
       },
       sender: {
@@ -56,7 +56,7 @@ describe('overview contracts', () => {
       ],
       attentionItems: [
         {
-          id: 'needs-reply',
+          id: 'unread-conversations',
           tone: 'warning',
           action: 'open_inbox',
         },

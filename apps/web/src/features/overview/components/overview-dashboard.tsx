@@ -12,7 +12,6 @@ import {
   Send,
 } from "lucide-react";
 import {
-  useLocale,
   useTranslations,
 } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -36,7 +35,6 @@ export function OverviewDashboard({
 }: {
   overview: OverviewResponse;
 }) {
-  const locale = useLocale();
   const t = useTranslations('Overview');
   const campaignFlowWidth = Math.max(
     overview.funnel.selectedCount,
@@ -54,7 +52,6 @@ export function OverviewDashboard({
               <AttentionItem
                 item={item}
                 key={item.id}
-                locale={locale}
                 labels={createAttentionLabels(t)}
                 overview={overview}
               />
@@ -172,17 +169,15 @@ export function OverviewDashboard({
 
 function AttentionItem({
   item,
-  locale,
   labels,
   overview,
 }: {
   item: OverviewResponse["attentionItems"][number];
-  locale: string;
   labels: OverviewAttentionLabels;
   overview: OverviewResponse;
 }) {
   const t = useTranslations('Overview');
-  const view = attentionItemView(item, overview, locale, labels);
+  const view = attentionItemView(item, overview, labels);
 
   return (
     <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
@@ -219,7 +214,6 @@ function createAttentionLabels(
   t: ReturnType<typeof useTranslations<'Overview'>>,
 ): OverviewAttentionLabels {
   return {
-    answerRepliesDescription: t('attention.answerRepliesDescription'),
     billingAccessInactiveDescription: t('attention.billingAccessInactiveDescription'),
     billingAccessInactiveTitle: t('attention.billingAccessInactiveTitle'),
     billingPlanRequiredDescription: t('attention.billingPlanRequiredDescription'),
@@ -230,13 +224,15 @@ function createAttentionLabels(
     creditsEmptyTitle: t('attention.creditsEmptyTitle'),
     creditsLowDescription: t('attention.creditsLowDescription'),
     creditsLowTitle: t('attention.creditsLowTitle'),
-    needsReplyTitle: (count) => t('attention.needsReplyTitle', { count }),
     reportBookingsDescription: t('attention.reportBookingsDescription'),
     reportBookingsTitle: t('attention.reportBookingsTitle'),
     reviewFallbackDescription: t('attention.reviewFallbackDescription'),
     reviewFallbackTitle: t('attention.reviewFallbackTitle'),
     senderReleaseDescription: t('attention.senderReleaseDescription'),
     senderReleaseTitle: t('attention.senderReleaseTitle'),
+    unreadConversationsDescription: t('attention.unreadConversationsDescription'),
+    unreadConversationsTitle: (count) =>
+      t('attention.unreadConversationsTitle', { count }),
   };
 }
 

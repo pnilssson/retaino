@@ -19,7 +19,6 @@ import {
   smsConversations,
   smsCreditTransactions,
   smsMessages,
-  suppressions,
 } from '../schema';
 import { assertOrganizationId } from './contacts';
 
@@ -173,42 +172,12 @@ export async function getOverviewDashboard(
       ) as trend
       from trend_rollup
     ),
-    needs_reply as (
-      select count(*)::integer as needs_reply_count
-      from (
-        select
-          ${smsConversations.id},
-          max(coalesce(
-            ${smsMessages.receivedAt},
-            ${smsMessages.sentAt},
-            ${smsMessages.createdAt}
-          )) filter (where ${smsMessages.direction} = ${'inbound'})
-            as last_inbound_at,
-          max(coalesce(
-            ${smsMessages.receivedAt},
-            ${smsMessages.sentAt},
-            ${smsMessages.createdAt}
-          )) filter (where ${smsMessages.direction} = ${'outbound'})
-            as last_outbound_at,
-          bool_or(${suppressions.id} is not null) as reply_blocked
-        from ${smsConversations}
-        inner join ${smsMessages}
-          on ${smsMessages.organizationId} = ${smsConversations.organizationId}
-          and ${smsMessages.phoneHash} = ${smsConversations.phoneHash}
-        left join ${suppressions}
-          on ${suppressions.organizationId} = ${smsConversations.organizationId}
-          and ${suppressions.type} = ${'phone'}
-          and ${suppressions.valueHash} = ${smsConversations.phoneHash}
-        join input
-          on ${smsConversations.organizationId} = input.organization_id
-        group by ${smsConversations.id}
-      ) conversations
-      where conversations.last_inbound_at is not null
-        and (
-          conversations.last_outbound_at is null
-          or conversations.last_inbound_at > conversations.last_outbound_at
-        )
-        and conversations.reply_blocked = false
+    unread_conversations as (
+      select count(*)::integer
+        as unread_conversation_count
+      from ${smsConversations}, input
+      where ${smsConversations.organizationId} = input.organization_id
+        and ${smsConversations.unreadAt} is not null
     ),
     credit_balance as (
       select coalesce(sum(${smsCreditTransactions.credits}), 0)::integer
@@ -365,7 +334,7 @@ export async function getOverviewDashboard(
       reported_outcome.reported_revenue_amount_minor,
       reported_outcome.reported_revenue_currency,
       reported_outcome.reported_revenue_has_mixed_currencies,
-      needs_reply.needs_reply_count,
+      unread_conversations.unread_conversation_count,
       credit_balance.sms_credit_balance,
       funnel_recipients.selected_count,
       funnel_messages.sent_count,
@@ -378,8 +347,8 @@ export async function getOverviewDashboard(
       sender.status as sender_status,
       sender.country_code as sender_country_code,
       sender.release_scheduled_at
-    from reported_outcome, needs_reply, credit_balance, funnel_recipients,
-      funnel_messages,
+    from reported_outcome, unread_conversations, credit_balance,
+      funnel_recipients, funnel_messages,
       trend_json, recent_campaigns_json
     left join billing on true
     left join sender on true
@@ -396,7 +365,7 @@ export async function getOverviewDashboard(
       row.reported_revenue_has_mixed_currencies,
     ),
     reportedBookingCount: intValue(row.reported_booking_count),
-    needsReplyCount: intValue(row.needs_reply_count),
+    unreadConversationCount: intValue(row.unread_conversation_count),
     smsCreditBalance: intValue(row.sms_credit_balance),
   };
 
@@ -441,9 +410,9 @@ function attentionItems(input: {
 }): OverviewResponse['attentionItems'] {
   const items: OverviewResponse['attentionItems'] = [];
 
-  if (input.metrics.needsReplyCount > 0) {
+  if (input.metrics.unreadConversationCount > 0) {
     items.push({
-      id: 'needs-reply',
+      id: 'unread-conversations',
       tone: 'warning',
       action: 'open_inbox',
     });
