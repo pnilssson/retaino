@@ -366,7 +366,7 @@ function AudienceSelectionMockup({
       </div>
 
       <FunnelChart
-        className="-mx-6 -mb-6 mt-4 w-[calc(100%+3rem)] [--audience-funnel-height:18rem] [&_span]:!text-sm [&_span]:!font-medium [&_span]:!text-white md:-mx-8 md:mt-5 md:min-h-0 md:w-[calc(100%+4rem)] md:flex-1 md:[--audience-funnel-height:100%]"
+        className="-mx-6 -mb-6 mt-4 w-[calc(100%+3rem)] [--audience-funnel-height:18rem] [&_span]:!text-sm [&_span]:!font-medium [&_span]:!text-black md:-mx-8 md:mt-5 md:min-h-0 md:w-[calc(100%+4rem)] md:flex-1 md:[--audience-funnel-height:100%]"
         data={funnelData}
         edges="curved"
         gap={2}
