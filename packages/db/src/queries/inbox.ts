@@ -27,6 +27,7 @@ export async function upsertSmsConversationForMessage(
     organizationId: string;
     phoneHash: string;
     normalizedPhone: string;
+    unreadAt?: Date;
     now?: Date;
   },
 ) {
@@ -38,6 +39,7 @@ export async function upsertSmsConversationForMessage(
       organizationId: input.organizationId,
       phoneHash: input.phoneHash,
       normalizedPhone: input.normalizedPhone,
+      unreadAt: input.unreadAt ?? null,
       createdAt: now,
       updatedAt: now,
     })
@@ -48,6 +50,7 @@ export async function upsertSmsConversationForMessage(
       ],
       set: {
         normalizedPhone: input.normalizedPhone,
+        ...(input.unreadAt ? { unreadAt: input.unreadAt } : {}),
         updatedAt: now,
       },
     })
@@ -78,22 +81,11 @@ export async function getInboxSummary(
 ) {
   assertOrganizationId(input.organizationId);
   const result = await db.execute(sql`
-    select count(distinct ${smsConversations.id})::integer
+    select count(${smsConversations.id})::integer
       as unread_conversation_count
     from ${smsConversations}
-    inner join ${smsMessages}
-      on ${smsMessages.organizationId} = ${smsConversations.organizationId}
-      and ${smsMessages.phoneHash} = ${smsConversations.phoneHash}
-      and ${smsMessages.direction} = ${'inbound'}
-      and coalesce(
-        ${smsMessages.receivedAt},
-        ${smsMessages.sentAt},
-        ${smsMessages.createdAt}
-      ) > coalesce(
-        ${smsConversations.lastReadAt},
-        ${'1970-01-01'}::timestamptz
-      )
     where ${smsConversations.organizationId} = ${input.organizationId}::uuid
+      and ${smsConversations.unreadAt} is not null
   `);
   const [row = {}] = Array.from(result.rows ?? []) as Array<
     Record<string, unknown>
@@ -188,34 +180,10 @@ export async function markInboxConversationRead(
   input: { organizationId: string; conversationId: string; now?: Date },
 ) {
   assertOrganizationId(input.organizationId);
-  const latestResult = await db.execute(sql`
-    select max(
-      coalesce(
-        ${smsMessages.receivedAt},
-        ${smsMessages.sentAt},
-        ${smsMessages.createdAt}
-      )
-    ) as latest_message_at
-    from ${smsMessages}
-    inner join ${smsConversations}
-      on ${smsConversations.organizationId} = ${smsMessages.organizationId}
-      and ${smsConversations.phoneHash} = ${smsMessages.phoneHash}
-    where ${smsMessages.organizationId} = ${input.organizationId}::uuid
-      and ${smsConversations.id} = ${input.conversationId}::uuid
-  `);
-  const [latestRow = {}] = Array.from(latestResult.rows ?? []) as Array<
-    Record<string, unknown>
-  >;
-  const latestMessageAt = dateValue(latestRow.latest_message_at);
-
-  if (!latestMessageAt) {
-    return null;
-  }
-
-  await db
+  const [updated] = await db
     .update(smsConversations)
     .set({
-      lastReadAt: latestMessageAt,
+      unreadAt: null,
       updatedAt: input.now ?? new Date(),
     })
     .where(
@@ -224,7 +192,39 @@ export async function markInboxConversationRead(
         eq(smsConversations.id, input.conversationId),
       ),
     )
-    .returning();
+    .returning({ id: smsConversations.id });
+
+  if (!updated) {
+    return null;
+  }
+
+  return getInboxConversationById(db, input);
+}
+
+export async function markInboxConversationUnread(
+  db: DbClient,
+  input: { organizationId: string; conversationId: string; now?: Date },
+) {
+  assertOrganizationId(input.organizationId);
+
+  const now = input.now ?? new Date();
+  const [updated] = await db
+    .update(smsConversations)
+    .set({
+      unreadAt: now,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(smsConversations.organizationId, input.organizationId),
+        eq(smsConversations.id, input.conversationId),
+      ),
+    )
+    .returning({ id: smsConversations.id });
+
+  if (!updated) {
+    return null;
+  }
 
   return getInboxConversationById(db, input);
 }
@@ -374,7 +374,7 @@ async function conversationSummaryRows(
         ${smsConversations.organizationId} as organization_id,
         ${smsConversations.phoneHash} as phone_hash,
         ${smsConversations.normalizedPhone} as phone,
-        ${smsConversations.lastReadAt} as last_read_at
+        ${smsConversations.unreadAt} as unread_at
       from ${smsConversations}
       where ${smsConversations.organizationId} = ${input.organizationId}::uuid
     ),
@@ -433,23 +433,6 @@ async function conversationSummaryRows(
         and ${smsMessages.phoneHash} is not null
       group by ${smsMessages.organizationId}, ${smsMessages.phoneHash}
     ),
-    unread_counts as (
-      select
-        conversation_base.organization_id,
-        conversation_base.phone_hash,
-        count(${smsMessages.id})::integer as unread_count
-      from conversation_base
-      left join ${smsMessages}
-        on ${smsMessages.organizationId} = conversation_base.organization_id
-        and ${smsMessages.phoneHash} = conversation_base.phone_hash
-        and ${smsMessages.direction} = ${'inbound'}
-        and coalesce(
-          ${smsMessages.receivedAt},
-          ${smsMessages.sentAt},
-          ${smsMessages.createdAt}
-        ) > coalesce(conversation_base.last_read_at, ${'1970-01-01'}::timestamptz)
-      group by conversation_base.organization_id, conversation_base.phone_hash
-    ),
     summaries as (
       select
         conversation_base.conversation_id,
@@ -464,7 +447,7 @@ async function conversationSummaryRows(
         latest_messages.latest_message_direction,
         latest_messages.latest_message_body,
         latest_messages.latest_message_at,
-        coalesce(unread_counts.unread_count, 0)::integer as unread_count,
+        (conversation_base.unread_at is not null) as is_unread,
         (latest_suppression.id is not null) as reply_blocked,
         case
           when latest_suppression.id is not null then ${'suppressed_phone'}
@@ -479,9 +462,6 @@ async function conversationSummaryRows(
       inner join message_rollups
         on message_rollups.organization_id = conversation_base.organization_id
         and message_rollups.phone_hash = conversation_base.phone_hash
-      left join unread_counts
-        on unread_counts.organization_id = conversation_base.organization_id
-        and unread_counts.phone_hash = conversation_base.phone_hash
       left join ${contacts} phone_hash_contact
         on phone_hash_contact.organization_id = conversation_base.organization_id
         and phone_hash_contact.phone_hash = conversation_base.phone_hash
@@ -519,7 +499,7 @@ function inboxConversationSummaryValue(
         : 'inbound',
     latestMessageBody: stringValue(row.latest_message_body) ?? '',
     latestMessageAt: isoValue(row.latest_message_at),
-    unreadCount: intValue(row.unread_count),
+    isUnread: row.is_unread === true,
     replyBlocked: row.reply_blocked === true,
     replyBlockedReason:
       stringValue(row.reply_blocked_reason) === 'suppressed_phone'

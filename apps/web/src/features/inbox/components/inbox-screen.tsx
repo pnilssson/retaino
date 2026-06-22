@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { useInboxConversation } from '../hooks/use-inbox-conversation';
 import { useInboxConversations } from '../hooks/use-inbox-conversations';
 import { useInboxQueryState } from '../hooks/use-inbox-query-state';
-import { useMarkInboxConversationRead } from '../hooks/use-mark-inbox-conversation-read';
+import { useSetInboxConversationReadState } from '../hooks/use-set-inbox-conversation-read-state';
 import { InboxConversationList } from './inbox-conversation-list';
 import { InboxConversationThread } from './inbox-conversation-thread';
 
@@ -30,6 +30,7 @@ export function InboxScreen() {
   const [{ conversation: selectedConversationId, search, view }, setQuery] =
     useInboxQueryState();
   const readAttemptConversationIdRef = useRef<string | null>(null);
+  const preservedUnreadConversationIdRef = useRef<string | null>(null);
   const organizationId = session.data?.organization.id ?? null;
   const conversations = useInboxConversations({
     activity: view,
@@ -58,30 +59,35 @@ export function InboxScreen() {
   });
   const threadConversation =
     conversation.data?.conversation ?? selectedConversation;
-  const markRead = useMarkInboxConversationRead({
-    conversationId: threadConversation?.id ?? null,
-    organizationId,
-  });
+  const {
+    isPending: readStatePending,
+    mutate: setReadState,
+    variables: readStateVariables,
+  } = useSetInboxConversationReadState({ organizationId });
 
   useEffect(() => {
-    if (!threadConversation?.id || !threadConversation.unreadCount) {
+    if (!threadConversation?.id || !threadConversation.isUnread) {
       readAttemptConversationIdRef.current = null;
 
       return;
     }
 
     if (
-      threadConversation.unreadCount > 0 &&
-      !markRead.isPending &&
+      preservedUnreadConversationIdRef.current !== threadConversation.id &&
+      !readStatePending &&
       readAttemptConversationIdRef.current !== threadConversation.id
     ) {
       readAttemptConversationIdRef.current = threadConversation.id;
-      markRead.mutate();
+      setReadState({
+        conversationId: threadConversation.id,
+        read: true,
+      });
     }
   }, [
-    markRead,
+    readStatePending,
+    setReadState,
     threadConversation?.id,
-    threadConversation?.unreadCount,
+    threadConversation?.isUnread,
   ]);
 
   if (session.isLoading) {
@@ -179,6 +185,18 @@ export function InboxScreen() {
                 onSelect={(conversationId) => {
                   void setQuery({ conversation: conversationId });
                 }}
+                onToggleReadState={(conversationId, read) => {
+                  if (read) {
+                    preservedUnreadConversationIdRef.current = null;
+                  } else if (conversationId === threadConversation?.id) {
+                    preservedUnreadConversationIdRef.current = conversationId;
+                  }
+
+                  setReadState({ conversationId, read });
+                }}
+                pendingReadStateConversationId={
+                  readStatePending ? readStateVariables?.conversationId : null
+                }
                 search={search ?? ''}
                 selectedConversationId={selectedConversationId || null}
               />

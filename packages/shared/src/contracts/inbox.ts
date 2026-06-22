@@ -37,7 +37,7 @@ export const inboxConversationSummarySchema = z.object({
   latestMessageDirection: smsMessageDirectionSchema,
   latestMessageBody: z.string(),
   latestMessageAt: timestampSchema,
-  unreadCount: z.number().int().nonnegative(),
+  isUnread: z.boolean(),
   replyBlocked: z.boolean(),
   replyBlockedReason: inboxReplyBlockedReasonSchema.nullable(),
 }).strict();
@@ -79,7 +79,7 @@ export const sendInboxReplyResponseSchema = z.object({
   conversation: inboxConversationSummarySchema,
 }).strict();
 
-export const markInboxConversationReadResponseSchema = z.object({
+export const inboxConversationReadStateResponseSchema = z.object({
   conversation: inboxConversationSummarySchema,
 }).strict();
 
@@ -104,7 +104,7 @@ export type SendInboxReplyInput = z.infer<typeof sendInboxReplySchema>;
 export type SendInboxReplyResponse = z.infer<
   typeof sendInboxReplyResponseSchema
 >;
-export type MarkInboxConversationReadResponse = z.infer<
-  typeof markInboxConversationReadResponseSchema
+export type InboxConversationReadStateResponse = z.infer<
+  typeof inboxConversationReadStateResponseSchema
 >;
 export type InboxSummaryResponse = z.infer<typeof inboxSummaryResponseSchema>;

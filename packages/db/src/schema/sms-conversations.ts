@@ -17,7 +17,7 @@ export const smsConversations = pgTable(
       .references(() => organizations.id, { onDelete: 'cascade' }),
     phoneHash: text('phone_hash').notNull(),
     normalizedPhone: text('normalized_phone').notNull(),
-    lastReadAt: timestamp('last_read_at', { withTimezone: true }),
+    unreadAt: timestamp('unread_at', { withTimezone: true }),
     createdAt,
     updatedAt,
   },

@@ -17,6 +17,7 @@ import {
   getInboxUnreadSummary,
   listInbox,
   markConversationRead,
+  markConversationUnread,
   sendInboxReply,
 } from './inbox.service';
 
@@ -68,6 +69,19 @@ export const inboxRoutes = new Hono<AppEnv>()
   })
   .post('/conversations/:id/read', async (c) => {
     const result = await markConversationRead({
+      db: c.get('db'),
+      organizationId: c.get('organization').id,
+      conversationId: c.req.param('id'),
+    });
+
+    if (!result) {
+      return c.json(apiError('not_found', 'Conversation was not found.'), 404);
+    }
+
+    return c.json(result);
+  })
+  .post('/conversations/:id/unread', async (c) => {
+    const result = await markConversationUnread({
       db: c.get('db'),
       organizationId: c.get('organization').id,
       conversationId: c.req.param('id'),

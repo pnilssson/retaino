@@ -6,6 +6,7 @@ import {
   getInboxSummary,
   listInboxConversations,
   markInboxConversationRead,
+  markInboxConversationUnread,
   markManualReplyFailed,
   upsertSmsConversationForMessage,
 } from '../../src/queries/inbox';
@@ -24,7 +25,7 @@ describe('inbox query helpers', () => {
             organizationId,
             phoneHash: 'phone-hash-1',
             normalizedPhone: '+46701111111',
-            lastReadAt: null,
+            unreadAt: new Date('2026-05-24T10:00:00.000Z'),
             createdAt: new Date('2026-05-24T10:00:00.000Z'),
             updatedAt: new Date('2026-05-24T10:00:00.000Z'),
           },
@@ -40,6 +41,7 @@ describe('inbox query helpers', () => {
         organizationId,
         phoneHash: 'phone-hash-1',
         normalizedPhone: '+46701111111',
+        unreadAt: new Date('2026-05-24T10:00:00.000Z'),
         now: new Date('2026-05-24T10:00:00.000Z'),
       }),
     ).resolves.toMatchObject({
@@ -49,6 +51,7 @@ describe('inbox query helpers', () => {
     expect(values).toHaveBeenCalledWith(
       expect.objectContaining({
         organizationId,
+        unreadAt: new Date('2026-05-24T10:00:00.000Z'),
         phoneHash: 'phone-hash-1',
         normalizedPhone: '+46701111111',
       }),
@@ -70,7 +73,7 @@ describe('inbox query helpers', () => {
             latest_message_direction: 'inbound',
             latest_message_body: 'Can I book tomorrow?',
             latest_message_at: new Date('2026-05-24T10:00:00.000Z'),
-            unread_count: 2,
+            is_unread: true,
             reply_blocked: false,
             reply_blocked_reason: null,
           },
@@ -89,7 +92,7 @@ describe('inbox query helpers', () => {
           id: conversationId,
           latestMessageDirection: 'inbound',
           latestMessageBody: 'Can I book tomorrow?',
-          unreadCount: 2,
+          isUnread: true,
           replyBlocked: false,
         }),
       ],
@@ -144,44 +147,58 @@ describe('inbox query helpers', () => {
     expect(statement).toBeDefined();
   });
 
-  it('marks a conversation read at the latest message timestamp', async () => {
+  it('counts unread conversations from conversation state', async () => {
+    let statement: SQL | undefined;
+    const db = {
+      execute: async (query: SQL) => {
+        statement = query;
+
+        return { rows: [{ unread_conversation_count: 1 }] };
+      },
+    };
+
+    await expect(
+      getInboxSummary(db as never, { organizationId }),
+    ).resolves.toEqual({
+      unreadConversationCount: 1,
+    });
+
+    if (!statement) {
+      throw new Error('Expected getInboxSummary to execute SQL.');
+    }
+
+    const query = new PgDialect().sqlToQuery(sql`${statement}`);
+
+    expect(query.sql).toContain('unread_at');
+  });
+
+  it('marks a conversation read by clearing unread state', async () => {
     const set = vi.fn(() => ({
       where: () => ({
-        returning: () => [],
+        returning: () => [{ id: conversationId }],
       }),
     }));
-    let executeCount = 0;
     const db = {
       execute: async () => {
-        executeCount += 1;
-
-        return executeCount === 1
-          ? {
-              rows: [
-                {
-                  latest_message_at: new Date('2026-05-24T10:00:00.000Z'),
-                },
-              ],
-            }
-          : {
-              rows: [
-                {
-                  conversation_id: conversationId,
-                  organization_id: organizationId,
-                  phone: '+46701111111',
-                  contact_id: null,
-                  contact_name: null,
-                  latest_campaign_id: null,
-                  latest_campaign_name: null,
-                  latest_message_direction: 'inbound',
-                  latest_message_body: 'Yes',
-                  latest_message_at: new Date('2026-05-24T10:00:00.000Z'),
-                  unread_count: 0,
-                  reply_blocked: false,
-                  reply_blocked_reason: null,
-                },
-              ],
-            };
+        return {
+          rows: [
+            {
+              conversation_id: conversationId,
+              organization_id: organizationId,
+              phone: '+46701111111',
+              contact_id: null,
+              contact_name: null,
+              latest_campaign_id: null,
+              latest_campaign_name: null,
+              latest_message_direction: 'inbound',
+              latest_message_body: 'Yes',
+              latest_message_at: new Date('2026-05-24T10:00:00.000Z'),
+              is_unread: false,
+              reply_blocked: false,
+              reply_blocked_reason: null,
+            },
+          ],
+        };
       },
       update: () => ({ set }),
     };
@@ -193,13 +210,66 @@ describe('inbox query helpers', () => {
       }),
     ).resolves.toMatchObject({
       id: conversationId,
-      unreadCount: 0,
+      isUnread: false,
     });
     expect(set).toHaveBeenCalledWith(
       expect.objectContaining({
-        lastReadAt: new Date('2026-05-24T10:00:00.000Z'),
+        unreadAt: null,
       }),
     );
+  });
+
+  it('marks a conversation unread', async () => {
+    const unreadAt = new Date('2026-05-24T10:05:00.000Z');
+    const set = vi.fn(() => ({
+      where: () => ({
+        returning: () => [{ id: conversationId }],
+      }),
+    }));
+    let executeCount = 0;
+    const db = {
+      execute: async () => {
+        executeCount += 1;
+
+        return {
+          rows: [
+            {
+              conversation_id: conversationId,
+              organization_id: organizationId,
+              phone: '+46701111111',
+              contact_id: null,
+              contact_name: null,
+              latest_campaign_id: null,
+              latest_campaign_name: null,
+              latest_message_direction: 'outbound',
+              latest_message_body: 'See you soon',
+              latest_message_at: new Date('2026-05-24T10:00:00.000Z'),
+              is_unread: true,
+              reply_blocked: false,
+              reply_blocked_reason: null,
+            },
+          ],
+        };
+      },
+      update: () => ({ set }),
+    };
+
+    await expect(
+      markInboxConversationUnread(db as never, {
+        organizationId,
+        conversationId,
+        now: unreadAt,
+      }),
+    ).resolves.toMatchObject({
+      id: conversationId,
+      isUnread: true,
+    });
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        unreadAt,
+      }),
+    );
+    expect(executeCount).toBe(1);
   });
 
   it('creates manual outbound replies with a client idempotency key', async () => {

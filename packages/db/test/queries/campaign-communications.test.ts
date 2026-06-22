@@ -141,6 +141,8 @@ describe('campaign communication query helpers', () => {
   });
 
   it('creates outbound SMS messages idempotently per campaign recipient', async () => {
+    const conversationValues: Record<string, unknown>[] = [];
+    const conversationUpdateSets: Record<string, unknown>[] = [];
     const db = {
       insert: () => ({
         values: (value: Record<string, unknown>) =>
@@ -151,9 +153,14 @@ describe('campaign communication query helpers', () => {
                 }),
               }
             : {
-                onConflictDoUpdate: () => ({
-                  returning: () => [],
-                }),
+                onConflictDoUpdate: (config: { set: Record<string, unknown> }) => {
+                  conversationValues.push(value);
+                  conversationUpdateSets.push(config.set);
+
+                  return {
+                    returning: () => [],
+                  };
+                },
               },
       }),
       select: () => ({
@@ -191,6 +198,67 @@ describe('campaign communication query helpers', () => {
         status: 'queued',
       }),
     });
+
+    expect(conversationValues).toHaveLength(1);
+    expect(conversationValues[0]?.unreadAt).toBeNull();
+    expect(conversationUpdateSets[0]).not.toHaveProperty('unreadAt');
+  });
+
+  it('does not mark newly created outbound SMS conversations unread', async () => {
+    const conversationValues: Record<string, unknown>[] = [];
+    const conversationUpdateSets: Record<string, unknown>[] = [];
+    const db = {
+      insert: () => ({
+        values: (value: Record<string, unknown>) =>
+          'direction' in value
+            ? {
+                onConflictDoNothing: () => ({
+                  returning: () => [smsMessageRow],
+                }),
+              }
+            : {
+                onConflictDoUpdate: (config: { set: Record<string, unknown> }) => {
+                  conversationValues.push(value);
+                  conversationUpdateSets.push(config.set);
+
+                  return {
+                    returning: () => [],
+                  };
+                },
+              },
+      }),
+    };
+
+    await expect(
+      createOutboundSmsMessage(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        recipientId: recipientRow.id,
+        contactId: recipientRow.contactId,
+        provider: 'fake',
+        fromPhone: '+46700000000',
+        toPhone: '+46701111111',
+        normalizedPhone: '+46701111111',
+        phoneHash: 'phone-hash-1',
+        idempotencyKey: `campaign-send:${campaignRow.id}:recipient:${recipientRow.id}`,
+        body: 'Hi Anna',
+        estimatedSegmentCount: 1,
+        currency: 'SEK',
+        now: new Date('2026-05-16T10:00:00.000Z'),
+      }),
+    ).resolves.toEqual({
+      status: 'created',
+      message: expect.objectContaining({
+        id: smsMessageRow.id,
+        campaignId: campaignRow.id,
+        recipientId: recipientRow.id,
+        status: 'queued',
+      }),
+    });
+
+    expect(conversationValues).toHaveLength(1);
+    expect(conversationValues[0]?.unreadAt).toBeNull();
+    expect(conversationUpdateSets[0]).not.toHaveProperty('unreadAt');
   });
 
   it('loads SMS messages by provider message id for callbacks', async () => {
@@ -280,6 +348,9 @@ describe('campaign communication query helpers', () => {
   });
 
   it('creates inbound SMS message rows in the canonical ledger', async () => {
+    const receivedAt = new Date('2026-05-16T10:03:00.000Z');
+    const conversationValues: Record<string, unknown>[] = [];
+    const conversationUpdateSets: Record<string, unknown>[] = [];
     const db = {
       insert: () => ({
         values: (value: unknown) => {
@@ -310,7 +381,7 @@ describe('campaign communication query helpers', () => {
                     phoneHash: 'phone-hash-1',
                     body: 'STOP',
                     status: 'received',
-                    receivedAt: new Date('2026-05-16T10:03:00.000Z'),
+                    receivedAt,
                   },
                 ],
               }),
@@ -318,11 +389,89 @@ describe('campaign communication query helpers', () => {
           }
 
           return {
-            onConflictDoUpdate: () => ({
-              returning: () => [],
-            }),
+            onConflictDoUpdate: (config: { set: Record<string, unknown> }) => {
+              conversationValues.push(value as Record<string, unknown>);
+              conversationUpdateSets.push(config.set);
+
+              return {
+                returning: () => [],
+              };
+            },
           };
         },
+      }),
+    };
+
+    await expect(
+      createInboundSmsMessage(db as never, {
+        organizationId: campaignRow.organizationId,
+        campaignId: campaignRow.id,
+        recipientId: recipientRow.id,
+        contactId: recipientRow.contactId,
+        provider: 'fake',
+        providerMessageId: 'inbound-1',
+        providerMessagingServiceId: 'fake-ms-1',
+        providerPhoneNumberId: null,
+        fromPhone: '+46701111111',
+        toPhone: '+46700000000',
+        normalizedPhone: '+46701111111',
+        phoneHash: 'phone-hash-1',
+        body: 'STOP',
+        receivedAt,
+      }),
+    ).resolves.toEqual(expect.objectContaining({ direction: 'inbound' }));
+
+    expect(conversationValues).toHaveLength(1);
+    expect(conversationValues[0]).toMatchObject({
+      unreadAt: receivedAt,
+    });
+    expect(conversationUpdateSets[0]).toMatchObject({
+      unreadAt: receivedAt,
+    });
+  });
+
+  it('does not re-mark duplicate inbound SMS conversations unread', async () => {
+    const conversationValues: Record<string, unknown>[] = [];
+    const conversationUpdateSets: Record<string, unknown>[] = [];
+    const db = {
+      insert: () => ({
+        values: (value: Record<string, unknown>) =>
+          'direction' in value
+            ? {
+                onConflictDoNothing: () => ({
+                  returning: () => [],
+                }),
+              }
+            : {
+                onConflictDoUpdate: (config: { set: Record<string, unknown> }) => {
+                  conversationValues.push(value);
+                  conversationUpdateSets.push(config.set);
+
+                  return {
+                    returning: () => [],
+                  };
+                },
+              },
+      }),
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            limit: () => [
+              {
+                ...smsMessageRow,
+                direction: 'inbound',
+                providerMessageId: 'inbound-1',
+                fromPhone: '+46701111111',
+                toPhone: '+46700000000',
+                normalizedPhone: '+46701111111',
+                phoneHash: 'phone-hash-1',
+                body: 'STOP',
+                status: 'received',
+                receivedAt: new Date('2026-05-16T10:03:00.000Z'),
+              },
+            ],
+          }),
+        }),
       }),
     };
 
@@ -344,6 +493,10 @@ describe('campaign communication query helpers', () => {
         receivedAt: new Date('2026-05-16T10:03:00.000Z'),
       }),
     ).resolves.toEqual(expect.objectContaining({ direction: 'inbound' }));
+
+    expect(conversationValues).toHaveLength(1);
+    expect(conversationValues[0]?.unreadAt).toBeNull();
+    expect(conversationUpdateSets[0]).not.toHaveProperty('unreadAt');
   });
 
   it('records provider results on outbound SMS messages', async () => {

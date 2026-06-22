@@ -7,7 +7,7 @@ describe('sms conversations schema', () => {
     expect(smsConversations.organizationId.name).toBe('organization_id');
     expect(smsConversations.phoneHash.name).toBe('phone_hash');
     expect(smsConversations.normalizedPhone.name).toBe('normalized_phone');
-    expect(smsConversations.lastReadAt.name).toBe('last_read_at');
+    expect(smsConversations.unreadAt.name).toBe('unread_at');
   });
 
   it('keeps one conversation state row per organization phone identity', () => {

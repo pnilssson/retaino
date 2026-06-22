@@ -180,7 +180,8 @@ Conversation threading uses phone identity:
 
 - Primary key: `organizationId + phoneHash`.
 - `sms_messages` stores nullable `phoneHash`, `normalizedPhone`, and `idempotencyKey`.
-- `sms_conversations` stores mutable conversation state only, currently `lastReadAt`.
+- `sms_conversations` stores mutable organization-shared conversation state:
+  `unreadAt`.
 - Conversation and message queries must always include `organizationId`.
 - Suppression state comes from `suppressions`, not duplicated conversation columns.
 

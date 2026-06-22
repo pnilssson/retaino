@@ -108,8 +108,10 @@ Rules:
 - Default view is `All conversations`.
 - Additional view is `Needs reply`: latest inbound message is newer than latest outbound message and the phone is not suppressed.
 - List order is newest message first. Thread order is oldest message first.
-- Sidebar and conversation rows show unread conversation counts.
-- Active thread is marked read when opened or when the user clicks a read action.
+- Sidebar and conversation rows use explicit organization-shared conversation
+  read state.
+- Active unread threads are marked read when opened or when the user clicks a
+  read action.
 - Manual replies send exactly the user-authored reply body. Do not append campaign booking links or campaign opt-out copy to manual replies.
 - Manual reply UI uses TanStack Form and keeps one `clientRequestId` for the current unchanged draft until it succeeds or the user changes or resets the message.
 - The reply box is disabled for suppressed conversations.

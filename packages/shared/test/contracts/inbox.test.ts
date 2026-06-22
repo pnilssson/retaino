@@ -4,7 +4,7 @@ import {
   inboxConversationListResponseSchema,
   inboxConversationResponseSchema,
   inboxSummaryResponseSchema,
-  markInboxConversationReadResponseSchema,
+  inboxConversationReadStateResponseSchema,
   sendInboxReplyResponseSchema,
   sendInboxReplySchema,
 } from '../../src/contracts';
@@ -20,7 +20,7 @@ const conversation = {
   latestMessageDirection: 'inbound',
   latestMessageBody: 'Can I book tomorrow?',
   latestMessageAt: '2026-05-24T10:00:00.000Z',
-  unreadCount: 1,
+  isUnread: true,
   replyBlocked: false,
   replyBlockedReason: null,
 } as const;
@@ -101,10 +101,10 @@ describe('inbox contracts', () => {
 
   it('validates read and summary responses', () => {
     expect(
-      markInboxConversationReadResponseSchema.safeParse({
+      inboxConversationReadStateResponseSchema.safeParse({
         conversation: {
           ...conversation,
-          unreadCount: 0,
+          isUnread: false,
         },
       }).success,
     ).toBe(true);

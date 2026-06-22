@@ -10,6 +10,7 @@ import {
   listInboxMessages,
   markManualReplyFailed,
   markInboxConversationRead,
+  markInboxConversationUnread,
   recordSmsMessageProviderResult,
 } from '@retaino/db';
 import {
@@ -22,6 +23,7 @@ import {
   getInboxUnreadSummary,
   listInbox,
   markConversationRead,
+  markConversationUnread,
   sendInboxReply,
 } from '../../../src/features/inbox/inbox.service';
 import { createSmsProvider } from '../../../src/lib/sms-provider';
@@ -36,6 +38,7 @@ vi.mock('@retaino/db', () => ({
   listInboxConversations: vi.fn(),
   listInboxMessages: vi.fn(),
   markInboxConversationRead: vi.fn(),
+  markInboxConversationUnread: vi.fn(),
   markManualReplyFailed: vi.fn(),
   recordSmsMessageProviderResult: vi.fn(),
 }));
@@ -68,7 +71,7 @@ const conversation = {
   latestMessageDirection: 'inbound',
   latestMessageBody: 'Can I book tomorrow?',
   latestMessageAt: '2026-05-24T10:00:00.000Z',
-  unreadCount: 1,
+  isUnread: true,
   replyBlocked: false,
   replyBlockedReason: null,
 } as const;
@@ -129,6 +132,7 @@ describe('inbox service', () => {
     vi.mocked(listInboxMessages).mockReset();
     vi.mocked(markManualReplyFailed).mockReset();
     vi.mocked(markInboxConversationRead).mockReset();
+    vi.mocked(markInboxConversationUnread).mockReset();
     vi.mocked(recordSmsMessageProviderResult).mockReset();
     vi.mocked(assertOrganizationCanSpendSmsCredits).mockReset();
     vi.mocked(debitSmsCreditUsage).mockReset();
@@ -182,7 +186,11 @@ describe('inbox service', () => {
     });
     vi.mocked(markInboxConversationRead).mockResolvedValue({
       ...conversation,
-      unreadCount: 0,
+      isUnread: false,
+    });
+    vi.mocked(markInboxConversationUnread).mockResolvedValue({
+      ...conversation,
+      isUnread: true,
     });
 
     await expect(
@@ -197,7 +205,18 @@ describe('inbox service', () => {
     await expect(
       markConversationRead({ db, organizationId, conversationId }),
     ).resolves.toEqual({
-      conversation: { ...conversation, unreadCount: 0 },
+      conversation: {
+        ...conversation,
+        isUnread: false,
+      },
+    });
+    await expect(
+      markConversationUnread({ db, organizationId, conversationId }),
+    ).resolves.toEqual({
+      conversation: {
+        ...conversation,
+        isUnread: true,
+      },
     });
 
     expect(listInboxConversations).toHaveBeenCalledWith(db, {
@@ -209,6 +228,10 @@ describe('inbox service', () => {
       conversationId,
     });
     expect(markInboxConversationRead).toHaveBeenCalledWith(db, {
+      organizationId,
+      conversationId,
+    });
+    expect(markInboxConversationUnread).toHaveBeenCalledWith(db, {
       organizationId,
       conversationId,
     });

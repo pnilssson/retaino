@@ -9,6 +9,7 @@ import {
   listInboxMessages,
   markManualReplyFailed,
   markInboxConversationRead,
+  markInboxConversationUnread,
   recordSmsMessageProviderResult,
   type DbClient,
 } from '@retaino/db';
@@ -86,6 +87,19 @@ export async function markConversationRead(input: {
   conversationId: string;
 }) {
   const conversation = await markInboxConversationRead(input.db, {
+    organizationId: input.organizationId,
+    conversationId: input.conversationId,
+  });
+
+  return conversation ? { conversation } : null;
+}
+
+export async function markConversationUnread(input: {
+  db: DbClient;
+  organizationId: string;
+  conversationId: string;
+}) {
+  const conversation = await markInboxConversationUnread(input.db, {
     organizationId: input.organizationId,
     conversationId: input.conversationId,
   });

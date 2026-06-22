@@ -334,6 +334,7 @@ export async function createInboundSmsMessage(
       organizationId: input.organizationId,
       phoneHash: input.phoneHash,
       normalizedPhone: input.normalizedPhone,
+      unreadAt: input.receivedAt,
       now,
     });
 

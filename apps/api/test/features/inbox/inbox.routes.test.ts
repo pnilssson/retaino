@@ -10,6 +10,7 @@ import {
   getInboxUnreadSummary,
   listInbox,
   markConversationRead,
+  markConversationUnread,
   sendInboxReply,
 } from '../../../src/features/inbox/inbox.service';
 import { SmsProviderError } from '../../../src/lib/sms-provider';
@@ -20,6 +21,7 @@ vi.mock('../../../src/features/inbox/inbox.service', () => ({
   getInboxUnreadSummary: vi.fn(),
   listInbox: vi.fn(),
   markConversationRead: vi.fn(),
+  markConversationUnread: vi.fn(),
   sendInboxReply: vi.fn(),
 }));
 
@@ -41,7 +43,7 @@ const conversation = {
   latestMessageDirection: 'inbound',
   latestMessageBody: 'Yes',
   latestMessageAt: '2026-05-24T10:00:00.000Z',
-  unreadCount: 1,
+  isUnread: true,
   replyBlocked: false,
   replyBlockedReason: null,
 } as const;
@@ -94,6 +96,7 @@ describe('inbox routes', () => {
     vi.mocked(getInboxUnreadSummary).mockReset();
     vi.mocked(listInbox).mockReset();
     vi.mocked(markConversationRead).mockReset();
+    vi.mocked(markConversationUnread).mockReset();
     vi.mocked(sendInboxReply).mockReset();
   });
 
@@ -155,7 +158,10 @@ describe('inbox routes', () => {
 
   it('marks a conversation read', async () => {
     vi.mocked(markConversationRead).mockResolvedValue({
-      conversation: { ...conversation, unreadCount: 0 },
+      conversation: {
+        ...conversation,
+        isUnread: false,
+      },
     });
 
     const response = await testApp().request(
@@ -165,7 +171,32 @@ describe('inbox routes', () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
-      conversation: { ...conversation, unreadCount: 0 },
+      conversation: {
+        ...conversation,
+        isUnread: false,
+      },
+    });
+  });
+
+  it('marks a conversation unread', async () => {
+    vi.mocked(markConversationUnread).mockResolvedValue({
+      conversation: {
+        ...conversation,
+        isUnread: true,
+      },
+    });
+
+    const response = await testApp().request(
+      `/v1/inbox/conversations/${conversationId}/unread`,
+      { method: 'POST' },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      conversation: {
+        ...conversation,
+        isUnread: true,
+      },
     });
   });
 

@@ -1,10 +1,15 @@
 "use client";
 
-import type {
-  InboxConversationActivityFilter,
-  InboxConversationSummary,
+import {
+  INBOX_CONVERSATION_ACTIVITY_FILTERS,
+  type InboxConversationActivityFilter,
+  type InboxConversationSummary,
 } from '@retaino/shared/contracts';
-import { Search } from 'lucide-react';
+import {
+  Mail,
+  MailOpen,
+  Search,
+} from 'lucide-react';
 import {
   useLocale,
   useTranslations,
@@ -13,17 +18,17 @@ import { BlockedStatusBadge } from '@/components/blocked-status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { textStyles } from '@/lib/text-styles';
 import { cn } from '@/lib/utils';
 import {
-  formatInboxListTime,
   formatInboxDateTime,
+  formatInboxListTime,
 } from '../inbox-format';
-
-const activityFilters: InboxConversationActivityFilter[] = [
-  'all',
-  'needs_reply',
-];
 
 export function InboxConversationList({
   activity,
@@ -32,6 +37,8 @@ export function InboxConversationList({
   onActivityChange,
   onSearchChange,
   onSelect,
+  onToggleReadState,
+  pendingReadStateConversationId,
   search = '',
   selectedConversationId,
 }: {
@@ -41,6 +48,8 @@ export function InboxConversationList({
   onActivityChange: (activity: InboxConversationActivityFilter) => void;
   onSearchChange: (search: string) => void;
   onSelect: (conversationId: string) => void;
+  onToggleReadState: (conversationId: string, read: boolean) => void;
+  pendingReadStateConversationId: string | null;
   search: string;
   selectedConversationId: string | null;
 }) {
@@ -77,7 +86,7 @@ export function InboxConversationList({
           className="inline-flex shrink-0 rounded-lg border border-border bg-background p-0.5"
           role="group"
         >
-          {activityFilters.map((item) => (
+          {INBOX_CONVERSATION_ACTIVITY_FILTERS.map((item) => (
             <Button
               aria-pressed={activity === item}
               className="whitespace-nowrap rounded-[calc(var(--radius)-3px)] px-3"
@@ -95,32 +104,99 @@ export function InboxConversationList({
       <div className="min-h-0 overflow-auto">
         {conversations.length > 0 ? (
           <ol className="m-0 flex list-none flex-col p-0">
-            {conversations.map((conversation) => (
-              <li className="m-0 p-0" key={conversation.id}>
-                <button
-                  className={cn(
-                    'grid w-full gap-1.5 px-4 py-3 text-left transition-[background-color,color] hover:bg-muted/50 focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
-                    selectedConversationId === conversation.id &&
-                      'bg-sidebar-accent hover:bg-sidebar-accent focus-visible:bg-sidebar-accent',
-                  )}
-                  onClick={() => onSelect(conversation.id)}
-                  type="button"
-                >
-                  <span className="flex min-w-0 items-start justify-between gap-3">
-                    <span
-                      className={cn(
-                        'truncate',
-                        textStyles.itemTitle,
-                      )}
+            {conversations.map((conversation) => {
+              const readStateLabel = conversation.isUnread
+                ? t('markAsRead')
+                : t('markAsUnread');
+              const ReadStateIcon = conversation.isUnread ? MailOpen : Mail;
+
+              return (
+                <li className="m-0 p-0" key={conversation.id}>
+                  <div
+                    className={cn(
+                      'grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto] transition-[background-color,color] hover:bg-muted/50 focus-within:bg-muted',
+                      selectedConversationId === conversation.id &&
+                        'bg-sidebar-accent hover:bg-sidebar-accent focus-within:bg-sidebar-accent',
+                    )}
+                  >
+                    <button
+                      className="col-start-1 row-span-2 grid min-w-0 gap-1.5 px-4 py-3 pr-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                      onClick={() => onSelect(conversation.id)}
+                      type="button"
                     >
-                      {conversation.contactName ?? conversation.phone}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-2">
                       <span
                         className={cn(
+                          'block truncate',
+                          textStyles.itemTitle,
+                          conversation.isUnread
+                            ? 'font-semibold'
+                            : 'font-normal',
+                        )}
+                      >
+                        {conversation.contactName ?? conversation.phone}
+                      </span>
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span
+                          className={cn(
+                            'min-w-0 flex-1 truncate',
+                            conversation.isUnread
+                              ? textStyles.body
+                              : textStyles.mutedBody,
+                          )}
+                        >
+                          {conversation.latestMessageDirection === 'outbound'
+                            ? t('youPrefix')
+                            : ''}
+                          {conversation.latestMessageBody || t('noMessageText')}
+                        </span>
+                      </span>
+                      {conversation.latestCampaignName ||
+                      conversation.replyBlocked ? (
+                        <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                          {conversation.latestCampaignName ? (
+                            <Badge className="max-w-full truncate" variant="outline">
+                              {conversation.latestCampaignName}
+                            </Badge>
+                          ) : null}
+                          {conversation.replyBlocked ? (
+                            <BlockedStatusBadge />
+                          ) : null}
+                        </span>
+                      ) : null}
+                    </button>
+                    <span className="col-start-2 row-start-1 flex shrink-0 items-center pr-4 pt-3">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            aria-label={readStateLabel}
+                            className={cn(
+                              '-my-1.5 -mr-1.5 size-8 rounded-full text-muted-foreground hover:text-foreground',
+                              conversation.isUnread && 'text-foreground',
+                            )}
+                            disabled={
+                              pendingReadStateConversationId === conversation.id
+                            }
+                            onClick={() => {
+                              onToggleReadState(
+                                conversation.id,
+                                conversation.isUnread,
+                              );
+                            }}
+                            size="icon"
+                            type="button"
+                            variant="ghost"
+                          >
+                            <ReadStateIcon aria-hidden="true" className="size-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{readStateLabel}</TooltipContent>
+                      </Tooltip>
+                      <span
+                        className={cn(
+                          'ml-2',
                           textStyles.meta,
-                          conversation.unreadCount > 0
-                            ? 'text-foreground'
+                          conversation.isUnread
+                            ? 'font-medium text-foreground'
                             : 'text-muted-foreground',
                         )}
                         title={formatInboxDateTime(
@@ -128,48 +204,16 @@ export function InboxConversationList({
                           locale,
                         )}
                       >
-                        {formatInboxListTime(conversation.latestMessageAt, locale)}
+                        {formatInboxListTime(
+                          conversation.latestMessageAt,
+                          locale,
+                        )}
                       </span>
-                      {conversation.unreadCount > 0 ? (
-                        <Badge className="h-5 min-w-5 rounded-full px-1.5">
-                          {conversation.unreadCount > 99
-                            ? '99+'
-                            : conversation.unreadCount}
-                        </Badge>
-                      ) : null}
                     </span>
-                  </span>
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span
-                      className={cn(
-                        'min-w-0 flex-1 truncate',
-                        conversation.unreadCount > 0
-                          ? textStyles.body
-                          : textStyles.mutedBody,
-                      )}
-                    >
-                      {conversation.latestMessageDirection === 'outbound'
-                        ? t('youPrefix')
-                        : ''}
-                      {conversation.latestMessageBody || t('noMessageText')}
-                    </span>
-                  </span>
-                  {conversation.latestCampaignName ||
-                  conversation.replyBlocked ? (
-                    <span className="flex min-w-0 flex-wrap items-center gap-1.5">
-                      {conversation.latestCampaignName ? (
-                        <Badge className="max-w-full truncate" variant="outline">
-                          {conversation.latestCampaignName}
-                        </Badge>
-                      ) : null}
-                      {conversation.replyBlocked ? (
-                        <BlockedStatusBadge />
-                      ) : null}
-                    </span>
-                  ) : null}
-                </button>
-              </li>
-            ))}
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         ) : (
           <div className="flex min-h-full items-center justify-center px-4 py-8">
