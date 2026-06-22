@@ -17,7 +17,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -25,6 +24,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { textStyles } from '@/lib/text-styles';
+import { cn } from '@/lib/utils';
 import { useCreateContact } from '../hooks/use-create-contact';
 
 type ContactCreateFormValues = {
@@ -91,9 +91,6 @@ export function ContactCreateDialog({
       <DialogContent className="sm:max-w-2xl" closeLabel={common('close')}>
         <DialogHeader>
           <DialogTitle>{t('addContact')}</DialogTitle>
-          <DialogDescription>
-            {t('addContactDescription')}
-          </DialogDescription>
         </DialogHeader>
 
         <form
@@ -119,6 +116,21 @@ export function ContactCreateDialog({
                 </FormField>
               )}
             </form.Field>
+            <form.Field name="email">
+              {(field) => (
+                <FormField htmlFor={field.name} label={t('email')}>
+                  <Input
+                    autoComplete="email"
+                    id={field.name}
+                    name={field.name}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                    spellCheck={false}
+                    type="email"
+                    value={field.state.value}
+                  />
+                </FormField>
+              )}
+            </form.Field>
             <form.Field
               name="phone"
               validators={{
@@ -130,7 +142,11 @@ export function ContactCreateDialog({
                 const error = field.state.meta.errors[0];
 
                 return (
-                  <FormField htmlFor={field.name} label={t('phone')}>
+                  <FormField
+                    className="sm:col-span-2"
+                    htmlFor={field.name}
+                    label={t('phone')}
+                  >
                     <PhoneInput
                       aria-describedby={
                         error ? `${field.name}-error` : undefined
@@ -158,24 +174,13 @@ export function ContactCreateDialog({
                 );
               }}
             </form.Field>
-            <form.Field name="email">
-              {(field) => (
-                <FormField htmlFor={field.name} label={t('email')}>
-                  <Input
-                    autoComplete="email"
-                    id={field.name}
-                    name={field.name}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                    spellCheck={false}
-                    type="email"
-                    value={field.state.value}
-                  />
-                </FormField>
-              )}
-            </form.Field>
             <form.Field name="lastBookingAt">
               {(field) => (
-                <FormField htmlFor={field.name} label={t('lastBooking')}>
+                <FormField
+                  className="sm:col-span-2"
+                  htmlFor={field.name}
+                  label={t('lastBooking')}
+                >
                   <DatePickerInput
                     id={field.name}
                     name={field.name}
@@ -198,14 +203,9 @@ export function ContactCreateDialog({
                     field.handleChange(checked === true)
                   }
                 />
-                <div className="grid gap-1">
-                  <Label htmlFor={field.name}>
-                    {t('marketingSmsAllowedLabel')}
-                  </Label>
-                  <p className={textStyles.mutedBody}>
-                    {t('marketingSmsAllowedDescription')}
-                  </p>
-                </div>
+                <Label htmlFor={field.name}>
+                  {t('marketingSmsAllowedLabel')}
+                </Label>
               </div>
             )}
           </form.Field>
@@ -244,15 +244,17 @@ export function ContactCreateDialog({
 
 function FormField({
   children,
+  className,
   htmlFor,
   label,
 }: {
   children: React.ReactNode;
+  className?: string;
   htmlFor: string;
   label: string;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className={cn('grid gap-2', className)}>
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
     </div>
