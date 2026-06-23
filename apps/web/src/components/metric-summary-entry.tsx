@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 export function MetricSummaryEntry({
   className,
   detail,
+  detailIcon,
   icon: Icon,
   iconClassName,
   label,
@@ -13,6 +14,7 @@ export function MetricSummaryEntry({
 }: {
   className?: string;
   detail?: ReactNode;
+  detailIcon?: ReactNode;
   icon?: LucideIcon;
   iconClassName?: string;
   label: ReactNode;
