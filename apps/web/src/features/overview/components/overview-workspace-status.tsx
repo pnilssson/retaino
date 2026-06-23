@@ -36,7 +36,6 @@ export function OverviewWorkspaceStatus({
         <dl>
           <MetricSummaryEntry
             className="min-h-0 border-t-0 p-0"
-            detail={creditDetail(credits, t)}
             icon={Coins}
             iconClassName={creditIconClassName(credits)}
             label={t("smsCredits")}
@@ -49,7 +48,6 @@ export function OverviewWorkspaceStatus({
         <dl>
           <MetricSummaryEntry
             className="min-h-0 border-t-0 p-0"
-            detail={t("senderNumberDetail")}
             icon={Phone}
             iconClassName="bg-sky-50 text-sky-700"
             label={t("senderNumber")}
@@ -62,7 +60,6 @@ export function OverviewWorkspaceStatus({
         <dl>
           <MetricSummaryEntry
             className="min-h-0 border-t-0 p-0"
-            detail={senderStatus.detail}
             icon={RadioTower}
             iconClassName={senderStatus.iconClassName}
             label={t("senderStatus")}
@@ -72,17 +69,6 @@ export function OverviewWorkspaceStatus({
       </ContentSection>
     </div>
   );
-}
-
-function creditDetail(
-  credits: number,
-  t: ReturnType<typeof useTranslations<"Overview">>,
-) {
-  if (credits <= 0) {
-    return t("noCreditsAvailable");
-  }
-
-  return t("creditsAvailable");
 }
 
 function creditIconClassName(credits: number) {
@@ -101,13 +87,11 @@ function senderStatusView(
   status: SmsSenderStatus | null,
   t: ReturnType<typeof useTranslations<"Overview">>,
 ): {
-  detail: string;
   iconClassName: string;
   value: string;
 } {
   if (status === "ready") {
     return {
-      detail: t("senderReadyDetail"),
       iconClassName: "bg-emerald-50 text-emerald-700",
       value: t("senderReady"),
     };
@@ -115,7 +99,6 @@ function senderStatusView(
 
   if (status === "pending") {
     return {
-      detail: t("senderPendingDetail"),
       iconClassName: "bg-sky-50 text-sky-700",
       value: t("senderSettingUp"),
     };
@@ -123,7 +106,6 @@ function senderStatusView(
 
   if (status === "manual_action_required") {
     return {
-      detail: t("senderManualActionDetail"),
       iconClassName: "bg-amber-50 text-amber-700",
       value: t("senderActionNeeded"),
     };
@@ -131,7 +113,6 @@ function senderStatusView(
 
   if (status === "failed" || status === "release_failed") {
     return {
-      detail: t("senderFailedDetail"),
       iconClassName: "bg-rose-50 text-rose-700",
       value: t("senderNeedsReview"),
     };
@@ -139,14 +120,12 @@ function senderStatusView(
 
   if (status === "release_pending") {
     return {
-      detail: t("senderReleasePendingDetail"),
       iconClassName: "bg-amber-50 text-amber-700",
       value: t("senderStoppingSoon"),
     };
   }
 
   return {
-    detail: t("senderNotActiveDetail"),
     iconClassName: "bg-muted text-muted-foreground",
     value: t("senderNotActive"),
   };
