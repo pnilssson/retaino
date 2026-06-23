@@ -85,6 +85,7 @@ function SummaryMetricItem({ metric }: { metric: ReportSummaryMetric }) {
         <MetricSummaryEntry
           className="min-h-0 border-t-0 p-0"
           detail={metric.detail}
+          detailIcon={metric.icon === 'money' && metric.detail ? <AverageIcon /> : undefined}
           icon={Icon}
           iconClassName={metric.iconClassName}
           label={metric.label}
@@ -92,5 +93,31 @@ function SummaryMetricItem({ metric }: { metric: ReportSummaryMetric }) {
         />
       </dl>
     </ContentSection>
+  );
+}
+
+function AverageIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-3"
+      fill="none"
+      viewBox="0 0 12 12"
+    >
+      <path
+        d="M2.25 8.75 4.5 6.5l1.75 1.75 3.5-4"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.35"
+      />
+      <path
+        d="M8.25 4.25h1.5v1.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.35"
+      />
+    </svg>
   );
 }

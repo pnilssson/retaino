@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 export function MetricSummaryEntry({
   className,
   detail,
+  detailIcon,
   icon: Icon,
   iconClassName,
   label,
@@ -13,12 +14,14 @@ export function MetricSummaryEntry({
 }: {
   className?: string;
   detail?: ReactNode;
+  detailIcon?: ReactNode;
   icon?: LucideIcon;
   iconClassName?: string;
   label: ReactNode;
   value: ReactNode;
 }) {
   const hasValue = value !== null && value !== undefined && value !== false;
+  const hasDetail = detail !== null && detail !== undefined && detail !== false;
 
   return (
     <div
@@ -50,12 +53,19 @@ export function MetricSummaryEntry({
             textStyles.smallNumber,
           )}
         >
-          {value}
-        </dd>
-      ) : null}
-      {detail ? (
-        <dd className={cn('col-start-1 min-w-0', textStyles.small)}>
-          {detail}
+          <span>{value}</span>
+          {hasDetail ? (
+            <span className="ml-1 inline-flex items-center gap-0.5">
+              (
+              {detailIcon ? (
+                <span className="inline-flex size-3 items-center justify-center">
+                  {detailIcon}
+                </span>
+              ) : null}
+              <span>{detail}</span>
+              )
+            </span>
+          ) : null}
         </dd>
       ) : null}
     </div>

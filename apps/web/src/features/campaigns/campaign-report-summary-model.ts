@@ -32,7 +32,7 @@ export function createOutcomeSummary(
   const revenueAmount = report.reportedOutcome.revenueAmountMinor ?? 0;
 
   return {
-    detail: averageBookingRevenueDetail(report, locale, t),
+    detail: averageBookingRevenueDetail(report, locale),
     icon: 'money',
     iconClassName:
       revenueAmount > 0 || report.reportedOutcome.hasMixedCurrencies
@@ -52,28 +52,21 @@ export function createOutcomeSummary(
 function averageBookingRevenueDetail(
   report: CampaignReport,
   locale: string,
-  t: CampaignText,
 ) {
   const bookingCount = report.reportedOutcome.bookingCount;
 
-  if (bookingCount === 0) {
-    return t('noAverageBookingRevenue');
-  }
-
-  if (report.reportedOutcome.hasMixedCurrencies) {
-    return t('averageBookingRevenueUnavailable');
+  if (bookingCount === 0 || report.reportedOutcome.hasMixedCurrencies) {
+    return undefined;
   }
 
   const revenueAmount = report.reportedOutcome.revenueAmountMinor ?? 0;
   const averageRevenue = Math.round(revenueAmount / bookingCount);
 
-  return t('averageBookingRevenue', {
-    amount: formatReportCurrency(
-      averageRevenue,
-      report.reportedOutcome.currency,
-      locale,
-    ),
-  });
+  return formatReportCurrency(
+    averageRevenue,
+    report.reportedOutcome.currency,
+    locale,
+  );
 }
 
 export function createAtAGlanceMetrics(
@@ -83,9 +76,14 @@ export function createAtAGlanceMetrics(
 ): ReportSummaryMetric[] {
   return [
     {
-      detail: t('reportedBookingsCount', {
-        count: formatReportNumber(report.reportedOutcome.bookingCount, locale),
-      }),
+      detail: distinctDetailValue(
+        formatReportNumber(report.reportedOutcome.bookingCount, locale),
+        formatReportPercent(
+          report.reportedOutcome.bookingCount,
+          report.deliveredCount,
+          locale,
+        ),
+      ),
       icon: 'calendar',
       iconClassName: 'bg-emerald-50 text-emerald-700',
       label: t('bookingRate'),
@@ -96,9 +94,7 @@ export function createAtAGlanceMetrics(
       ),
     },
     {
-      detail: t('totalSmsCredits', {
-        count: formatReportNumber(report.actualSmsSegments, locale),
-      }),
+      detail: undefined,
       icon: 'send',
       iconClassName: 'bg-sky-50 text-sky-700',
       label: t('creditsUsed'),
@@ -114,46 +110,57 @@ export function createResponseMetrics(
 ): ReportSummaryMetric[] {
   return [
     {
-      detail: t('ofDelivered', {
-        value: formatReportPercent(
+      detail: distinctDetailValue(
+        formatReportPercent(
           report.uniqueClickerCount,
           report.deliveredCount,
           locale,
         ),
-      }),
+        formatReportNumber(report.uniqueClickerCount, locale),
+      ),
       icon: 'pointer',
       iconClassName: 'bg-violet-50 text-violet-700',
       label: t('uniqueClickers'),
       value: formatReportNumber(report.uniqueClickerCount, locale),
     },
     {
-      detail: t('totalTrackedClicks'),
+      detail: undefined,
       icon: 'pointer',
       iconClassName: 'bg-violet-50 text-violet-700',
       label: t('trackedClicks'),
       value: formatReportNumber(report.clickCount, locale),
     },
     {
-      detail: t('ofSent', {
-        value: formatReportPercent(
+      detail: distinctDetailValue(
+        formatReportPercent(
           report.inboundReplyCount,
           report.sentCount,
           locale,
         ),
-      }),
+        formatReportNumber(report.inboundReplyCount, locale),
+      ),
       icon: 'message',
       iconClassName: 'bg-blue-50 text-blue-700',
       label: t('uniqueReplies'),
       value: formatReportNumber(report.inboundReplyCount, locale),
     },
     {
-      detail: t('ofSent', {
-        value: formatReportPercent(report.optOutCount, report.sentCount, locale),
-      }),
+      detail: distinctDetailValue(
+        formatReportPercent(report.optOutCount, report.sentCount, locale),
+        formatReportNumber(report.optOutCount, locale),
+      ),
       icon: 'shield',
       iconClassName: 'bg-rose-50 text-rose-700',
       label: t('optOuts'),
       value: formatReportNumber(report.optOutCount, locale),
     },
   ];
+}
+
+function distinctDetailValue(detail: string, value: string) {
+  return normalizeMetricValue(detail) === normalizeMetricValue(value) ? undefined : detail;
+}
+
+function normalizeMetricValue(value: string) {
+  return value.replace(/\s/g, '').toLocaleLowerCase();
 }
