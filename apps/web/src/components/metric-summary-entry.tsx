@@ -19,11 +19,12 @@ export function MetricSummaryEntry({
   value: ReactNode;
 }) {
   const hasValue = value !== null && value !== undefined && value !== false;
+  const hasDetail = detail !== null && detail !== undefined && detail !== false;
 
   return (
     <div
       className={cn(
-        'grid min-h-20 grid-cols-[minmax(0,1fr)_auto] content-center gap-x-4 gap-y-2 border-t border-border py-3',
+        'flex min-h-20 items-center justify-between gap-4 border-t border-border py-3',
         className,
       )}
     >
@@ -44,18 +45,9 @@ export function MetricSummaryEntry({
         </span>
       </dt>
       {hasValue ? (
-        <dd
-          className={cn(
-            'row-span-2 self-center justify-self-end text-right',
-            textStyles.smallNumber,
-          )}
-        >
-          {value}
-        </dd>
-      ) : null}
-      {detail ? (
-        <dd className={cn('col-start-1 min-w-0', textStyles.small)}>
-          {detail}
+        <dd className={cn('shrink-0 text-right', textStyles.smallNumber)}>
+          <span>{value}</span>
+          {hasDetail ? <span className="ml-1">({detail})</span> : null}
         </dd>
       ) : null}
     </div>
