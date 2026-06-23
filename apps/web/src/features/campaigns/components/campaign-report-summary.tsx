@@ -67,7 +67,7 @@ export function ResponseActivitySection({ report }: { report: CampaignReport }) 
       framed={false}
       title={t('responseActivity')}
     >
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         {metrics.map((metric) => (
           <SummaryMetricItem key={metric.label} metric={metric} />
         ))}

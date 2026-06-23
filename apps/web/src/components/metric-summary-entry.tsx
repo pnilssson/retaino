@@ -26,7 +26,7 @@ export function MetricSummaryEntry({
   return (
     <div
       className={cn(
-        'grid min-h-20 grid-cols-[minmax(0,1fr)_auto] content-center gap-x-4 gap-y-2 border-t border-border py-3',
+        'flex min-h-20 items-center justify-between gap-4 border-t border-border py-3',
         className,
       )}
     >
@@ -47,25 +47,9 @@ export function MetricSummaryEntry({
         </span>
       </dt>
       {hasValue ? (
-        <dd
-          className={cn(
-            'row-span-2 self-center justify-self-end text-right',
-            textStyles.smallNumber,
-          )}
-        >
+        <dd className={cn('shrink-0 text-right', textStyles.smallNumber)}>
           <span>{value}</span>
-          {hasDetail ? (
-            <span className="ml-1 inline-flex items-center gap-0.5">
-              (
-              {detailIcon ? (
-                <span className="inline-flex size-3 items-center justify-center">
-                  {detailIcon}
-                </span>
-              ) : null}
-              <span>{detail}</span>
-              )
-            </span>
-          ) : null}
+          {hasDetail ? <span className="ml-1">({detail})</span> : null}
         </dd>
       ) : null}
     </div>

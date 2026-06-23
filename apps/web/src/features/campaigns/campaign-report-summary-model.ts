@@ -32,7 +32,7 @@ export function createOutcomeSummary(
   const revenueAmount = report.reportedOutcome.revenueAmountMinor ?? 0;
 
   return {
-    detail: averageBookingRevenueDetail(report, locale),
+    detail: undefined,
     icon: 'money',
     iconClassName:
       revenueAmount > 0 || report.reportedOutcome.hasMixedCurrencies
@@ -47,26 +47,6 @@ export function createOutcomeSummary(
           locale,
         ),
   };
-}
-
-function averageBookingRevenueDetail(
-  report: CampaignReport,
-  locale: string,
-) {
-  const bookingCount = report.reportedOutcome.bookingCount;
-
-  if (bookingCount === 0 || report.reportedOutcome.hasMixedCurrencies) {
-    return undefined;
-  }
-
-  const revenueAmount = report.reportedOutcome.revenueAmountMinor ?? 0;
-  const averageRevenue = Math.round(revenueAmount / bookingCount);
-
-  return formatReportCurrency(
-    averageRevenue,
-    report.reportedOutcome.currency,
-    locale,
-  );
 }
 
 export function createAtAGlanceMetrics(
