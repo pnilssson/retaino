@@ -1,6 +1,8 @@
 'use client';
 
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
+import { Building2, User } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
 import { FunnelChart, type FunnelStage } from '@/components/charts/funnel-chart';
@@ -45,6 +47,11 @@ type AudienceFunnelScenario = {
   sendable: number;
 };
 
+type CampaignIdeaKey =
+  | 'howItWorksCampaignIdeaTime'
+  | 'howItWorksCampaignIdeaConsultation'
+  | 'howItWorksCampaignIdeaSeasonal';
+
 const workflowSteps: WorkflowStep[] = [
   {
     titleKey: 'howItWorksImportTitle',
@@ -58,7 +65,7 @@ const workflowSteps: WorkflowStep[] = [
   },
   {
     titleKey: 'howItWorksCampaignTitle',
-    tone: 'from-rose-50 via-white to-orange-50',
+    tone: '',
     variant: 'standard',
   },
   {
@@ -180,26 +187,48 @@ const audienceFunnelScenarios = [
 const defaultAudienceFunnelScenario = audienceFunnelScenarios[2] as
   | AudienceFunnelScenario
   | undefined;
+const campaignIdeaKeys: CampaignIdeaKey[] = [
+  'howItWorksCampaignIdeaTime',
+  'howItWorksCampaignIdeaConsultation',
+  'howItWorksCampaignIdeaSeasonal',
+];
 const stableCardContentClassName =
   'origin-center transition-transform duration-300 ease-out group-hover/card:scale-[0.988] group-focus-within/card:scale-[0.988] motion-reduce:transition-none motion-reduce:group-hover/card:scale-100 motion-reduce:group-focus-within/card:scale-100';
 
 export function HowItWorksSection() {
+  const shouldReduceMotion = useReducedMotion();
   const t = useTranslations('Marketing');
 
   return (
     <section className="bg-background px-3 pt-24 pb-10 sm:px-5 sm:pt-32 sm:pb-14">
       <div className="mx-auto w-full max-w-7xl">
         <div className="max-w-5xl">
-          <h2 className={textStyles.h2}>
+          <motion.h2
+            animate={{ opacity: 1, y: 0 }}
+            className={textStyles.h2}
+            initial={{ opacity: 0, y: 16 }}
+            transition={{
+              delay: shouldReduceMotion ? 0 : 0.08,
+              duration: shouldReduceMotion ? 0 : 0.55,
+            }}
+          >
             {t('howItWorksTitle')}
             <span className="text-muted-foreground">
               {' '}
               {t('howItWorksTitleMuted')}
             </span>
-          </h2>
+          </motion.h2>
         </div>
 
-        <div className="mt-8 grid auto-rows-[minmax(15rem,auto)] grid-cols-1 gap-3 sm:mt-10 md:auto-rows-[18rem] md:grid-cols-3">
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-8 grid auto-rows-[minmax(15rem,auto)] grid-cols-1 gap-3 sm:mt-10 md:auto-rows-[18rem] md:grid-cols-3"
+          initial={{ opacity: 0, y: 18 }}
+          transition={{
+            delay: shouldReduceMotion ? 0 : 0.22,
+            duration: shouldReduceMotion ? 0 : 0.55,
+          }}
+        >
           {workflowSteps.map((step) => (
             <article
               className={cn(
@@ -218,7 +247,8 @@ export function HowItWorksSection() {
                   step.variant === 'wide' ? 'opacity-100' : 'opacity-80',
                   step.variant === 'wide'
                     ? 'bg-white'
-                    : step.titleKey === 'howItWorksAudienceTitle'
+                    : step.titleKey === 'howItWorksAudienceTitle' ||
+                        step.titleKey === 'howItWorksCampaignTitle'
                       ? 'bg-white'
                     : cn('bg-gradient-to-br', step.tone),
                 )}
@@ -274,6 +304,11 @@ export function HowItWorksSection() {
                     className={stableCardContentClassName}
                     selectedIndex={2}
                   />
+                ) : step.titleKey === 'howItWorksCampaignTitle' ? (
+                  <CampaignIdeasMockup
+                    className={stableCardContentClassName}
+                    ideas={campaignIdeaKeys.map((ideaKey) => t(ideaKey))}
+                  />
                 ) : (
                   <PlaceholderLines
                     className={stableCardContentClassName}
@@ -283,9 +318,238 @@ export function HowItWorksSection() {
               </div>
             </article>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
+  );
+}
+
+function CampaignIdeasMockup({
+  className,
+  ideas,
+}: {
+  className?: string;
+  ideas: string[];
+}) {
+  const maskIdPrefix = useId().replaceAll(':', '');
+  const branches = [
+    {
+      d: 'M164 53 H86 Q74 53 74 65 V236',
+      id: 'left',
+      label: {
+        height: 36,
+        textX: 88,
+        textY: 136,
+        width: 152,
+        x: 12,
+        y: 118,
+      },
+      maskClassName: 'campaign-reveal-left',
+      user: { x: 52, y: 236 },
+    },
+    {
+      d: 'M210 82 V410',
+      id: 'center',
+      label: {
+        height: 36,
+        textX: 210,
+        textY: 318,
+        width: 190,
+        x: 115,
+        y: 300,
+      },
+      maskClassName: 'campaign-reveal-center',
+      user: { x: 188, y: 410 },
+    },
+    {
+      d: 'M256 53 H334 Q346 53 346 65 V278',
+      id: 'right',
+      label: {
+        height: 36,
+        textX: 332,
+        textY: 178,
+        width: 152,
+        x: 256,
+        y: 160,
+      },
+      maskClassName: 'campaign-reveal-right',
+      user: { x: 324, y: 278 },
+    },
+  ];
+
+  return (
+    <div
+      aria-hidden="true"
+      className={cn(
+        'mt-4 flex min-h-0 flex-1 items-center justify-center md:mt-5',
+        className,
+      )}
+    >
+      <svg
+        className="h-[27rem] w-full max-w-[28rem]"
+        fill="none"
+        viewBox="0 0 420 468"
+      >
+        <style>
+          {`
+            .campaign-path-active {
+              stroke-opacity: 0.72;
+            }
+            .campaign-reveal-left,
+            .campaign-reveal-center,
+            .campaign-reveal-right {
+              stroke-dasharray: 1;
+              stroke-dashoffset: 1;
+            }
+            .campaign-reveal-left {
+              animation: campaign-reveal-left 8s ease-out infinite;
+            }
+            .campaign-reveal-center {
+              animation: campaign-reveal-center 8s ease-out infinite;
+            }
+            .campaign-reveal-right {
+              animation: campaign-reveal-right 8s ease-out infinite;
+            }
+            @keyframes campaign-reveal-left {
+              0% { stroke-dashoffset: 1; }
+              18% { stroke-dashoffset: 0; }
+              72% { stroke-dashoffset: 0; }
+              76% { stroke-dashoffset: 1; }
+              100% { stroke-dashoffset: 1; }
+            }
+            @keyframes campaign-reveal-center {
+              0% { stroke-dashoffset: 1; }
+              22% { stroke-dashoffset: 1; }
+              40% { stroke-dashoffset: 0; }
+              72% { stroke-dashoffset: 0; }
+              76% { stroke-dashoffset: 1; }
+              100% { stroke-dashoffset: 1; }
+            }
+            @keyframes campaign-reveal-right {
+              0% { stroke-dashoffset: 1; }
+              44% { stroke-dashoffset: 1; }
+              62% { stroke-dashoffset: 0; }
+              72% { stroke-dashoffset: 0; }
+              76% { stroke-dashoffset: 1; }
+              100% { stroke-dashoffset: 1; }
+            }
+            @media (prefers-reduced-motion: reduce) {
+              .campaign-reveal-left,
+              .campaign-reveal-center,
+              .campaign-reveal-right {
+                animation: none !important;
+                stroke-dashoffset: 1;
+              }
+            }
+          `}
+        </style>
+        <defs>
+          {branches.map((branch) => (
+            <mask
+              height="430"
+              id={`${maskIdPrefix}-campaign-mask-${branch.id}`}
+              key={branch.id}
+              maskUnits="userSpaceOnUse"
+              width="420"
+              x="0"
+              y="0"
+            >
+              <rect fill="black" height="430" width="420" x="0" y="0" />
+              <path
+                className={branch.maskClassName}
+                d={branch.d}
+                fill="none"
+                pathLength="1"
+                stroke="white"
+                strokeLinecap="round"
+                strokeWidth="10"
+              />
+            </mask>
+          ))}
+        </defs>
+
+        {branches.map((branch) => (
+          <g key={branch.d}>
+            <path
+              d={branch.d}
+              stroke="var(--primary)"
+              strokeDasharray="0 12"
+              strokeLinecap="round"
+              strokeOpacity="0.22"
+              strokeWidth="4"
+            />
+            <path
+              className="campaign-path-active"
+              d={branch.d}
+              mask={`url(#${maskIdPrefix}-campaign-mask-${branch.id})`}
+              stroke="var(--primary)"
+              strokeDasharray="0 12"
+              strokeDashoffset="0"
+              strokeLinecap="round"
+              strokeWidth="4"
+            />
+          </g>
+        ))}
+
+        <rect
+          fill="var(--primary)"
+          height="58"
+          rx="8"
+          width="58"
+          x="181"
+          y="24"
+        />
+        <Building2
+          aria-hidden="true"
+          className="text-primary-foreground"
+          height="25"
+          strokeWidth={1.8}
+          width="25"
+          x="197.5"
+          y="40.5"
+        />
+
+        {branches.map((branch, index) => (
+          <g key={branch.d}>
+            <rect
+              fill="var(--primary)"
+              height={branch.label.height}
+              rx="6"
+              width={branch.label.width}
+              x={branch.label.x}
+              y={branch.label.y}
+            />
+            <text
+              className={cn(textStyles.small, 'fill-primary-foreground')}
+              dominantBaseline="central"
+              textAnchor="middle"
+              x={branch.label.textX}
+              y={branch.label.textY}
+            >
+              {ideas[index]}
+            </text>
+
+            <rect
+              fill="var(--primary)"
+              height="44"
+              rx="8"
+              width="44"
+              x={branch.user.x}
+              y={branch.user.y}
+            />
+            <User
+              aria-hidden="true"
+              className="text-primary-foreground"
+              height="19"
+              strokeWidth={1.8}
+              width="19"
+              x={branch.user.x + 12.5}
+              y={branch.user.y + 12.5}
+            />
+          </g>
+        ))}
+      </svg>
+    </div>
   );
 }
 

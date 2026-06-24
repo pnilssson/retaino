@@ -49,7 +49,14 @@ export function MetricSummaryEntry({
       {hasValue ? (
         <dd className={cn('shrink-0 text-right', textStyles.smallNumber)}>
           <span>{value}</span>
-          {hasDetail ? <span className="ml-1">({detail})</span> : null}
+          {hasDetail ? (
+            <span className="ml-1 inline-flex items-center gap-1 align-baseline">
+              (
+              {detailIcon}
+              <span>{detail}</span>
+              )
+            </span>
+          ) : null}
         </dd>
       ) : null}
     </div>
