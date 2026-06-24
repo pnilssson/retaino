@@ -1,5 +1,6 @@
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, lt, or } from 'drizzle-orm';
 import {
+  dateOnlyToUtcDate,
   parseMajorCurrencyAmount,
   type CreateReportedBookingsInput,
 } from '@retaino/shared';
@@ -9,6 +10,7 @@ import type { DbClient } from '../client';
 import {
   campaignRecipients,
   campaigns,
+  contacts,
   organizationProfiles,
   reportedBookings,
 } from '../schema';
@@ -27,6 +29,11 @@ type CreateReportedBookingsResult =
   | { status: 'not_reportable' }
   | { status: 'invalid_recipient'; rowIndex: number }
   | { status: 'invalid_revenue'; rowIndex: number; error: string };
+
+type ReportedBookingContactUpdate = {
+  contactId: string;
+  bookingDate: string;
+};
 
 export async function createReportedBookings(
   db: DbClient,
@@ -162,6 +169,15 @@ export async function createReportedBookings(
       0,
     );
 
+    await advanceContactLastBookingDates(tx, {
+      organizationId: input.organizationId,
+      bookings: preparedRows.map(({ booking }) => ({
+        contactId: booking.contactId,
+        bookingDate: booking.bookingDate,
+      })),
+      updatedAt: now,
+    });
+
     await recordAuditLog(
       tx,
       auditEvents.reportedBookingsCreated({
@@ -203,4 +219,46 @@ export async function createReportedBookings(
       }),
     };
   });
+}
+
+async function advanceContactLastBookingDates(
+  db: Pick<DbClient, 'update'>,
+  input: {
+    organizationId: string;
+    bookings: ReportedBookingContactUpdate[];
+    updatedAt: Date;
+  },
+) {
+  const latestBookingDatesByContactId = new Map<string, string>();
+
+  for (const booking of input.bookings) {
+    const latestBookingDate = latestBookingDatesByContactId.get(
+      booking.contactId,
+    );
+
+    if (!latestBookingDate || booking.bookingDate > latestBookingDate) {
+      latestBookingDatesByContactId.set(booking.contactId, booking.bookingDate);
+    }
+  }
+
+  for (const [contactId, bookingDate] of latestBookingDatesByContactId) {
+    const lastBookingAt = dateOnlyToUtcDate(bookingDate);
+
+    await db
+      .update(contacts)
+      .set({
+        lastBookingAt,
+        updatedAt: input.updatedAt,
+      })
+      .where(
+        and(
+          eq(contacts.organizationId, input.organizationId),
+          eq(contacts.id, contactId),
+          or(
+            isNull(contacts.lastBookingAt),
+            lt(contacts.lastBookingAt, lastBookingAt),
+          ),
+        ),
+      );
+  }
 }

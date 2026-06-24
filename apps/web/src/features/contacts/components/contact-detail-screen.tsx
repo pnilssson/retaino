@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from '@tanstack/react-form';
+import { dateOnlyToUtcDate } from '@retaino/shared';
 import {
   ArrowLeft,
   PhoneOff,
@@ -600,7 +601,7 @@ function contactFormValuesToInput(
   return {
     email: nullableFormValue(value.email),
     lastBookingAt: value.lastBookingAt
-      ? new Date(`${value.lastBookingAt}T00:00:00.000Z`).toISOString()
+      ? dateOnlyToUtcDate(value.lastBookingAt).toISOString()
       : null,
     name: nullableFormValue(value.name),
     phone: normalizedPhone,

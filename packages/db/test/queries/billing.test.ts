@@ -47,6 +47,31 @@ describe('billing query helpers', () => {
     });
   });
 
+  it('maps scheduled subscription cancellations to billing contracts', () => {
+    expect(
+      billingProfileToContract({
+        id: '11111111-1111-4111-8111-111111111111',
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        stripeCustomerId: 'cus_123',
+        stripeSubscriptionId: 'sub_123',
+        stripePriceId: 'price_123',
+        planKey: 'growth',
+        subscriptionStatus: 'active',
+        currentPeriodStart: new Date('2026-05-14T00:00:00.000Z'),
+        currentPeriodEnd: new Date('2026-06-14T00:00:00.000Z'),
+        cancelAtPeriodEnd: true,
+        syncedAt: new Date('2026-05-14T00:00:00.000Z'),
+        createdAt: new Date('2026-05-14T00:00:00.000Z'),
+        updatedAt: new Date('2026-05-14T00:00:00.000Z'),
+      }),
+    ).toEqual({
+      status: 'active',
+      planKey: 'growth',
+      currentPeriodEnd: '2026-06-14T00:00:00.000Z',
+      cancelAtPeriodEnd: true,
+    });
+  });
+
   it('maps SMS credit transactions to contracts', () => {
     expect(
       smsCreditTransactionToContract({

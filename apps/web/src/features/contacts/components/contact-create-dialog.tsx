@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from '@tanstack/react-form';
+import { dateOnlyToUtcDate } from '@retaino/shared';
 import type { CreateContactInput } from '@retaino/shared/contracts';
 import {
   Loader2,
@@ -281,7 +282,7 @@ function contactCreateFormValuesToInput(
   return {
     email: nullableFormValue(value.email),
     lastBookingAt: value.lastBookingAt
-      ? new Date(`${value.lastBookingAt}T00:00:00.000Z`).toISOString()
+      ? dateOnlyToUtcDate(value.lastBookingAt).toISOString()
       : null,
     marketingSmsAllowed: value.marketingSmsAllowed,
     name: nullableFormValue(value.name),

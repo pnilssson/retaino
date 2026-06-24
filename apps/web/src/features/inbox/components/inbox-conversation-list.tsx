@@ -124,14 +124,22 @@ export function InboxConversationList({
                       onClick={() => onSelect(conversation.id)}
                       type="button"
                     >
-                      <span
-                        className={cn(
-                          'block truncate',
-                          textStyles.h3,
-                          conversation.isUnread && 'text-foreground',
-                        )}
-                      >
-                        {conversation.contactName ?? conversation.phone}
+                      <span className="flex min-w-0 items-center gap-2">
+                        {conversation.isUnread ? (
+                          <span
+                            aria-hidden="true"
+                            className="size-2 shrink-0 rounded-full bg-primary"
+                          />
+                        ) : null}
+                        <span
+                          className={cn(
+                            'block min-w-0 truncate',
+                            textStyles.h3,
+                            conversation.isUnread && 'text-foreground',
+                          )}
+                        >
+                          {conversation.contactName ?? conversation.phone}
+                        </span>
                       </span>
                       <span className="flex min-w-0 items-center gap-2">
                         <span

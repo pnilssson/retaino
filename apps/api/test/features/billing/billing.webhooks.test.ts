@@ -216,6 +216,15 @@ describe('Stripe billing webhooks', () => {
       event: subscriptionUpdatedEvent({ cancelAtPeriodEnd: true }),
     });
 
+    expect(upsertOrganizationBillingProfile).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        organizationId,
+        subscriptionStatus: 'active',
+        currentPeriodEnd: new Date('2026-06-15T00:00:00.000Z'),
+        cancelAtPeriodEnd: true,
+      }),
+    );
     expect(scheduleOrganizationSmsSenderRelease).toHaveBeenCalledWith(
       expect.anything(),
       {

@@ -40,24 +40,25 @@ export function BillingStatusPanel({
   const locale = useLocale();
   const t = useTranslations('Billing');
   const subscription = billingStatus.subscription;
-  const status = subscriptionStatusView(subscription.status, t);
+  const status = subscriptionStatusView(subscription, t);
+  const periodMetric = subscriptionPeriodMetric(subscription, locale, t);
   const senderTooltip = senderPolicyNotice(subscription, sender, locale, t);
 
   return (
     <ContentSection
       actions={
-            <Button
-              disabled={
-                !canManageBilling ||
-                !billingStatus.portalAvailable ||
-                isPortalPending
-              }
-              onClick={onOpenPortal}
-              type="button"
-            >
-              <ExternalLink aria-hidden="true" data-icon="inline-start" />
-              {isPortalPending ? t('portalOpening') : t('manageBilling')}
-            </Button>
+        <Button
+          disabled={
+            !canManageBilling ||
+            !billingStatus.portalAvailable ||
+            isPortalPending
+          }
+          onClick={onOpenPortal}
+          type="button"
+        >
+          <ExternalLink aria-hidden="true" data-icon="inline-start" />
+          {isPortalPending ? t('portalOpening') : t('manageBilling')}
+        </Button>
       }
       title={
         <span className="flex flex-wrap items-center gap-2">
@@ -66,34 +67,28 @@ export function BillingStatusPanel({
         </span>
       }
     >
-        <dl className="grid gap-x-8 gap-y-4 pt-1 sm:grid-cols-4">
-          <Metric
-            label={t('smsCredits')}
-            value={formatCreditCount(billingStatus.smsCredits.balance, locale)}
-          />
-          <Metric
-            label={t('currentPlan')}
-            value={subscription.planKey ? planLabel(subscription.planKey) : t('noPlan')}
-          />
-          <Metric
-            label={t('renews')}
-            value={
-              subscription.currentPeriodEnd
-                ? formatBillingDate(subscription.currentPeriodEnd, locale)
-                : t('notScheduled')
-            }
-          />
-          <Metric
-            label={t('senderNumber')}
-            tooltipLabel={t('senderNumberDetails')}
-            tooltip={
-              senderTooltip ? (
-                <span>{senderTooltip}</span>
-              ) : null
-            }
-            value={sender?.phoneNumber ?? t('senderNotActive')}
-          />
-        </dl>
+      <dl className="grid gap-x-8 gap-y-4 pt-1 sm:grid-cols-4">
+        <Metric
+          label={t('smsCredits')}
+          value={formatCreditCount(billingStatus.smsCredits.balance, locale)}
+        />
+        <Metric
+          label={t('currentPlan')}
+          value={
+            subscription.planKey ? planLabel(subscription.planKey) : t('noPlan')
+          }
+        />
+        <Metric
+          label={periodMetric.label}
+          value={periodMetric.value}
+        />
+        <Metric
+          label={t('senderNumber')}
+          tooltipLabel={t('senderNumberDetails')}
+          tooltip={senderTooltip ? <span>{senderTooltip}</span> : null}
+          value={sender?.phoneNumber ?? t('senderNotActive')}
+        />
+      </dl>
     </ContentSection>
   );
 }
@@ -124,14 +119,23 @@ function Metric({
   );
 }
 
+type BillingTranslation = ReturnType<typeof useTranslations<'Billing'>>;
+
 function subscriptionStatusView(
-  status: BillingStatusResponse['subscription']['status'],
-  t: ReturnType<typeof useTranslations<'Billing'>>,
+  subscription: BillingStatusResponse['subscription'],
+  t: BillingTranslation,
 ): {
   label: string;
   tone: StatusBadgeTone;
 } {
-  switch (status) {
+  if (
+    subscription.cancelAtPeriodEnd &&
+    (subscription.status === 'active' || subscription.status === 'trialing')
+  ) {
+    return { label: t('statusEnding'), tone: 'amber' };
+  }
+
+  switch (subscription.status) {
     case 'active':
       return { label: t('statusActive'), tone: 'green' };
     case 'trialing':
@@ -150,7 +154,48 @@ function subscriptionStatusView(
   }
 }
 
-function planLabel(planKey: NonNullable<BillingStatusResponse['subscription']['planKey']>) {
+function subscriptionPeriodMetric(
+  subscription: BillingStatusResponse['subscription'],
+  locale: string,
+  t: BillingTranslation,
+) {
+  const formattedPeriodEnd = subscription.currentPeriodEnd
+    ? formatBillingDate(subscription.currentPeriodEnd, locale)
+    : null;
+
+  if (
+    subscription.cancelAtPeriodEnd &&
+    (subscription.status === 'active' || subscription.status === 'trialing')
+  ) {
+    return {
+      label: t('accessEnds'),
+      value: formattedPeriodEnd ?? t('notScheduled'),
+    };
+  }
+
+  if (subscription.status === 'active' || subscription.status === 'trialing') {
+    return {
+      label: t('renews'),
+      value: formattedPeriodEnd ?? t('notScheduled'),
+    };
+  }
+
+  if (!formattedPeriodEnd) {
+    return {
+      label: t('billingDate'),
+      value: t('notScheduled'),
+    };
+  }
+
+  return {
+    label: t('ended'),
+    value: formattedPeriodEnd,
+  };
+}
+
+function planLabel(
+  planKey: NonNullable<BillingStatusResponse['subscription']['planKey']>,
+) {
   return `${planKey.charAt(0).toUpperCase()}${planKey.slice(1)}`;
 }
 
@@ -158,7 +203,7 @@ function senderPolicyNotice(
   subscription: BillingStatusResponse['subscription'],
   sender: PublicOrganizationSmsSender | null,
   locale: string,
-  t: ReturnType<typeof useTranslations<'Billing'>>,
+  t: BillingTranslation,
 ): string | null {
   if (sender?.status !== 'ready') {
     return null;
