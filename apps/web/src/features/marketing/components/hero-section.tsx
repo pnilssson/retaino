@@ -19,7 +19,15 @@ export function HeroSection() {
   return (
     <section className="bg-background px-3 py-6 sm:px-5">
       <div className="mx-auto w-full max-w-7xl">
-        <div className="relative isolate overflow-hidden rounded-lg bg-primary">
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          className="relative isolate overflow-hidden rounded-lg bg-primary"
+          initial={{ opacity: 0, y: 18 }}
+          transition={{
+            delay: shouldReduceMotion ? 0 : 0.02,
+            duration: shouldReduceMotion ? 0 : 0.6
+          }}
+        >
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -inset-6"
@@ -48,7 +56,7 @@ export function HeroSection() {
                 )}
                 initial={{ opacity: 0, y: 16 }}
                 transition={{
-                  delay: shouldReduceMotion ? 0 : 0.08,
+                  delay: shouldReduceMotion ? 0 : 0.16,
                   duration: shouldReduceMotion ? 0 : 0.55
                 }}
               >
@@ -64,7 +72,7 @@ export function HeroSection() {
                 )}
                 initial={{ opacity: 0, y: 14 }}
                 transition={{
-                  delay: shouldReduceMotion ? 0 : 0.22,
+                  delay: shouldReduceMotion ? 0 : 0.3,
                   duration: shouldReduceMotion ? 0 : 0.45
                 }}
               >
@@ -76,7 +84,7 @@ export function HeroSection() {
                 className="mt-9 flex justify-center"
                 initial={{ opacity: 0, y: 14 }}
                 transition={{
-                  delay: shouldReduceMotion ? 0 : 0.34,
+                  delay: shouldReduceMotion ? 0 : 0.42,
                   duration: shouldReduceMotion ? 0 : 0.45
                 }}
               >
@@ -92,7 +100,7 @@ export function HeroSection() {
               </motion.div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

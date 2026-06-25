@@ -1,7 +1,7 @@
 'use client';
 
 import { type ReactNode, useId, useState } from 'react';
-import { Building2, User } from 'lucide-react';
+import { MessageSquareText, User } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
@@ -220,17 +220,10 @@ export function HowItWorksSection() {
           </motion.h2>
         </div>
 
-        <motion.div
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-8 grid auto-rows-[minmax(15rem,auto)] grid-cols-1 gap-3 sm:mt-10 md:auto-rows-[18rem] md:grid-cols-3"
-          initial={{ opacity: 0, y: 18 }}
-          transition={{
-            delay: shouldReduceMotion ? 0 : 0.22,
-            duration: shouldReduceMotion ? 0 : 0.55,
-          }}
-        >
-          {workflowSteps.map((step) => (
-            <article
+        <div className="mt-8 grid auto-rows-[minmax(15rem,auto)] grid-cols-1 gap-3 sm:mt-10 md:auto-rows-[18rem] md:grid-cols-3">
+          {workflowSteps.map((step, index) => (
+            <motion.article
+              animate={{ opacity: 1, y: 0 }}
               className={cn(
                 'group/card relative isolate flex min-h-[20rem] transform-gpu overflow-hidden rounded-lg border border-border/70 bg-card p-6 transition-transform duration-300 ease-out hover:z-20 hover:scale-[1.012] focus-within:z-20 focus-within:scale-[1.012] motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:focus-within:scale-100 md:min-h-0',
                 step.variant === 'wide' &&
@@ -238,7 +231,12 @@ export function HowItWorksSection() {
                 step.variant === 'tall' && 'md:row-span-2',
                 step.variant === 'standard' && 'md:row-span-2',
               )}
+              initial={{ opacity: 0, y: 18 }}
               key={step.titleKey}
+              transition={{
+                delay: shouldReduceMotion ? 0 : 0.18 + index * 0.08,
+                duration: shouldReduceMotion ? 0 : 0.5,
+              }}
             >
               <div
                 aria-hidden="true"
@@ -316,9 +314,9 @@ export function HowItWorksSection() {
                   />
                 )}
               </div>
-            </article>
+            </motion.article>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );
@@ -337,43 +335,37 @@ function CampaignIdeasMockup({
       d: 'M164 53 H86 Q74 53 74 65 V236',
       id: 'left',
       label: {
-        height: 36,
-        textX: 88,
-        textY: 136,
-        width: 152,
+        anchor: 'start',
+        width: 220,
         x: 12,
         y: 118,
       },
       maskClassName: 'campaign-reveal-left',
-      user: { x: 52, y: 236 },
+      users: [{ x: 52, y: 236 }],
     },
     {
       d: 'M210 82 V410',
       id: 'center',
       label: {
-        height: 36,
-        textX: 210,
-        textY: 318,
-        width: 190,
-        x: 115,
+        anchor: 'center',
+        width: 240,
+        x: 90,
         y: 300,
       },
       maskClassName: 'campaign-reveal-center',
-      user: { x: 188, y: 410 },
+      users: [{ x: 188, y: 410 }],
     },
     {
       d: 'M256 53 H334 Q346 53 346 65 V278',
       id: 'right',
       label: {
-        height: 36,
-        textX: 332,
-        textY: 178,
-        width: 152,
-        x: 256,
+        anchor: 'end',
+        width: 220,
+        x: 188,
         y: 160,
       },
       maskClassName: 'campaign-reveal-right',
-      user: { x: 324, y: 278 },
+      users: [{ x: 324, y: 278 }],
     },
   ];
 
@@ -499,7 +491,7 @@ function CampaignIdeasMockup({
           x="181"
           y="24"
         />
-        <Building2
+        <MessageSquareText
           aria-hidden="true"
           className="text-primary-foreground"
           height="25"
@@ -511,41 +503,51 @@ function CampaignIdeasMockup({
 
         {branches.map((branch, index) => (
           <g key={branch.d}>
-            <rect
-              fill="var(--primary)"
-              height={branch.label.height}
-              rx="6"
+            <foreignObject
+              height="40"
               width={branch.label.width}
               x={branch.label.x}
               y={branch.label.y}
-            />
-            <text
-              className={cn(textStyles.small, 'fill-primary-foreground')}
-              dominantBaseline="central"
-              textAnchor="middle"
-              x={branch.label.textX}
-              y={branch.label.textY}
             >
-              {ideas[index]}
-            </text>
+              <div
+                className={cn(
+                  'flex',
+                  branch.label.anchor === 'center' && 'justify-center',
+                  branch.label.anchor === 'end' && 'justify-end',
+                )}
+              >
+                <div
+                  className={cn(
+                    textStyles.small,
+                    'w-fit rounded-md bg-primary px-3 py-2 text-center text-primary-foreground',
+                  )}
+                >
+                  {ideas[index]}
+                </div>
+              </div>
+            </foreignObject>
 
-            <rect
-              fill="var(--primary)"
-              height="44"
-              rx="8"
-              width="44"
-              x={branch.user.x}
-              y={branch.user.y}
-            />
-            <User
-              aria-hidden="true"
-              className="text-primary-foreground"
-              height="19"
-              strokeWidth={1.8}
-              width="19"
-              x={branch.user.x + 12.5}
-              y={branch.user.y + 12.5}
-            />
+            {branch.users.map((user) => (
+              <g key={`${user.x}-${user.y}`}>
+                <rect
+                  fill="var(--primary)"
+                  height="44"
+                  rx="8"
+                  width="44"
+                  x={user.x}
+                  y={user.y}
+                />
+                <User
+                  aria-hidden="true"
+                  className="text-primary-foreground"
+                  height="19"
+                  strokeWidth={1.8}
+                  width="19"
+                  x={user.x + 12.5}
+                  y={user.y + 12.5}
+                />
+              </g>
+            ))}
           </g>
         ))}
       </svg>
